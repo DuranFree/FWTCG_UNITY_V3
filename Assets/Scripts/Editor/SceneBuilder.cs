@@ -54,6 +54,11 @@ namespace FWTCG.Editor
             cam.depth = -1;
             cameraGO.AddComponent<AudioListener>();
 
+            // ── EventSystem (required for all UI interaction) ─────────────────
+            var esGO = new GameObject("EventSystem");
+            esGO.AddComponent<UnityEngine.EventSystems.EventSystem>();
+            esGO.AddComponent<UnityEngine.EventSystems.StandaloneInputModule>();
+
             // ── Canvas ────────────────────────────────────────────────────────
             var canvasGO = CreateCanvas();
             var canvas = canvasGO.GetComponent<Canvas>();
