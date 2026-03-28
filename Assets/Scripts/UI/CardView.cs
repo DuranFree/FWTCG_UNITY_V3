@@ -1,0 +1,114 @@
+using System;
+using UnityEngine;
+using UnityEngine.UI;
+using TMPro;
+using FWTCG.Core;
+
+namespace FWTCG.UI
+{
+    /// <summary>
+    /// Attached to a Card prefab. Displays unit data and handles click events.
+    /// Exhausted units are shown with a grey tint.
+    /// </summary>
+    public class CardView : MonoBehaviour
+    {
+        [SerializeField] private TMP_Text _nameText;
+        [SerializeField] private TMP_Text _costText;
+        [SerializeField] private TMP_Text _atkText;
+        [SerializeField] private TMP_Text _descText;
+        [SerializeField] private Image _cardBg;
+        [SerializeField] private Image _artImage;
+        [SerializeField] private Button _clickButton;
+
+        private UnitInstance _unit;
+        private bool _isPlayerCard;
+        private Action<UnitInstance> _onClick;
+
+        private static readonly Color ExhaustedColor = new Color(0.4f, 0.4f, 0.4f, 1f);
+        private static readonly Color NormalColor = Color.white;
+        private static readonly Color PlayerCardColor = new Color(0.85f, 0.92f, 1f, 1f);
+        private static readonly Color EnemyCardColor = new Color(1f, 0.85f, 0.85f, 1f);
+
+        private void Awake()
+        {
+            if (_clickButton != null)
+                _clickButton.onClick.AddListener(HandleClick);
+        }
+
+        private void OnDestroy()
+        {
+            if (_clickButton != null)
+                _clickButton.onClick.RemoveListener(HandleClick);
+        }
+
+        /// <summary>
+        /// Configures this card view for a unit.
+        /// </summary>
+        /// <param name="unit">Unit to display</param>
+        /// <param name="isPlayerCard">True if this belongs to the local player</param>
+        /// <param name="onClick">Callback when the card is clicked (null to disable interaction)</param>
+        public void Setup(UnitInstance unit, bool isPlayerCard, Action<UnitInstance> onClick)
+        {
+            _unit = unit;
+            _isPlayerCard = isPlayerCard;
+            _onClick = onClick;
+
+            Refresh();
+
+            // Only player cards are clickable
+            if (_clickButton != null)
+                _clickButton.interactable = isPlayerCard && onClick != null;
+        }
+
+        /// <summary>
+        /// Re-reads the unit state and updates all displayed values.
+        /// Call this when unit state changes (e.g., after taking damage).
+        /// </summary>
+        public void Refresh()
+        {
+            if (_unit == null) return;
+
+            if (_nameText != null)
+                _nameText.text = _unit.UnitName;
+
+            if (_costText != null)
+                _costText.text = _unit.CardData.Cost.ToString();
+
+            if (_atkText != null)
+            {
+                // Show current attack / hp. In FWTCG atk=HP so show both same value.
+                _atkText.text = $"{_unit.CurrentAtk}";
+                if (_unit.CurrentHp != _unit.CurrentAtk)
+                    _atkText.text = $"{_unit.CurrentHp}/{_unit.CurrentAtk}";
+            }
+
+            if (_descText != null)
+                _descText.text = _unit.CardData.Description;
+
+            if (_artImage != null && _unit.CardData.ArtSprite != null)
+            {
+                _artImage.sprite = _unit.CardData.ArtSprite;
+                _artImage.enabled = true;
+            }
+            else if (_artImage != null)
+            {
+                _artImage.enabled = false;
+            }
+
+            // Background colour by owner + exhausted state
+            if (_cardBg != null)
+            {
+                Color baseColor = _isPlayerCard ? PlayerCardColor : EnemyCardColor;
+                _cardBg.color = _unit.Exhausted ? ExhaustedColor : baseColor;
+            }
+        }
+
+        public UnitInstance Unit => _unit;
+
+        private void HandleClick()
+        {
+            if (_unit != null && _onClick != null)
+                _onClick(_unit);
+        }
+    }
+}

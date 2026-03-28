@@ -1,0 +1,17 @@
+{
+    "name": "FWTCG.Editor",
+    "rootNamespace": "FWTCG.Editor",
+    "references": [
+        "FWTCG.Runtime",
+        "Unity.TextMeshPro"
+    ],
+    "includePlatforms": ["Editor"],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": false,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}

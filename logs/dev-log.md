@@ -67,3 +67,44 @@
 **Technical debt**: 无新增
 
 **Problems encountered**: 无
+
+---
+
+## DEV-1: 最小可玩 Demo（10张简单单位卡）— 2026-03-28
+
+**Status**: ✅ Completed
+
+**What was done**:
+- 创建 Unity 工程（2022.3.62f3c1 / URP）
+- 完成所有核心 C# 脚本（16个）：
+  - Data: RuneType, CardData (ScriptableObject)
+  - Core: GameRules, UnitInstance, BattlefieldState, GameState
+  - Systems: TurnManager (6阶段 async/await), CombatSystem, ScoreManager
+  - AI: SimpleAI（横置符文→出牌→移动→结束回合）
+  - UI: CardView, GameUI
+  - GameManager（单例，全局入口）
+  - Editor: SceneBuilder（一键建场景）
+- 创建 asmdef：FWTCG.Runtime, FWTCG.Editor, FWTCG.Tests.EditMode
+- 通过 19 个 NUnit EditMode 逻辑测试（全绿）
+- 通过批处理编译：EXIT:0（无编译错误）
+- 批处理运行 SceneBuilder 生成：
+  - Assets/Scenes/GameScene.unity
+  - Assets/Prefabs/CardPrefab.prefab
+  - Assets/Prefabs/RunePrefab.prefab
+  - Assets/Resources/Cards/（10 个 CardData.asset，5 Kaisa + 5 Yi）
+
+**Decisions made**:
+- DOTween 推迟到 DEV-8（视觉升级Phase），目前不引入
+- TMP Essential Resources 须用户首次打开 Unity 时手动导入（批处理模式无法弹窗）
+- SimpleAI：横置所有符文 → 出1张单位 → 移动1个单位 → 结束回合
+
+**Technical debt**:
+- TMP Essential Resources 未自动导入 — 批处理模式无 GPU，TMP 无法弹窗，需用户手动操作 — DEV-1
+
+**Problems encountered**:
+- DOTween 包未找到（移除解决）
+- NUnit 缺失（添加 com.unity.test-framework 解决）
+- Unity 已运行冲突（Stop-Process 强制关闭解决）
+- SceneBuilder 中 TMPro 命名空间找不到（在 FWTCG.Editor.asmdef 加入 Unity.TextMeshPro 解决）
+- batch mode -nographics 时 TMP 尝试弹窗失败（非致命，场景仍正常创建）
+- executeMethod 方法名写错（BuildGameSceneFromCommandLine → BuildGameScene）

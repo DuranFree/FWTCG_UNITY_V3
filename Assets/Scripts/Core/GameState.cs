@@ -1,0 +1,204 @@
+using System.Collections.Generic;
+using FWTCG.Data;
+
+namespace FWTCG.Core
+{
+    /// <summary>
+    /// Complete mutable game state (equivalent to G object in the JS version).
+    /// All game data lives here; systems read and write this object.
+    /// </summary>
+    public class GameState
+    {
+        // ── UID counter ────────────────────────────────────────────────────────
+        private static int _uidCounter = 0;
+        public static int NextUid() => ++_uidCounter;
+        public static void ResetUidCounter() => _uidCounter = 0;
+
+        // ── Scores ─────────────────────────────────────────────────────────────
+        public int PScore { get; set; }
+        public int EScore { get; set; }
+
+        // ── Decks ──────────────────────────────────────────────────────────────
+        public List<UnitInstance> PDeck { get; set; } = new List<UnitInstance>();
+        public List<UnitInstance> EDeck { get; set; } = new List<UnitInstance>();
+
+        // ── Hands ──────────────────────────────────────────────────────────────
+        public List<UnitInstance> PHand { get; set; } = new List<UnitInstance>();
+        public List<UnitInstance> EHand { get; set; } = new List<UnitInstance>();
+
+        // ── Base (staging area before battlefield) ────────────────────────────
+        public List<UnitInstance> PBase { get; set; } = new List<UnitInstance>();
+        public List<UnitInstance> EBase { get; set; } = new List<UnitInstance>();
+
+        // ── Discard piles ─────────────────────────────────────────────────────
+        public List<UnitInstance> PDiscard { get; set; } = new List<UnitInstance>();
+        public List<UnitInstance> EDiscard { get; set; } = new List<UnitInstance>();
+
+        // ── Runes in play ─────────────────────────────────────────────────────
+        public List<RuneInstance> PRunes { get; set; } = new List<RuneInstance>();
+        public List<RuneInstance> ERunes { get; set; } = new List<RuneInstance>();
+
+        // ── Rune decks ────────────────────────────────────────────────────────
+        public List<RuneInstance> PRuneDeck { get; set; } = new List<RuneInstance>();
+        public List<RuneInstance> ERuneDeck { get; set; } = new List<RuneInstance>();
+
+        // ── Battlefields ──────────────────────────────────────────────────────
+        public BattlefieldState[] BF { get; private set; }
+
+        // ── Mana ──────────────────────────────────────────────────────────────
+        public int PMana { get; set; }
+        public int EMana { get; set; }
+
+        // ── Schematic energy (符能) per rune type ────────────────────────────
+        public Dictionary<RuneType, int> PSch { get; set; } = new Dictionary<RuneType, int>();
+        public Dictionary<RuneType, int> ESch { get; set; } = new Dictionary<RuneType, int>();
+
+        // ── Turn tracking ─────────────────────────────────────────────────────
+        public int Round { get; set; }
+        public string Turn { get; set; }    // "player" or "enemy"
+        public string Phase { get; set; }   // phase name constant
+
+        /// <summary>Who went first this game.</summary>
+        public string First { get; set; }
+
+        public bool PFirstTurnDone { get; set; }
+        public bool EFirstTurnDone { get; set; }
+
+        // ── Game over ─────────────────────────────────────────────────────────
+        public bool GameOver { get; set; }
+
+        // ── Per-turn tracking ─────────────────────────────────────────────────
+        /// <summary>Battlefield IDs that already awarded a hold score this turn.</summary>
+        public List<int> BFScoredThisTurn { get; set; } = new List<int>();
+
+        /// <summary>Battlefield IDs that already awarded a conquest score this turn.</summary>
+        public List<int> BFConqueredThisTurn { get; set; } = new List<int>();
+
+        public int CardsPlayedThisTurn { get; set; }
+
+        // ── Constructor ───────────────────────────────────────────────────────
+        public GameState()
+        {
+            BF = new BattlefieldState[GameRules.BATTLEFIELD_COUNT];
+            for (int i = 0; i < GameRules.BATTLEFIELD_COUNT; i++)
+            {
+                BF[i] = new BattlefieldState(i);
+            }
+
+            // Initialise all rune-type entries to 0
+            foreach (RuneType rt in System.Enum.GetValues(typeof(RuneType)))
+            {
+                PSch[rt] = 0;
+                ESch[rt] = 0;
+            }
+        }
+
+        // ── Schematic energy helpers ──────────────────────────────────────────
+
+        public void AddSch(string owner, RuneType type, int n = 1)
+        {
+            Dictionary<RuneType, int> sch = owner == GameRules.OWNER_PLAYER ? PSch : ESch;
+            if (!sch.ContainsKey(type)) sch[type] = 0;
+            sch[type] += n;
+        }
+
+        public void SpendSch(string owner, RuneType type, int n = 1)
+        {
+            Dictionary<RuneType, int> sch = owner == GameRules.OWNER_PLAYER ? PSch : ESch;
+            if (!sch.ContainsKey(type)) sch[type] = 0;
+            sch[type] = UnityEngine.Mathf.Max(0, sch[type] - n);
+        }
+
+        public void ResetSch(string owner)
+        {
+            Dictionary<RuneType, int> sch = owner == GameRules.OWNER_PLAYER ? PSch : ESch;
+            foreach (RuneType rt in System.Enum.GetValues(typeof(RuneType)))
+            {
+                sch[rt] = 0;
+            }
+        }
+
+        /// <summary>
+        /// Returns total schematic energy for an owner (all types summed)
+        /// or the value for a specific type if type is provided.
+        /// </summary>
+        public int GetSch(string owner, RuneType? type = null)
+        {
+            Dictionary<RuneType, int> sch = owner == GameRules.OWNER_PLAYER ? PSch : ESch;
+            if (type.HasValue)
+            {
+                return sch.ContainsKey(type.Value) ? sch[type.Value] : 0;
+            }
+            int total = 0;
+            foreach (int v in sch.Values) total += v;
+            return total;
+        }
+
+        // ── Unit factory ──────────────────────────────────────────────────────
+
+        /// <summary>
+        /// Creates a new UnitInstance from CardData with a unique UID.
+        /// Applies the atk=HP core rule during construction.
+        /// </summary>
+        public UnitInstance MakeUnit(CardData data, string owner)
+        {
+            return new UnitInstance(NextUid(), data, owner);
+        }
+
+        // ── Deck/hand helpers ─────────────────────────────────────────────────
+
+        public List<UnitInstance> GetDeck(string owner) =>
+            owner == GameRules.OWNER_PLAYER ? PDeck : EDeck;
+
+        public List<UnitInstance> GetHand(string owner) =>
+            owner == GameRules.OWNER_PLAYER ? PHand : EHand;
+
+        public List<UnitInstance> GetBase(string owner) =>
+            owner == GameRules.OWNER_PLAYER ? PBase : EBase;
+
+        public List<UnitInstance> GetDiscard(string owner) =>
+            owner == GameRules.OWNER_PLAYER ? PDiscard : EDiscard;
+
+        public List<RuneInstance> GetRunes(string owner) =>
+            owner == GameRules.OWNER_PLAYER ? PRunes : ERunes;
+
+        public List<RuneInstance> GetRuneDeck(string owner) =>
+            owner == GameRules.OWNER_PLAYER ? PRuneDeck : ERuneDeck;
+
+        public int GetMana(string owner) =>
+            owner == GameRules.OWNER_PLAYER ? PMana : EMana;
+
+        public void SetMana(string owner, int value)
+        {
+            if (owner == GameRules.OWNER_PLAYER) PMana = value;
+            else EMana = value;
+        }
+
+        public void AddMana(string owner, int amount)
+        {
+            if (owner == GameRules.OWNER_PLAYER) PMana += amount;
+            else EMana += amount;
+        }
+
+        public int GetScore(string owner) =>
+            owner == GameRules.OWNER_PLAYER ? PScore : EScore;
+
+        public void AddScore(string owner, int amount)
+        {
+            if (owner == GameRules.OWNER_PLAYER) PScore += amount;
+            else EScore += amount;
+        }
+
+        public bool IsFirstTurnDone(string owner) =>
+            owner == GameRules.OWNER_PLAYER ? PFirstTurnDone : EFirstTurnDone;
+
+        public void SetFirstTurnDone(string owner, bool value)
+        {
+            if (owner == GameRules.OWNER_PLAYER) PFirstTurnDone = value;
+            else EFirstTurnDone = value;
+        }
+
+        public string Opponent(string owner) =>
+            owner == GameRules.OWNER_PLAYER ? GameRules.OWNER_ENEMY : GameRules.OWNER_PLAYER;
+    }
+}
