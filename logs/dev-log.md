@@ -23,3 +23,26 @@
 **Technical debt**: 无
 
 **Problems encountered**: 无
+
+---
+
+## Phase 2: 视觉分析 + 视觉升级指南 — 2026-03-28
+
+**Status**: ✅ Completed
+
+**What was done**:
+- 读取全部 5 个 CSS 文件（16,000+ 行）及 particles.js / 3d-tilt.js / dragAnim.js 视觉部分
+- 完成视觉元素分类（A直接移植3项 / B原版Hack需升级8项 / C原版缺失2项）
+- 生成 visual-checklist.md（12大类，60+项）
+- 生成 visual-upgrade-FWTCG.md（效果逐一对照，含实施顺序和资源清单）
+
+**Decisions made**:
+- URP Post Processing（Bloom/Vignette/Color Grade/Film Grain）全部启用
+- 3D 倾斜从 CSS perspective hack 升级为真实 RectTransform 3D 旋转
+- 玻璃态简化方案：半透明深色 Panel 替代真模糊（性能优先）
+- DOTween 统一替代全部 60+ CSS @keyframes 动画
+- Shader Graph 处理发光边框 / 彗星边框 / 背景纹理
+
+**Technical debt**: 无新增
+
+**Problems encountered**: 无
