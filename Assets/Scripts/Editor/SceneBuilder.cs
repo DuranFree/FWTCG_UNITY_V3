@@ -133,6 +133,10 @@ namespace FWTCG.Editor
             var simpleAI   = gmGO.AddComponent<FWTCG.AI.SimpleAI>();
             var gameUI     = gmGO.AddComponent<FWTCG.UI.GameUI>();
 
+            // Duel buttons sit inside BF panels
+            var bf1DuelButton = bf1Panel.Find("DuelButton").GetComponent<Button>();
+            var bf2DuelButton = bf2Panel.Find("DuelButton").GetComponent<Button>();
+
             // ── Wire UI references via SerializedObject ───────────────────────
             WireGameUI(gameUI, cardPrefab, runePrefab,
                 playerScoreText, enemyScoreText, roundInfoText,
@@ -143,6 +147,7 @@ namespace FWTCG.Editor
                 bf2PlayerUnits, bf2EnemyUnits,
                 bf1Label, bf2Label,
                 playerRunes, enemyRunes,
+                bf1DuelButton, bf2DuelButton,
                 endTurnButton,
                 messagePanel.transform,
                 messageText,
@@ -358,6 +363,18 @@ namespace FWTCG.Editor
 
             // Player units zone
             CreateHorizontalZone(panel.transform, playerZoneName);
+
+            // Duel button — shown only when BF is contested (hidden by default, shown via RefreshBattlefields)
+            var duelBtnGO = new GameObject("DuelButton");
+            duelBtnGO.transform.SetParent(panel.transform, false);
+            var duelImg = duelBtnGO.AddComponent<Image>();
+            duelImg.color = new Color(0.8f, 0.6f, 0.1f); // gold
+            var duelBtn = duelBtnGO.AddComponent<Button>();
+            var duelLE = duelBtnGO.AddComponent<LayoutElement>();
+            duelLE.preferredHeight = 30f;
+            duelLE.flexibleHeight = 0f;
+            CreateTMPText(duelBtnGO.transform, "DuelLabel", "⚔ 开始法术对决", Color.black, 16, TextAnchor.MiddleCenter);
+            duelBtnGO.SetActive(false); // hidden until contested
 
             // Add button to panel for BF click
             panel.AddComponent<Button>();
@@ -605,6 +622,7 @@ namespace FWTCG.Editor
             Transform bf2PlayerContainer, Transform bf2EnemyContainer,
             Text bf1CtrlText, Text bf2CtrlText,
             Transform playerRuneContainer, Transform enemyRuneContainer,
+            Button bf1DuelButton, Button bf2DuelButton,
             Button endTurnButton,
             Transform messageContainer,
             Text messageTextPrefab,
@@ -642,6 +660,8 @@ namespace FWTCG.Editor
             var bf2Btn = bf2PlayerContainer.parent.GetComponent<Button>();
             so.FindProperty("_bf1Button").objectReferenceValue = bf1Btn;
             so.FindProperty("_bf2Button").objectReferenceValue = bf2Btn;
+            so.FindProperty("_bf1DuelButton").objectReferenceValue = bf1DuelButton;
+            so.FindProperty("_bf2DuelButton").objectReferenceValue = bf2DuelButton;
 
             so.FindProperty("_playerRuneContainer").objectReferenceValue  = playerRuneContainer;
             so.FindProperty("_enemyRuneContainer").objectReferenceValue   = enemyRuneContainer;

@@ -256,7 +256,8 @@ namespace FWTCG.Systems
                 await _ai.TakeAction(gs, this, _combatSys, _scoreMgr);
             }
 
-            // Resolve combat on all contested battlefields after all moves are committed
+            // If any contested battlefields remain when turn ends, auto-resolve them
+            // (handles AI turns and any duels the player chose not to initiate)
             if (!gs.GameOver)
             {
                 _combatSys.ResolveAllBattlefields(who, gs, _scoreMgr);

@@ -85,7 +85,8 @@ namespace FWTCG
                     onEndTurn: OnEndTurnClicked,
                     onBF: OnBattlefieldClicked,
                     onUnit: OnUnitClicked,
-                    onRune: OnRuneClicked
+                    onRune: OnRuneClicked,
+                    onDuel: OnDuelClicked
                 );
             }
 
@@ -296,6 +297,28 @@ namespace FWTCG
                     $"[横置] 符文 {rune.RuneType} 横置，法力 → {_gs.PMana}");
             }
 
+            RefreshUI();
+        }
+
+        /// <summary>
+        /// Called when the player clicks "开始法术对决" on a specific battlefield.
+        /// Resolves combat immediately for that battlefield. Player can keep acting after.
+        /// </summary>
+        public void OnDuelClicked(int bfId)
+        {
+            if (_gs.GameOver) return;
+            if (_gs.Turn != GameRules.OWNER_PLAYER) return;
+            if (_gs.Phase != GameRules.PHASE_ACTION) return;
+
+            BattlefieldState bf = _gs.BF[bfId];
+            if (!bf.HasUnits(GameRules.OWNER_PLAYER) || !bf.HasUnits(GameRules.OWNER_ENEMY))
+            {
+                TurnManager.BroadcastMessage_Static($"[提示] 战场{bfId + 1} 无对决：双方必须都有单位");
+                return;
+            }
+
+            TurnManager.BroadcastMessage_Static($"[法术对决] 战场{bfId + 1} 开始对决！");
+            _combatSys.TriggerCombat(bfId, GameRules.OWNER_PLAYER, _gs, _scoreMgr);
             RefreshUI();
         }
 

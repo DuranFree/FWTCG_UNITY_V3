@@ -50,6 +50,8 @@ namespace FWTCG.UI
         [SerializeField] private Text _bf2CtrlText;
         [SerializeField] private Button _bf1Button;
         [SerializeField] private Button _bf2Button;
+        [SerializeField] private Button _bf1DuelButton;
+        [SerializeField] private Button _bf2DuelButton;
 
         // ── Rune area ─────────────────────────────────────────────────────────
         [SerializeField] private Transform _playerRuneContainer;
@@ -74,6 +76,7 @@ namespace FWTCG.UI
         private Action<int> _onBFClicked;
         private Action<UnitInstance> _onUnitClicked;
         private Action<int, bool> _onRuneClicked; // (runeIdx, recycle)
+        private Action<int> _onDuelClicked;       // (bfId)
 
         // ── Message log state ─────────────────────────────────────────────────
         private const int MAX_MESSAGES = 5;
@@ -87,6 +90,8 @@ namespace FWTCG.UI
             if (_endTurnButton != null) _endTurnButton.onClick.AddListener(HandleEndTurn);
             if (_bf1Button != null) _bf1Button.onClick.AddListener(() => _onBFClicked?.Invoke(0));
             if (_bf2Button != null) _bf2Button.onClick.AddListener(() => _onBFClicked?.Invoke(1));
+            if (_bf1DuelButton != null) _bf1DuelButton.onClick.AddListener(() => _onDuelClicked?.Invoke(0));
+            if (_bf2DuelButton != null) _bf2DuelButton.onClick.AddListener(() => _onDuelClicked?.Invoke(1));
             if (_restartButton != null) _restartButton.onClick.AddListener(HandleRestart);
         }
 
@@ -95,18 +100,22 @@ namespace FWTCG.UI
             if (_endTurnButton != null) _endTurnButton.onClick.RemoveAllListeners();
             if (_bf1Button != null) _bf1Button.onClick.RemoveAllListeners();
             if (_bf2Button != null) _bf2Button.onClick.RemoveAllListeners();
+            if (_bf1DuelButton != null) _bf1DuelButton.onClick.RemoveAllListeners();
+            if (_bf2DuelButton != null) _bf2DuelButton.onClick.RemoveAllListeners();
             if (_restartButton != null) _restartButton.onClick.RemoveAllListeners();
         }
 
         // ── Setup ─────────────────────────────────────────────────────────────
 
         public void SetCallbacks(Action onEndTurn, Action<int> onBF,
-                                 Action<UnitInstance> onUnit, Action<int, bool> onRune)
+                                 Action<UnitInstance> onUnit, Action<int, bool> onRune,
+                                 Action<int> onDuel = null)
         {
             _onEndTurnClicked = onEndTurn;
             _onBFClicked = onBF;
             _onUnitClicked = onUnit;
             _onRuneClicked = onRune;
+            _onDuelClicked = onDuel;
         }
 
         // ── Full refresh ──────────────────────────────────────────────────────
@@ -198,6 +207,24 @@ namespace FWTCG.UI
                 _bf1CtrlText.text = CtrlLabel(gs.BF[0].Ctrl);
             if (_bf2CtrlText != null)
                 _bf2CtrlText.text = CtrlLabel(gs.BF[1].Ctrl);
+
+            // Show duel button only when both sides have units on that BF and it's player's action phase
+            bool isPlayerAction = gs.Turn == GameRules.OWNER_PLAYER
+                                  && gs.Phase == GameRules.PHASE_ACTION
+                                  && !gs.GameOver;
+
+            if (_bf1DuelButton != null)
+            {
+                bool bf1Contested = gs.BF[0].HasUnits(GameRules.OWNER_PLAYER)
+                                 && gs.BF[0].HasUnits(GameRules.OWNER_ENEMY);
+                _bf1DuelButton.gameObject.SetActive(isPlayerAction && bf1Contested);
+            }
+            if (_bf2DuelButton != null)
+            {
+                bool bf2Contested = gs.BF[1].HasUnits(GameRules.OWNER_PLAYER)
+                                 && gs.BF[1].HasUnits(GameRules.OWNER_ENEMY);
+                _bf2DuelButton.gameObject.SetActive(isPlayerAction && bf2Contested);
+            }
         }
 
         private void RefreshRunes(GameState gs)
