@@ -46,3 +46,24 @@
 **Technical debt**: 无新增
 
 **Problems encountered**: 无
+
+---
+
+## Phase 3: 移植计划 — 2026-03-28
+
+**Status**: ✅ Completed
+
+**What was done**:
+- 生成 port-FWTCG.md（10个开发Phase，每个均为可玩Demo）
+- 完成标准调整为"用户可实际操作"而非"测试通过"
+- 更新 memory 第6条规则
+- DEV-1 确认为10张简单单位卡（5套×2），最小可玩Loop
+
+**Decisions made**:
+- 每个Phase = 可玩Demo，从最小可玩开始逐步扩展
+- DEV-1不再拆分，10张牌是最低可玩阈值
+- 视觉升级推迟到DEV-8/9，前期功能优先
+
+**Technical debt**: 无新增
+
+**Problems encountered**: 无
