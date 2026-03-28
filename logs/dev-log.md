@@ -108,3 +108,33 @@
 - SceneBuilder 中 TMPro 命名空间找不到（在 FWTCG.Editor.asmdef 加入 Unity.TextMeshPro 解决）
 - batch mode -nographics 时 TMP 尝试弹窗失败（非致命，场景仍正常创建）
 - executeMethod 方法名写错（BuildGameSceneFromCommandLine → BuildGameScene）
+
+---
+
+## DEV-1 规则修正 + 中文字体修复 — 2026-03-28
+
+**Status**: ✅ Completed
+
+**What was done**:
+- 将全部 UI 文字从 TextMeshProUGUI 切换为 Legacy UnityEngine.UI.Text（彻底解决 TMP batch-mode 字体问题）
+- SceneBuilder 增加 Main Camera（正交投影，#010a13 背景）
+- SceneBuilder 增加 EventSystem + StandaloneInputModule（修复 UI 点击全无响应）
+- LoadFont() 系统字体回退：尝试 simhei.ttf / simkai.ttf / msyh.ttc，失败则用 OS 字体
+- 删除 FontSetup.cs / FontFallbackSetup.cs（TMP 方案遗留，已无用）
+- 从 asmdef 移除 Unity.TextMeshPro 引用
+- 删除错误规则：最后1分受限（ScoreManager 整块移除）
+- 删除错误规则：战场每方2单位上限（HasSlot → 始终 true）
+- 删除错误规则：手牌上限7（TurnManager draw 阶段 burn 逻辑移除）
+- 删除 GameRules.MAX_HAND_SIZE 和 MAX_BF_UNITS 常量
+- 更新 GameStateTests.cs：移除对已删除常量的引用，改为验证无上限行为
+
+**Decisions made**:
+- TMP 彻底废弃于此 Phase，全项目用 Legacy Text，后续 DEV-8 视觉升级时再评估是否引入
+- 三条错误规则均经用户游戏测试后确认并修正
+
+**Technical debt**: 无新增
+
+**Problems encountered**:
+- TMP m_AtlasTextures 在 batch -nographics 下始终损坏（根本原因：无 GPU 无法生成 atlas）
+- EventSystem 缺失导致所有 Button 无响应（添加后立即修复）
+- GameStateTests.cs 引用已删除常量造成编译错误（已修复）

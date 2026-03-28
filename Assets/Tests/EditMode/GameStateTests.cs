@@ -53,17 +53,24 @@ namespace FWTCG.Tests.EditMode
         }
 
         [Test]
-        public void MaxHandSize_IsSeven()
+        public void HandSize_IsUnlimited()
         {
-            Assert.AreEqual(7, GameRules.MAX_HAND_SIZE,
-                "MAX_HAND_SIZE must be 7 per game rules.");
+            // No hand size cap — players can hold any number of cards
+            var gs = MakeGameState();
+            CardData data = MakeCardData("Card", 1, 1);
+            for (int i = 0; i < 20; i++)
+                gs.PHand.Add(gs.MakeUnit(data, GameRules.OWNER_PLAYER));
+            Assert.AreEqual(20, gs.PHand.Count, "Hand size should be unlimited");
         }
 
         [Test]
-        public void MaxBFUnits_IsTwo()
+        public void BFSlots_AreUnlimited()
         {
-            Assert.AreEqual(2, GameRules.MAX_BF_UNITS,
-                "MAX_BF_UNITS must be 2 per game rules.");
+            // No unit cap per battlefield side
+            var gs = MakeGameState();
+            BattlefieldState bf = gs.BF[0];
+            Assert.IsTrue(bf.HasSlot(GameRules.OWNER_PLAYER),
+                "HasSlot must always return true (no cap)");
         }
 
         [Test]
@@ -136,57 +143,38 @@ namespace FWTCG.Tests.EditMode
                 "EffectiveAtk must return at least 1");
         }
 
-        // ── Tests: Hand limit ─────────────────────────────────────────────────
+        // ── Tests: Hand (no limit) ────────────────────────────────────────────
 
         [Test]
-        public void HandLimit_CannotExceedMaxHandSize()
+        public void Hand_CanHoldManyCards()
         {
             var gs = MakeGameState();
             CardData data = MakeCardData("Card", 1, 1);
 
-            // Fill hand to limit
-            for (int i = 0; i < GameRules.MAX_HAND_SIZE; i++)
+            for (int i = 0; i < 15; i++)
                 gs.PHand.Add(gs.MakeUnit(data, GameRules.OWNER_PLAYER));
 
-            Assert.AreEqual(GameRules.MAX_HAND_SIZE, gs.PHand.Count,
-                $"Hand should hold exactly {GameRules.MAX_HAND_SIZE} cards");
-
-            // Simulate enforcement: check that hand is at limit
-            bool handFull = gs.PHand.Count >= GameRules.MAX_HAND_SIZE;
-            Assert.IsTrue(handFull, "Hand should be full at MAX_HAND_SIZE");
+            Assert.AreEqual(15, gs.PHand.Count,
+                "Hand has no size cap — should hold 15 cards");
         }
 
-        // ── Tests: Battlefield slot limit ─────────────────────────────────────
+        // ── Tests: Battlefield (no slot limit) ────────────────────────────────
 
         [Test]
-        public void BattlefieldState_SlotLimit_IsRespected()
+        public void BattlefieldState_HasSlot_AlwaysTrue()
         {
             var gs = MakeGameState();
             CardData data = MakeCardData("Soldier", 2, 2);
             BattlefieldState bf = gs.BF[0];
 
-            // Fill to max
-            for (int i = 0; i < GameRules.MAX_BF_UNITS; i++)
+            // Fill with many units — HasSlot should remain true
+            for (int i = 0; i < 10; i++)
                 bf.PlayerUnits.Add(gs.MakeUnit(data, GameRules.OWNER_PLAYER));
 
-            Assert.AreEqual(GameRules.MAX_BF_UNITS, bf.PlayerUnits.Count,
-                $"Battlefield should hold exactly {GameRules.MAX_BF_UNITS} player units");
-
-            // HasSlot should return false when full
-            Assert.IsFalse(bf.HasSlot(GameRules.OWNER_PLAYER),
-                "HasSlot must return false when slots are full");
-        }
-
-        [Test]
-        public void BattlefieldState_HasSlot_TrueWhenEmpty()
-        {
-            var gs = MakeGameState();
-            BattlefieldState bf = gs.BF[0];
-
             Assert.IsTrue(bf.HasSlot(GameRules.OWNER_PLAYER),
-                "HasSlot must return true when battlefield is empty");
+                "HasSlot must always return true (no unit cap)");
             Assert.IsTrue(bf.HasSlot(GameRules.OWNER_ENEMY),
-                "HasSlot must return true for enemy when battlefield is empty");
+                "HasSlot must always return true for enemy");
         }
 
         // ── Tests: Score ──────────────────────────────────────────────────────

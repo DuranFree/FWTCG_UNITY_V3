@@ -4,7 +4,7 @@ namespace FWTCG.Core
 {
     /// <summary>
     /// State for one battlefield zone.
-    /// Each battlefield can hold up to GameRules.MAX_BF_UNITS units per side.
+    /// Each battlefield has no unit cap per side.
     /// </summary>
     public class BattlefieldState
     {
