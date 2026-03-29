@@ -138,3 +138,25 @@
 - TMP m_AtlasTextures 在 batch -nographics 下始终损坏（根本原因：无 GPU 无法生成 atlas）
 - EventSystem 缺失导致所有 Button 无响应（添加后立即修复）
 - GameStateTests.cs 引用已删除常量造成编译错误（已修复）
+
+---
+
+## DEV-1 战斗系统重构：延迟战斗 + 法术对决按钮 — 2026-03-28
+
+**Status**: ✅ Completed
+
+**What was done**:
+- CombatSystem.MoveUnit() 不再立即触发战斗，改为仅移动单位+设置控制权
+- 新增 CombatSystem.ResolveAllBattlefields()：回合结束时兜底解决所有有争议战场
+- TurnManager.DoAction() 末尾调用 ResolveAllBattlefields 作为安全网
+- GameUI 新增 bf1DuelButton / bf2DuelButton：双方有单位时显示"⚔ 开始法术对决"
+- GameManager.OnDuelClicked() 处理玩家手动触发战斗，战斗后可继续操作
+- SceneBuilder 在战场面板中创建 DuelButton（金色，默认隐藏）
+
+**Decisions made**:
+- 玩家可自主选择何时发起法术对决，不强制在回合结束时自动解决
+- 回合结束时 ResolveAllBattlefields 作为兜底（AI回合+玩家未手动对决的战场）
+
+**Technical debt**: 无新增
+
+**Problems encountered**: 无
