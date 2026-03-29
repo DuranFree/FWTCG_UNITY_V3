@@ -36,12 +36,14 @@ namespace FWTCG.Systems
         private SpellSystem _spellSys;
         private ReactiveSystem _reactiveSys;
         private ReactiveWindowUI _reactiveWindow;
+        private LegendSystem _legendSys;
 
         public void Inject(GameState gs, ScoreManager score, CombatSystem combat, SimpleAI ai,
                            EntryEffectSystem entryEffects = null,
                            SpellSystem spellSys = null,
                            ReactiveSystem reactiveSys = null,
-                           ReactiveWindowUI reactiveWindow = null)
+                           ReactiveWindowUI reactiveWindow = null,
+                           LegendSystem legendSys = null)
         {
             _gs = gs;
             _scoreMgr = score;
@@ -51,6 +53,7 @@ namespace FWTCG.Systems
             _spellSys = spellSys;
             _reactiveSys = reactiveSys;
             _reactiveWindow = reactiveWindow;
+            _legendSys = legendSys;
         }
 
         // ── Public API ────────────────────────────────────────────────────────
@@ -142,6 +145,9 @@ namespace FWTCG.Systems
             gs.BFScoredThisTurn.Clear();
             gs.BFConqueredThisTurn.Clear();
             gs.CardsPlayedThisTurn = 0;
+
+            // Reset legend ability usage
+            _legendSys?.ResetForTurn(who, gs);
 
             Broadcast($"[觉醒] {DisplayName(who)} 符文解除横置，符能清零");
             await Delay(GameRules.PHASE_DELAY_MS);

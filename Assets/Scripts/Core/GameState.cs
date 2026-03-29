@@ -83,6 +83,17 @@ namespace FWTCG.Core
         /// <summary>Tracks which owners have Tiyana Warden in play (blocks hold scoring).</summary>
         public Dictionary<string, bool> TiyanasInPlay { get; set; } = new Dictionary<string, bool>();
 
+        // ── Legend zone ────────────────────────────────────────────────────────
+        /// <summary>Player's legend (Kaisa). Initialized by GameManager at game start.</summary>
+        public LegendInstance PLegend { get; set; }
+
+        /// <summary>Enemy's legend (Masteryi). Initialized by GameManager at game start.</summary>
+        public LegendInstance ELegend { get; set; }
+
+        /// <summary>Returns the legend for the given owner.</summary>
+        public LegendInstance GetLegend(string owner) =>
+            owner == GameRules.OWNER_PLAYER ? PLegend : ELegend;
+
         // ── Constructor ───────────────────────────────────────────────────────
         public GameState()
         {

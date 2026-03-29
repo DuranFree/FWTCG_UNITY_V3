@@ -139,6 +139,12 @@ namespace FWTCG.Editor
             var reactivePanel = CreateReactiveWindowPanel(canvasGO.transform,
                 out var reactiveContextText, out var reactiveCardContainer);
 
+            // ── Legend Panels (DEV-5) ─────────────────────────────────────────
+            var playerLegendPanel = CreatePlayerLegendPanel(canvasGO.transform,
+                out var playerLegendText, out var legendSkillBtn);
+            var enemyLegendPanel = CreateEnemyLegendPanel(canvasGO.transform,
+                out var enemyLegendText);
+
             // ── CardArt: ensure all PNGs are imported as Sprite ──────────────
             EnsureCardArtImportedAsSprite();
 
@@ -160,6 +166,7 @@ namespace FWTCG.Editor
             var reactiveSys    = gmGO.AddComponent<FWTCG.Systems.ReactiveSystem>();
             var startupFlowUI  = gmGO.AddComponent<FWTCG.UI.StartupFlowUI>();
             var reactiveWindowUI = gmGO.AddComponent<FWTCG.UI.ReactiveWindowUI>();
+            var legendSys    = gmGO.AddComponent<FWTCG.Systems.LegendSystem>();
 
             // ── Wire UI references via SerializedObject ───────────────────────
             WireGameUI(gameUI, cardPrefab, runePrefab,
@@ -177,7 +184,8 @@ namespace FWTCG.Editor
                 gameOverPanel,
                 resultText,
                 restartButton,
-                bannerPanel, bannerText);
+                bannerPanel, bannerText,
+                playerLegendText, enemyLegendText, legendSkillBtn);
 
             WireGameManager(gameMgr, turnMgr, combatSys, scoreMgr, simpleAI, gameUI,
                             entryEffects, deathwish, spellSys, reactiveSys,
@@ -186,7 +194,7 @@ namespace FWTCG.Editor
                             mulliganPanel, mulliganTitleText, mulliganCardContainer,
                             mulliganConfirmButton, mulliganConfirmLabel, cardPrefab,
                             reactivePanel, reactiveContextText, reactiveCardContainer,
-                            reactBtn,
+                            reactBtn, legendSys, legendSkillBtn,
                             debugSpellBtn, debugEquipBtn, debugUnitBtn, debugReactiveBtn, debugManaBtn);
 
             // ── Save scene ────────────────────────────────────────────────────
@@ -724,6 +732,124 @@ namespace FWTCG.Editor
             return panel;
         }
 
+        // ── Legend Panels (DEV-5) ─────────────────────────────────────────────
+
+        /// <summary>Player legend panel (Kaisa): bottom-left, above debug panel.</summary>
+        private static GameObject CreatePlayerLegendPanel(Transform parent,
+            out Text legendText, out Button skillBtn)
+        {
+            var go = new GameObject("PlayerLegendPanel");
+            go.transform.SetParent(parent, false);
+
+            var rt = go.AddComponent<RectTransform>();
+            rt.anchorMin = new Vector2(0f, 0f);
+            rt.anchorMax = new Vector2(0f, 0f);
+            rt.pivot     = new Vector2(0f, 0f);
+            rt.anchoredPosition = new Vector2(5f, 330f); // above debug panel (105+215+10)
+            rt.sizeDelta = new Vector2(130f, 95f);
+
+            var img = go.AddComponent<Image>();
+            img.color = new Color(0.1f, 0.05f, 0.2f, 0.9f); // dark purple
+
+            var vlg = go.AddComponent<VerticalLayoutGroup>();
+            vlg.childControlWidth = true;
+            vlg.childControlHeight = true;
+            vlg.childForceExpandWidth = true;
+            vlg.childForceExpandHeight = false;
+            vlg.padding = new RectOffset(4, 4, 4, 4);
+            vlg.spacing = 4f;
+
+            // Title
+            var titleGO = new GameObject("LegendTitle");
+            titleGO.transform.SetParent(go.transform, false);
+            var titleLE = titleGO.AddComponent<LayoutElement>();
+            titleLE.preferredHeight = 18f;
+            var titleT = titleGO.AddComponent<Text>();
+            titleT.text = "── 传奇 ──";
+            titleT.color = new Color(1f, 0.85f, 0.3f, 1f);
+            titleT.fontSize = 12;
+            titleT.alignment = TextAnchor.MiddleCenter;
+            titleT.horizontalOverflow = HorizontalWrapMode.Overflow;
+            titleT.verticalOverflow   = VerticalWrapMode.Overflow;
+            if (_font != null) titleT.font = _font;
+
+            // Legend info text
+            var textGO = new GameObject("LegendText");
+            textGO.transform.SetParent(go.transform, false);
+            var textLE = textGO.AddComponent<LayoutElement>();
+            textLE.preferredHeight = 32f;
+            legendText = textGO.AddComponent<Text>();
+            legendText.text = "卡莎·传奇\nHP 20/20";
+            legendText.color = Color.white;
+            legendText.fontSize = 11;
+            legendText.alignment = TextAnchor.MiddleLeft;
+            legendText.horizontalOverflow = HorizontalWrapMode.Wrap;
+            legendText.verticalOverflow   = VerticalWrapMode.Overflow;
+            if (_font != null) legendText.font = _font;
+
+            // Skill button
+            skillBtn = CreateDebugButton(go.transform, "虚空感知", new Color(0.4f, 0.1f, 0.8f, 1f));
+            var skillLE = skillBtn.GetComponent<LayoutElement>();
+            if (skillLE != null) skillLE.preferredHeight = 28f;
+
+            return go;
+        }
+
+        /// <summary>Enemy legend panel (Masteryi): top-left, just below top bar.</summary>
+        private static GameObject CreateEnemyLegendPanel(Transform parent, out Text legendText)
+        {
+            var go = new GameObject("EnemyLegendPanel");
+            go.transform.SetParent(parent, false);
+
+            var rt = go.AddComponent<RectTransform>();
+            rt.anchorMin = new Vector2(0f, 1f);
+            rt.anchorMax = new Vector2(0f, 1f);
+            rt.pivot     = new Vector2(0f, 1f);
+            rt.anchoredPosition = new Vector2(5f, -105f); // below top bar (100px)
+            rt.sizeDelta = new Vector2(130f, 65f);
+
+            var img = go.AddComponent<Image>();
+            img.color = new Color(0.2f, 0.05f, 0.05f, 0.9f); // dark red
+
+            var vlg = go.AddComponent<VerticalLayoutGroup>();
+            vlg.childControlWidth = true;
+            vlg.childControlHeight = true;
+            vlg.childForceExpandWidth = true;
+            vlg.childForceExpandHeight = false;
+            vlg.padding = new RectOffset(4, 4, 4, 4);
+            vlg.spacing = 4f;
+
+            // Title
+            var titleGO = new GameObject("EnemyLegendTitle");
+            titleGO.transform.SetParent(go.transform, false);
+            var titleLE = titleGO.AddComponent<LayoutElement>();
+            titleLE.preferredHeight = 18f;
+            var titleT = titleGO.AddComponent<Text>();
+            titleT.text = "── AI传奇 ──";
+            titleT.color = new Color(1f, 0.5f, 0.5f, 1f);
+            titleT.fontSize = 12;
+            titleT.alignment = TextAnchor.MiddleCenter;
+            titleT.horizontalOverflow = HorizontalWrapMode.Overflow;
+            titleT.verticalOverflow   = VerticalWrapMode.Overflow;
+            if (_font != null) titleT.font = _font;
+
+            // Legend info text
+            var textGO = new GameObject("EnemyLegendText");
+            textGO.transform.SetParent(go.transform, false);
+            var textLE = textGO.AddComponent<LayoutElement>();
+            textLE.preferredHeight = 32f;
+            legendText = textGO.AddComponent<Text>();
+            legendText.text = "易大师·传奇\nHP 20/20";
+            legendText.color = Color.white;
+            legendText.fontSize = 11;
+            legendText.alignment = TextAnchor.MiddleLeft;
+            legendText.horizontalOverflow = HorizontalWrapMode.Wrap;
+            legendText.verticalOverflow   = VerticalWrapMode.Overflow;
+            if (_font != null) legendText.font = _font;
+
+            return go;
+        }
+
         // ── Card Prefab ───────────────────────────────────────────────────────
 
         private static GameObject CreateCardPrefab()
@@ -1143,7 +1269,8 @@ namespace FWTCG.Editor
             GameObject gameOverPanel,
             Text gameOverText,
             Button restartButton,
-            GameObject bannerPanel, Text bannerText)
+            GameObject bannerPanel, Text bannerText,
+            Text playerLegendText, Text enemyLegendText, Button legendSkillBtn)
         {
             var so = new SerializedObject(gameUI);
 
@@ -1195,6 +1322,11 @@ namespace FWTCG.Editor
             so.FindProperty("_bannerPanel").objectReferenceValue          = bannerPanel;
             so.FindProperty("_bannerText").objectReferenceValue           = bannerText;
 
+            // Legend zone (DEV-5)
+            so.FindProperty("_playerLegendText").objectReferenceValue     = playerLegendText;
+            so.FindProperty("_enemyLegendText").objectReferenceValue      = enemyLegendText;
+            so.FindProperty("_legendSkillBtn").objectReferenceValue       = legendSkillBtn;
+
             so.ApplyModifiedPropertiesWithoutUndo();
         }
 
@@ -1218,6 +1350,7 @@ namespace FWTCG.Editor
             Button mulliganConfirmButton, Text mulliganConfirmLabel, GameObject cardPrefab,
             GameObject reactivePanel, Text reactiveContextText,
             Transform reactiveCardContainer, Button reactBtn,
+            FWTCG.Systems.LegendSystem legendSys, Button legendSkillBtn,
             Button debugSpellBtn, Button debugEquipBtn, Button debugUnitBtn, Button debugReactiveBtn, Button debugManaBtn)
         {
             var so = new SerializedObject(gameMgr);
@@ -1260,12 +1393,17 @@ namespace FWTCG.Editor
             reactiveWindowSO.FindProperty("_cardViewPrefab").objectReferenceValue = cardPrefab;
             reactiveWindowSO.ApplyModifiedPropertiesWithoutUndo();
 
-            // Wire React button into GameManager
-            so.FindProperty("_reactBtn").objectReferenceValue = reactBtn;
+            // Wire React button and Legend skill button into GameManager
+            so.FindProperty("_reactBtn").objectReferenceValue        = reactBtn;
+            so.FindProperty("_legendSkillBtn").objectReferenceValue  = legendSkillBtn;
 
-            // Wire DeathwishSystem into CombatSystem
+            // Wire LegendSystem into GameManager
+            so.FindProperty("_legendSys").objectReferenceValue       = legendSys;
+
+            // Wire DeathwishSystem + LegendSystem into CombatSystem
             var combatSO = new SerializedObject(combatSys);
-            combatSO.FindProperty("_deathwish").objectReferenceValue = deathwish;
+            combatSO.FindProperty("_deathwish").objectReferenceValue  = deathwish;
+            combatSO.FindProperty("_legendSys").objectReferenceValue  = legendSys;
             combatSO.ApplyModifiedPropertiesWithoutUndo();
 
             // Wire CardData arrays — full decks (unique card types; copies handled at runtime)

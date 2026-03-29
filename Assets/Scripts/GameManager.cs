@@ -38,9 +38,11 @@ namespace FWTCG
         [SerializeField] private StartupFlowUI _startupFlowUI;
         [SerializeField] private ReactiveSystem _reactiveSys;
         [SerializeField] private ReactiveWindowUI _reactiveWindowUI;
+        [SerializeField] private LegendSystem _legendSys;
 
-        // ── React button (always visible, player clicks to play reactive cards) ─
+        // ── React button / Legend skill button ────────────────────────────────
         [SerializeField] private Button _reactBtn;
+        [SerializeField] private Button _legendSkillBtn;
 
         // ── Reaction window freeze (static so SimpleAI can await without a ref) ─
         // Player reaction window (player clicks React → AI waits)
@@ -127,9 +129,11 @@ namespace FWTCG
             if (_spellSys == null) _spellSys = GetComponent<SpellSystem>();
             if (_reactiveSys == null) _reactiveSys = GetComponent<ReactiveSystem>();
             if (_reactiveWindowUI == null) _reactiveWindowUI = GetComponent<ReactiveWindowUI>();
+            if (_legendSys == null) _legendSys = GetComponent<LegendSystem>();
 
             // Wire react button
             if (_reactBtn != null) _reactBtn.onClick.AddListener(OnReactClicked);
+            if (_legendSkillBtn != null) _legendSkillBtn.onClick.AddListener(OnLegendSkillClicked);
 
             // Wire debug buttons
             if (_debugSpellBtn != null)    _debugSpellBtn.onClick.AddListener(() => DebugDraw("spell"));
@@ -148,6 +152,7 @@ namespace FWTCG
             ScoreManager.OnScoreChanged += HandleMessage;
             SpellSystem.OnSpellLog += HandleMessage;
             ReactiveSystem.OnReactiveLog += HandleMessage;
+            LegendSystem.OnLegendLog += HandleMessage;
         }
 
         private void OnDisable()
@@ -159,6 +164,7 @@ namespace FWTCG
             ScoreManager.OnScoreChanged -= HandleMessage;
             SpellSystem.OnSpellLog -= HandleMessage;
             ReactiveSystem.OnReactiveLog -= HandleMessage;
+            LegendSystem.OnLegendLog -= HandleMessage;
         }
 
         private void Start()
@@ -187,7 +193,14 @@ namespace FWTCG
 
             // Inject dependencies into systems
             _turnMgr.Inject(_gs, _scoreMgr, _combatSys, _ai, _entryEffects,
-                            _spellSys, _reactiveSys, _reactiveWindowUI);
+                            _spellSys, _reactiveSys, _reactiveWindowUI, _legendSys);
+
+            // Initialize legends (player = Kaisa/虚空, enemy = Masteryi/伊欧尼亚)
+            if (_legendSys != null)
+            {
+                _gs.PLegend = _legendSys.CreateLegend(LegendSystem.KAISA_LEGEND_ID, GameRules.OWNER_PLAYER);
+                _gs.ELegend = _legendSys.CreateLegend(LegendSystem.YI_LEGEND_ID, GameRules.OWNER_ENEMY);
+            }
 
             // Random first player
             _gs.First = Random.value > 0.5f ? GameRules.OWNER_PLAYER : GameRules.OWNER_ENEMY;
@@ -549,6 +562,9 @@ namespace FWTCG
             if (_entryEffects != null)
                 _entryEffects.OnUnitEntered(unit, GameRules.OWNER_PLAYER, _gs);
 
+            // Check Kaisa evolution (4 distinct allied keywords → Lv.2)
+            _legendSys?.CheckKaisaEvolution(GameRules.OWNER_PLAYER, _gs);
+
             _selectedUnit = null;
             _selectedUnitLoc = "base";
             RefreshUI();
@@ -756,6 +772,22 @@ namespace FWTCG
             _reactionWindowActive = false;
             _reactionTcs?.TrySetResult(true);
             _reactionTcs = null;
+        }
+
+        // ── Legend skill button ───────────────────────────────────────────────
+
+        /// <summary>
+        /// Player clicks the 虚空感知 button on the legend panel.
+        /// Can be used as a reaction (outside own turn), or during own action phase.
+        /// Kaisa only; no AI legend active skill.
+        /// </summary>
+        private void OnLegendSkillClicked()
+        {
+            if (_gs == null || _gs.GameOver) return;
+            if (_legendSys == null) return;
+
+            bool used = _legendSys.UseKaisaActive(GameRules.OWNER_PLAYER, _gs);
+            if (used) RefreshUI();
         }
 
         // ── DEBUG methods ─────────────────────────────────────────────────────

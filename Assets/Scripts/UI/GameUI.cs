@@ -70,6 +70,11 @@ namespace FWTCG.UI
         [SerializeField] private Text _gameOverText;
         [SerializeField] private Button _restartButton;
 
+        // ── Legend panels ──────────────────────────────────────────────────────
+        [SerializeField] private Text _playerLegendText;   // shows Kaisa name/HP/level
+        [SerializeField] private Text _enemyLegendText;    // shows Masteryi name/HP
+        [SerializeField] private Button _legendSkillBtn;   // 虚空感知 button
+
         // ── Banner overlay ────────────────────────────────────────────────────
         [SerializeField] private GameObject _bannerPanel;
         [SerializeField] private Text _bannerText;
@@ -163,6 +168,7 @@ namespace FWTCG.UI
             RefreshBattlefields(gs);
             RefreshRunes(gs);
             RefreshEndTurnButton(gs);
+            RefreshLegends(gs);
         }
 
         // ── Individual panel refresh ──────────────────────────────────────────
@@ -258,6 +264,47 @@ namespace FWTCG.UI
                 _endTurnButton.interactable = isPlayerTurn && !gs.GameOver;
             if (_endTurnLabel != null)
                 _endTurnLabel.text = isPlayerTurn ? "结束回合" : "等待中…";
+        }
+
+        // ── Legend zone refresh ───────────────────────────────────────────────
+
+        private void RefreshLegends(GameState gs)
+        {
+            // Player legend (Kaisa)
+            if (_playerLegendText != null)
+            {
+                if (gs.PLegend != null)
+                {
+                    string lvl = gs.PLegend.Level >= 2 ? " [Lv.2]" : "";
+                    string ex  = gs.PLegend.Exhausted ? " [休眠]" : "";
+                    _playerLegendText.text =
+                        $"{gs.PLegend.Name}{lvl}\nHP {gs.PLegend.CurrentHp}/{gs.PLegend.MaxHp}{ex}";
+                }
+                else
+                {
+                    _playerLegendText.text = "传奇: -";
+                }
+            }
+
+            // Skill button: only usable when ability not yet used and legend alive
+            if (_legendSkillBtn != null)
+            {
+                bool canUse = gs.PLegend != null
+                              && gs.PLegend.IsAlive
+                              && !gs.PLegend.AbilityUsedThisTurn
+                              && !gs.GameOver;
+                _legendSkillBtn.interactable = canUse;
+            }
+
+            // Enemy legend (Masteryi)
+            if (_enemyLegendText != null)
+            {
+                if (gs.ELegend != null)
+                    _enemyLegendText.text =
+                        $"{gs.ELegend.Name}\nHP {gs.ELegend.CurrentHp}/{gs.ELegend.MaxHp}";
+                else
+                    _enemyLegendText.text = "传奇: -";
+            }
         }
 
         // ── Unit list renderer ────────────────────────────────────────────────

@@ -21,6 +21,7 @@ namespace FWTCG.Systems
         public static event Action<string> OnCombatLog;
 
         [SerializeField] private DeathwishSystem _deathwish;
+        [SerializeField] private LegendSystem _legendSys;
 
         // ── Unit movement (#3, #9) ───────────────────────────────────────────
 
@@ -160,6 +161,9 @@ namespace FWTCG.Systems
             BattlefieldState bf = gs.BF[bfId];
             string defender = gs.Opponent(attacker);
             string previousCtrl = bf.Ctrl;
+
+            // Masteryi passive: lone defender gets +2 temp attack (DEV-5)
+            _legendSys?.TryApplyMasteryiPassive(bfId, attacker, gs);
 
             // Calculate total power per side (#5: stunned units contribute 0)
             int attackerPower = bf.TotalPower(attacker);

@@ -2,6 +2,48 @@
 
 ---
 
+## DEV-5：传奇技能系统 — 2026-03-29
+
+**Status**: ✅ Completed
+
+**新功能**:
+- `LegendInstance.cs`（新建）：传奇运行时状态（独立HP/ATK/Level/Exhausted/AbilityUsedThisTurn），TakeDamage + Evolve 方法
+- `LegendSystem.cs`（新建）：全部传奇逻辑；CreateLegend 工厂、ResetForTurn、UseKaisaActive、CheckKaisaEvolution、TryApplyMasteryiPassive、CheckLegendDeaths；静态事件 OnLegendLog
+- `GameRules.cs`：新增 LEGEND_HP=20、LEGEND_EVOLUTION_KEYWORDS=4 常量
+- `GameState.cs`：新增 PLegend/ELegend 属性 + GetLegend(owner) 助手方法
+- `TurnManager.cs`：Inject() 扩展支持 LegendSystem；DoAwaken 调用 ResetForTurn
+- `CombatSystem.cs`：TriggerCombat 战斗前调用 TryApplyMasteryiPassive（TempAtkBonus +2 孤守）
+- `GameManager.cs`：InitGame 创建 PLegend=卡莎/ELegend=易大师；TryPlayUnit 后检查卡莎进化；OnLegendSkillClicked 按钮回调
+- `GameUI.cs`：RefreshLegends 显示传奇HP/等级/休眠状态 + 虚空感知按钮可用性
+- `SceneBuilder.cs`：新增 CreatePlayerLegendPanel（底左，深紫+虚空感知按钮）+ CreateEnemyLegendPanel（顶左，深红）；WireGameUI/WireGameManager 连线
+
+**Bug fix**:
+- SceneBuilder.cs L791：CreateDebugButton 缺少 color 参数 → 修复为传入 violet 颜色，并移除多余的手动 img.color 设置
+
+**设计决定**:
+- 传奇HP独立于 atk=HP 规则，使用 LegendInstance 独立管理
+- Masteryi 被动 TempAtkBonus 由 ResetAllUnits 自动清零，无需手动清理
+- 卡莎进化仅在玩家出牌后检查（进化只针对己方盟友关键词）
+- AI 传奇技能决策推迟至后续 Phase
+
+**测试**:
+- `DEV5LegendTests.cs`（新建）：20项传奇系统测试，全绿
+- 🔵 [引擎测试] 119/119 全绿，编译无 error CS
+
+**Files modified**:
+- `Assets/Scripts/Core/LegendInstance.cs`（新建）
+- `Assets/Scripts/Systems/LegendSystem.cs`（新建）
+- `Assets/Tests/EditMode/DEV5LegendTests.cs`（新建）
+- `Assets/Scripts/Core/GameRules.cs`
+- `Assets/Scripts/Core/GameState.cs`
+- `Assets/Scripts/Systems/TurnManager.cs`
+- `Assets/Scripts/Systems/CombatSystem.cs`
+- `Assets/Scripts/GameManager.cs`
+- `Assets/Scripts/UI/GameUI.cs`
+- `Assets/Scripts/Editor/SceneBuilder.cs`
+
+---
+
 ## DEV-4：反应系统 — 2026-03-29
 
 **Status**: ✅ Completed（含收尾补丁）

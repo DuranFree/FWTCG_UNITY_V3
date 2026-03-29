@@ -210,19 +210,19 @@
 ## 六、传奇技能系统（legend.js → LegendSystem.cs）
 
 ### 卡莎传奇技能
-- [ ] 主动技能：虚空感知（反应，休眠自身+1符能）
-- [ ] 被动：进化条件检查（盟友4种关键词→升级+3/+3）
+- ✅ 主动技能：虚空感知（反应，休眠自身+1炽烈符能）— DEV-5
+- ✅ 被动：进化条件检查（盟友4种关键词→升级+3/+3）— DEV-5
 - [ ] 传奇升级动画（level: 1→2，+3/+3）
-- [ ] 技能本回合使用限制（resetLegendAbilitiesForTurn）
+- ✅ 技能本回合使用限制（resetLegendAbilitiesForTurn）— DEV-5
 
 ### 易大师传奇技能
-- [ ] 被动：独影剑鸣（该战场防守单位仅1名时+2战力）
+- ✅ 被动：独影剑鸣（该战场防守单位仅1名时+2战力）— DEV-5
 
 ### 通用传奇机制
-- [ ] 传奇不占基地/战场槽位（独立传奇区，规则167.4）
+- ✅ 传奇不占基地/战场槽位（独立传奇区，规则167.4）— DEV-5
 - [ ] 英雄牌单独提取 + 英雄区域（游戏开始时从牌库分离，规则103.2.a）
-- [ ] checkLegendPassives 战后触发
-- [ ] triggerLegendEvent 事件系统
+- ✅ checkLegendPassives 战后触发（TriggerCombat 后 CheckLegendDeaths）— DEV-5
+- ✅ triggerLegendEvent 事件系统（LegendSystem.OnLegendLog 静态事件）— DEV-5
 - [ ] AI 传奇技能决策
 
 ---
@@ -243,7 +243,7 @@
 - [ ] 卡组初始化（含英雄卡单独提取）
 - [ ] 软加权开局手牌（seedPlayerOpeningHand，67%触发，抽≤2费单位）
 - ✅ 符文牌堆初始化 — DEV-1
-- [ ] 传奇初始化
+- ✅ 传奇初始化（InitGame 创建 PLegend=卡莎 + ELegend=易大师）— DEV-5
 - ✅ 初始手牌抽取（各4张）— DEV-1
 - ✅ 掷硬币先手决定（StartupFlowUI 显示结果）— DEV-2
 - ✅ 战场随机选择（各方从己方牌池抽1个，GameRules.PickBattlefield）— DEV-2
