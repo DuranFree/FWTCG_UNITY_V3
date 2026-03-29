@@ -444,7 +444,9 @@ namespace FWTCG.Editor
             vlg.padding = new RectOffset(5, 5, 5, 5);
             vlg.spacing = 4f;
 
-            messageText = CreateTMPText(go.transform, "MessageText", "", Color.white, 14, TextAnchor.UpperLeft);
+            messageText = CreateTMPText(go.transform, "MessageText", "", Color.white, 13, TextAnchor.UpperLeft);
+            messageText.horizontalOverflow = HorizontalWrapMode.Wrap;   // wrap within panel width
+            messageText.verticalOverflow   = VerticalWrapMode.Overflow;
             var msgLE = messageText.gameObject.AddComponent<LayoutElement>();
             msgLE.flexibleWidth = 1f;
             msgLE.flexibleHeight = 1f;
@@ -561,7 +563,7 @@ namespace FWTCG.Editor
 
             var vlg = go.AddComponent<VerticalLayoutGroup>();
             vlg.childControlWidth = true;
-            vlg.childControlHeight = false;
+            vlg.childControlHeight = true;
             vlg.childForceExpandWidth = true;
             vlg.childForceExpandHeight = false;
             vlg.padding = new RectOffset(4, 4, 4, 4);

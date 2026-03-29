@@ -197,15 +197,15 @@ namespace FWTCG.UI
         private void RefreshBases(GameState gs)
         {
             RefreshUnitList(_playerBaseContainer, gs.PBase, true, _onUnitClicked);
-            RefreshUnitList(_enemyBaseContainer, gs.EBase, false, null);
+            RefreshUnitList(_enemyBaseContainer, gs.EBase, false, _onUnitClicked);
         }
 
         private void RefreshBattlefields(GameState gs)
         {
             RefreshUnitList(_bf1PlayerContainer, gs.BF[0].PlayerUnits, true, _onUnitClicked);
-            RefreshUnitList(_bf1EnemyContainer, gs.BF[0].EnemyUnits, false, null);
+            RefreshUnitList(_bf1EnemyContainer, gs.BF[0].EnemyUnits, false, _onUnitClicked);
             RefreshUnitList(_bf2PlayerContainer, gs.BF[1].PlayerUnits, true, _onUnitClicked);
-            RefreshUnitList(_bf2EnemyContainer, gs.BF[1].EnemyUnits, false, null);
+            RefreshUnitList(_bf2EnemyContainer, gs.BF[1].EnemyUnits, false, _onUnitClicked);
 
             if (_bf1CtrlText != null)
             {

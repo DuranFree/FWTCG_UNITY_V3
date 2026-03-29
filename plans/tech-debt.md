@@ -10,3 +10,4 @@
 - [ ] balance_resolve 的"费用-2"条件效果未实现 — 需要手牌目标选择UI，推迟到 DEV-4 — Phase DEV-3
 - [ ] 反应法术（swindle/retreat_rune/scoff等）未实现 — 需要反应窗口系统，推迟到 DEV-4 — Phase DEV-3
 - [ ] AI 不会使用法术 — 需要扩展 SimpleAI 识别 IsSpell 并自动施放，推迟到 DEV-4 — Phase DEV-3
+- [ ] DEV-1/DEV-2 交互测试补写（EditMode）— 已补完：DEV1InteractionTests 22项 + DEV2InteractionTests 17项，全绿 — Phase DEV-3

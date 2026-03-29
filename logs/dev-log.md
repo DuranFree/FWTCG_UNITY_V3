@@ -2,6 +2,32 @@
 
 ---
 
+## DEV-3 补丁：Bug修复 + 交互测试 — 2026-03-29
+
+**Status**: ✅ Completed
+
+**Bug修复**:
+- Debug面板只显示2个按钮 → `VerticalLayoutGroup.childControlHeight = true`
+- 法术目标无法点击敌方单位 → 敌方 `RefreshUnitList` 传入 `_onUnitClicked`（而非null）
+- 日志文字被右侧截断 → MessageText `horizontalOverflow = Wrap`
+
+**交互测试补写（CLAUDE.md新规则）**:
+- `SpellSystemTests.cs`：23项 DEV-3 法术行为测试
+- `DEV1InteractionTests.cs`：22项 DEV-1 核心交互（移动/战斗/召回/得分/符文）
+- `DEV2InteractionTests.cs`：17项 DEV-2 系统交互（入场效果/绝念/Tiyana/Mulligan）
+- 🟢 总计 80/80 全绿
+
+**Files modified**:
+- `Assets/Scripts/Editor/SceneBuilder.cs`（Debug面板layout）
+- `Assets/Scripts/UI/GameUI.cs`（敌方单位点击回调）
+
+**New test files**:
+- `Assets/Tests/EditMode/SpellSystemTests.cs`
+- `Assets/Tests/EditMode/DEV1InteractionTests.cs`
+- `Assets/Tests/EditMode/DEV2InteractionTests.cs`
+
+---
+
 ## DEV-3: 法术系统（SpellSystem + 目标选择）— 2026-03-29
 
 **Status**: ✅ Completed
