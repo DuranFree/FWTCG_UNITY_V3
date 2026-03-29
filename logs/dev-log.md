@@ -2,6 +2,40 @@
 
 ---
 
+## DEV-3: 法术系统（SpellSystem + 目标选择）— 2026-03-29
+
+**Status**: ✅ Completed
+
+**What was done**:
+- 创建 `SpellTargetType.cs` 枚举（None/EnemyUnit/FriendlyUnit/AnyUnit）
+- 扩展 `CardData.cs`：添加 `_isSpell` + `_spellTargetType` 字段及 `EditorSetup` 参数
+- 创建 `SpellSystem.cs`：10张非反应法术完整实现
+  - Kaisa: hex_ray, void_seek, stardrop, starburst, akasi_storm, evolve_day
+  - Yi: rally_call, balance_resolve, slam, strike_ask_later
+- 更新 `GameManager.cs`：法术目标选择状态机（_targetingSpell）
+  - 无目标法术：立即结算
+  - 有目标法术：点击法术→进入选目标状态→点击合法目标→结算
+  - 结束回合时自动取消并退还法力
+- 更新 `CardView.cs`：法术卡紫色背景 + 底部显示"法"字
+- 更新 `GameRules.cs`：添加10张法术卡复制数量（卡莎+11张→30总, 易+7张→26总）
+- 更新 `SceneBuilder.cs`：SpellSystem AddComponent、CDS()快捷函数、spell cards入组
+- 复制10张法术卡图片到 Assets/Resources/CardArt/
+
+**New files**:
+- `Assets/Scripts/Data/SpellTargetType.cs`
+- `Assets/Scripts/Systems/SpellSystem.cs`
+
+**Files modified**:
+- `Assets/Scripts/Data/CardData.cs`
+- `Assets/Scripts/Core/GameRules.cs`
+- `Assets/Scripts/GameManager.cs`
+- `Assets/Scripts/UI/CardView.cs`
+- `Assets/Scripts/Editor/SceneBuilder.cs`
+
+**Technical debt**: balance_resolve 的"费用-2"条件效果推迟到 DEV-4（需手牌目标UI）
+
+---
+
 ## Phase 1: 需求挖掘 + 深度扫描 — 2026-03-28
 
 **Status**: ✅ Completed

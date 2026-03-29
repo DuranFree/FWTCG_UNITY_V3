@@ -90,49 +90,53 @@
 ## 三、法术效果系统（spell.js → SpellSystem.cs）
 
 ### 效果执行
-- [ ] applySpell 主入口（法术/入场效果分发）
-- [ ] 费用检查（getCannotPlayReasons：法力/符能/锁定/目标）
-- [ ] 目标选择系统（getSpellTargets：全场/单体/友方/敌方等）
-- [ ] 费用扣除（法力 + 符能 + 从手牌移除 + 加入废牌堆）
+- ✅ SpellSystem.cs 创建（applySpell 主入口，10张非反应法术）— DEV-3
+- ✅ 费用检查（法力不足提示）— DEV-3
+- ✅ 目标选择系统（SpellTargetType: None/EnemyUnit/FriendlyUnit/AnyUnit）— DEV-3
+- ✅ 费用扣除（法力 + 从手牌移除 + 加入废牌堆）— DEV-3
+- ✅ SpellTargetType.cs 枚举 — DEV-3
+- ✅ CardData 扩展：_isSpell + _spellTargetType 字段 — DEV-3
+- ✅ GameManager 法术目标选择流程（点击法术→选目标→结算）— DEV-3
+- ✅ CardView 法术卡视觉区分（紫色背景 + "法"字标记）— DEV-3
 
 ### 卡莎卡组效果（21张法术 + 19张单位入场效果）
 - [ ] swindle（反应，-1战力+抽牌）
-- [ ] void_seek（4点伤害+抽牌）
-- [ ] evolve_day（抽4张）
+- ✅ void_seek（4点伤害+抽牌）— DEV-3
+- ✅ evolve_day（抽4张）— DEV-3
 - [ ] retreat_rune（回收单位+符文）
 - [ ] furnace_blast（回响，1点伤害×3单位）
 - [ ] guilty_pleasure（反应，弃牌造伤）
-- [ ] starburst（6点伤害×2目标）
-- [ ] hex_ray（迅捷，3点伤害）
+- ✅ starburst（6点伤害×1目标，DEV-3简化）— DEV-3
+- ✅ hex_ray（迅捷，3点伤害）— DEV-3
 - [ ] time_warp（额外回合，extraTurnPending=true）
-- [ ] stardrop（3点伤害×2次）
+- ✅ stardrop（3点伤害×2次）— DEV-3
 - [ ] smoke_bomb（反应，-4战力）
 - [ ] divine_ray（回响+2炽烈，2点伤害×2次）
-- [ ] akasi_storm（2点伤害×6次）
+- ✅ akasi_storm（2点伤害×6次随机敌方）— DEV-3
 - [ ] noxus_recruit 入场（鼓舞：下一个盟友+1战力）
-- [ ] alert_sentinel 绝念（抽1张）
-- [ ] yordel_instructor 入场（壁垒+抽牌）
+- ✅ alert_sentinel 绝念（抽1张）— DEV-2
+- ✅ yordel_instructor 入场（壁垒+抽牌）— DEV-2
 - [ ] bad_poro 征服触发
 - [ ] rengar 入场（反应+强攻+1炽烈符能）
 - [ ] kaisa_hero 入场（征服触发+1炽烈符能）
-- [ ] darius 入场（本回合已出牌时+2战力）
-- [ ] thousand_tail 入场（敌方单位战力-3，最低1）
-- [ ] foresight_mech 预知（抽牌前查看牌堆顶，可回底）
+- ✅ darius 入场（本回合已出牌时+2战力）— DEV-2
+- ✅ thousand_tail 入场（敌方单位战力-3，最低1）— DEV-2
+- ✅ foresight_mech 预知（查看牌堆顶）— DEV-2（日志显示，无UI）
 
 ### 易大师卡组效果（22张法术 + 装备 + 单位入场）
 - [ ] scoff（反应，无效化费用≤4法术）
 - [ ] duel_stance（反应，+1战力，单独防守额外+1）
 - [ ] well_trained（反应，+2战力+抽牌）
 - [ ] wind_wall（反应，无效任意法术）
-- [ ] rally_call（迅捷，单位活跃进场+抽牌，pRallyActive）
-- [ ] balance_resolve（对手距胜利≤3时费用-2+抽牌+符文）
+- ✅ rally_call（迅捷，单位活跃进场+抽牌）— DEV-3
+- ✅ balance_resolve（抽牌+召出符文，条件费用-2推迟）— DEV-3
 - [ ] flash_counter（反应，反制敌方法术）
-- [ ] slam（回响，眩晕单位）
-- [ ] strike_ask_later（+5战力，2摧破符能）
+- ✅ slam（回响，眩晕单位）— DEV-3
+- ✅ strike_ask_later（+5战力，2摧破符能）— DEV-3
 - [ ] yi_hero 入场（游走+急速+1摧破符能）
-- [ ] jax 入场（法盾+1翠意符能）
-- [ ] tiyana_warden 被动（阻止对手据守/征服得分）
-- [ ] wailing_poro 绝念（孤独阵亡时抽1张）
+- ✅ jax 入场（法盾+入场效果）— DEV-2（日志显示）
+- ✅ tiyana_warden 被动（阻止对手据守得分）— DEV-2
+- ✅ wailing_poro 绝念（孤独阵亡时抽1张）— DEV-2
 - [ ] zhonya（待命，死亡保护）
 - [ ] trinity_force（据守额外+1分，+2战力，1摧破符能）
 - [ ] guardian_angel（死亡保护，+1战力，1翠意符能）

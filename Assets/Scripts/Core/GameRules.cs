@@ -96,6 +96,18 @@ namespace FWTCG.Core
             { "trinity_force",      2 },
             { "guardian_angel",     2 },
             { "dorans_blade",       3 },
+            // ── Kaisa spells (+11 cards → 30 total) ──────────────────────────
+            { "hex_ray",            3 },
+            { "void_seek",          2 },
+            { "stardrop",           2 },
+            { "starburst",          2 },
+            { "evolve_day",         1 },
+            { "akasi_storm",        1 },
+            // ── Yi spells (+7 cards → 26 total) ──────────────────────────────
+            { "slam",               2 },
+            { "rally_call",         2 },
+            { "strike_ask_later",   2 },
+            { "balance_resolve",    1 },
         };
 
         /// <summary>Returns how many copies of a card appear in its deck.</summary>

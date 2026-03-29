@@ -29,6 +29,10 @@ namespace FWTCG.Data
         [SerializeField] private RuneType _equipRuneType;
         [SerializeField] private int _equipRuneCost;
 
+        [Header("Spell (isSpell=true only)")]
+        [SerializeField] private bool _isSpell;
+        [SerializeField] private SpellTargetType _spellTargetType;
+
         [Header("Display")]
         [SerializeField] [TextArea(2, 4)] private string _description;
         [SerializeField] private Sprite _artSprite;
@@ -46,6 +50,8 @@ namespace FWTCG.Data
         public int EquipAtkBonus => _equipAtkBonus;
         public RuneType EquipRuneType => _equipRuneType;
         public int EquipRuneCost => _equipRuneCost;
+        public bool IsSpell => _isSpell;
+        public SpellTargetType SpellTargetType => _spellTargetType;
         public string Description => _description;
         public Sprite ArtSprite => _artSprite;
 
@@ -59,7 +65,9 @@ namespace FWTCG.Data
                                 bool isEquipment = false,
                                 int equipAtkBonus = 0,
                                 RuneType equipRuneType = RuneType.Blazing,
-                                int equipRuneCost = 0)
+                                int equipRuneCost = 0,
+                                bool isSpell = false,
+                                SpellTargetType spellTargetType = SpellTargetType.None)
         {
             _id = id;
             _cardName = cardName;
@@ -74,6 +82,8 @@ namespace FWTCG.Data
             _equipAtkBonus = equipAtkBonus;
             _equipRuneType = equipRuneType;
             _equipRuneCost = equipRuneCost;
+            _isSpell = isSpell;
+            _spellTargetType = spellTargetType;
         }
 #endif
     }

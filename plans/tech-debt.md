@@ -3,7 +3,10 @@
 > 格式：- [ ] <描述> — 原因：<why deferred> — Phase <number>
 
 - ✅ TMP Essential Resources 问题 — 已解决：全项目切换至 Legacy UnityEngine.UI.Text，TMP 彻底废弃 — Phase DEV-1
-- ✅ CardData ScriptableObject 字段扩展 — DEV-2 已添加 keywords/effectId/isEquipment/equipAtkBonus/equipRuneType/equipRuneCost — Phase DEV-2
-- [ ] StartupFlowUI 掷硬币无动画 — DEV-2 仅显示文字，动画效果（1800ms翻转）推迟到 DEV-3 — Phase DEV-2
-- [ ] 卡牌图片未导入 — tempPic/cards/ 中文件名无法与卡牌ID对应，需用户手动重命名或提供映射表 — Phase DEV-2
+- ✅ CardData ScriptableObject 字段扩展 — DEV-2 已添加 keywords/effectId/isEquipment；DEV-3 已添加 isSpell/spellTargetType — Phase DEV-3
+- ✅ 卡牌图片未导入 — DEV-2 已解决单位卡图片；DEV-3 已复制并导入10张法术卡图片 — Phase DEV-3
+- [ ] StartupFlowUI 掷硬币无动画 — DEV-2 仅显示文字，动画效果（1800ms翻转）推迟到 DEV-4+ — Phase DEV-2
 - [ ] UI 引用在 batch mode 下通过 GameObject.Find 连线，运行时若场景结构变化会失效 — Phase DEV-1
+- [ ] balance_resolve 的"费用-2"条件效果未实现 — 需要手牌目标选择UI，推迟到 DEV-4 — Phase DEV-3
+- [ ] 反应法术（swindle/retreat_rune/scoff等）未实现 — 需要反应窗口系统，推迟到 DEV-4 — Phase DEV-3
+- [ ] AI 不会使用法术 — 需要扩展 SimpleAI 识别 IsSpell 并自动施放，推迟到 DEV-4 — Phase DEV-3

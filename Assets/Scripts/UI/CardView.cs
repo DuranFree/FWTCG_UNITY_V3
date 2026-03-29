@@ -23,12 +23,14 @@ namespace FWTCG.UI
         private bool _isPlayerCard;
         private Action<UnitInstance> _onClick;
 
-        private static readonly Color ExhaustedColor = new Color(0.4f, 0.4f, 0.4f, 1f);
-        private static readonly Color NormalColor = Color.white;
-        private static readonly Color PlayerCardColor = new Color(0.85f, 0.92f, 1f, 1f);
-        private static readonly Color EnemyCardColor = new Color(1f, 0.85f, 0.85f, 1f);
-        private static readonly Color SelectedColor  = new Color(0.4f, 1f, 0.4f, 1f); // green highlight
-        private static readonly Color FaceDownColor  = new Color(0.12f, 0.16f, 0.25f, 1f); // dark blue-grey back
+        private static readonly Color ExhaustedColor    = new Color(0.4f, 0.4f, 0.4f, 1f);
+        private static readonly Color NormalColor        = Color.white;
+        private static readonly Color PlayerCardColor    = new Color(0.85f, 0.92f, 1f, 1f);
+        private static readonly Color EnemyCardColor     = new Color(1f, 0.85f, 0.85f, 1f);
+        private static readonly Color SpellPlayerColor   = new Color(0.95f, 0.85f, 1f, 1f); // purple tint for player spells
+        private static readonly Color SpellEnemyColor    = new Color(1f, 0.8f, 0.9f, 1f);   // pink tint for enemy spells
+        private static readonly Color SelectedColor      = new Color(0.4f, 1f, 0.4f, 1f);   // green highlight
+        private static readonly Color FaceDownColor      = new Color(0.12f, 0.16f, 0.25f, 1f); // dark blue-grey back
 
         private bool _selected;
         private bool _faceDown;
@@ -102,10 +104,18 @@ namespace FWTCG.UI
 
             if (_atkText != null)
             {
-                // Show current attack / hp. In FWTCG atk=HP so show both same value.
-                _atkText.text = $"{_unit.CurrentAtk}";
-                if (_unit.CurrentHp != _unit.CurrentAtk)
-                    _atkText.text = $"{_unit.CurrentHp}/{_unit.CurrentAtk}";
+                if (_unit.CardData.IsSpell)
+                {
+                    // Spell cards show "法" instead of atk/hp
+                    _atkText.text = "法";
+                }
+                else
+                {
+                    // Show current attack / hp. In FWTCG atk=HP so show both same value.
+                    _atkText.text = $"{_unit.CurrentAtk}";
+                    if (_unit.CurrentHp != _unit.CurrentAtk)
+                        _atkText.text = $"{_unit.CurrentHp}/{_unit.CurrentAtk}";
+                }
             }
 
             if (_descText != null)
@@ -124,7 +134,12 @@ namespace FWTCG.UI
             // Background colour by owner + exhausted + selected state
             if (_cardBg != null)
             {
-                Color baseColor = _isPlayerCard ? PlayerCardColor : EnemyCardColor;
+                Color baseColor;
+                if (_unit.CardData.IsSpell)
+                    baseColor = _isPlayerCard ? SpellPlayerColor : SpellEnemyColor;
+                else
+                    baseColor = _isPlayerCard ? PlayerCardColor : EnemyCardColor;
+
                 if (_selected)
                     _cardBg.color = SelectedColor;
                 else

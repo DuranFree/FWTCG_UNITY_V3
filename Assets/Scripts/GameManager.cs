@@ -33,6 +33,7 @@ namespace FWTCG
         [SerializeField] private SimpleAI _ai;
         [SerializeField] private GameUI _ui;
         [SerializeField] private EntryEffectSystem _entryEffects;
+        [SerializeField] private SpellSystem _spellSys;
         [SerializeField] private StartupFlowUI _startupFlowUI;
 
         // ── Game state ────────────────────────────────────────────────────────
@@ -42,6 +43,7 @@ namespace FWTCG
         private UnitInstance _selectedUnit;       // single-select (for BF recall)
         private string _selectedUnitLoc;          // "hand", "base", "0", "1"
         private List<UnitInstance> _selectedBaseUnits = new List<UnitInstance>(); // multi-select for batch move
+        private UnitInstance _targetingSpell;     // non-null = awaiting target click for spell
 
         // ── Unity lifecycle ───────────────────────────────────────────────────
 
@@ -60,6 +62,7 @@ namespace FWTCG
             if (_scoreMgr == null) _scoreMgr = GetComponent<ScoreManager>();
             if (_ai == null) _ai = GetComponent<SimpleAI>();
             if (_entryEffects == null) _entryEffects = GetComponent<EntryEffectSystem>();
+            if (_spellSys == null) _spellSys = GetComponent<SpellSystem>();
         }
 
         private void OnEnable()
@@ -69,6 +72,7 @@ namespace FWTCG
             CombatSystem.OnCombatLog += HandleMessage;
             ScoreManager.OnGameOver += HandleGameOver;
             ScoreManager.OnScoreChanged += HandleMessage;
+            SpellSystem.OnSpellLog += HandleMessage;
         }
 
         private void OnDisable()
@@ -78,6 +82,7 @@ namespace FWTCG
             CombatSystem.OnCombatLog -= HandleMessage;
             ScoreManager.OnGameOver -= HandleGameOver;
             ScoreManager.OnScoreChanged -= HandleMessage;
+            SpellSystem.OnSpellLog -= HandleMessage;
         }
 
         private void Start()
@@ -195,7 +200,42 @@ namespace FWTCG
             if (_gs.Turn != GameRules.OWNER_PLAYER) return;
             if (_gs.Phase != GameRules.PHASE_ACTION) return;
 
-            // ── Hand card: play to base ──
+            // ── Spell targeting mode: resolve target ──
+            if (_targetingSpell != null)
+            {
+                // Hand cards can't be targeted (must be a unit in play)
+                if (_gs.PHand.Contains(unit) || _gs.EHand.Contains(unit))
+                {
+                    TurnManager.BroadcastMessage_Static("[提示] 手牌中的卡牌无法作为法术目标");
+                    return;
+                }
+
+                SpellTargetType targetType = _targetingSpell.CardData.SpellTargetType;
+                if (targetType == SpellTargetType.EnemyUnit && unit.Owner != GameRules.OWNER_ENEMY)
+                {
+                    TurnManager.BroadcastMessage_Static("[提示] 请选择一个敌方单位作为目标");
+                    return;
+                }
+                if (targetType == SpellTargetType.FriendlyUnit && unit.Owner != GameRules.OWNER_PLAYER)
+                {
+                    TurnManager.BroadcastMessage_Static("[提示] 请选择一个己方单位作为目标");
+                    return;
+                }
+
+                // Valid target — cast spell
+                UnitInstance spell = _targetingSpell;
+                _targetingSpell = null;
+                if (_spellSys != null)
+                    _spellSys.CastSpell(spell, GameRules.OWNER_PLAYER, unit, _gs);
+                else
+                {
+                    _gs.GetDiscard(GameRules.OWNER_PLAYER).Add(spell);
+                }
+                RefreshUI();
+                return;
+            }
+
+            // ── Hand card: play card (unit or spell) ──
             if (_gs.PHand.Contains(unit))
             {
                 TryPlayCard(unit);
@@ -274,6 +314,13 @@ namespace FWTCG
             if (_gs.Turn != GameRules.OWNER_PLAYER) return;
             if (_gs.Phase != GameRules.PHASE_ACTION) return;
 
+            // Ignore BF click while in spell targeting mode
+            if (_targetingSpell != null)
+            {
+                TurnManager.BroadcastMessage_Static("[提示] 请选择目标单位，或结束回合以取消法术");
+                return;
+            }
+
             // ── Batch move from base ──
             if (_selectedBaseUnits.Count > 0)
             {
@@ -329,6 +376,16 @@ namespace FWTCG
             if (_gs.GameOver) return;
             if (_gs.Turn != GameRules.OWNER_PLAYER) return;
             if (_gs.Phase != GameRules.PHASE_ACTION) return;
+
+            // Cancel any pending spell targeting — refund mana and return spell to hand
+            if (_targetingSpell != null)
+            {
+                _gs.PHand.Add(_targetingSpell);
+                _gs.PMana += _targetingSpell.CardData.Cost;
+                _gs.CardsPlayedThisTurn--;
+                TurnManager.BroadcastMessage_Static($"[法术] 取消 {_targetingSpell.UnitName} 的发动，法力退还");
+                _targetingSpell = null;
+            }
 
             _selectedUnit = null;
             _selectedUnitLoc = null;
@@ -386,6 +443,14 @@ namespace FWTCG
 
         private void TryPlayCard(UnitInstance unit)
         {
+            if (unit.CardData.IsSpell)
+                TryPlaySpell(unit);
+            else
+                TryPlayUnit(unit);
+        }
+
+        private void TryPlayUnit(UnitInstance unit)
+        {
             if (unit.CardData.Cost > _gs.PMana)
             {
                 TurnManager.BroadcastMessage_Static(
@@ -410,6 +475,43 @@ namespace FWTCG
             _selectedUnit = null;
             _selectedUnitLoc = "base";
             RefreshUI();
+        }
+
+        private void TryPlaySpell(UnitInstance spell)
+        {
+            if (spell.CardData.Cost > _gs.PMana)
+            {
+                TurnManager.BroadcastMessage_Static(
+                    $"[提示] 法力不足：需要 {spell.CardData.Cost}，当前 {_gs.PMana}");
+                return;
+            }
+
+            _gs.PMana -= spell.CardData.Cost;
+            _gs.CardsPlayedThisTurn++;
+
+            if (spell.CardData.SpellTargetType == SpellTargetType.None)
+            {
+                // No target needed — cast immediately
+                if (_spellSys != null)
+                    _spellSys.CastSpell(spell, GameRules.OWNER_PLAYER, null, _gs);
+                else
+                {
+                    _gs.PHand.Remove(spell);
+                    _gs.PDiscard.Add(spell);
+                }
+                RefreshUI();
+            }
+            else
+            {
+                // Needs target — remove from hand, enter targeting mode
+                _gs.PHand.Remove(spell);
+                _targetingSpell = spell;
+                string typeLabel = spell.CardData.SpellTargetType == SpellTargetType.EnemyUnit ? "敌方"
+                    : spell.CardData.SpellTargetType == SpellTargetType.FriendlyUnit ? "己方" : "任意";
+                TurnManager.BroadcastMessage_Static(
+                    $"[法术] {spell.UnitName} — 请点击一个{typeLabel}单位作为目标（结束回合可取消）");
+                RefreshUI();
+            }
         }
 
         private void BuildDeck(string owner, CardData[] cardDatas)

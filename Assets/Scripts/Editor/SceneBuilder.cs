@@ -144,6 +144,7 @@ namespace FWTCG.Editor
             var gameUI       = gmGO.AddComponent<FWTCG.UI.GameUI>();
             var entryEffects   = gmGO.AddComponent<FWTCG.Systems.EntryEffectSystem>();
             var deathwish      = gmGO.AddComponent<FWTCG.Systems.DeathwishSystem>();
+            var spellSys       = gmGO.AddComponent<FWTCG.Systems.SpellSystem>();
             var startupFlowUI  = gmGO.AddComponent<FWTCG.UI.StartupFlowUI>();
 
             // ── Wire UI references via SerializedObject ───────────────────────
@@ -164,7 +165,7 @@ namespace FWTCG.Editor
                 restartButton);
 
             WireGameManager(gameMgr, turnMgr, combatSys, scoreMgr, simpleAI, gameUI,
-                            entryEffects, deathwish, startupFlowUI,
+                            entryEffects, deathwish, spellSys, startupFlowUI,
                             coinFlipPanel, coinFlipText, coinFlipOkButton,
                             mulliganPanel, mulliganTitleText, mulliganCardContainer,
                             mulliganConfirmButton, mulliganConfirmLabel, cardPrefab);
@@ -742,9 +743,60 @@ namespace FWTCG.Editor
                CardKeyword.None, "dorans_equip",
                isEquipment: true, equipAtkBonus: 2,
                equipRuneType: RuneType.Crushing, equipRuneCost: 1);
+
+            // ── Kaisa spells ──────────────────────────────────────────────────
+            CDS("hex_ray",        "虚空射线",   1, RuneType.Blazing, 1,
+                "急速。对目标敌方单位造成3点伤害",
+                SpellTargetType.EnemyUnit, "hex_ray", CardKeyword.Haste);
+
+            CDS("void_seek",      "虚空追迹",   3, RuneType.Blazing, 1,
+                "急速。对目标敌方单位造成4点伤害，摸1张牌",
+                SpellTargetType.EnemyUnit, "void_seek", CardKeyword.Haste);
+
+            CDS("stardrop",       "星陨",       2, RuneType.Blazing, 2,
+                "对目标敌方单位造成3点伤害两次（共6点）",
+                SpellTargetType.EnemyUnit, "stardrop");
+
+            CDS("starburst",      "星爆",       6, RuneType.Radiant, 2,
+                "对目标敌方单位造成6点伤害（原为2目标，DEV-3简化）",
+                SpellTargetType.EnemyUnit, "starburst");
+
+            CDS("evolve_day",     "进化之日",   6, RuneType.Radiant, 1,
+                "摸4张牌",
+                SpellTargetType.None, "evolve_day");
+
+            CDS("akasi_storm",    "阿卡希狂暴", 7, RuneType.Radiant, 2,
+                "对随机敌方单位造成2点伤害，共6次",
+                SpellTargetType.None, "akasi_storm");
+
+            // ── Yi spells ─────────────────────────────────────────────────────
+            CDS("rally_call",     "集结号令",   2, RuneType.Verdant, 0,
+                "急速。所有己方单位进入活跃状态，摸1张牌",
+                SpellTargetType.None, "rally_call", CardKeyword.Haste);
+
+            CDS("balance_resolve","平衡意志",   3, RuneType.Verdant, 0,
+                "急速。摸1张牌，召出1张符文",
+                SpellTargetType.None, "balance_resolve", CardKeyword.Haste);
+
+            CDS("slam",           "冲击",       2, RuneType.Crushing, 0,
+                "急速+回响。使目标敌方单位眩晕（法盾可抵消）",
+                SpellTargetType.EnemyUnit, "slam", CardKeyword.Haste | CardKeyword.Echo);
+
+            CDS("strike_ask_later","先斩后奏",  1, RuneType.Crushing, 2,
+                "急速。使目标己方单位本回合+5战力",
+                SpellTargetType.FriendlyUnit, "strike_ask_later", CardKeyword.Haste);
         }
 
-        // Shorthand alias
+        // Shorthand alias for spell cards
+        private static CardData CDS(string id, string name, int cost,
+            RuneType runeType, int runeCost, string desc,
+            SpellTargetType targetType, string effectId,
+            CardKeyword kw = CardKeyword.None)
+        {
+            return CreateCardData(id, name, cost, 0, runeType, runeCost, desc, kw, effectId,
+                isSpell: true, spellTargetType: targetType);
+        }
+
         /// <summary>
         /// Sets TextureImporterType.Sprite on every PNG/JPG in Assets/Resources/CardArt/.
         /// Uses Directory.GetFiles so it works even on first import (no .meta yet).
@@ -803,7 +855,8 @@ namespace FWTCG.Editor
             int cost, int atk, RuneType runeType, int runeCost, string description,
             CardKeyword keywords = CardKeyword.None, string effectId = "",
             bool isEquipment = false, int equipAtkBonus = 0,
-            RuneType equipRuneType = RuneType.Blazing, int equipRuneCost = 0)
+            RuneType equipRuneType = RuneType.Blazing, int equipRuneCost = 0,
+            bool isSpell = false, SpellTargetType spellTargetType = SpellTargetType.None)
         {
             string path = $"Assets/Resources/Cards/{id}.asset";
 
@@ -815,7 +868,8 @@ namespace FWTCG.Editor
             }
 
             data.EditorSetup(id, cardName, cost, atk, runeType, runeCost, description,
-                             keywords, effectId, isEquipment, equipAtkBonus, equipRuneType, equipRuneCost);
+                             keywords, effectId, isEquipment, equipAtkBonus, equipRuneType, equipRuneCost,
+                             isSpell, spellTargetType);
 
             // Assign art sprite from Resources/CardArt/{id}.png if it exists
             string[] exts = { ".png", ".jpg" };
@@ -918,6 +972,7 @@ namespace FWTCG.Editor
             FWTCG.UI.GameUI gameUI,
             FWTCG.Systems.EntryEffectSystem entryEffects,
             FWTCG.Systems.DeathwishSystem deathwish,
+            FWTCG.Systems.SpellSystem spellSys,
             FWTCG.UI.StartupFlowUI startupFlowUI,
             GameObject coinFlipPanel, Text coinFlipText, Button coinFlipOkButton,
             GameObject mulliganPanel, Text mulliganTitleText, Transform mulliganCardContainer,
@@ -930,6 +985,7 @@ namespace FWTCG.Editor
             so.FindProperty("_ai").objectReferenceValue             = simpleAI;
             so.FindProperty("_ui").objectReferenceValue             = gameUI;
             so.FindProperty("_entryEffects").objectReferenceValue   = entryEffects;
+            so.FindProperty("_spellSys").objectReferenceValue       = spellSys;
             so.FindProperty("_startupFlowUI").objectReferenceValue  = startupFlowUI;
 
             // Wire StartupFlowUI panels
@@ -962,6 +1018,13 @@ namespace FWTCG.Editor
                 LoadCard("darius"),
                 LoadCard("thousand_tail"),
                 LoadCard("foresight_mech"),
+                // Kaisa spells
+                LoadCard("hex_ray"),
+                LoadCard("void_seek"),
+                LoadCard("stardrop"),
+                LoadCard("starburst"),
+                LoadCard("evolve_day"),
+                LoadCard("akasi_storm"),
             };
             var yiCards = new CardData[]
             {
@@ -974,6 +1037,11 @@ namespace FWTCG.Editor
                 LoadCard("trinity_force"),
                 LoadCard("guardian_angel"),
                 LoadCard("dorans_blade"),
+                // Yi spells
+                LoadCard("rally_call"),
+                LoadCard("balance_resolve"),
+                LoadCard("slam"),
+                LoadCard("strike_ask_later"),
             };
 
             var kaisaProp = so.FindProperty("_kaisaDeck");
