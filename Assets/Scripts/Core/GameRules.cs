@@ -108,6 +108,17 @@ namespace FWTCG.Core
             { "rally_call",         2 },
             { "strike_ask_later",   2 },
             { "balance_resolve",    1 },
+            // ── Kaisa reactive spells (+8 cards → 38 total) ───────────────────
+            { "swindle",            2 },
+            { "retreat_rune",       2 },
+            { "guilty_pleasure",    1 },
+            { "smoke_bomb",         3 },
+            // ── Yi reactive spells (+9 cards → 35 total) ─────────────────────
+            { "scoff",              2 },
+            { "duel_stance",        2 },
+            { "well_trained",       2 },
+            { "wind_wall",          1 },
+            { "flash_counter",      2 },
         };
 
         /// <summary>Returns how many copies of a card appear in its deck.</summary>

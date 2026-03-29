@@ -8,6 +8,8 @@
 - [ ] StartupFlowUI 掷硬币无动画 — DEV-2 仅显示文字，动画效果（1800ms翻转）推迟到 DEV-4+ — Phase DEV-2
 - [ ] UI 引用在 batch mode 下通过 GameObject.Find 连线，运行时若场景结构变化会失效 — Phase DEV-1
 - [ ] balance_resolve 的"费用-2"条件效果未实现 — 需要手牌目标选择UI，推迟到 DEV-4 — Phase DEV-3
-- [ ] 反应法术（swindle/retreat_rune/scoff等）未实现 — 需要反应窗口系统，推迟到 DEV-4 — Phase DEV-3
-- [ ] AI 不会使用法术 — 需要扩展 SimpleAI 识别 IsSpell 并自动施放，推迟到 DEV-4 — Phase DEV-3
-- [ ] DEV-1/DEV-2 交互测试补写（EditMode）— 已补完：DEV1InteractionTests 22项 + DEV2InteractionTests 17项，全绿 — Phase DEV-3
+- ✅ 反应法术（swindle/retreat_rune/scoff等）未实现 — DEV-4 已实现 ReactiveSystem（9张反应牌全效果）+ ReactiveWindowUI（TaskCompletionSource异步窗口）— Phase DEV-4
+- ✅ AI 不会使用法术 — DEV-4 已实现：SimpleAI 识别 IsSpell+非Reactive+自动选目标后施放 — Phase DEV-4
+- ✅ DEV-1/DEV-2 交互测试补写（EditMode）— 已补完：DEV1InteractionTests 22项 + DEV2InteractionTests 17项，全绿 — Phase DEV-3
+- [ ] 反应窗口仅在 AI 施法时触发（玩家施法时 AI 不反应）— DEV-4 简化，完整轮流响应待 DEV-5+ — Phase DEV-4
+- [ ] 反应牌自动选目标（无目标选择UI）— DEV-4 简化，完整目标选择待 DEV-5+ — Phase DEV-4

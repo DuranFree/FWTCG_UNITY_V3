@@ -49,8 +49,8 @@
 
 ### 法术对决系统（Spell Duel）
 - ✅ 对决自动触发（移动造成争夺→即时战斗，替代手动按钮）— DEV-1 规则修正
-- [ ] 反应/迅捷牌处理（对决期间轮流响应）
-- [ ] 反应窗口（reactionWindowOpen，冻结AI等待玩家响应）
+- ✅ 反应/迅捷牌处理（AI法术触发玩家反应窗口，单轮响应）— DEV-4
+- ✅ 反应窗口（ReactiveWindowUI，TaskCompletionSource 异步等待玩家选择）— DEV-4
 - ✅ 对决结束 → 战斗结算（TriggerCombat + 回合结束兜底 ResolveAllBattlefields）— DEV-1
 
 ---
@@ -100,17 +100,17 @@
 - ✅ CardView 法术卡视觉区分（紫色背景 + "法"字标记）— DEV-3
 
 ### 卡莎卡组效果（21张法术 + 19张单位入场效果）
-- [ ] swindle（反应，-1战力+抽牌）
+- ✅ swindle（反应，-1战力+抽牌，自动选第一个敌方单位）— DEV-4
 - ✅ void_seek（4点伤害+抽牌）— DEV-3
 - ✅ evolve_day（抽4张）— DEV-3
-- [ ] retreat_rune（回收单位+符文）
+- ✅ retreat_rune（反应，召回战场单位+回收符文）— DEV-4
 - [ ] furnace_blast（回响，1点伤害×3单位）
-- [ ] guilty_pleasure（反应，弃牌造伤）
+- ✅ guilty_pleasure（反应，弃牌造2点伤害）— DEV-4
 - ✅ starburst（6点伤害×1目标，DEV-3简化）— DEV-3
 - ✅ hex_ray（迅捷，3点伤害）— DEV-3
 - [ ] time_warp（额外回合，extraTurnPending=true）
 - ✅ stardrop（3点伤害×2次）— DEV-3
-- [ ] smoke_bomb（反应，-4战力）
+- ✅ smoke_bomb（反应，-4战力，自动选第一个敌方单位）— DEV-4
 - [ ] divine_ray（回响+2炽烈，2点伤害×2次）
 - ✅ akasi_storm（2点伤害×6次随机敌方）— DEV-3
 - [ ] noxus_recruit 入场（鼓舞：下一个盟友+1战力）
@@ -124,13 +124,13 @@
 - ✅ foresight_mech 预知（查看牌堆顶）— DEV-2（日志显示，无UI）
 
 ### 易大师卡组效果（22张法术 + 装备 + 单位入场）
-- [ ] scoff（反应，无效化费用≤4法术）
-- [ ] duel_stance（反应，+1战力，单独防守额外+1）
-- [ ] well_trained（反应，+2战力+抽牌）
-- [ ] wind_wall（反应，无效任意法术）
+- ✅ scoff（反应，无效化费用≤4法术）— DEV-4
+- ✅ duel_stance（反应，+1/+1永久增益，DEV-4简化自动选目标）— DEV-4
+- ✅ well_trained（反应，+2战力+抽牌，自动选第一个己方单位）— DEV-4
+- ✅ wind_wall（反应，无效任意法术）— DEV-4
 - ✅ rally_call（迅捷，单位活跃进场+抽牌）— DEV-3
 - ✅ balance_resolve（抽牌+召出符文，条件费用-2推迟）— DEV-3
-- [ ] flash_counter（反应，反制敌方法术）
+- ✅ flash_counter（反应，反制敌方法术）— DEV-4
 - ✅ slam（回响，眩晕单位）— DEV-3
 - ✅ strike_ask_later（+5战力，2摧破符能）— DEV-3
 - [ ] yi_hero 入场（游走+急速+1摧破符能）

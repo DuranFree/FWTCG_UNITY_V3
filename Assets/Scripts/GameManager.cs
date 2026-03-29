@@ -36,6 +36,8 @@ namespace FWTCG
         [SerializeField] private EntryEffectSystem _entryEffects;
         [SerializeField] private SpellSystem _spellSys;
         [SerializeField] private StartupFlowUI _startupFlowUI;
+        [SerializeField] private ReactiveSystem _reactiveSys;
+        [SerializeField] private ReactiveWindowUI _reactiveWindowUI;
 
         // ── DEBUG panel (left-bottom overlay, always visible in dev) ──────────
         [SerializeField] private Button _debugSpellBtn;
@@ -70,6 +72,8 @@ namespace FWTCG
             if (_ai == null) _ai = GetComponent<SimpleAI>();
             if (_entryEffects == null) _entryEffects = GetComponent<EntryEffectSystem>();
             if (_spellSys == null) _spellSys = GetComponent<SpellSystem>();
+            if (_reactiveSys == null) _reactiveSys = GetComponent<ReactiveSystem>();
+            if (_reactiveWindowUI == null) _reactiveWindowUI = GetComponent<ReactiveWindowUI>();
 
             // Wire debug buttons
             if (_debugSpellBtn != null) _debugSpellBtn.onClick.AddListener(() => DebugDraw("spell"));
@@ -86,6 +90,7 @@ namespace FWTCG
             ScoreManager.OnGameOver += HandleGameOver;
             ScoreManager.OnScoreChanged += HandleMessage;
             SpellSystem.OnSpellLog += HandleMessage;
+            ReactiveSystem.OnReactiveLog += HandleMessage;
         }
 
         private void OnDisable()
@@ -96,6 +101,7 @@ namespace FWTCG
             ScoreManager.OnGameOver -= HandleGameOver;
             ScoreManager.OnScoreChanged -= HandleMessage;
             SpellSystem.OnSpellLog -= HandleMessage;
+            ReactiveSystem.OnReactiveLog -= HandleMessage;
         }
 
         private void Start()
@@ -123,7 +129,8 @@ namespace FWTCG
             _gs = new GameState();
 
             // Inject dependencies into systems
-            _turnMgr.Inject(_gs, _scoreMgr, _combatSys, _ai, _entryEffects);
+            _turnMgr.Inject(_gs, _scoreMgr, _combatSys, _ai, _entryEffects,
+                            _spellSys, _reactiveSys, _reactiveWindowUI);
 
             // Random first player
             _gs.First = Random.value > 0.5f ? GameRules.OWNER_PLAYER : GameRules.OWNER_ENEMY;

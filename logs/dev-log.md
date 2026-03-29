@@ -2,6 +2,39 @@
 
 ---
 
+## DEV-4：反应系统 — 2026-03-29
+
+**Status**: ✅ Completed
+
+**新功能**:
+- `ReactiveSystem.cs`（新建）：9张反应法术效果（swindle/retreat_rune/guilty_pleasure/smoke_bomb + scoff/duel_stance/well_trained/wind_wall/flash_counter），自动选目标，支持无效化机制
+- `ReactiveWindowUI.cs`（新建）：TaskCompletionSource 异步窗口，AI施法后向玩家展示反应牌，玩家点选或通过
+- `SimpleAI.cs`：Step 3新增法术施放逻辑（非反应法术自动选目标，每张法术后开放玩家反应窗口）
+- `TurnManager.cs`：Inject()扩展支持 SpellSystem/ReactiveSystem/ReactiveWindowUI 注入
+- `GameManager.cs`：新增 _reactiveSys/_reactiveWindowUI 字段，注入到TurnManager，订阅日志事件
+- `SceneBuilder.cs`：创建 ReactiveWindowPanel UI，添加9张反应卡 CardData，更新牌组，连线新组件
+- `GameRules.cs`：新增9张反应卡副本数配置
+
+**测试**:
+- `DEV4InteractionTests.cs`（新建）：16项反应系统交互测试（swindle/retreat_rune/guilty_pleasure/smoke_bomb/scoff/duel_stance/well_trained/wind_wall/flash_counter/负面用例）
+- 🟢 总计 96/96 全绿
+
+**Files modified**:
+- `Assets/Scripts/AI/SimpleAI.cs`
+- `Assets/Scripts/Systems/TurnManager.cs`
+- `Assets/Scripts/GameManager.cs`
+- `Assets/Scripts/Core/GameRules.cs`
+- `Assets/Scripts/Editor/SceneBuilder.cs`
+- `plans/feature-checklist.md`
+- `plans/tech-debt.md`
+
+**New files**:
+- `Assets/Scripts/Systems/ReactiveSystem.cs`
+- `Assets/Scripts/UI/ReactiveWindowUI.cs`
+- `Assets/Tests/EditMode/DEV4InteractionTests.cs`
+
+---
+
 ## DEV-3 补丁：Bug修复 + 交互测试 — 2026-03-29
 
 **Status**: ✅ Completed

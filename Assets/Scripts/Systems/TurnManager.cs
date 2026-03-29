@@ -4,6 +4,7 @@ using System.Threading.Tasks;
 using UnityEngine;
 using FWTCG.AI;
 using FWTCG.Core;
+using FWTCG.UI;
 
 namespace FWTCG.Systems
 {
@@ -31,15 +32,24 @@ namespace FWTCG.Systems
         private CombatSystem _combatSys;
         private SimpleAI _ai;
         private EntryEffectSystem _entryEffects;
+        private SpellSystem _spellSys;
+        private ReactiveSystem _reactiveSys;
+        private ReactiveWindowUI _reactiveWindow;
 
         public void Inject(GameState gs, ScoreManager score, CombatSystem combat, SimpleAI ai,
-                           EntryEffectSystem entryEffects = null)
+                           EntryEffectSystem entryEffects = null,
+                           SpellSystem spellSys = null,
+                           ReactiveSystem reactiveSys = null,
+                           ReactiveWindowUI reactiveWindow = null)
         {
             _gs = gs;
             _scoreMgr = score;
             _combatSys = combat;
             _ai = ai;
             _entryEffects = entryEffects;
+            _spellSys = spellSys;
+            _reactiveSys = reactiveSys;
+            _reactiveWindow = reactiveWindow;
         }
 
         // ── Public API ────────────────────────────────────────────────────────
@@ -263,7 +273,8 @@ namespace FWTCG.Systems
             else
             {
                 Broadcast("[行动] AI 回合思考中…");
-                await _ai.TakeAction(gs, this, _combatSys, _scoreMgr, _entryEffects);
+                await _ai.TakeAction(gs, this, _combatSys, _scoreMgr, _entryEffects,
+                                     _spellSys, _reactiveSys, _reactiveWindow);
             }
 
             // If any contested battlefields remain when turn ends, auto-resolve them

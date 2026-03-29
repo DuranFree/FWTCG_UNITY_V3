@@ -132,6 +132,11 @@ namespace FWTCG.Editor
                 out var debugSpellBtn, out var debugEquipBtn,
                 out var debugUnitBtn, out var debugManaBtn);
 
+            // ── Reactive Window Panel ─────────────────────────────────────────
+            var reactivePanel = CreateReactiveWindowPanel(canvasGO.transform,
+                out var reactiveContextText, out var reactiveCardContainer,
+                out var reactivePassButton);
+
             // ── CardArt: ensure all PNGs are imported as Sprite ──────────────
             EnsureCardArtImportedAsSprite();
 
@@ -150,7 +155,9 @@ namespace FWTCG.Editor
             var entryEffects   = gmGO.AddComponent<FWTCG.Systems.EntryEffectSystem>();
             var deathwish      = gmGO.AddComponent<FWTCG.Systems.DeathwishSystem>();
             var spellSys       = gmGO.AddComponent<FWTCG.Systems.SpellSystem>();
+            var reactiveSys    = gmGO.AddComponent<FWTCG.Systems.ReactiveSystem>();
             var startupFlowUI  = gmGO.AddComponent<FWTCG.UI.StartupFlowUI>();
+            var reactiveWindowUI = gmGO.AddComponent<FWTCG.UI.ReactiveWindowUI>();
 
             // ── Wire UI references via SerializedObject ───────────────────────
             WireGameUI(gameUI, cardPrefab, runePrefab,
@@ -170,10 +177,13 @@ namespace FWTCG.Editor
                 restartButton);
 
             WireGameManager(gameMgr, turnMgr, combatSys, scoreMgr, simpleAI, gameUI,
-                            entryEffects, deathwish, spellSys, startupFlowUI,
+                            entryEffects, deathwish, spellSys, reactiveSys,
+                            startupFlowUI, reactiveWindowUI,
                             coinFlipPanel, coinFlipText, coinFlipOkButton,
                             mulliganPanel, mulliganTitleText, mulliganCardContainer,
                             mulliganConfirmButton, mulliganConfirmLabel, cardPrefab,
+                            reactivePanel, reactiveContextText, reactiveCardContainer,
+                            reactivePassButton,
                             debugSpellBtn, debugEquipBtn, debugUnitBtn, debugManaBtn);
 
             // ── Save scene ────────────────────────────────────────────────────
@@ -627,6 +637,63 @@ namespace FWTCG.Editor
             return btn;
         }
 
+        // ── Reactive Window Panel ─────────────────────────────────────────────
+
+        private static GameObject CreateReactiveWindowPanel(Transform parent,
+            out Text contextText, out Transform cardContainer, out Button passButton)
+        {
+            // Full-screen dark overlay
+            var panel = CreateFullscreenPanel(parent, "ReactiveWindowPanel",
+                new Color(0f, 0f, 0f, 0.75f));
+
+            var vlg = panel.AddComponent<VerticalLayoutGroup>();
+            vlg.childControlWidth = false;
+            vlg.childControlHeight = false;
+            vlg.childForceExpandWidth = false;
+            vlg.childForceExpandHeight = false;
+            vlg.childAlignment = TextAnchor.MiddleCenter;
+            vlg.spacing = 12f;
+
+            // Context text
+            var ctGO = new GameObject("ContextText");
+            ctGO.transform.SetParent(panel.transform, false);
+            contextText = ctGO.AddComponent<Text>();
+            contextText.text = "对手发动了法术，你是否要反应？";
+            contextText.color = Color.white;
+            contextText.fontSize = 22;
+            contextText.alignment = TextAnchor.MiddleCenter;
+            contextText.horizontalOverflow = HorizontalWrapMode.Wrap;
+            contextText.verticalOverflow   = VerticalWrapMode.Overflow;
+            if (_font != null) contextText.font = _font;
+            var ctLE = ctGO.AddComponent<LayoutElement>();
+            ctLE.preferredWidth  = 700f;
+            ctLE.preferredHeight = 70f;
+
+            // Card container (horizontal row)
+            var ccGO = new GameObject("CardContainer");
+            ccGO.transform.SetParent(panel.transform, false);
+            var ccLE = ccGO.AddComponent<LayoutElement>();
+            ccLE.preferredWidth  = 700f;
+            ccLE.preferredHeight = 140f;
+            var hlg = ccGO.AddComponent<HorizontalLayoutGroup>();
+            hlg.childControlWidth = false;
+            hlg.childControlHeight = true;
+            hlg.childForceExpandWidth = false;
+            hlg.childForceExpandHeight = true;
+            hlg.spacing = 10f;
+            hlg.childAlignment = TextAnchor.MiddleCenter;
+            cardContainer = ccGO.transform;
+
+            // Pass button
+            passButton = CreateButton(panel.transform, "PassButton", "通过（不反应）");
+            var pbLE = passButton.gameObject.AddComponent<LayoutElement>();
+            pbLE.preferredWidth  = 240f;
+            pbLE.preferredHeight = 44f;
+
+            panel.SetActive(false);
+            return panel;
+        }
+
         // ── Card Prefab ───────────────────────────────────────────────────────
 
         private static GameObject CreateCardPrefab()
@@ -883,6 +950,44 @@ namespace FWTCG.Editor
             CDS("strike_ask_later","先斩后奏",  1, RuneType.Crushing, 2,
                 "急速。使目标己方单位本回合+5战力",
                 SpellTargetType.FriendlyUnit, "strike_ask_later", CardKeyword.Haste);
+
+            // ── Kaisa reactive spells ─────────────────────────────────────────
+            CDS("swindle",        "诡计",       1, RuneType.Blazing, 1,
+                "反应。目标敌方单位本回合-1战力，摸1张牌",
+                SpellTargetType.None, "swindle", CardKeyword.Reactive);
+
+            CDS("retreat_rune",   "撤退符文",   1, RuneType.Blazing, 1,
+                "反应。召回一个己方战场单位（休眠），回收一张符文获得1符能",
+                SpellTargetType.None, "retreat_rune", CardKeyword.Reactive);
+
+            CDS("guilty_pleasure","罪恶乐趣",   2, RuneType.Blazing, 0,
+                "反应。弃置一张手牌，对目标敌方单位造成2点伤害",
+                SpellTargetType.None, "guilty_pleasure", CardKeyword.Reactive);
+
+            CDS("smoke_bomb",     "烟雾弹",     1, RuneType.Radiant, 1,
+                "反应。目标敌方单位本回合-4战力",
+                SpellTargetType.None, "smoke_bomb", CardKeyword.Reactive);
+
+            // ── Yi reactive spells ────────────────────────────────────────────
+            CDS("scoff",          "嘲讽",       1, RuneType.Verdant, 1,
+                "反应。无效化费用≤4的法术",
+                SpellTargetType.None, "scoff", CardKeyword.Reactive);
+
+            CDS("duel_stance",    "决斗姿态",   1, RuneType.Verdant, 1,
+                "反应。己方一个单位永久获得+1/+1",
+                SpellTargetType.None, "duel_stance", CardKeyword.Reactive);
+
+            CDS("well_trained",   "精英训练",   2, RuneType.Verdant, 0,
+                "反应。己方一个单位本回合+2战力，摸1张牌",
+                SpellTargetType.None, "well_trained", CardKeyword.Reactive);
+
+            CDS("wind_wall",      "风墙",       2, RuneType.Verdant, 0,
+                "反应。无效化任意法术",
+                SpellTargetType.None, "wind_wall", CardKeyword.Reactive);
+
+            CDS("flash_counter",  "闪电反制",   1, RuneType.Crushing, 1,
+                "反应。反制一个敌方法术",
+                SpellTargetType.None, "flash_counter", CardKeyword.Reactive);
         }
 
         // Shorthand alias for spell cards
@@ -1071,10 +1176,14 @@ namespace FWTCG.Editor
             FWTCG.Systems.EntryEffectSystem entryEffects,
             FWTCG.Systems.DeathwishSystem deathwish,
             FWTCG.Systems.SpellSystem spellSys,
+            FWTCG.Systems.ReactiveSystem reactiveSys,
             FWTCG.UI.StartupFlowUI startupFlowUI,
+            FWTCG.UI.ReactiveWindowUI reactiveWindowUI,
             GameObject coinFlipPanel, Text coinFlipText, Button coinFlipOkButton,
             GameObject mulliganPanel, Text mulliganTitleText, Transform mulliganCardContainer,
             Button mulliganConfirmButton, Text mulliganConfirmLabel, GameObject cardPrefab,
+            GameObject reactivePanel, Text reactiveContextText,
+            Transform reactiveCardContainer, Button reactivePassButton,
             Button debugSpellBtn, Button debugEquipBtn, Button debugUnitBtn, Button debugManaBtn)
         {
             var so = new SerializedObject(gameMgr);
@@ -1086,6 +1195,8 @@ namespace FWTCG.Editor
             so.FindProperty("_entryEffects").objectReferenceValue   = entryEffects;
             so.FindProperty("_spellSys").objectReferenceValue       = spellSys;
             so.FindProperty("_startupFlowUI").objectReferenceValue  = startupFlowUI;
+            so.FindProperty("_reactiveSys").objectReferenceValue    = reactiveSys;
+            so.FindProperty("_reactiveWindowUI").objectReferenceValue = reactiveWindowUI;
 
             // Wire debug buttons
             so.FindProperty("_debugSpellBtn").objectReferenceValue  = debugSpellBtn;
@@ -1106,6 +1217,15 @@ namespace FWTCG.Editor
             startupSO.FindProperty("_mulliganConfirmLabel").objectReferenceValue  = mulliganConfirmLabel;
             startupSO.ApplyModifiedPropertiesWithoutUndo();
 
+            // Wire ReactiveWindowUI panels
+            var reactiveWindowSO = new SerializedObject(reactiveWindowUI);
+            reactiveWindowSO.FindProperty("_panel").objectReferenceValue       = reactivePanel;
+            reactiveWindowSO.FindProperty("_contextText").objectReferenceValue = reactiveContextText;
+            reactiveWindowSO.FindProperty("_cardContainer").objectReferenceValue = reactiveCardContainer;
+            reactiveWindowSO.FindProperty("_passButton").objectReferenceValue  = reactivePassButton;
+            reactiveWindowSO.FindProperty("_cardViewPrefab").objectReferenceValue = cardPrefab;
+            reactiveWindowSO.ApplyModifiedPropertiesWithoutUndo();
+
             // Wire DeathwishSystem into CombatSystem
             var combatSO = new SerializedObject(combatSys);
             combatSO.FindProperty("_deathwish").objectReferenceValue = deathwish;
@@ -1123,13 +1243,18 @@ namespace FWTCG.Editor
                 LoadCard("darius"),
                 LoadCard("thousand_tail"),
                 LoadCard("foresight_mech"),
-                // Kaisa spells
+                // Kaisa non-reactive spells
                 LoadCard("hex_ray"),
                 LoadCard("void_seek"),
                 LoadCard("stardrop"),
                 LoadCard("starburst"),
                 LoadCard("evolve_day"),
                 LoadCard("akasi_storm"),
+                // Kaisa reactive spells (DEV-4)
+                LoadCard("swindle"),
+                LoadCard("retreat_rune"),
+                LoadCard("guilty_pleasure"),
+                LoadCard("smoke_bomb"),
             };
             var yiCards = new CardData[]
             {
@@ -1142,11 +1267,17 @@ namespace FWTCG.Editor
                 LoadCard("trinity_force"),
                 LoadCard("guardian_angel"),
                 LoadCard("dorans_blade"),
-                // Yi spells
+                // Yi non-reactive spells
                 LoadCard("rally_call"),
                 LoadCard("balance_resolve"),
                 LoadCard("slam"),
                 LoadCard("strike_ask_later"),
+                // Yi reactive spells (DEV-4)
+                LoadCard("scoff"),
+                LoadCard("duel_stance"),
+                LoadCard("well_trained"),
+                LoadCard("wind_wall"),
+                LoadCard("flash_counter"),
             };
 
             var kaisaProp = so.FindProperty("_kaisaDeck");
