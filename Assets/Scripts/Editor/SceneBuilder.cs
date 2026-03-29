@@ -747,19 +747,32 @@ namespace FWTCG.Editor
         {
             string path = $"Assets/Resources/Cards/{id}.asset";
 
-            var existing = AssetDatabase.LoadAssetAtPath<CardData>(path);
-            if (existing != null)
+            CardData data = AssetDatabase.LoadAssetAtPath<CardData>(path);
+            if (data == null)
             {
-                existing.EditorSetup(id, cardName, cost, atk, runeType, runeCost, description,
-                                     keywords, effectId, isEquipment, equipAtkBonus, equipRuneType, equipRuneCost);
-                EditorUtility.SetDirty(existing);
-                return existing;
+                data = ScriptableObject.CreateInstance<CardData>();
+                AssetDatabase.CreateAsset(data, path);
             }
 
-            var data = ScriptableObject.CreateInstance<CardData>();
             data.EditorSetup(id, cardName, cost, atk, runeType, runeCost, description,
                              keywords, effectId, isEquipment, equipAtkBonus, equipRuneType, equipRuneCost);
-            AssetDatabase.CreateAsset(data, path);
+
+            // Assign art sprite from Resources/CardArt/{id}.png if it exists
+            string[] exts = { ".png", ".jpg" };
+            foreach (string ext in exts)
+            {
+                string artPath = $"Assets/Resources/CardArt/{id}{ext}";
+                var sprite = AssetDatabase.LoadAssetAtPath<Sprite>(artPath);
+                if (sprite != null)
+                {
+                    var so = new SerializedObject(data);
+                    so.FindProperty("_artSprite").objectReferenceValue = sprite;
+                    so.ApplyModifiedPropertiesWithoutUndo();
+                    break;
+                }
+            }
+
+            EditorUtility.SetDirty(data);
             return data;
         }
 
