@@ -1,0 +1,79 @@
+<?xml version="1.0" encoding="utf-8"?>
+<test-run id="2" testcasecount="18" result="Passed" total="18" passed="18" failed="0" inconclusive="0" skipped="0" asserts="0" engine-version="3.5.0.0" clr-version="4.0.30319.42000" start-time="2026-03-29 02:23:06Z" end-time="2026-03-29 02:23:06Z" duration="0.0409159">
+  <test-suite type="TestSuite" id="1025" name="FWTCG_UNITY_V3" fullname="FWTCG_UNITY_V3" runstate="Runnable" testcasecount="18" result="Passed" start-time="2026-03-29 02:23:06Z" end-time="2026-03-29 02:23:06Z" duration="0.040916" total="18" passed="18" failed="0" inconclusive="0" skipped="0" asserts="0">
+    <properties />
+    <test-suite type="Assembly" id="1045" name="FWTCG.Tests.EditMode.dll" fullname="E:/claudeCode/unity/FWTCG_UNITY_V3/Library/ScriptAssemblies/FWTCG.Tests.EditMode.dll" runstate="Runnable" testcasecount="18" result="Passed" start-time="2026-03-29 02:23:06Z" end-time="2026-03-29 02:23:06Z" duration="0.031884" total="18" passed="18" failed="0" inconclusive="0" skipped="0" asserts="0">
+      <properties>
+        <property name="_PID" value="48096" />
+        <property name="_APPDOMAIN" value="Unity Child Domain" />
+        <property name="platform" value="EditMode" />
+      </properties>
+      <test-suite type="TestSuite" id="1046" name="FWTCG" fullname="FWTCG" runstate="Runnable" testcasecount="18" result="Passed" start-time="2026-03-29 02:23:06Z" end-time="2026-03-29 02:23:06Z" duration="0.031607" total="18" passed="18" failed="0" inconclusive="0" skipped="0" asserts="0">
+        <properties />
+        <test-suite type="TestSuite" id="1047" name="Tests" fullname="FWTCG.Tests" runstate="Runnable" testcasecount="18" result="Passed" start-time="2026-03-29 02:23:06Z" end-time="2026-03-29 02:23:06Z" duration="0.028395" total="18" passed="18" failed="0" inconclusive="0" skipped="0" asserts="0">
+          <properties />
+          <test-suite type="TestSuite" id="1048" name="EditMode" fullname="FWTCG.Tests.EditMode" runstate="Runnable" testcasecount="18" result="Passed" start-time="2026-03-29 02:23:06Z" end-time="2026-03-29 02:23:06Z" duration="0.024888" total="18" passed="18" failed="0" inconclusive="0" skipped="0" asserts="0">
+            <properties />
+            <test-suite type="TestFixture" id="1026" name="GameStateTests" fullname="FWTCG.Tests.EditMode.GameStateTests" classname="FWTCG.Tests.EditMode.GameStateTests" runstate="Runnable" testcasecount="18" result="Passed" start-time="2026-03-29 02:23:06Z" end-time="2026-03-29 02:23:06Z" duration="0.020614" total="18" passed="18" failed="0" inconclusive="0" skipped="0" asserts="0">
+              <properties />
+              <test-case id="1036" name="BattlefieldState_HasSlot_AlwaysTrue" fullname="FWTCG.Tests.EditMode.GameStateTests.BattlefieldState_HasSlot_AlwaysTrue" methodname="BattlefieldState_HasSlot_AlwaysTrue" classname="FWTCG.Tests.EditMode.GameStateTests" runstate="Runnable" seed="1001405245" result="Passed" start-time="2026-03-29 02:23:06Z" end-time="2026-03-29 02:23:06Z" duration="0.006136" asserts="0">
+                <properties />
+              </test-case>
+              <test-case id="1042" name="BattlefieldState_TotalPower_EmptyIsZero" fullname="FWTCG.Tests.EditMode.GameStateTests.BattlefieldState_TotalPower_EmptyIsZero" methodname="BattlefieldState_TotalPower_EmptyIsZero" classname="FWTCG.Tests.EditMode.GameStateTests" runstate="Runnable" seed="1641301976" result="Passed" start-time="2026-03-29 02:23:06Z" end-time="2026-03-29 02:23:06Z" duration="0.002727" asserts="0">
+                <properties />
+              </test-case>
+              <test-case id="1041" name="BattlefieldState_TotalPower_SumsAllUnits" fullname="FWTCG.Tests.EditMode.GameStateTests.BattlefieldState_TotalPower_SumsAllUnits" methodname="BattlefieldState_TotalPower_SumsAllUnits" classname="FWTCG.Tests.EditMode.GameStateTests" runstate="Runnable" seed="1628515148" result="Passed" start-time="2026-03-29 02:23:06Z" end-time="2026-03-29 02:23:06Z" duration="0.000371" asserts="0">
+                <properties />
+              </test-case>
+              <test-case id="1029" name="BFSlots_AreUnlimited" fullname="FWTCG.Tests.EditMode.GameStateTests.BFSlots_AreUnlimited" methodname="BFSlots_AreUnlimited" classname="FWTCG.Tests.EditMode.GameStateTests" runstate="Runnable" seed="34375184" result="Passed" start-time="2026-03-29 02:23:06Z" end-time="2026-03-29 02:23:06Z" duration="0.000123" asserts="0">
+                <properties />
+              </test-case>
+              <test-case id="1044" name="GameRules_RuneDeckCounts_MatchSpec" fullname="FWTCG.Tests.EditMode.GameStateTests.GameRules_RuneDeckCounts_MatchSpec" methodname="GameRules_RuneDeckCounts_MatchSpec" classname="FWTCG.Tests.EditMode.GameStateTests" runstate="Runnable" seed="2053036626" result="Passed" start-time="2026-03-29 02:23:06Z" end-time="2026-03-29 02:23:06Z" duration="0.000126" asserts="0">
+                <properties />
+              </test-case>
+              <test-case id="1039" name="GameState_AddSch_IncreasesCorrectType" fullname="FWTCG.Tests.EditMode.GameStateTests.GameState_AddSch_IncreasesCorrectType" methodname="GameState_AddSch_IncreasesCorrectType" classname="FWTCG.Tests.EditMode.GameStateTests" runstate="Runnable" seed="713480619" result="Passed" start-time="2026-03-29 02:23:06Z" end-time="2026-03-29 02:23:06Z" duration="0.000637" asserts="0">
+                <properties />
+              </test-case>
+              <test-case id="1037" name="GameState_AddScore_IncrementsCorrectly" fullname="FWTCG.Tests.EditMode.GameStateTests.GameState_AddScore_IncrementsCorrectly" methodname="GameState_AddScore_IncrementsCorrectly" classname="FWTCG.Tests.EditMode.GameStateTests" runstate="Runnable" seed="535568133" result="Passed" start-time="2026-03-29 02:23:06Z" end-time="2026-03-29 02:23:06Z" duration="0.000205" asserts="0">
+                <properties />
+              </test-case>
+              <test-case id="1038" name="GameState_GetScore_ReturnsCorrectOwner" fullname="FWTCG.Tests.EditMode.GameStateTests.GameState_GetScore_ReturnsCorrectOwner" methodname="GameState_GetScore_ReturnsCorrectOwner" classname="FWTCG.Tests.EditMode.GameStateTests" runstate="Runnable" seed="236774497" result="Passed" start-time="2026-03-29 02:23:06Z" end-time="2026-03-29 02:23:06Z" duration="0.000135" asserts="0">
+                <properties />
+              </test-case>
+              <test-case id="1040" name="GameState_ResetSch_SetsAllToZero" fullname="FWTCG.Tests.EditMode.GameStateTests.GameState_ResetSch_SetsAllToZero" methodname="GameState_ResetSch_SetsAllToZero" classname="FWTCG.Tests.EditMode.GameStateTests" runstate="Runnable" seed="1956378455" result="Passed" start-time="2026-03-29 02:23:06Z" end-time="2026-03-29 02:23:06Z" duration="0.000381" asserts="0">
+                <properties />
+              </test-case>
+              <test-case id="1043" name="GameState_UIDs_AreUnique" fullname="FWTCG.Tests.EditMode.GameStateTests.GameState_UIDs_AreUnique" methodname="GameState_UIDs_AreUnique" classname="FWTCG.Tests.EditMode.GameStateTests" runstate="Runnable" seed="1497941822" result="Passed" start-time="2026-03-29 02:23:06Z" end-time="2026-03-29 02:23:06Z" duration="0.000580" asserts="0">
+                <properties />
+              </test-case>
+              <test-case id="1035" name="Hand_CanHoldManyCards" fullname="FWTCG.Tests.EditMode.GameStateTests.Hand_CanHoldManyCards" methodname="Hand_CanHoldManyCards" classname="FWTCG.Tests.EditMode.GameStateTests" runstate="Runnable" seed="2001121750" result="Passed" start-time="2026-03-29 02:23:06Z" end-time="2026-03-29 02:23:06Z" duration="0.000196" asserts="0">
+                <properties />
+              </test-case>
+              <test-case id="1028" name="HandSize_IsUnlimited" fullname="FWTCG.Tests.EditMode.GameStateTests.HandSize_IsUnlimited" methodname="HandSize_IsUnlimited" classname="FWTCG.Tests.EditMode.GameStateTests" runstate="Runnable" seed="827355292" result="Passed" start-time="2026-03-29 02:23:06Z" end-time="2026-03-29 02:23:06Z" duration="0.000167" asserts="0">
+                <properties />
+              </test-case>
+              <test-case id="1030" name="InitialHandSize_IsFour" fullname="FWTCG.Tests.EditMode.GameStateTests.InitialHandSize_IsFour" methodname="InitialHandSize_IsFour" classname="FWTCG.Tests.EditMode.GameStateTests" runstate="Runnable" seed="978698109" result="Passed" start-time="2026-03-29 02:23:06Z" end-time="2026-03-29 02:23:06Z" duration="0.000082" asserts="0">
+                <properties />
+              </test-case>
+              <test-case id="1031" name="UnitInstance_AtkEqualsHP_OnCreation" fullname="FWTCG.Tests.EditMode.GameStateTests.UnitInstance_AtkEqualsHP_OnCreation" methodname="UnitInstance_AtkEqualsHP_OnCreation" classname="FWTCG.Tests.EditMode.GameStateTests" runstate="Runnable" seed="212713992" result="Passed" start-time="2026-03-29 02:23:06Z" end-time="2026-03-29 02:23:06Z" duration="0.000159" asserts="0">
+                <properties />
+              </test-case>
+              <test-case id="1032" name="UnitInstance_DifferentAtkValues_AllCorrect" fullname="FWTCG.Tests.EditMode.GameStateTests.UnitInstance_DifferentAtkValues_AllCorrect" methodname="UnitInstance_DifferentAtkValues_AllCorrect" classname="FWTCG.Tests.EditMode.GameStateTests" runstate="Runnable" seed="1092962618" result="Passed" start-time="2026-03-29 02:23:06Z" end-time="2026-03-29 02:23:06Z" duration="0.000246" asserts="0">
+                <properties />
+              </test-case>
+              <test-case id="1034" name="UnitInstance_EffectiveAtk_NeverBelowOne" fullname="FWTCG.Tests.EditMode.GameStateTests.UnitInstance_EffectiveAtk_NeverBelowOne" methodname="UnitInstance_EffectiveAtk_NeverBelowOne" classname="FWTCG.Tests.EditMode.GameStateTests" runstate="Runnable" seed="2146961464" result="Passed" start-time="2026-03-29 02:23:06Z" end-time="2026-03-29 02:23:06Z" duration="0.000127" asserts="0">
+                <properties />
+              </test-case>
+              <test-case id="1033" name="UnitInstance_ResetEndOfTurn_RestoresHP" fullname="FWTCG.Tests.EditMode.GameStateTests.UnitInstance_ResetEndOfTurn_RestoresHP" methodname="UnitInstance_ResetEndOfTurn_RestoresHP" classname="FWTCG.Tests.EditMode.GameStateTests" runstate="Runnable" seed="736490733" result="Passed" start-time="2026-03-29 02:23:06Z" end-time="2026-03-29 02:23:06Z" duration="0.000257" asserts="0">
+                <properties />
+              </test-case>
+              <test-case id="1027" name="WinScore_IsEight" fullname="FWTCG.Tests.EditMode.GameStateTests.WinScore_IsEight" methodname="WinScore_IsEight" classname="FWTCG.Tests.EditMode.GameStateTests" runstate="Runnable" seed="636160834" result="Passed" start-time="2026-03-29 02:23:06Z" end-time="2026-03-29 02:23:06Z" duration="0.000080" asserts="0">
+                <properties />
+              </test-case>
+            </test-suite>
+          </test-suite>
+        </test-suite>
+      </test-suite>
+    </test-suite>
+  </test-suite>
+</test-run>

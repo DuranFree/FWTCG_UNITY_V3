@@ -37,8 +37,9 @@ namespace FWTCG
         private GameState _gs;
 
         // ── Interaction state ─────────────────────────────────────────────────
-        private UnitInstance _selectedUnit;
-        private string _selectedUnitLoc; // "hand", "base", "0", "1"
+        private UnitInstance _selectedUnit;       // single-select (for BF recall)
+        private string _selectedUnitLoc;          // "hand", "base", "0", "1"
+        private List<UnitInstance> _selectedBaseUnits = new List<UnitInstance>(); // multi-select for batch move
 
         // ── Unity lifecycle ───────────────────────────────────────────────────
 
@@ -160,7 +161,10 @@ namespace FWTCG
 
         /// <summary>
         /// Called when the player clicks a unit card in hand, base, or battlefield.
-        /// First click selects the unit; second click on a battlefield moves it.
+        /// - Hand: plays card to base (pay mana)
+        /// - Base: toggles multi-select (add/remove from batch)
+        /// - Battlefield: single-select for recall (double-click to recall)
+        /// After selecting base units, click a battlefield to batch-move them all.
         /// </summary>
         public void OnUnitClicked(UnitInstance unit)
         {
@@ -168,66 +172,78 @@ namespace FWTCG
             if (_gs.Turn != GameRules.OWNER_PLAYER) return;
             if (_gs.Phase != GameRules.PHASE_ACTION) return;
 
-            if (_selectedUnit == unit)
-            {
-                // #13: If unit is on a battlefield, recall to base (exhausted)
-                if (_selectedUnitLoc != null && _selectedUnitLoc != "base"
-                    && int.TryParse(_selectedUnitLoc, out int recallBF))
-                {
-                    if (_selectedUnit.Exhausted)
-                    {
-                        TurnManager.BroadcastMessage_Static($"[提示] {_selectedUnit.UnitName} 已休眠，无法召回");
-                    }
-                    else
-                    {
-                        _combatSys.RecallUnit(_selectedUnit, recallBF, GameRules.OWNER_PLAYER, _gs);
-                    }
-                    _selectedUnit = null;
-                    _selectedUnitLoc = null;
-                    RefreshUI();
-                    return;
-                }
-
-                // Otherwise deselect
-                _selectedUnit = null;
-                _selectedUnitLoc = null;
-                TurnManager.BroadcastMessage_Static($"[选择] 取消选择 {unit.UnitName}");
-                return;
-            }
-
-            _selectedUnit = unit;
-
-            // Determine where this unit currently is
+            // ── Hand card: play to base ──
             if (_gs.PHand.Contains(unit))
             {
-                // Unit is in hand — try to play it (add to base)
                 TryPlayCard(unit);
                 return;
             }
 
+            // ── Base unit: toggle multi-select ──
             if (_gs.PBase.Contains(unit))
             {
-                _selectedUnitLoc = "base";
-                TurnManager.BroadcastMessage_Static($"[选择] {unit.UnitName}（基地） — 点击战场移动");
+                // Clear any BF single-select
+                _selectedUnit = null;
+                _selectedUnitLoc = null;
+
+                if (_selectedBaseUnits.Contains(unit))
+                {
+                    _selectedBaseUnits.Remove(unit);
+                    TurnManager.BroadcastMessage_Static($"[取消选择] {unit.UnitName}（已选{_selectedBaseUnits.Count}个）");
+                }
+                else
+                {
+                    if (unit.Exhausted)
+                    {
+                        TurnManager.BroadcastMessage_Static($"[提示] {unit.UnitName} 已休眠，无法移动");
+                    }
+                    else
+                    {
+                        _selectedBaseUnits.Add(unit);
+                        TurnManager.BroadcastMessage_Static($"[选择] {unit.UnitName}（已选{_selectedBaseUnits.Count}个） — 点击战场一起上场");
+                    }
+                }
+                RefreshUI();
                 return;
             }
 
+            // ── Battlefield unit: single-select / recall ──
             for (int i = 0; i < GameRules.BATTLEFIELD_COUNT; i++)
             {
                 if (_gs.BF[i].PlayerUnits.Contains(unit))
                 {
-                    _selectedUnitLoc = i.ToString();
-                    TurnManager.BroadcastMessage_Static($"[选择] {unit.UnitName}（战场{i + 1}） — 点击战场移动 / 再次点击召回基地");
+                    if (_selectedUnit == unit)
+                    {
+                        // Double-click: recall to base (#13)
+                        if (unit.Exhausted)
+                        {
+                            TurnManager.BroadcastMessage_Static($"[提示] {unit.UnitName} 已休眠，无法召回");
+                        }
+                        else
+                        {
+                            _combatSys.RecallUnit(unit, i, GameRules.OWNER_PLAYER, _gs);
+                        }
+                        _selectedUnit = null;
+                        _selectedUnitLoc = null;
+                    }
+                    else
+                    {
+                        // First click: select
+                        _selectedUnit = unit;
+                        _selectedUnitLoc = i.ToString();
+                        _selectedBaseUnits.Clear(); // clear multi-select
+                        TurnManager.BroadcastMessage_Static($"[选择] {unit.UnitName}（战场{i + 1}） — 再次点击召回基地");
+                    }
+                    RefreshUI();
                     return;
                 }
             }
-
-            RefreshUI();
         }
 
         /// <summary>
         /// Called when the player clicks a battlefield zone.
-        /// If a unit is selected, moves it to that battlefield.
+        /// If base units are multi-selected, batch-move them all, then auto-combat.
+        /// If a single BF unit is selected, move it to the other BF.
         /// </summary>
         public void OnBattlefieldClicked(int bfId)
         {
@@ -235,26 +251,51 @@ namespace FWTCG
             if (_gs.Turn != GameRules.OWNER_PLAYER) return;
             if (_gs.Phase != GameRules.PHASE_ACTION) return;
 
-            if (_selectedUnit == null)
+            // ── Batch move from base ──
+            if (_selectedBaseUnits.Count > 0)
             {
-                TurnManager.BroadcastMessage_Static("[提示] 请先选择一个单位");
-                return;
-            }
+                // Move all selected base units to this BF
+                List<UnitInstance> toMove = new List<UnitInstance>(_selectedBaseUnits);
+                _selectedBaseUnits.Clear();
 
-            if (_selectedUnit.Exhausted)
-            {
-                TurnManager.BroadcastMessage_Static($"[提示] {_selectedUnit.UnitName} 已休眠，本回合无法移动");
+                foreach (UnitInstance u in toMove)
+                {
+                    if (!u.Exhausted && _gs.PBase.Contains(u))
+                    {
+                        _combatSys.MoveUnit(u, "base", bfId, GameRules.OWNER_PLAYER, _gs);
+                    }
+                }
+
+                // After all units moved, check combat on this BF
+                _combatSys.CheckAndResolveCombat(bfId, GameRules.OWNER_PLAYER, _gs, _scoreMgr);
+
                 _selectedUnit = null;
                 _selectedUnitLoc = null;
+                RefreshUI();
                 return;
             }
 
-            string fromLoc = _selectedUnitLoc ?? "base";
-            _combatSys.MoveUnit(_selectedUnit, fromLoc, bfId, GameRules.OWNER_PLAYER, _gs, _scoreMgr);
+            // ── Single BF unit move (to different BF) ──
+            if (_selectedUnit != null && _selectedUnitLoc != null && _selectedUnitLoc != "base")
+            {
+                if (_selectedUnit.Exhausted)
+                {
+                    TurnManager.BroadcastMessage_Static($"[提示] {_selectedUnit.UnitName} 已休眠，无法移动");
+                    _selectedUnit = null;
+                    _selectedUnitLoc = null;
+                    return;
+                }
 
-            _selectedUnit = null;
-            _selectedUnitLoc = null;
-            RefreshUI();
+                _combatSys.MoveUnit(_selectedUnit, _selectedUnitLoc, bfId, GameRules.OWNER_PLAYER, _gs);
+                _combatSys.CheckAndResolveCombat(bfId, GameRules.OWNER_PLAYER, _gs, _scoreMgr);
+
+                _selectedUnit = null;
+                _selectedUnitLoc = null;
+                RefreshUI();
+                return;
+            }
+
+            TurnManager.BroadcastMessage_Static("[提示] 请先选择基地中的单位");
         }
 
         /// <summary>
@@ -268,6 +309,7 @@ namespace FWTCG
 
             _selectedUnit = null;
             _selectedUnitLoc = null;
+            _selectedBaseUnits.Clear();
             _turnMgr.EndTurn();
             RefreshUI();
         }
@@ -413,7 +455,7 @@ namespace FWTCG
         private void RefreshUI()
         {
             if (_ui != null)
-                _ui.Refresh(_gs);
+                _ui.Refresh(_gs, _selectedBaseUnits);
         }
 
         // ── Event handlers ────────────────────────────────────────────────────

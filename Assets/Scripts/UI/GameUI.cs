@@ -109,6 +109,9 @@ namespace FWTCG.UI
             _onRuneClicked = onRune;
         }
 
+        // ── Selection state (set by GameManager) ─────────────────────────────
+        private List<UnitInstance> _selectedBaseUnits;
+
         // ── Full refresh ──────────────────────────────────────────────────────
 
         /// <summary>
@@ -116,7 +119,17 @@ namespace FWTCG.UI
         /// </summary>
         public void Refresh(GameState gs)
         {
+            Refresh(gs, null);
+        }
+
+        /// <summary>
+        /// Redraws all UI panels. selectedBaseUnits highlights multi-selected units in green.
+        /// </summary>
+        public void Refresh(GameState gs, List<UnitInstance> selectedBaseUnits)
+        {
             if (gs == null) return;
+
+            _selectedBaseUnits = selectedBaseUnits;
 
             RefreshScores(gs);
             RefreshRoundPhase(gs);
@@ -235,7 +248,12 @@ namespace FWTCG.UI
                 GameObject go = Instantiate(_cardViewPrefab, container);
                 CardView cv = go.GetComponent<CardView>();
                 if (cv != null)
+                {
                     cv.Setup(u, isPlayer, onClick);
+                    // Highlight multi-selected base units
+                    if (_selectedBaseUnits != null && _selectedBaseUnits.Contains(u))
+                        cv.SetSelected(true);
+                }
             }
         }
 

@@ -27,6 +27,9 @@ namespace FWTCG.UI
         private static readonly Color NormalColor = Color.white;
         private static readonly Color PlayerCardColor = new Color(0.85f, 0.92f, 1f, 1f);
         private static readonly Color EnemyCardColor = new Color(1f, 0.85f, 0.85f, 1f);
+        private static readonly Color SelectedColor = new Color(0.4f, 1f, 0.4f, 1f); // green highlight
+
+        private bool _selected;
 
         private void Awake()
         {
@@ -94,15 +97,27 @@ namespace FWTCG.UI
                 _artImage.enabled = false;
             }
 
-            // Background colour by owner + exhausted state
+            // Background colour by owner + exhausted + selected state
             if (_cardBg != null)
             {
                 Color baseColor = _isPlayerCard ? PlayerCardColor : EnemyCardColor;
-                _cardBg.color = _unit.Exhausted ? ExhaustedColor : baseColor;
+                if (_selected)
+                    _cardBg.color = SelectedColor;
+                else
+                    _cardBg.color = _unit.Exhausted ? ExhaustedColor : baseColor;
             }
         }
 
         public UnitInstance Unit => _unit;
+
+        /// <summary>
+        /// Sets green highlight when unit is part of a multi-select batch.
+        /// </summary>
+        public void SetSelected(bool selected)
+        {
+            _selected = selected;
+            Refresh();
+        }
 
         private void HandleClick()
         {

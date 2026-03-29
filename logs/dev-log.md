@@ -177,3 +177,26 @@
 **Files changed**: CombatSystem.cs, ScoreManager.cs, TurnManager.cs, UnitInstance.cs, GameRules.cs, GameManager.cs, GameUI.cs, SimpleAI.cs, SceneBuilder.cs
 
 **Tests**: 编译通过 + 18个EditMode测试全绿
+
+---
+
+## DEV-1 多单位同时上场修正 — 2026-03-29
+
+**Status**: ✅ Completed（用户验证通过）
+
+**What was done**:
+- CombatSystem.MoveUnit 拆分：仅移动，不触发战斗
+- 新增 CombatSystem.CheckAndResolveCombat：移动后检查战斗（批量移动完成后才调用）
+- GameManager 支持多选基地单位（_selectedBaseUnits 列表）
+- OnBattlefieldClicked 改为批量移动所有选中单位，再一次性触发战斗
+- CardView 新增 SetSelected()：选中单位显示绿色高亮
+- GameUI.Refresh 接受选中列表，传递给 CardView
+- SimpleAI 批量移动所有可移动单位到同一战场，再统一结算
+
+**Decisions made**:
+- 玩家多选（绿色高亮）→ 点击战场 → 全部上场 → 自动战斗
+- 不恢复手动对决按钮，改为批量移动后自动触发
+
+**Technical debt**: 无新增
+
+**Problems encountered**: 无

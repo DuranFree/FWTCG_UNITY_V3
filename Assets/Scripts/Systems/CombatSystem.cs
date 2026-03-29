@@ -23,12 +23,11 @@ namespace FWTCG.Systems
         // ── Unit movement (#3, #9) ───────────────────────────────────────────
 
         /// <summary>
-        /// Moves a unit to a battlefield. If movement causes contested state,
-        /// combat auto-triggers immediately (Rule 546). If moving to empty BF
-        /// and control changes, conquest score is awarded (Rule 630).
+        /// Moves a unit to a battlefield. Does NOT trigger combat.
+        /// Call CheckAndResolveCombat() after all units have been moved.
         /// </summary>
         public void MoveUnit(UnitInstance unit, string fromLoc, int toBF,
-                             string owner, GameState gs, ScoreManager score)
+                             string owner, GameState gs)
         {
             if (gs.GameOver) return;
 
@@ -47,26 +46,48 @@ namespace FWTCG.Systems
 
             Log($"[移动] {unit.UnitName}({DisplayName(owner)}) → 战场{toBF + 1}");
 
+            // Claim control if uncontested (no combat yet)
+            string opponent = gs.Opponent(owner);
+            if (!bf.HasUnits(opponent))
+            {
+                bf.Ctrl = owner;
+            }
+        }
+
+        /// <summary>
+        /// After batch-moving units, check a specific BF for combat and resolve.
+        /// Awards conquest if control changes (empty BF or combat win).
+        /// Returns true if combat occurred.
+        /// </summary>
+        public bool CheckAndResolveCombat(int bfId, string owner, GameState gs, ScoreManager score)
+        {
+            if (gs.GameOver) return false;
+
+            BattlefieldState bf = gs.BF[bfId];
             string opponent = gs.Opponent(owner);
 
             if (bf.HasUnits(owner) && bf.HasUnits(opponent))
             {
-                // #3: Contested → auto spell duel (immediate combat)
-                TriggerCombat(toBF, owner, gs, score);
+                // Contested → auto spell duel
+                TriggerCombat(bfId, owner, gs, score);
+                return true;
             }
-            else
+
+            // #9: Uncontested — check conquest (control change to empty BF)
+            if (bf.HasUnits(owner) && !bf.HasUnits(opponent))
             {
-                // #9: Uncontested — claim control, check conquest
                 string previousCtrl = bf.Ctrl;
                 bf.Ctrl = owner;
 
                 bool controlChanged = (previousCtrl != owner);
-                if (controlChanged && !gs.BFConqueredThisTurn.Contains(toBF))
+                if (controlChanged && !gs.BFConqueredThisTurn.Contains(bfId))
                 {
-                    Log($"[征服] {DisplayName(owner)} 占领空战场{toBF + 1}");
-                    score.AddScore(owner, 1, GameRules.SCORE_TYPE_CONQUER, toBF, gs);
+                    Log($"[征服] {DisplayName(owner)} 占领空战场{bfId + 1}");
+                    score.AddScore(owner, 1, GameRules.SCORE_TYPE_CONQUER, bfId, gs);
                 }
             }
+
+            return false;
         }
 
         /// <summary>

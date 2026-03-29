@@ -1,0 +1,15 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(python3 -c:*)",
+      "Bash(\"C:/Program Files/Unity/Hub/Editor/2022.3.62f1c1/Editor/Unity.exe\" -batchmode -quit -nographics -projectPath . -buildTarget Win64 -logFile -)",
+      "Read(//c/Program Files/Unity/Hub/Editor//**)",
+      "Read(//d/Program Files/Unity/Hub/**)",
+      "Read(//c/Program Files/Unity/**)",
+      "Bash(\"/c/Program Files/Unity/Hub/Editor/2022.3.62f3c1/Editor/Unity.exe\" -batchmode -quit -nographics -projectPath . -buildTarget Win64 -logFile -)",
+      "Bash(\"/c/Program Files/Unity/Hub/Editor/2022.3.62f3c1/Editor/Unity.exe\" -batchmode -nographics -projectPath . -runTests -testPlatform EditMode -logFile -)",
+      "Bash(\"/c/Program Files/Unity/Hub/Editor/2022.3.62f3c1/Editor/Unity.exe\" -batchmode -nographics -projectPath . -runTests -testPlatform EditMode -testResults \"./test-results.xml\" -logFile \"./test-log.txt\")",
+      "Bash(echo \"EXIT:$?\")"
+    ]
+  }
+}

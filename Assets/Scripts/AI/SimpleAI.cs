@@ -69,32 +69,41 @@ namespace FWTCG.AI
             await Task.Delay(GameRules.AI_ACTION_DELAY_MS);
             if (gs.GameOver) return;
 
-            // ── Step 3: Move ALL non-exhausted base units to battlefields (#14) ──
-            bool movedAny = false;
-            while (!gs.GameOver)
+            // ── Step 3: Batch move ALL non-exhausted base units to one BF, then combat ──
+            int targetBF = ChooseBattlefield(gs);
+            if (targetBF >= 0)
             {
-                // Re-scan base each iteration (combat may modify lists via recall)
-                List<UnitInstance> eBase = gs.GetBase(GameRules.OWNER_ENEMY);
-                UnitInstance toMove = null;
-                foreach (UnitInstance u in eBase)
+                // Collect all movable units first
+                List<UnitInstance> toMoveList = new List<UnitInstance>();
+                foreach (UnitInstance u in gs.GetBase(GameRules.OWNER_ENEMY))
                 {
-                    if (!u.Exhausted) { toMove = u; break; }
+                    if (!u.Exhausted) toMoveList.Add(u);
                 }
-                if (toMove == null) break;
 
-                int targetBF = ChooseBattlefield(gs);
-                if (targetBF < 0) break;
+                if (toMoveList.Count > 0)
+                {
+                    foreach (UnitInstance u in toMoveList)
+                    {
+                        TurnManager.BroadcastMessage_Static(
+                            $"[AI] 移动 {u.UnitName} → 战场{targetBF + 1}");
+                        combat.MoveUnit(u, "base", targetBF, GameRules.OWNER_ENEMY, gs);
+                    }
 
-                TurnManager.BroadcastMessage_Static(
-                    $"[AI] 移动 {toMove.UnitName} → 战场{targetBF + 1}");
-                combat.MoveUnit(toMove, "base", targetBF, GameRules.OWNER_ENEMY, gs, score);
-                movedAny = true;
+                    await Task.Delay(GameRules.AI_ACTION_DELAY_MS);
+                    if (gs.GameOver) { turnMgr.EndTurn(); return; }
 
-                await Task.Delay(GameRules.AI_ACTION_DELAY_MS);
+                    // After all units moved, resolve combat on that BF
+                    combat.CheckAndResolveCombat(targetBF, GameRules.OWNER_ENEMY, gs, score);
+                }
+                else
+                {
+                    TurnManager.BroadcastMessage_Static("[AI] 基地无可移动的单位");
+                }
             }
-
-            if (!movedAny)
-                TurnManager.BroadcastMessage_Static("[AI] 基地无可移动的单位");
+            else
+            {
+                TurnManager.BroadcastMessage_Static("[AI] 无可用战场");
+            }
 
             await Task.Delay(GameRules.AI_ACTION_DELAY_MS);
 
