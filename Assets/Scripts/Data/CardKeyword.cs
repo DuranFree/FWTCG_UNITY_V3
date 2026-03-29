@@ -22,5 +22,6 @@ namespace FWTCG.Data
         Foresight   = 1 << 9,  // 预知: view top deck on entry
         Standby     = 1 << 10, // 待命: face-down 0-cost reactive
         Stun        = 1 << 11, // 眩晕: cannot contribute power in combat
+        Echo        = 1 << 12, // 回响: can be played a second time this turn
     }
 }
