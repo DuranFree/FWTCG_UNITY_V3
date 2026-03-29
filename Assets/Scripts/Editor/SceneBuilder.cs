@@ -571,12 +571,25 @@ namespace FWTCG.Editor
             atkRT.offsetMin = Vector2.zero;
             atkRT.offsetMax = Vector2.zero;
 
+            // ArtImage — middle area (between name row and atk row)
+            var artGO = new GameObject("ArtImage");
+            artGO.transform.SetParent(root.transform, false);
+            var artImg = artGO.AddComponent<Image>();
+            artImg.preserveAspect = true;
+            artImg.color = Color.white;
+            var artRT = artGO.GetComponent<RectTransform>();
+            artRT.anchorMin = new Vector2(0f, 0.2f);
+            artRT.anchorMax = new Vector2(1f, 0.8f);
+            artRT.offsetMin = new Vector2(2f, 2f);
+            artRT.offsetMax = new Vector2(-2f, -2f);
+
             // Wire CardView serialized fields
             var so = new SerializedObject(cardView);
-            so.FindProperty("_nameText").objectReferenceValue = cardName;
-            so.FindProperty("_costText").objectReferenceValue = costText;
-            so.FindProperty("_atkText").objectReferenceValue = atkText;
-            so.FindProperty("_cardBg").objectReferenceValue = rootImg;
+            so.FindProperty("_nameText").objectReferenceValue  = cardName;
+            so.FindProperty("_costText").objectReferenceValue  = costText;
+            so.FindProperty("_atkText").objectReferenceValue   = atkText;
+            so.FindProperty("_artImage").objectReferenceValue  = artImg;
+            so.FindProperty("_cardBg").objectReferenceValue    = rootImg;
             so.FindProperty("_clickButton").objectReferenceValue = root.GetComponent<Button>();
             so.ApplyModifiedPropertiesWithoutUndo();
 
@@ -733,21 +746,34 @@ namespace FWTCG.Editor
 
         // Shorthand alias
         /// <summary>
-        /// Sets TextureImporterType.Sprite on every PNG/JPG in Assets/Resources/CardArt/
-        /// so they can be loaded as Sprites via AssetDatabase.LoadAssetAtPath&lt;Sprite&gt;.
+        /// Sets TextureImporterType.Sprite on every PNG/JPG in Assets/Resources/CardArt/.
+        /// Uses Directory.GetFiles so it works even on first import (no .meta yet).
         /// </summary>
         private static void EnsureCardArtImportedAsSprite()
         {
             string artFolder = "Assets/Resources/CardArt";
             if (!System.IO.Directory.Exists(artFolder)) return;
 
-            string[] guids = AssetDatabase.FindAssets("t:Texture2D", new[] { artFolder });
-            bool anyChanged = false;
+            var files = new System.Collections.Generic.List<string>();
+            files.AddRange(System.IO.Directory.GetFiles(artFolder, "*.png"));
+            files.AddRange(System.IO.Directory.GetFiles(artFolder, "*.jpg"));
 
-            foreach (string guid in guids)
+            foreach (string fullPath in files)
             {
-                string path = AssetDatabase.GUIDToAssetPath(guid);
-                var importer = AssetImporter.GetAtPath(path) as TextureImporter;
+                // Normalise to forward-slash Unity asset path
+                string assetPath = fullPath.Replace('\\', '/');
+                if (!assetPath.StartsWith("Assets/"))
+                {
+                    // Strip absolute prefix up to "Assets/"
+                    int idx = assetPath.IndexOf("Assets/");
+                    if (idx >= 0) assetPath = assetPath.Substring(idx);
+                    else continue;
+                }
+
+                // Force-import so the asset database knows about the file
+                AssetDatabase.ImportAsset(assetPath, ImportAssetOptions.ForceSynchronousImport);
+
+                var importer = AssetImporter.GetAtPath(assetPath) as TextureImporter;
                 if (importer == null) continue;
 
                 if (importer.textureType != TextureImporterType.Sprite)
@@ -755,13 +781,12 @@ namespace FWTCG.Editor
                     importer.textureType         = TextureImporterType.Sprite;
                     importer.spriteImportMode    = SpriteImportMode.Single;
                     importer.alphaIsTransparency = true;
-                    importer.SaveAndReimport();
-                    anyChanged = true;
-                    Debug.Log($"[SceneBuilder] 设为Sprite: {path}");
+                    AssetDatabase.ImportAsset(assetPath, ImportAssetOptions.ForceSynchronousImport);
+                    Debug.Log($"[SceneBuilder] 设为Sprite: {assetPath}");
                 }
             }
 
-            if (anyChanged) AssetDatabase.Refresh();
+            AssetDatabase.Refresh();
         }
 
         private static CardData CD(string id, string name, int cost, int atk,
