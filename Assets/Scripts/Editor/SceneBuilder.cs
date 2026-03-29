@@ -127,6 +127,11 @@ namespace FWTCG.Editor
                 out var mulliganTitleText, out var mulliganCardContainer,
                 out var mulliganConfirmButton, out var mulliganConfirmLabel);
 
+            // ── Debug Panel ───────────────────────────────────────────────────
+            var debugPanel = CreateDebugPanel(canvasGO.transform,
+                out var debugSpellBtn, out var debugEquipBtn,
+                out var debugUnitBtn, out var debugManaBtn);
+
             // ── CardArt: ensure all PNGs are imported as Sprite ──────────────
             EnsureCardArtImportedAsSprite();
 
@@ -168,7 +173,8 @@ namespace FWTCG.Editor
                             entryEffects, deathwish, spellSys, startupFlowUI,
                             coinFlipPanel, coinFlipText, coinFlipOkButton,
                             mulliganPanel, mulliganTitleText, mulliganCardContainer,
-                            mulliganConfirmButton, mulliganConfirmLabel, cardPrefab);
+                            mulliganConfirmButton, mulliganConfirmLabel, cardPrefab,
+                            debugSpellBtn, debugEquipBtn, debugUnitBtn, debugManaBtn);
 
             // ── Save scene ────────────────────────────────────────────────────
             EnsureDirectory("Assets/Scenes");
@@ -527,6 +533,96 @@ namespace FWTCG.Editor
 
             go.SetActive(false);
             return go;
+        }
+
+        // ── Debug Panel ───────────────────────────────────────────────────────
+
+        /// <summary>
+        /// Creates a small debug panel anchored to the bottom-left corner.
+        /// Buttons: 摸法术 / 摸装备 / 摸单位 / +5法力
+        /// </summary>
+        private static GameObject CreateDebugPanel(Transform parent,
+            out Button spellBtn, out Button equipBtn,
+            out Button unitBtn, out Button manaBtn)
+        {
+            var go = new GameObject("DebugPanel");
+            go.transform.SetParent(parent, false);
+
+            var rt = go.AddComponent<RectTransform>();
+            // Anchor bottom-left, 200px wide × 180px tall
+            rt.anchorMin = new Vector2(0f, 0f);
+            rt.anchorMax = new Vector2(0f, 0f);
+            rt.pivot     = new Vector2(0f, 0f);
+            rt.anchoredPosition = new Vector2(5f, 105f); // just above BottomBar
+            rt.sizeDelta = new Vector2(130f, 180f);
+
+            var img = go.AddComponent<Image>();
+            img.color = new Color(0f, 0f, 0f, 0.75f);
+
+            var vlg = go.AddComponent<VerticalLayoutGroup>();
+            vlg.childControlWidth = true;
+            vlg.childControlHeight = false;
+            vlg.childForceExpandWidth = true;
+            vlg.childForceExpandHeight = false;
+            vlg.padding = new RectOffset(4, 4, 4, 4);
+            vlg.spacing = 4f;
+
+            // Title label
+            var titleGO = new GameObject("DebugTitle");
+            titleGO.transform.SetParent(go.transform, false);
+            var titleLE = titleGO.AddComponent<LayoutElement>();
+            titleLE.preferredHeight = 22f;
+            var titleT = titleGO.AddComponent<Text>();
+            titleT.text = "── DEBUG ──";
+            titleT.color = new Color(1f, 0.8f, 0.2f, 1f);
+            titleT.fontSize = 13;
+            titleT.alignment = TextAnchor.MiddleCenter;
+            titleT.horizontalOverflow = HorizontalWrapMode.Overflow;
+            titleT.verticalOverflow   = VerticalWrapMode.Overflow;
+            if (_font != null) titleT.font = _font;
+
+            spellBtn = CreateDebugButton(go.transform, "摸法术牌", new Color(0.5f, 0.2f, 0.8f, 1f));
+            equipBtn = CreateDebugButton(go.transform, "摸装备牌", new Color(0.2f, 0.6f, 0.3f, 1f));
+            unitBtn  = CreateDebugButton(go.transform, "摸单位牌", new Color(0.2f, 0.4f, 0.8f, 1f));
+            manaBtn  = CreateDebugButton(go.transform, "+5 法力",  new Color(0.7f, 0.4f, 0.1f, 1f));
+
+            return go;
+        }
+
+        private static Button CreateDebugButton(Transform parent, string label, Color color)
+        {
+            var go = new GameObject(label);
+            go.transform.SetParent(parent, false);
+
+            var le = go.AddComponent<LayoutElement>();
+            le.preferredHeight = 32f;
+
+            var img = go.AddComponent<Image>();
+            img.color = color;
+
+            var btn = go.AddComponent<Button>();
+            var cb = btn.colors;
+            cb.highlightedColor = Color.white;
+            btn.colors = cb;
+
+            var lblGO = new GameObject("Label");
+            lblGO.transform.SetParent(go.transform, false);
+            var lbl = lblGO.AddComponent<Text>();
+            lbl.text = label;
+            lbl.color = Color.white;
+            lbl.fontSize = 14;
+            lbl.alignment = TextAnchor.MiddleCenter;
+            lbl.horizontalOverflow = HorizontalWrapMode.Overflow;
+            lbl.verticalOverflow   = VerticalWrapMode.Overflow;
+            if (_font != null) lbl.font = _font;
+
+            var lblRT = lblGO.GetComponent<RectTransform>();
+            lblRT.anchorMin = Vector2.zero;
+            lblRT.anchorMax = Vector2.one;
+            lblRT.offsetMin = Vector2.zero;
+            lblRT.offsetMax = Vector2.zero;
+
+            return btn;
         }
 
         // ── Card Prefab ───────────────────────────────────────────────────────
@@ -976,7 +1072,8 @@ namespace FWTCG.Editor
             FWTCG.UI.StartupFlowUI startupFlowUI,
             GameObject coinFlipPanel, Text coinFlipText, Button coinFlipOkButton,
             GameObject mulliganPanel, Text mulliganTitleText, Transform mulliganCardContainer,
-            Button mulliganConfirmButton, Text mulliganConfirmLabel, GameObject cardPrefab)
+            Button mulliganConfirmButton, Text mulliganConfirmLabel, GameObject cardPrefab,
+            Button debugSpellBtn, Button debugEquipBtn, Button debugUnitBtn, Button debugManaBtn)
         {
             var so = new SerializedObject(gameMgr);
             so.FindProperty("_turnMgr").objectReferenceValue        = turnMgr;
@@ -987,6 +1084,12 @@ namespace FWTCG.Editor
             so.FindProperty("_entryEffects").objectReferenceValue   = entryEffects;
             so.FindProperty("_spellSys").objectReferenceValue       = spellSys;
             so.FindProperty("_startupFlowUI").objectReferenceValue  = startupFlowUI;
+
+            // Wire debug buttons
+            so.FindProperty("_debugSpellBtn").objectReferenceValue  = debugSpellBtn;
+            so.FindProperty("_debugEquipBtn").objectReferenceValue  = debugEquipBtn;
+            so.FindProperty("_debugUnitBtn").objectReferenceValue   = debugUnitBtn;
+            so.FindProperty("_debugManaBtn").objectReferenceValue   = debugManaBtn;
 
             // Wire StartupFlowUI panels
             var startupSO = new SerializedObject(startupFlowUI);

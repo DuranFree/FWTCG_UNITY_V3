@@ -36,6 +36,12 @@ namespace FWTCG
         [SerializeField] private SpellSystem _spellSys;
         [SerializeField] private StartupFlowUI _startupFlowUI;
 
+        // ── DEBUG panel (left-bottom overlay, always visible in dev) ──────────
+        [SerializeField] private Button _debugSpellBtn;
+        [SerializeField] private Button _debugEquipBtn;
+        [SerializeField] private Button _debugUnitBtn;
+        [SerializeField] private Button _debugManaBtn;
+
         // ── Game state ────────────────────────────────────────────────────────
         private GameState _gs;
 
@@ -63,6 +69,12 @@ namespace FWTCG
             if (_ai == null) _ai = GetComponent<SimpleAI>();
             if (_entryEffects == null) _entryEffects = GetComponent<EntryEffectSystem>();
             if (_spellSys == null) _spellSys = GetComponent<SpellSystem>();
+
+            // Wire debug buttons
+            if (_debugSpellBtn != null) _debugSpellBtn.onClick.AddListener(() => DebugDraw("spell"));
+            if (_debugEquipBtn != null) _debugEquipBtn.onClick.AddListener(() => DebugDraw("equip"));
+            if (_debugUnitBtn != null) _debugUnitBtn.onClick.AddListener(() => DebugDraw("unit"));
+            if (_debugManaBtn != null) _debugManaBtn.onClick.AddListener(DebugAddMana);
         }
 
         private void OnEnable()
@@ -612,6 +624,54 @@ namespace FWTCG
                 _ui.ShowGameOver(msg);
                 _ui.Refresh(_gs);
             }
+        }
+
+        // ── DEBUG methods ─────────────────────────────────────────────────────
+
+        /// <summary>
+        /// Finds the first card of the given type in the player's deck and
+        /// moves it to hand. Does NOT deduct mana.
+        /// cardType: "spell" | "equip" | "unit"
+        /// </summary>
+        private void DebugDraw(string cardType)
+        {
+            if (_gs == null) return;
+
+            List<UnitInstance> deck = _gs.PDeck;
+            UnitInstance found = null;
+
+            foreach (UnitInstance u in deck)
+            {
+                bool match = cardType == "spell" ? u.CardData.IsSpell
+                    : cardType == "equip" ? u.CardData.IsEquipment
+                    : !u.CardData.IsSpell && !u.CardData.IsEquipment;
+                if (match) { found = u; break; }
+            }
+
+            if (found != null)
+            {
+                deck.Remove(found);
+                _gs.PHand.Add(found);
+                TurnManager.BroadcastMessage_Static($"[DEBUG] 强制摸牌 → {found.UnitName}（手牌 {_gs.PHand.Count}）");
+            }
+            else
+            {
+                string typeName = cardType == "spell" ? "法术" : cardType == "equip" ? "装备" : "单位";
+                TurnManager.BroadcastMessage_Static($"[DEBUG] 牌库中已无{typeName}牌");
+            }
+
+            RefreshUI();
+        }
+
+        /// <summary>
+        /// Adds 5 mana to the player's current mana pool.
+        /// </summary>
+        private void DebugAddMana()
+        {
+            if (_gs == null) return;
+            _gs.PMana += 5;
+            TurnManager.BroadcastMessage_Static($"[DEBUG] +5法力 → {_gs.PMana}");
+            RefreshUI();
         }
     }
 }
