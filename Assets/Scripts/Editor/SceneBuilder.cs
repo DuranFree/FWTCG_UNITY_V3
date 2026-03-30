@@ -89,6 +89,9 @@ namespace FWTCG.Editor
             // ── BannerPanel ───────────────────────────────────────────────────
             var bannerPanel = CreateBannerPanel(canvasGO.transform, out var bannerText);
 
+            // ── ToastPanel ────────────────────────────────────────────────────
+            var toastPanel = CreateToastPanel(canvasGO.transform, out var toastText);
+
             // Collect sub-references from TopBar
             var playerScoreText  = topBar.transform.Find("PlayerScore").GetComponent<Text>();
             var roundInfoText    = topBar.transform.Find("RoundInfo").GetComponent<Text>();
@@ -168,6 +171,7 @@ namespace FWTCG.Editor
             var reactiveWindowUI = gmGO.AddComponent<FWTCG.UI.ReactiveWindowUI>();
             var legendSys    = gmGO.AddComponent<FWTCG.Systems.LegendSystem>();
             var bfSys        = gmGO.AddComponent<FWTCG.Systems.BattlefieldSystem>();
+            var toastUI      = gmGO.AddComponent<FWTCG.UI.ToastUI>();
 
             // ── Wire UI references via SerializedObject ───────────────────────
             WireGameUI(gameUI, cardPrefab, runePrefab,
@@ -197,6 +201,12 @@ namespace FWTCG.Editor
                             reactivePanel, reactiveContextText, reactiveCardContainer,
                             reactBtn, legendSys, legendSkillBtn, bfSys,
                             debugSpellBtn, debugEquipBtn, debugUnitBtn, debugReactiveBtn, debugManaBtn);
+
+            // ── Wire ToastUI ──────────────────────────────────────────────────
+            var toastSO = new SerializedObject(toastUI);
+            toastSO.FindProperty("_toastPanel").objectReferenceValue = toastPanel;
+            toastSO.FindProperty("_toastText").objectReferenceValue  = toastText;
+            toastSO.ApplyModifiedPropertiesWithoutUndo();
 
             // ── Save scene ────────────────────────────────────────────────────
             EnsureDirectory("Assets/Scenes");
@@ -526,6 +536,37 @@ namespace FWTCG.Editor
             btRT.offsetMin = Vector2.zero;
             btRT.offsetMax = Vector2.zero;
             bannerText.fontStyle = FontStyle.Bold;
+
+            go.SetActive(false);
+            return go;
+        }
+
+        // ── Toast panel ───────────────────────────────────────────────────────
+
+        private static GameObject CreateToastPanel(Transform parent, out Text toastText)
+        {
+            // Anchored top-center, narrow strip for battlefield effect notifications
+            var go = new GameObject("ToastPanel");
+            go.transform.SetParent(parent, false);
+
+            var rt = go.AddComponent<RectTransform>();
+            rt.anchorMin = new Vector2(0.2f, 0.82f);
+            rt.anchorMax = new Vector2(0.8f, 0.92f);
+            rt.offsetMin = Vector2.zero;
+            rt.offsetMax = Vector2.zero;
+
+            var img = go.AddComponent<Image>();
+            img.color = new Color(0.04f, 0.06f, 0.18f, 0.88f);
+
+            go.AddComponent<CanvasGroup>();
+
+            toastText = CreateTMPText(go.transform, "ToastText", "", new Color(0.94f, 0.86f, 0.42f), 22, TextAnchor.MiddleCenter);
+            var ttRT = toastText.GetComponent<RectTransform>();
+            ttRT.anchorMin = new Vector2(0.02f, 0f);
+            ttRT.anchorMax = new Vector2(0.98f, 1f);
+            ttRT.offsetMin = Vector2.zero;
+            ttRT.offsetMax = Vector2.zero;
+            toastText.fontStyle = FontStyle.Bold;
 
             go.SetActive(false);
             return go;
