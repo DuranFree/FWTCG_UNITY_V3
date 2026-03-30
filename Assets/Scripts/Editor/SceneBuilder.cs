@@ -1695,34 +1695,47 @@ namespace FWTCG.Editor
             // CardView component
             var cardView = root.AddComponent<FWTCG.UI.CardView>();
 
-            // CardName — top banner (semi-transparent dark strip)
+            // ── ArtImage — FIRST child = bottom layer (behind all text) ──
+            var artGO = new GameObject("ArtImage");
+            artGO.transform.SetParent(root.transform, false);
+            var artImg = artGO.AddComponent<Image>();
+            artImg.preserveAspect = true;
+            artImg.color = Color.white;
+            artImg.raycastTarget = false;
+            var artRT = artGO.GetComponent<RectTransform>();
+            artRT.anchorMin = Vector2.zero;
+            artRT.anchorMax = Vector2.one;
+            artRT.offsetMin = new Vector2(2f, 2f);
+            artRT.offsetMax = new Vector2(-2f, -2f);
+
+            // ── CardName — top banner (on top of art) ──
             var nameBannerGO = new GameObject("NameBanner");
             nameBannerGO.transform.SetParent(root.transform, false);
             var nameBannerImg = nameBannerGO.AddComponent<Image>();
-            nameBannerImg.color = new Color(0f, 0f, 0f, 0.6f);
+            nameBannerImg.color = new Color(0f, 0f, 0f, 0.7f);
             nameBannerImg.raycastTarget = false;
             var nameBannerRT = nameBannerGO.GetComponent<RectTransform>();
-            nameBannerRT.anchorMin = new Vector2(0f, 0.8f);
+            nameBannerRT.anchorMin = new Vector2(0f, 0.78f);
             nameBannerRT.anchorMax = new Vector2(1f, 1f);
             nameBannerRT.offsetMin = Vector2.zero;
             nameBannerRT.offsetMax = Vector2.zero;
 
-            var cardName = CreateTMPText(nameBannerGO.transform, "CardName", "卡名", Color.white, 11, TextAnchor.MiddleCenter);
+            var cardName = CreateTMPText(nameBannerGO.transform, "CardName", "卡名", Color.white, 10, TextAnchor.MiddleCenter);
             var nameRT = cardName.GetComponent<RectTransform>();
             nameRT.anchorMin = Vector2.zero;
             nameRT.anchorMax = Vector2.one;
             nameRT.offsetMin = Vector2.zero;
             nameRT.offsetMax = Vector2.zero;
 
-            // CostText — top-left cost badge (gold circle)
+            // ── CostText — top-left cost badge (on top of art) ──
             var costBadgeGO = new GameObject("CostBadge");
             costBadgeGO.transform.SetParent(root.transform, false);
             var costBadgeImg = costBadgeGO.AddComponent<Image>();
-            costBadgeImg.color = new Color(0.78f, 0.67f, 0.43f, 0.9f);
+            costBadgeImg.color = new Color(0.78f, 0.67f, 0.43f, 0.95f);
             costBadgeImg.raycastTarget = false;
             var costBadgeRT = costBadgeGO.GetComponent<RectTransform>();
-            costBadgeRT.anchorMin = new Vector2(0f, 0.8f);
-            costBadgeRT.anchorMax = new Vector2(0.3f, 1f);
+            costBadgeRT.anchorMin = new Vector2(0f, 0.78f);
+            costBadgeRT.anchorMax = new Vector2(0.28f, 1f);
             costBadgeRT.offsetMin = new Vector2(1f, 1f);
             costBadgeRT.offsetMax = new Vector2(-1f, -1f);
 
@@ -1734,19 +1747,19 @@ namespace FWTCG.Editor
             costRT.offsetMin = Vector2.zero;
             costRT.offsetMax = Vector2.zero;
 
-            // AtkText — bottom banner (semi-transparent dark strip)
+            // ── AtkText — bottom banner (on top of art) ──
             var atkBannerGO = new GameObject("AtkBanner");
             atkBannerGO.transform.SetParent(root.transform, false);
             var atkBannerImg = atkBannerGO.AddComponent<Image>();
-            atkBannerImg.color = new Color(0f, 0f, 0f, 0.6f);
+            atkBannerImg.color = new Color(0f, 0f, 0f, 0.7f);
             atkBannerImg.raycastTarget = false;
             var atkBannerRT = atkBannerGO.GetComponent<RectTransform>();
             atkBannerRT.anchorMin = new Vector2(0f, 0f);
-            atkBannerRT.anchorMax = new Vector2(1f, 0.2f);
+            atkBannerRT.anchorMax = new Vector2(1f, 0.22f);
             atkBannerRT.offsetMin = Vector2.zero;
             atkBannerRT.offsetMax = Vector2.zero;
 
-            var atkText = CreateTMPText(atkBannerGO.transform, "AtkText", "0", Color.white, 15, TextAnchor.MiddleCenter);
+            var atkText = CreateTMPText(atkBannerGO.transform, "AtkText", "0", Color.white, 14, TextAnchor.MiddleCenter);
             atkText.fontStyle = FontStyle.Bold;
             var atkRT = atkText.GetComponent<RectTransform>();
             atkRT.anchorMin = Vector2.zero;
@@ -1754,24 +1767,11 @@ namespace FWTCG.Editor
             atkRT.offsetMin = Vector2.zero;
             atkRT.offsetMax = Vector2.zero;
 
-            // ArtImage — fills entire card (text overlays on top)
-            var artGO = new GameObject("ArtImage");
-            artGO.transform.SetParent(root.transform, false);
-            var artImg = artGO.AddComponent<Image>();
-            artImg.preserveAspect = true; // keep aspect ratio, no distortion
-            artImg.color = Color.white;
-            artImg.raycastTarget = false;
-            var artRT = artGO.GetComponent<RectTransform>();
-            artRT.anchorMin = Vector2.zero;
-            artRT.anchorMax = Vector2.one;
-            artRT.offsetMin = new Vector2(3f, 3f);
-            artRT.offsetMax = new Vector2(-3f, -3f);
-
-            // Description text — below art area (small)
-            var descText = CreateTMPText(root.transform, "DescText", "", new Color(0.3f, 0.3f, 0.3f, 1f), 8, TextAnchor.UpperCenter);
+            // ── Description text — inside bottom banner (on top of art) ──
+            var descText = CreateTMPText(root.transform, "DescText", "", new Color(0.85f, 0.85f, 0.85f, 1f), 7, TextAnchor.UpperCenter);
             var descRT = descText.GetComponent<RectTransform>();
-            descRT.anchorMin = new Vector2(0.05f, 0.05f);
-            descRT.anchorMax = new Vector2(0.95f, 0.2f);
+            descRT.anchorMin = new Vector2(0.05f, 0.02f);
+            descRT.anchorMax = new Vector2(0.95f, 0.18f);
             descRT.offsetMin = Vector2.zero;
             descRT.offsetMax = Vector2.zero;
             descText.horizontalOverflow = HorizontalWrapMode.Wrap;
