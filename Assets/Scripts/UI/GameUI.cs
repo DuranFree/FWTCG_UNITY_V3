@@ -461,11 +461,13 @@ namespace FWTCG.UI
                     rt.anchorMax = Vector2.one;
                     rt.offsetMin = Vector2.zero;
                     rt.offsetMax = Vector2.zero;
+                    // Ignore parent VerticalLayoutGroup — this is a background overlay
+                    var le = artGO.AddComponent<LayoutElement>();
+                    le.ignoreLayout = true;
                     artImg = artGO.AddComponent<Image>();
                     artImg.preserveAspect = true;
                     artImg.raycastTarget = false;
-                    // Semi-transparent so text remains readable
-                    artImg.color = new Color(1f, 1f, 1f, 0.6f);
+                    artImg.color = new Color(1f, 1f, 1f, 0.4f);
                 }
                 else
                 {
