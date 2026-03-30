@@ -176,6 +176,45 @@ namespace FWTCG.Editor
             // ── ToastPanel ────────────────────────────────────────────────────
             var toastPanel = CreateToastPanel(canvasGO.transform, out var toastText);
 
+            // ── DEV-10: LogToggleButton ──────────────────────────────────────
+            var logToggleGO = new GameObject("LogToggleBtn");
+            logToggleGO.transform.SetParent(canvasGO.transform, false);
+            {
+                var ltRT = logToggleGO.AddComponent<RectTransform>();
+                ltRT.anchorMin = new Vector2(1f, 0.5f);
+                ltRT.anchorMax = new Vector2(1f, 0.5f);
+                ltRT.pivot = new Vector2(1f, 0.5f);
+                ltRT.anchoredPosition = new Vector2(-200f, 0f);
+                ltRT.sizeDelta = new Vector2(24f, 60f);
+                var ltImg = logToggleGO.AddComponent<Image>();
+                ltImg.color = new Color(0.15f, 0.12f, 0.25f, 0.9f);
+                var ltBtn = logToggleGO.AddComponent<Button>();
+
+                var ltTextGO = new GameObject("LogToggleText");
+                ltTextGO.transform.SetParent(logToggleGO.transform, false);
+                var ltTextRT = ltTextGO.AddComponent<RectTransform>();
+                ltTextRT.anchorMin = Vector2.zero;
+                ltTextRT.anchorMax = Vector2.one;
+                ltTextRT.offsetMin = Vector2.zero;
+                ltTextRT.offsetMax = Vector2.zero;
+                var logToggleText = ltTextGO.AddComponent<Text>();
+                logToggleText.text = "<";
+                logToggleText.color = GameColors.GoldLight;
+                logToggleText.fontSize = 16;
+                logToggleText.alignment = TextAnchor.MiddleCenter;
+                if (_font != null) logToggleText.font = _font;
+            }
+            var logToggleBtn = logToggleGO.GetComponent<Button>();
+            var logToggleTxt = logToggleGO.GetComponentInChildren<Text>();
+
+            // ── DEV-10: ViewerPanel (discard/exile viewer) ───────────────────
+            var viewerPanel = CreateViewerPanel(canvasGO.transform,
+                out var viewerTitle, out var viewerCardContainer, out var viewerCloseBtn);
+
+            // ── DEV-10: TimerDisplay ─────────────────────────────────────────
+            var timerDisplay = CreateTimerDisplay(canvasGO.transform,
+                out var timerFill, out var timerText);
+
             // Collect sub-references from TopBar
             var playerScoreText  = topBar.transform.Find("PlayerScore").GetComponent<Text>();
             var roundInfoText    = topBar.transform.Find("RoundInfo").GetComponent<Text>();
@@ -202,6 +241,37 @@ namespace FWTCG.Editor
             // Hand zones (outside board)
             var enemyHand       = enemyHandZone.transform;
             var playerHand      = playerHandZone.transform;
+
+            // ── DEV-10: Zone labels + borders ──────────────────────────────────
+            AddZoneLabel(playerBase, "BASE");
+            AddZoneLabel(enemyBase, "BASE");
+            AddZoneLabel(playerRunes, "RUNES");
+            AddZoneLabel(enemyRunes, "RUNES");
+            AddZoneLabel(playerHeroContainer, "HERO");
+            AddZoneLabel(enemyHeroContainer, "HERO");
+
+            // Legend zones
+            var pLegendZone = mainArea.transform.Find("PlayerLegendZone");
+            var eLegendZone = mainArea.transform.Find("EnemyLegendZone");
+            AddZoneLabel(pLegendZone, "LEGEND");
+            AddZoneLabel(eLegendZone, "LEGEND");
+
+            // Discard/Exile zone labels
+            var pDiscardExile = mainArea.transform.Find("PlayerDiscardExile");
+            var eDiscardExile = mainArea.transform.Find("EnemyDiscardExile");
+            AddZoneLabel(pDiscardExile, "TRASH/EXILE");
+            AddZoneLabel(eDiscardExile, "TRASH/EXILE");
+
+            // Borders on all zones
+            Color borderColor = GameColors.GoldDark;
+            AddZoneBorder(playerBase, borderColor);
+            AddZoneBorder(enemyBase, borderColor);
+            AddZoneBorder(playerRunes, borderColor);
+            AddZoneBorder(enemyRunes, borderColor);
+            if (playerHeroContainer != null) AddZoneBorder(playerHeroContainer.parent, borderColor);
+            if (enemyHeroContainer != null) AddZoneBorder(enemyHeroContainer.parent, borderColor);
+            if (pLegendZone != null) AddZoneBorder(pLegendZone, borderColor);
+            if (eLegendZone != null) AddZoneBorder(eLegendZone, borderColor);
 
             // ── Card Prefab ───────────────────────────────────────────────────
             EnsureDirectory("Assets/Prefabs");
@@ -293,7 +363,14 @@ namespace FWTCG.Editor
                 playerHeroContainer, enemyHeroContainer,
                 tapAllRunesBtn, cancelRunesBtn, confirmRunesBtn, skipReactionBtn,
                 playerRuneInfoText, enemyRuneInfoText,
-                playerDeckInfoText, enemyDeckInfoText);
+                playerDeckInfoText, enemyDeckInfoText,
+                // DEV-10 additions
+                pLegendZone != null ? pLegendZone : null,
+                eLegendZone != null ? eLegendZone : null,
+                messagePanel, logToggleBtn, logToggleTxt,
+                boardWrapper.GetComponent<RectTransform>(),
+                viewerPanel, viewerTitle, viewerCardContainer, viewerCloseBtn,
+                timerDisplay, timerFill, timerText);
 
             WireGameManager(gameMgr, turnMgr, combatSys, scoreMgr, simpleAI, gameUI,
                             entryEffects, deathwish, spellSys, reactiveSys,
@@ -447,79 +524,86 @@ namespace FWTCG.Editor
             rt.offsetMin = Vector2.zero;
             rt.offsetMax = Vector2.zero;
 
-            // ── Col 1: Player score track (left edge, rows 3-5) ──
+            // ════════════════════════════════════════════════════════════
+            // Grid layout matching original CSS:
+            //   Cols: 4.5% | 13% | 13% | 1fr(39%) | 13% | 13% | 4.5%
+            //   Rows: 12%  | 13% | 50%(center) | 13% | 12%
+            //
+            // ENEMY (top, rows 1-2):
+            //   C2 R1-2: ELegend | C3 R1-2: EHero | C4 R1: EBase
+            //   C5-6 R1: EDiscard+Exile | C4 R2: ERunes
+            //   C5 R2: ERunePile | C6 R2: EMainPile
+            //
+            // CENTER (row 3): C2-6 Battlefields
+            //
+            // PLAYER (bottom, rows 4-5) — diagonal mirror:
+            //   C2 R4: PMainPile | C3 R4: PRunePile
+            //   C2-3 R5 upper: PDiscard+Exile | C4 R4: PRunes
+            //   C4 R5: PBase | C5 R4-5: PHero | C6 R4-5: PLegend
+            //
+            // SCORES: C1 R3-5 = Player | C7 R1-3 = Enemy
+            // ════════════════════════════════════════════════════════════
+
+            // ── Score tracks ──
             playerScoreCircleImages = new Image[9];
             CreateScoreTrack(go.transform, "PlayerScoreTrack", true,
-                0.00f, 0.045f, 0.00f, 0.60f, playerScoreCircleImages);
+                0.00f, 0.045f, 0.00f, 0.75f, playerScoreCircleImages);
 
-            // ── Col 7: Enemy score track (right edge, rows 1-3) ──
             enemyScoreCircleImages = new Image[9];
             CreateScoreTrack(go.transform, "EnemyScoreTrack", false,
-                0.955f, 1.00f, 0.40f, 1.00f, enemyScoreCircleImages);
+                0.955f, 1.00f, 0.25f, 1.00f, enemyScoreCircleImages);
 
-            // ── Col 2, rows 1-2: Enemy legend zone ──
+            // ── ENEMY SIDE (top) ──
             var enemyLegendZone = CreatePlayerLegendZone(go.transform, "EnemyLegendZone",
-                false, 0.045f, 0.175f, 0.76f, 1.00f,
-                out enemyLegendText, out _); // enemy has no skill button
+                false, 0.045f, 0.175f, 0.75f, 1.00f,
+                out enemyLegendText, out _);
 
-            // ── Col 2, row 5: Player main pile ──
-            CreateDeckPile(go.transform, "PlayerMainPile", "主牌堆",
-                0.045f, 0.175f, 0.00f, 0.12f, out playerDeckCount);
-
-            // ── Col 3, rows 1-2: Enemy hero zone ──
             CreateHeroZone(go.transform, "EnemyHeroZone",
-                0.175f, 0.305f, 0.76f, 1.00f, out enemyHeroContainer);
+                0.175f, 0.305f, 0.75f, 1.00f, out enemyHeroContainer);
 
-            // ── Col 3, row 5: Player rune pile ──
-            CreateDeckPile(go.transform, "PlayerRunePile", "符文堆",
-                0.175f, 0.305f, 0.00f, 0.12f, out playerRunePileCount);
-
-            // ── Col 4, row 1: Enemy base ──
             CreateHorizontalZoneAnchored(go.transform, "EnemyBase",
-                0.305f, 0.695f, 0.88f, 1.00f);
+                0.305f, 0.695f, 0.87f, 1.00f);
 
-            // ── Col 4, row 2: Enemy runes ──
-            CreateHorizontalZoneAnchored(go.transform, "EnemyRunes",
-                0.305f, 0.695f, 0.76f, 0.88f);
-
-            // ── Col 4, row 4: Player runes ──
-            CreateHorizontalZoneAnchored(go.transform, "PlayerRunes",
-                0.305f, 0.695f, 0.12f, 0.24f);
-
-            // ── Col 4, row 5: Player base ──
-            CreateHorizontalZoneAnchored(go.transform, "PlayerBase",
-                0.305f, 0.695f, 0.00f, 0.12f);
-
-            // ── Col 5, row 1: Enemy discard+exile zone ──
             CreateDiscardExileZone(go.transform, "Enemy",
-                0.695f, 0.825f, 0.88f, 1.00f,
+                0.695f, 0.955f, 0.87f, 1.00f,
                 out enemyDiscardCount, out enemyExileCount);
 
-            // ── Col 5, rows 4-5: Player hero zone ──
-            CreateHeroZone(go.transform, "PlayerHeroZone",
-                0.695f, 0.825f, 0.00f, 0.24f, out playerHeroContainer);
+            CreateHorizontalZoneAnchored(go.transform, "EnemyRunes",
+                0.305f, 0.695f, 0.75f, 0.87f);
 
-            // ── Col 6, row 2: Enemy rune pile ──
             CreateDeckPile(go.transform, "EnemyRunePile", "符文堆",
-                0.825f, 0.955f, 0.76f, 0.88f, out enemyRunePileCount);
+                0.695f, 0.825f, 0.75f, 0.87f, out enemyRunePileCount);
 
-            // ── Col 6, row 2 (second half): Enemy main pile ──
             CreateDeckPile(go.transform, "EnemyMainPile", "主牌堆",
-                0.825f, 0.955f, 0.88f, 1.00f, out enemyDeckCount);
+                0.825f, 0.955f, 0.75f, 0.87f, out enemyDeckCount);
 
-            // ── Col 6, rows 4-5: Player legend zone ──
-            var playerLegendZone = CreatePlayerLegendZone(go.transform, "PlayerLegendZone",
-                true, 0.825f, 0.955f, 0.00f, 0.24f,
-                out playerLegendText, out legendSkillBtn);
+            // ── PLAYER SIDE (bottom) — diagonal mirror ──
+            CreateDeckPile(go.transform, "PlayerMainPile", "主牌堆",
+                0.045f, 0.175f, 0.13f, 0.25f, out playerDeckCount);
 
-            // ── Col 5-6, row 2: Player discard+exile (below player runes area) ──
+            CreateDeckPile(go.transform, "PlayerRunePile", "符文堆",
+                0.175f, 0.305f, 0.13f, 0.25f, out playerRunePileCount);
+
             CreateDiscardExileZone(go.transform, "Player",
-                0.825f, 0.955f, 0.24f, 0.40f,
+                0.045f, 0.305f, 0.00f, 0.13f,
                 out playerDiscardCount, out playerExileCount);
+
+            CreateHorizontalZoneAnchored(go.transform, "PlayerRunes",
+                0.305f, 0.695f, 0.13f, 0.25f);
+
+            CreateHorizontalZoneAnchored(go.transform, "PlayerBase",
+                0.305f, 0.695f, 0.00f, 0.13f);
+
+            CreateHeroZone(go.transform, "PlayerHeroZone",
+                0.695f, 0.825f, 0.00f, 0.25f, out playerHeroContainer);
+
+            var playerLegendZone = CreatePlayerLegendZone(go.transform, "PlayerLegendZone",
+                true, 0.825f, 0.955f, 0.00f, 0.25f,
+                out playerLegendText, out legendSkillBtn);
 
             // ── Battlefields: col 2-6, row 3 (center) ──
             var bfArea = CreateAnchoredZone(go.transform, "BattlefieldsArea",
-                0.045f, 0.955f, 0.24f, 0.76f);
+                0.045f, 0.955f, 0.25f, 0.75f);
             {
                 var hlg = bfArea.AddComponent<HorizontalLayoutGroup>();
                 hlg.childControlWidth = true;
@@ -672,10 +756,13 @@ namespace FWTCG.Editor
             hlg.spacing = 2f;
             hlg.padding = new RectOffset(2, 2, 2, 2);
 
-            // Discard half
+            // Discard half (clickable — DEV-10)
             var discardGO = new GameObject("Discard");
             discardGO.transform.SetParent(go.transform, false);
             discardGO.AddComponent<RectTransform>();
+            var discardImg = discardGO.AddComponent<Image>();
+            discardImg.color = new Color(0f, 0f, 0f, 0.01f); // transparent but clickable
+            discardGO.AddComponent<Button>(); // clickable for viewer
             var discardLE = discardGO.AddComponent<LayoutElement>();
             discardLE.flexibleWidth = 1f;
             var discardVLG = discardGO.AddComponent<VerticalLayoutGroup>();
@@ -688,10 +775,13 @@ namespace FWTCG.Editor
             CreateTMPText(discardGO.transform, "DiscardLabel", "弃牌", GameColors.GoldDark, 10, TextAnchor.MiddleCenter);
             discardCount = CreateTMPText(discardGO.transform, "DiscardCount", "0", GameColors.GoldLight, 14, TextAnchor.MiddleCenter);
 
-            // Exile half
+            // Exile half (clickable — DEV-10)
             var exileGO = new GameObject("Exile");
             exileGO.transform.SetParent(go.transform, false);
             exileGO.AddComponent<RectTransform>();
+            var exileImg = exileGO.AddComponent<Image>();
+            exileImg.color = new Color(0f, 0f, 0f, 0.01f); // transparent but clickable
+            exileGO.AddComponent<Button>(); // clickable for viewer
             var exileLE = exileGO.AddComponent<LayoutElement>();
             exileLE.flexibleWidth = 1f;
             var exileVLG = exileGO.AddComponent<VerticalLayoutGroup>();
@@ -880,7 +970,7 @@ namespace FWTCG.Editor
             // Enemy units zone
             CreateHorizontalZone(panel.transform, enemyZoneName);
 
-            // Label row with control badge
+            // Label row with control badge — fixed height, not stretched
             var labelRow = new GameObject("LabelRow");
             labelRow.transform.SetParent(panel.transform, false);
             labelRow.AddComponent<RectTransform>();
@@ -888,23 +978,22 @@ namespace FWTCG.Editor
             labelRowLE.preferredHeight = 28f;
             labelRowLE.flexibleHeight = 0f;
             var labelRowHLG = labelRow.AddComponent<HorizontalLayoutGroup>();
-            labelRowHLG.childControlWidth = true;
-            labelRowHLG.childControlHeight = true;
+            labelRowHLG.childControlWidth = false;
+            labelRowHLG.childControlHeight = false;
             labelRowHLG.childForceExpandWidth = false;
-            labelRowHLG.childForceExpandHeight = true;
+            labelRowHLG.childForceExpandHeight = false;
             labelRowHLG.spacing = 4f;
             labelRowHLG.childAlignment = TextAnchor.MiddleCenter;
 
-            // Control badge (small colored circle)
+            // Control badge (small colored dot, fixed 20×20)
             var badgeGO = new GameObject("CtrlBadge");
             badgeGO.transform.SetParent(labelRow.transform, false);
-            var badgeLE = badgeGO.AddComponent<LayoutElement>();
-            badgeLE.preferredWidth = 24f;
-            badgeLE.preferredHeight = 24f;
+            var badgeRT = badgeGO.AddComponent<RectTransform>();
+            badgeRT.sizeDelta = new Vector2(20f, 20f);
             ctrlBadge = badgeGO.AddComponent<Image>();
             ctrlBadge.color = GameColors.ScoreCircleInactive;
             ctrlBadgeText = CreateTMPText(badgeGO.transform, "BadgeText", "—",
-                Color.white, 11, TextAnchor.MiddleCenter);
+                Color.white, 10, TextAnchor.MiddleCenter);
             var badgeTextRT = ctrlBadgeText.GetComponent<RectTransform>();
             badgeTextRT.anchorMin = Vector2.zero;
             badgeTextRT.anchorMax = Vector2.one;
@@ -913,8 +1002,6 @@ namespace FWTCG.Editor
 
             // BF name label
             var lbl = CreateTMPText(labelRow.transform, labelName, labelText, Color.white, 18, TextAnchor.MiddleCenter);
-            var lblLE = lbl.gameObject.AddComponent<LayoutElement>();
-            lblLE.flexibleWidth = 1f;
 
             // Player units zone
             CreateHorizontalZone(panel.transform, playerZoneName);
@@ -1846,10 +1933,11 @@ namespace FWTCG.Editor
                "反应。强攻：进攻时额外+2战力",
                CardKeyword.Reactive | CardKeyword.StrongAtk, "");
 
-            // kaisa_hero x1
+            // kaisa_hero x1 (hero card — extracted to hero zone at game start)
             CD("kaisa_hero",         "卡莎·九死一生", 4, 4, RuneType.Blazing, 1,
                "急速（支付1炽烈符能进场时为活跃状态）。征服：本回合可额外打出1张牌",
-               CardKeyword.Haste | CardKeyword.Conquest, "kaisa_hero_conquer");
+               CardKeyword.Haste | CardKeyword.Conquest, "kaisa_hero_conquer",
+               isHero: true);
 
             // darius x1
             CD("darius",             "德莱厄斯",     5, 5, RuneType.Blazing, 1,
@@ -1867,10 +1955,11 @@ namespace FWTCG.Editor
                CardKeyword.Foresight, "foresight_mech_enter");
 
             // ── MasterYi (伊欧尼亚) deck ──────────────────────────────────────
-            // yi_hero x1
+            // yi_hero x1 (hero card — extracted to hero zone at game start)
             CD("yi_hero",            "易·锋芒毕现",  7, 6, RuneType.Crushing, 1,
                "游走。急速（支付1摧破符能进场时为活跃状态）",
-               CardKeyword.Roam | CardKeyword.Haste, "");
+               CardKeyword.Roam | CardKeyword.Haste, "",
+               isHero: true);
 
             // jax x2
             CD("jax",                "贾克斯·万般皆武", 5, 5, RuneType.Verdant, 1,
@@ -1996,6 +2085,13 @@ namespace FWTCG.Editor
             CDS("flash_counter",  "闪电反制",   1, RuneType.Crushing, 1,
                 "反应。反制一个敌方法术",
                 SpellTargetType.None, "flash_counter", CardKeyword.Reactive);
+
+            // ── DEV-10: Legend CardData (for display only, not in decks) ──────
+            CD("kaisa_legend",       "卡莎·虚空之女", 0, 0, RuneType.Blazing, 0,
+               "主动：虚空感知（反应，休眠自身+1炽烈符能）\n被动：进化（盟友4种关键词→Lv.2 +3/+3）");
+
+            CD("yi_legend",          "易大师·无极剑圣", 0, 0, RuneType.Crushing, 0,
+               "被动：独影剑鸣（防守单位仅1名时+2战力）");
         }
 
         // Shorthand alias for spell cards
@@ -2056,10 +2152,12 @@ namespace FWTCG.Editor
             RuneType runeType, int runeCost, string desc,
             CardKeyword kw = CardKeyword.None, string effectId = "",
             bool isEquipment = false, int equipAtkBonus = 0,
-            RuneType equipRuneType = RuneType.Blazing, int equipRuneCost = 0)
+            RuneType equipRuneType = RuneType.Blazing, int equipRuneCost = 0,
+            bool isHero = false)
         {
             return CreateCardData(id, name, cost, atk, runeType, runeCost, desc,
-                                  kw, effectId, isEquipment, equipAtkBonus, equipRuneType, equipRuneCost);
+                                  kw, effectId, isEquipment, equipAtkBonus, equipRuneType, equipRuneCost,
+                                  isHero: isHero);
         }
 
         private static CardData CreateCardData(string id, string cardName,
@@ -2067,7 +2165,8 @@ namespace FWTCG.Editor
             CardKeyword keywords = CardKeyword.None, string effectId = "",
             bool isEquipment = false, int equipAtkBonus = 0,
             RuneType equipRuneType = RuneType.Blazing, int equipRuneCost = 0,
-            bool isSpell = false, SpellTargetType spellTargetType = SpellTargetType.None)
+            bool isSpell = false, SpellTargetType spellTargetType = SpellTargetType.None,
+            bool isHero = false)
         {
             string path = $"Assets/Resources/Cards/{id}.asset";
 
@@ -2080,7 +2179,7 @@ namespace FWTCG.Editor
 
             data.EditorSetup(id, cardName, cost, atk, runeType, runeCost, description,
                              keywords, effectId, isEquipment, equipAtkBonus, equipRuneType, equipRuneCost,
-                             isSpell, spellTargetType);
+                             isSpell, spellTargetType, isHero);
 
             // Assign art sprite from Resources/CardArt/{id}.png if it exists
             string[] exts = { ".png", ".jpg" };
@@ -2135,7 +2234,13 @@ namespace FWTCG.Editor
             Button tapAllRunesBtn, Button cancelRunesBtn,
             Button confirmRunesBtn, Button skipReactionBtn,
             Text playerRuneInfoText, Text enemyRuneInfoText,
-            Text playerDeckInfoText, Text enemyDeckInfoText)
+            Text playerDeckInfoText, Text enemyDeckInfoText,
+            // DEV-10 additions
+            Transform playerLegendContainer, Transform enemyLegendContainer,
+            GameObject logPanel, Button logToggleBtn, Text logToggleText,
+            RectTransform boardWrapperOuter,
+            GameObject viewerPanel, Text viewerTitle, Transform viewerCardContainer, Button viewerCloseBtn,
+            GameObject timerDisplay, Image timerFill, Text timerText)
         {
             var so = new SerializedObject(gameUI);
 
@@ -2231,6 +2336,29 @@ namespace FWTCG.Editor
             so.FindProperty("_enemyRuneInfoText").objectReferenceValue  = enemyRuneInfoText;
             so.FindProperty("_playerDeckInfoText").objectReferenceValue = playerDeckInfoText;
             so.FindProperty("_enemyDeckInfoText").objectReferenceValue  = enemyDeckInfoText;
+
+            // ── DEV-10: Legend containers ──
+            if (playerLegendContainer != null)
+                so.FindProperty("_playerLegendContainer").objectReferenceValue = playerLegendContainer;
+            if (enemyLegendContainer != null)
+                so.FindProperty("_enemyLegendContainer").objectReferenceValue = enemyLegendContainer;
+
+            // ── DEV-10: Log panel toggle ──
+            so.FindProperty("_logPanel").objectReferenceValue        = logPanel;
+            so.FindProperty("_logToggleBtn").objectReferenceValue    = logToggleBtn;
+            so.FindProperty("_logToggleText").objectReferenceValue   = logToggleText;
+            so.FindProperty("_boardWrapperOuter").objectReferenceValue = boardWrapperOuter;
+
+            // ── DEV-10: Viewer ──
+            so.FindProperty("_viewerPanel").objectReferenceValue        = viewerPanel;
+            so.FindProperty("_viewerTitle").objectReferenceValue        = viewerTitle;
+            so.FindProperty("_viewerCardContainer").objectReferenceValue = viewerCardContainer;
+            so.FindProperty("_viewerCloseBtn").objectReferenceValue     = viewerCloseBtn;
+
+            // ── DEV-10: Timer ──
+            so.FindProperty("_timerDisplay").objectReferenceValue = timerDisplay;
+            so.FindProperty("_timerFill").objectReferenceValue    = timerFill;
+            so.FindProperty("_timerText").objectReferenceValue    = timerText;
 
             so.ApplyModifiedPropertiesWithoutUndo();
         }
@@ -2390,10 +2518,198 @@ namespace FWTCG.Editor
             for (int i = 0; i < yiCards.Length; i++)
                 yiProp.GetArrayElementAtIndex(i).objectReferenceValue = yiCards[i];
 
+            // ── DEV-10: Legend CardData for display ──
+            var kaisaLegend = LoadCard("kaisa_legend");
+            var yiLegend = LoadCard("yi_legend");
+            if (kaisaLegend != null) so.FindProperty("_kaisaLegendData").objectReferenceValue = kaisaLegend;
+            if (yiLegend != null)    so.FindProperty("_yiLegendData").objectReferenceValue    = yiLegend;
+
             so.ApplyModifiedPropertiesWithoutUndo();
         }
 
         // ── Helpers ───────────────────────────────────────────────────────────
+
+        // ── DEV-10: Viewer Panel (discard/exile card browser) ────────────────
+
+        private static GameObject CreateViewerPanel(Transform parent,
+            out Text titleText, out Transform cardContainer, out Button closeBtn)
+        {
+            var go = CreateFullscreenPanel(parent, "ViewerPanel", new Color(0f, 0f, 0f, 0.85f));
+            go.SetActive(false);
+
+            // Title
+            var titleGO = new GameObject("ViewerTitle");
+            titleGO.transform.SetParent(go.transform, false);
+            var titleRT = titleGO.AddComponent<RectTransform>();
+            titleRT.anchorMin = new Vector2(0.1f, 0.88f);
+            titleRT.anchorMax = new Vector2(0.9f, 0.96f);
+            titleRT.offsetMin = Vector2.zero;
+            titleRT.offsetMax = Vector2.zero;
+            titleText = titleGO.AddComponent<Text>();
+            titleText.text = "弃牌堆 (0)";
+            titleText.color = GameColors.GoldLight;
+            titleText.fontSize = 22;
+            titleText.alignment = TextAnchor.MiddleCenter;
+            if (_font != null) titleText.font = _font;
+
+            // Scroll view with grid
+            var scrollGO = new GameObject("ViewerScroll");
+            scrollGO.transform.SetParent(go.transform, false);
+            var scrollRT = scrollGO.AddComponent<RectTransform>();
+            scrollRT.anchorMin = new Vector2(0.1f, 0.1f);
+            scrollRT.anchorMax = new Vector2(0.9f, 0.86f);
+            scrollRT.offsetMin = Vector2.zero;
+            scrollRT.offsetMax = Vector2.zero;
+
+            var contentGO = new GameObject("ViewerContent");
+            contentGO.transform.SetParent(scrollGO.transform, false);
+            var contentRT = contentGO.AddComponent<RectTransform>();
+            contentRT.anchorMin = new Vector2(0f, 1f);
+            contentRT.anchorMax = new Vector2(1f, 1f);
+            contentRT.pivot = new Vector2(0.5f, 1f);
+            contentRT.sizeDelta = new Vector2(0f, 600f);
+
+            var glg = contentGO.AddComponent<GridLayoutGroup>();
+            glg.cellSize = new Vector2(90f, 130f);
+            glg.spacing = new Vector2(8f, 8f);
+            glg.constraint = GridLayoutGroup.Constraint.FixedColumnCount;
+            glg.constraintCount = 8;
+            glg.childAlignment = TextAnchor.UpperCenter;
+
+            var csf = contentGO.AddComponent<ContentSizeFitter>();
+            csf.verticalFit = ContentSizeFitter.FitMode.PreferredSize;
+
+            var scrollView = scrollGO.AddComponent<ScrollRect>();
+            scrollView.content = contentRT;
+            scrollView.horizontal = false;
+            scrollView.vertical = true;
+            scrollView.movementType = ScrollRect.MovementType.Clamped;
+            var scrollImg = scrollGO.AddComponent<Image>();
+            scrollImg.color = new Color(0f, 0f, 0f, 0.01f);
+            scrollView.viewport = scrollRT;
+
+            cardContainer = contentGO.transform;
+
+            // Close button
+            var closeBtnGO = new GameObject("ViewerClose");
+            closeBtnGO.transform.SetParent(go.transform, false);
+            var closeRT = closeBtnGO.AddComponent<RectTransform>();
+            closeRT.anchorMin = new Vector2(0.85f, 0.88f);
+            closeRT.anchorMax = new Vector2(0.95f, 0.96f);
+            closeRT.offsetMin = Vector2.zero;
+            closeRT.offsetMax = Vector2.zero;
+            var closeImg = closeBtnGO.AddComponent<Image>();
+            closeImg.color = new Color(0.6f, 0.15f, 0.15f, 1f);
+            closeBtn = closeBtnGO.AddComponent<Button>();
+
+            var closeLabel = new GameObject("CloseLabel");
+            closeLabel.transform.SetParent(closeBtnGO.transform, false);
+            var closeLabelRT = closeLabel.AddComponent<RectTransform>();
+            closeLabelRT.anchorMin = Vector2.zero;
+            closeLabelRT.anchorMax = Vector2.one;
+            closeLabelRT.offsetMin = Vector2.zero;
+            closeLabelRT.offsetMax = Vector2.zero;
+            var closeLabelTxt = closeLabel.AddComponent<Text>();
+            closeLabelTxt.text = "X";
+            closeLabelTxt.color = Color.white;
+            closeLabelTxt.fontSize = 18;
+            closeLabelTxt.alignment = TextAnchor.MiddleCenter;
+            if (_font != null) closeLabelTxt.font = _font;
+
+            return go;
+        }
+
+        // ── DEV-10: Timer display ────────────────────────────────────────────
+
+        private static GameObject CreateTimerDisplay(Transform parent,
+            out Image fillImage, out Text timerText)
+        {
+            var go = new GameObject("TimerDisplay");
+            go.transform.SetParent(parent, false);
+            go.SetActive(false);
+
+            var rt = go.AddComponent<RectTransform>();
+            rt.anchorMin = new Vector2(0f, 0f);
+            rt.anchorMax = new Vector2(0f, 0f);
+            rt.pivot = new Vector2(0f, 0f);
+            rt.anchoredPosition = new Vector2(10f, 86f);
+            rt.sizeDelta = new Vector2(50f, 50f);
+
+            // Background circle
+            var bgImg = go.AddComponent<Image>();
+            bgImg.color = new Color(0.1f, 0.1f, 0.1f, 0.8f);
+
+            // Fill circle (radial fill)
+            var fillGO = new GameObject("TimerFill");
+            fillGO.transform.SetParent(go.transform, false);
+            var fillRT = fillGO.AddComponent<RectTransform>();
+            fillRT.anchorMin = new Vector2(0.1f, 0.1f);
+            fillRT.anchorMax = new Vector2(0.9f, 0.9f);
+            fillRT.offsetMin = Vector2.zero;
+            fillRT.offsetMax = Vector2.zero;
+            fillImage = fillGO.AddComponent<Image>();
+            fillImage.color = GameColors.PlayerGreen;
+            fillImage.type = Image.Type.Filled;
+            fillImage.fillMethod = Image.FillMethod.Radial360;
+            fillImage.fillOrigin = (int)Image.Origin360.Top;
+            fillImage.fillClockwise = false;
+            fillImage.fillAmount = 1f;
+
+            // Timer text
+            var textGO = new GameObject("TimerText");
+            textGO.transform.SetParent(go.transform, false);
+            var textRT = textGO.AddComponent<RectTransform>();
+            textRT.anchorMin = Vector2.zero;
+            textRT.anchorMax = Vector2.one;
+            textRT.offsetMin = Vector2.zero;
+            textRT.offsetMax = Vector2.zero;
+            timerText = textGO.AddComponent<Text>();
+            timerText.text = "30";
+            timerText.color = Color.white;
+            timerText.fontSize = 16;
+            timerText.alignment = TextAnchor.MiddleCenter;
+            if (_font != null) timerText.font = _font;
+
+            return go;
+        }
+
+        // ── DEV-10: Zone label helper ────────────────────────────────────────
+
+        private static void AddZoneLabel(Transform zone, string labelText)
+        {
+            if (zone == null) return;
+
+            var labelGO = new GameObject("ZoneLabel");
+            labelGO.transform.SetParent(zone, false);
+            var labelRT = labelGO.AddComponent<RectTransform>();
+            labelRT.anchorMin = new Vector2(0f, 1f);
+            labelRT.anchorMax = new Vector2(0.5f, 1f);
+            labelRT.pivot = new Vector2(0f, 1f);
+            labelRT.anchoredPosition = new Vector2(2f, -1f);
+            labelRT.sizeDelta = new Vector2(80f, 14f);
+
+            var txt = labelGO.AddComponent<Text>();
+            txt.text = labelText;
+            txt.color = new Color(GameColors.GoldDark.r, GameColors.GoldDark.g, GameColors.GoldDark.b, 0.6f);
+            txt.fontSize = 9;
+            txt.alignment = TextAnchor.UpperLeft;
+            txt.raycastTarget = false;
+            txt.horizontalOverflow = HorizontalWrapMode.Overflow;
+            txt.verticalOverflow = VerticalWrapMode.Overflow;
+            if (_font != null) txt.font = _font;
+        }
+
+        // ── DEV-10: Zone border helper ───────────────────────────────────────
+
+        private static void AddZoneBorder(Transform zone, Color color)
+        {
+            if (zone == null) return;
+
+            var outline = zone.gameObject.GetComponent<Outline>();
+            if (outline == null) outline = zone.gameObject.AddComponent<Outline>();
+            outline.effectColor = new Color(color.r, color.g, color.b, 0.3f);
+            outline.effectDistance = new Vector2(1f, -1f);
+        }
 
         private static Text CreateTMPText(Transform parent, string name, string text,
             Color color, float fontSize, TextAnchor alignment)

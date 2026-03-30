@@ -2,6 +2,49 @@
 
 ---
 
+## DEV-10：数据补全 + 区域视觉 + 日志系统 — 2026-03-30
+
+**Status**: ✅ Completed
+
+**技术决策**:
+- 英雄卡：CardData 添加 `_isHero` 字段，游戏初始化时从牌库提取到 GameState.PHero/EHero
+- 传奇卡图：LegendInstance 添加 `DisplayData` 关联 CardData，RefreshLegends 渲染卡图
+- 日志折叠：协程 0.3s SmoothStep 动画，联动 boardWrapperOuter 的 offsetMax
+- 弃牌堆浏览器：全屏半透明遮罩 + GridLayoutGroup 网格 + ScrollRect 滚动
+- 回合倒计时：Image.fillAmount 径向填充 + 颜色变化(绿→黄→红) + 协程每秒递减
+- 区域标签：Outline 组件边框 + 9px 金色半透明 Text
+
+**新功能**:
+- CardData `_isHero` 字段 + `IsHero` 属性
+- GameState `PHero`/`EHero` + `GetHero(owner)` + `SetHero(owner, hero)`
+- LegendInstance `DisplayData` 属性
+- GameManager `ExtractHero()` — 从牌库提取英雄到英雄区
+- GameUI `RefreshHeroZones()` — 英雄区渲染（有英雄显示 CardView，无英雄显示"已出场"）
+- GameUI `RefreshLegendArt()` — 传奇区卡图叠加
+- GameUI `ToggleLog()` + `AnimateLogToggle()` — 日志折叠/展开 + 棋盘联动动画
+- GameUI `ShowDiscardViewer()` / `ShowExileViewer()` — 弃牌堆/放逐堆网格浏览器
+- GameUI `StartTurnTimer()` / `ClearTurnTimer()` — 30秒回合倒计时
+- SceneBuilder: ViewerPanel（全屏遮罩+网格+关闭按钮）
+- SceneBuilder: TimerDisplay（圆形进度条+秒数文本）
+- SceneBuilder: LogToggleBtn（折叠按钮"<"/">"）
+- SceneBuilder: 区域边框（Outline）+ 名字标签（ZoneLabel Text）
+- SceneBuilder: kaisa_hero/yi_hero 标记 isHero=true
+- SceneBuilder: kaisa_legend/yi_legend CardData 资产
+- 弃牌堆/放逐堆 UI 添加 Button 组件（可点击打开浏览器）
+
+**修改文件**:
+- `Assets/Scripts/Data/CardData.cs`（+_isHero 字段）
+- `Assets/Scripts/Core/GameState.cs`（+PHero/EHero/GetHero/SetHero）
+- `Assets/Scripts/Core/LegendInstance.cs`（+DisplayData 属性）
+- `Assets/Scripts/GameManager.cs`（+ExtractHero/OnTimerExpired/OnPileClicked + timer调用）
+- `Assets/Scripts/UI/GameUI.cs`（+30个字段 + 7个新方法）
+- `Assets/Scripts/Editor/SceneBuilder.cs`（+ViewerPanel/TimerDisplay/LogToggle/ZoneLabels/Borders）
+- `Assets/Tests/EditMode/DEV10DataTests.cs`（新建，17个测试）
+
+**测试结果**: 220 全绿（17 新 + 203 现有），0 失败
+
+---
+
 ## DEV-9：UI 布局补全 — 2026-03-30
 
 **Status**: ✅ Completed

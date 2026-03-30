@@ -29,6 +29,9 @@ namespace FWTCG.Data
         [SerializeField] private RuneType _equipRuneType;
         [SerializeField] private int _equipRuneCost;
 
+        [Header("Hero")]
+        [SerializeField] private bool _isHero;   // hero cards are extracted to hero zone at game start
+
         [Header("Spell (isSpell=true only)")]
         [SerializeField] private bool _isSpell;
         [SerializeField] private SpellTargetType _spellTargetType;
@@ -50,6 +53,7 @@ namespace FWTCG.Data
         public int EquipAtkBonus => _equipAtkBonus;
         public RuneType EquipRuneType => _equipRuneType;
         public int EquipRuneCost => _equipRuneCost;
+        public bool IsHero => _isHero;
         public bool IsSpell => _isSpell;
         public SpellTargetType SpellTargetType => _spellTargetType;
         public string Description => _description;
@@ -67,7 +71,8 @@ namespace FWTCG.Data
                                 RuneType equipRuneType = RuneType.Blazing,
                                 int equipRuneCost = 0,
                                 bool isSpell = false,
-                                SpellTargetType spellTargetType = SpellTargetType.None)
+                                SpellTargetType spellTargetType = SpellTargetType.None,
+                                bool isHero = false)
         {
             _id = id;
             _cardName = cardName;
@@ -84,6 +89,7 @@ namespace FWTCG.Data
             _equipRuneCost = equipRuneCost;
             _isSpell = isSpell;
             _spellTargetType = spellTargetType;
+            _isHero = isHero;
         }
 #endif
     }

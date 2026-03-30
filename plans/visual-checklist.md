@@ -38,15 +38,21 @@
 
 - [ ] 卡牌 Prefab 基础外观（边框/背景/图片层/文字层）
 - [ ] 悬停放大 + 发光效果（DOTween scale + 发光边框 — DEV-9 scale 动画）
+- [ ] 悬停上浮效果（margin-top -20px + z-index 提升，手牌卡片浮起）
 - ✅ 3D 倾斜效果（鼠标跟随，18° 最大，CardTilt.cs）— DEV-8
 - ✅ 全息光泽 Shine（鼠标位置驱动的径向渐变，CardShine.shader）— DEV-8
 - ✅ 可出牌粒子边框（conic rotation 彗星效果，CardGlow.shader）— DEV-8
 - [ ] 入场 Foil Sweep（0.8s 对角光扫，DOTween + Shader）
+- [ ] 手牌卡片入场动画（hand-card-enter 0.42s，translateY+scale 淡入）
+- [ ] 可出牌卡粒子特效（playable-particle 3s，上方闪烁光点）
+- [ ] 卡牌选中轨道光环（selected-arcane-orbit 6s，小光环绕卡片旋转）
+- [ ] 死亡飞行动画（playDeathFly，阵亡卡飞向弃牌堆消散）
 - ✅ 费用不足变暗（整体压暗 ×0.6，CardView.SetCostInsufficient）— DEV-8
 - ✅ 休眠状态（灰化 + CardExhausted 颜色）— DEV-8
 - ✅ 眩晕状态（红色脉冲叠加层，StunPulseRoutine 协程）— DEV-8
 - ✅ 增益指示物（+1/+1 金色图标，右上角叠加）— DEV-8
 - [ ] 卡牌背面样式
+- [ ] 英雄光环（hero-card-aura 4s 缓慢脉冲，英雄卡专属）
 
 ---
 
@@ -68,11 +74,13 @@
 ## 六、战场视觉
 
 - [ ] 战场区域环境呼吸动画（bf-ambient-breathe，5s）
-- [ ] 玩家控制战场绿色光晕（3s 交替脉冲）
-- [ ] 敌方控制战场红色光晕（3s 交替脉冲）
+- [ ] 玩家控制战场绿色光晕（bf-ctrl-player-glow 3s 交替脉冲）
+- [ ] 敌方控制战场红色光晕（bf-ctrl-enemy-glow 3s 交替脉冲）
 - [ ] 战场卡牌展示（战场特殊卡的图片显示）
 - [ ] 战斗触发特效（单位冲向对方 + 碰撞闪光）
+- [ ] 战斗冲击波（playCombatShockwave，中央扩散金色+青蓝光环）
 - [ ] 征服动画（Duel Banner 横幅）
+- [ ] 出牌时环境光闪烁（board-event-player/enemy + board-event-fade 0.85s）
 
 ---
 
@@ -101,6 +109,9 @@
 - [ ] 回合横幅动画（显示"回合 N · 你的回合"）
 - [ ] 法术对决横幅（showDuelBanner）
 - [ ] 阶段指示器脉冲（phase-pulse，3s）
+- [ ] 按钮光流效果（btn-charge 1.5s，悬停时激活）
+- [ ] 结束按钮常驻脉冲（btn-end-magic-pulse 2s，有可操作时）
+- [ ] 反应按钮 ribbon 展开动画（ribbon-reveal 0.25s + react-ribbon-pulse 2s）
 
 ---
 
@@ -137,6 +148,29 @@
 - [ ] 界面淡入淡出（0.3-0.5s，所有界面切换）
 - [ ] 全屏 Banner 进场/退场
 - [ ] 游戏结束界面淡入
+
+---
+
+## 十三、日志面板视觉
+
+- [ ] 日志折叠/展开按钮动画（">" ↔ "<" 旋转过渡）
+- [ ] 日志折叠联动棋盘居中（折叠时主区域自动扩展居中，展开时靠左）
+- [ ] 日志条目进入闪烁（log-entry-flash 0.8s，背景金色闪烁后恢复）
+
+---
+
+## 十四、区域标识视觉
+
+- ✅ 区域边框画线（所有游戏区域可见边框，Outline 组件 + 金色半透明）— DEV-10
+- ✅ 区域名字标签（BASE/LEGEND/HERO/TRASH/EXILE/RUNES，9px 金色半透明）— DEV-10
+- [ ] 符文回收按钮样式（♻ 按钮入场动画 rune-recycle-appear 0.22s）
+
+---
+
+## 十五、传奇/英雄特殊视觉
+
+- [ ] 传奇升级火焰特效（legend-leveled-flame 3s）
+- [ ] 中央 SVG 旋转装饰（spin-slow 20s 顺时针 + spin-reverse 12s 逆时针）
 
 ---
 

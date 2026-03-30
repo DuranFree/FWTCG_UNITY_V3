@@ -23,3 +23,5 @@
 - ✅ HexGrid.shader 材质已赋予 Background Image — DEV-8 hotfix
 - [ ] 悬停放大动画未实现（需 DOTween 或协程 scale 动画）— DEV-9 — Phase DEV-8
 - [ ] 入场 Foil Sweep 未实现（需对角光扫动画）— DEV-9 — Phase DEV-8
+- [ ] kaisa_legend/yi_legend CardData 缺少卡图（需 tempPic 中找传奇卡图片，或用户提供）— Phase DEV-10
+- [ ] 弃牌堆/放逐堆 Button 的 onClick 未在 GameManager 中通过 Find 连线（运行时需通过 GameUI.SetPileClickCallback 间接触发）— Phase DEV-10

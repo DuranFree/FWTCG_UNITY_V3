@@ -1,3 +1,5 @@
+using FWTCG.Data;
+
 namespace FWTCG.Core
 {
     /// <summary>
@@ -13,6 +15,9 @@ namespace FWTCG.Core
         public bool   Exhausted          { get; set; }  // true after 虚空感知 is activated
         public bool   AbilityUsedThisTurn { get; set; }
         public string Owner { get; }
+
+        /// <summary>Associated CardData for display (art, description). May be null.</summary>
+        public CardData DisplayData { get; set; }
 
         public LegendInstance(string id, string name, string owner)
         {

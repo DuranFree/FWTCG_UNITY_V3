@@ -8,7 +8,7 @@
 ### 游戏状态
 - ✅ G 全局状态对象（所有字段 1:1 移植为 C# GameState 类）— DEV-1
 - ✅ 回合系统（awaken → start → summon → draw → action → end 六阶段）— DEV-1
-- [ ] 回合倒计时（30秒，时间到自动结束玩家回合）
+- ✅ 回合倒计时（30秒，时间到自动结束玩家回合）— DEV-10
 - ✅ 胜利判定（率先8分 / 平局）— DEV-1（规则633：纯得分制，无传奇HP胜负路线）
 - ✅ 得分系统（据守+1 / 征服+1 / 燃尽惩罚+1）— DEV-1
 - ❌ 最后1分受限规则 — 经用户确认此规则不存在，已从ScoreManager中删除 — DEV-1修正
@@ -61,15 +61,15 @@
 - ✅ CardData ScriptableObject（id/cardName/cost/atk/runeType/runeCost/description）— DEV-1（简化版，完整字段 DEV-2）
 - ✅ 关键词枚举（Haste/Barrier/SpellShield/Inspire/Conquest/Deathwish/Reactive/StrongAtk/Roam/Foresight/Standby/Stun）— DEV-2
 - [ ] 装备卡数据结构（附着机制）
-- [ ] 传奇卡数据结构（abilities数组：被动/触发/主动技能）
-- [ ] 英雄牌标记（hero: true，游戏开始时单独提取到英雄区，不进牌库）
+- ✅ 传奇卡数据结构（abilities数组：被动/触发/主动技能）— DEV-10（LegendInstance.DisplayData + kaisa_legend/yi_legend CardData）
+- ✅ 英雄牌标记（hero: true，游戏开始时单独提取到英雄区，不进牌库）— DEV-10
 
 ### 卡组数据
 - ✅ DEV-1 简化卡组（10张：卡莎×5 + 易大师×5，无特殊效果）— DEV-1
 - ✅ 卡莎主卡组（19张唯一卡，含全部id/参数/关键词/effectId）— DEV-2
 - ✅ 易大师主卡组（10张唯一卡，含单位+装备）— DEV-2
-- [ ] 卡莎传奇卡（kaisa，传奇区技能载体：虚空感知主动 + 进化被动）
-- [ ] 易大师传奇卡（masteryi，传奇区技能载体：独影剑鸣被动）
+- ✅ 卡莎传奇卡（kaisa_legend，传奇区技能载体：虚空感知主动 + 进化被动）— DEV-10
+- ✅ 易大师传奇卡（yi_legend，传奇区技能载体：独影剑鸣被动）— DEV-10
 
 ### 战场卡数据
 - ✅ 19张战场卡数据（id/name/效果描述，GameRules.BF_DISPLAY_NAMES）— DEV-6
@@ -172,7 +172,7 @@
 ### 卡牌显示
 - [ ] 卡牌 Prefab（正面：图片/名称/费用/战力/关键词/文字）
 - [ ] 卡牌背面 Prefab
-- [ ] 传奇卡特殊显示（技能列表 + 等级标记，不显示atk/hp）
+- ✅ 传奇卡特殊显示（卡图+技能描述+等级标记，不显示atk/hp）— DEV-10
 - [ ] 装备卡显示（附着在单位上）
 - ✅ 卡牌状态视觉（休眠变暗 / 眩晕标记 / 增益指示物标记）— DEV-8
 - ✅ 费用不足压暗提示（costInsufficient 手牌变暗）— DEV-8
@@ -184,21 +184,39 @@
 - ✅ 3D 倾斜效果（鼠标跟随 18°，CardTilt.cs）— DEV-8
 - [ ] 拖拽出牌（dragAnim.js 移植：漩涡/传送门视觉效果）
 - [ ] 点击出牌（备选交互方式）
-- [ ] 目标选择高亮（合法目标闪烁/高亮）
+- [ ] 目标选择高亮（合法目标 .targetable 绿色框 + 已选目标 .spell-targeted 红色框）
+- [ ] 卡牌选中状态视觉（.selected 黄色高亮 + 轨道光环旋转）
+- [ ] 悬停预判符文高亮（canPlayCard：法力+未横置符文>=费用时绿边提示）
+- [ ] 拖拽释放时资源消耗提示（目标区域高亮 + 符文消耗预览）
 
 ### 战场交互
 - [ ] 单位点击选中 / 取消选中
 - [ ] 战场点击目标（触发 pendingMove）
 - [ ] 确认移动按钮
 - [ ] 战斗动画（单位冲向目标，伤害数字飘出）
+- [ ] 战斗结算框 UI（cbt-overlay：双方战力对比 + VS + 结果显示 + 自动关闭）
+- [ ] 待命区域 UI（bf-1-standby / bf-2-standby，配合 zhonya 待命关键词）
 
 ### 特殊界面
 - ✅ 掷硬币界面（显示先手结果 + 战场名 + OK按钮）— DEV-2（无动画，DEV-3添加）
 - ✅ 战场随机选择（各方从牌池随机1个，在掷硬币界面显示）— DEV-2
 - ✅ 梦想手牌调度界面（mulligan，选≤2张换牌，StartupFlowUI）— DEV-2
 - [ ] 游戏结束界面（得分显示 + 再来一局按钮）
-- [ ] 横幅提示（showBanner：回合开始/得分事件）
+- [ ] 横幅提示系统（showBanner 大横幅 / showSmallBanner 小横幅 / showDuelBanner 决斗横幅）
 - [ ] 对决界面（法术对决期间的特殊 UI）
+- [ ] 吐司通知栈（toast-stack，右下角堆叠短期通知，自动消失）
+- [ ] askPrompt 通用弹窗系统（目标选择弹窗 / 确认弹窗 / 卡片选择弹窗，Promise 异步）
+- ✅ 弃牌堆点击浏览器（ShowDiscardViewer，网格展示所有弃牌，可点击查看详情）— DEV-10
+- ✅ 放逐堆点击浏览器（ShowExileViewer，同上）— DEV-10
+
+### 日志面板
+- ✅ 日志折叠/展开按钮（LogToggleBtn，">" / "<" 切换）— DEV-10
+- ✅ 日志折叠动画（协程 0.3s 宽度过渡 + SmoothStep）— DEV-10
+- ✅ 日志折叠联动棋盘居中（折叠时 boardWrapperOuter 自动扩展）— DEV-10
+
+### 符文交互
+- [ ] 符文回收按钮（♻ 按钮在每张符文下方，点击回收）
+- [ ] 装备激活能力按钮（activateEquipAbility，基地装备卡能力触发）
 
 ---
 
@@ -229,14 +247,28 @@
 
 ### 通用传奇机制
 - ✅ 传奇不占基地/战场槽位（独立传奇区，规则167.4）— DEV-5
-- [ ] 英雄牌单独提取 + 英雄区域（游戏开始时从牌库分离，规则103.2.a）
+- ✅ 英雄牌单独提取 + 英雄区域（游戏开始时从牌库分离，规则103.2.a）— DEV-10
 - ✅ checkLegendPassives 战后触发（TriggerCombat 后 CheckLegendDeaths）— DEV-5
 - ✅ triggerLegendEvent 事件系统（LegendSystem.OnLegendLog 静态事件）— DEV-5
 - ✅ AI 传奇技能决策（卡莎虚空感知：手牌有炽烈法术且符能不足时触发）— DEV-7
 
 ---
 
-## 七、粒子特效（particles.js → VFX）
+## 七、音效系统（sound.js → AudioManager）
+
+- [ ] 背景音乐（BGM 循环播放，游戏开始时启动）
+- [ ] 出牌音效（card-play swoosh）
+- [ ] 法术施放音效
+- [ ] 战斗冲击音效
+- [ ] 单位死亡音效
+- [ ] 回合结束音效
+- [ ] 游戏结束音效（胜利/失败）
+- [ ] UI 点击音效
+- [ ] 音量控制（可选）
+
+---
+
+## 八、粒子特效（particles.js → VFX）
 
 - [ ] 伤害数字飘出（受击时显示伤害值）
 - [ ] 单位阵亡特效
@@ -246,7 +278,7 @@
 
 ---
 
-## 八、游戏启动流程（main.js → GameBootstrap.cs）
+## 九、游戏启动流程（main.js → GameBootstrap.cs）
 
 - ✅ 随机阵营分配（50%卡莎先手/易大师先手）— DEV-1
 - [ ] 卡组初始化（含英雄卡单独提取）
@@ -260,7 +292,7 @@
 
 ---
 
-## 九、战场卡牌特殊能力（19张）
+## 十、战场卡牌特殊能力（19张）
 
 - ✅ altar_unity — 据守：召唤1/1新兵 — DEV-6
 - ✅ aspirant_climb — 据守：支付1法力，基地单位+1战力 — DEV-6

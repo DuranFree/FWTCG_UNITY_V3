@@ -26,6 +26,8 @@ namespace FWTCG
         // ── Card data (assign in Inspector) ──────────────────────────────────
         [SerializeField] private CardData[] _kaisaDeck;   // 5 cards
         [SerializeField] private CardData[] _yiDeck;      // 5 cards
+        [SerializeField] private CardData _kaisaLegendData;  // legend display data
+        [SerializeField] private CardData _yiLegendData;     // legend display data
 
         // ── System references (assign in Inspector or add to same GameObject) ─
         [SerializeField] private TurnManager _turnMgr;
@@ -189,6 +191,7 @@ namespace FWTCG
                     onRune: OnRuneClicked,
                     onCardRightClick: OnCardRightClicked
                 );
+                _ui.SetPileClickCallback(OnPileClicked);
             }
 
             InitGame();
@@ -211,6 +214,10 @@ namespace FWTCG
             {
                 _gs.PLegend = _legendSys.CreateLegend(LegendSystem.KAISA_LEGEND_ID, GameRules.OWNER_PLAYER);
                 _gs.ELegend = _legendSys.CreateLegend(LegendSystem.YI_LEGEND_ID, GameRules.OWNER_ENEMY);
+
+                // Associate CardData for legend art display (DEV-10)
+                if (_kaisaLegendData != null) _gs.PLegend.DisplayData = _kaisaLegendData;
+                if (_yiLegendData != null)    _gs.ELegend.DisplayData = _yiLegendData;
             }
 
             // Random first player
@@ -222,6 +229,10 @@ namespace FWTCG
             // Build and shuffle decks
             BuildDeck(GameRules.OWNER_PLAYER, _kaisaDeck);
             BuildDeck(GameRules.OWNER_ENEMY, _yiDeck);
+
+            // Extract hero cards from decks to hero zone (rule 103.2.a)
+            ExtractHero(GameRules.OWNER_PLAYER);
+            ExtractHero(GameRules.OWNER_ENEMY);
 
             // Deal initial hands
             DealInitialHand(GameRules.OWNER_PLAYER);
@@ -786,6 +797,21 @@ namespace FWTCG
             Debug.Log($"[InitGame] {owner} rune deck: {runeDeck.Count} runes");
         }
 
+        private void ExtractHero(string owner)
+        {
+            List<UnitInstance> deck = _gs.GetDeck(owner);
+            for (int i = 0; i < deck.Count; i++)
+            {
+                if (deck[i].CardData.IsHero)
+                {
+                    _gs.SetHero(owner, deck[i]);
+                    deck.RemoveAt(i);
+                    Debug.Log($"[InitGame] {owner} hero extracted: {_gs.GetHero(owner).UnitName}");
+                    return;
+                }
+            }
+        }
+
         private void RefreshUI()
         {
             if (_ui != null)
@@ -805,7 +831,30 @@ namespace FWTCG
             {
                 _ui.ShowMessage(msg);
                 _ui.Refresh(_gs);
+
+                // Start/clear turn timer based on phase (DEV-10)
+                if (_gs.Phase == GameRules.PHASE_ACTION && _gs.Turn == GameRules.OWNER_PLAYER)
+                    _ui.StartTurnTimer(OnTimerExpired);
+                else
+                    _ui.ClearTurnTimer();
             }
+        }
+
+        private void OnTimerExpired()
+        {
+            if (_gs == null || _gs.GameOver) return;
+            TurnManager.BroadcastMessage_Static("[倒计时] 时间到，自动结束回合");
+            OnEndTurnClicked();
+        }
+
+        private void OnPileClicked(string owner, string pileType)
+        {
+            if (_gs == null || _ui == null) return;
+
+            if (pileType == "discard")
+                _ui.ShowDiscardViewer(_gs.GetDiscard(owner), owner == GameRules.OWNER_PLAYER ? "玩家弃牌堆" : "敌方弃牌堆");
+            else if (pileType == "exile")
+                _ui.ShowExileViewer(_gs.GetExile(owner), owner == GameRules.OWNER_PLAYER ? "玩家放逐堆" : "敌方放逐堆");
         }
 
         private void HandleGameOver(string msg)

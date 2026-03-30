@@ -99,6 +99,32 @@ namespace FWTCG.UI
         [SerializeField] private Transform _playerHeroContainer;
         [SerializeField] private Transform _enemyHeroContainer;
 
+        // ── Legend zone containers (DEV-10: for art overlay) ─────────────────
+        [SerializeField] private Transform _playerLegendContainer;
+        [SerializeField] private Transform _enemyLegendContainer;
+
+        // ── Log panel toggle (DEV-10) ────────────────────────────────────────
+        [SerializeField] private GameObject _logPanel;
+        [SerializeField] private Button _logToggleBtn;
+        [SerializeField] private Text _logToggleText;
+        [SerializeField] private RectTransform _boardWrapperOuter;
+        private bool _logCollapsed = false;
+        private Coroutine _logAnimCoroutine;
+
+        // ── Discard/Exile viewer (DEV-10) ────────────────────────────────────
+        [SerializeField] private GameObject _viewerPanel;
+        [SerializeField] private Text _viewerTitle;
+        [SerializeField] private Transform _viewerCardContainer;
+        [SerializeField] private Button _viewerCloseBtn;
+
+        // ── Turn timer (DEV-10) ──────────────────────────────────────────────
+        [SerializeField] private Image _timerFill;
+        [SerializeField] private Text _timerText;
+        [SerializeField] private GameObject _timerDisplay;
+        private Coroutine _timerCoroutine;
+        private int _timerSeconds;
+        private Action _onTimerExpired;
+
         // ── Action buttons (DEV-9) ───────────────────────────────────────────
         [SerializeField] private Button _tapAllRunesBtn;
         [SerializeField] private Button _cancelRunesBtn;
@@ -140,6 +166,10 @@ namespace FWTCG.UI
             if (_bf1Button != null) _bf1Button.onClick.AddListener(() => _onBFClicked?.Invoke(0));
             if (_bf2Button != null) _bf2Button.onClick.AddListener(() => _onBFClicked?.Invoke(1));
             if (_restartButton != null) _restartButton.onClick.AddListener(HandleRestart);
+            if (_logToggleBtn != null) _logToggleBtn.onClick.AddListener(ToggleLog);
+            if (_viewerCloseBtn != null) _viewerCloseBtn.onClick.AddListener(CloseViewer);
+            if (_viewerPanel != null) _viewerPanel.SetActive(false);
+            if (_timerDisplay != null) _timerDisplay.SetActive(false);
             FWTCG.Systems.TurnManager.OnBannerRequest += ShowBanner;
         }
 
@@ -211,6 +241,7 @@ namespace FWTCG.UI
             RefreshRunes(gs);
             RefreshEndTurnButton(gs);
             RefreshLegends(gs);
+            RefreshHeroZones(gs);
             RefreshScoreTrack(gs);
             RefreshPileCounts(gs);
             RefreshBFControlBadges(gs);
@@ -346,9 +377,96 @@ namespace FWTCG.UI
             if (_enemyLegendText != null)
             {
                 if (gs.ELegend != null)
-                    _enemyLegendText.text = gs.ELegend.Name;
+                {
+                    string eLvl = gs.ELegend.Level >= 2 ? " [Lv.2]" : "";
+                    _enemyLegendText.text = $"{gs.ELegend.Name}{eLvl}";
+                }
                 else
                     _enemyLegendText.text = "传奇: -";
+            }
+
+            // Render legend art (DEV-10)
+            RefreshLegendArt(_playerLegendContainer, gs.PLegend);
+            RefreshLegendArt(_enemyLegendContainer, gs.ELegend);
+        }
+
+        // ── Hero zone refresh (DEV-10) ──────────────────────────────────────
+
+        private void RefreshHeroZones(GameState gs)
+        {
+            RefreshSingleHeroZone(_playerHeroContainer, gs.PHero, true);
+            RefreshSingleHeroZone(_enemyHeroContainer, gs.EHero, false);
+        }
+
+        private void RefreshSingleHeroZone(Transform container, UnitInstance hero, bool isPlayer)
+        {
+            if (container == null) return;
+
+            // Clear existing children
+            for (int i = container.childCount - 1; i >= 0; i--)
+                Destroy(container.GetChild(i).gameObject);
+
+            if (hero != null)
+            {
+                // Show hero card
+                if (_cardViewPrefab != null)
+                {
+                    GameObject go = Instantiate(_cardViewPrefab, container);
+                    CardView cv = go.GetComponent<CardView>();
+                    if (cv != null)
+                        cv.Setup(hero, isPlayer, isPlayer ? _onUnitClicked : null, _onCardRightClicked);
+                }
+            }
+            else
+            {
+                // Show "已出场" placeholder
+                GameObject ph = new GameObject("HeroPlaceholder");
+                ph.transform.SetParent(container, false);
+                var rt = ph.AddComponent<RectTransform>();
+                rt.sizeDelta = new Vector2(80f, 30f);
+                var txt = ph.AddComponent<Text>();
+                txt.text = "已出场";
+                txt.font = _playerScoreText != null ? _playerScoreText.font : Font.CreateDynamicFontFromOSFont("Arial", 12);
+                txt.fontSize = 12;
+                txt.alignment = TextAnchor.MiddleCenter;
+                txt.color = new Color(1f, 1f, 1f, 0.5f);
+            }
+        }
+
+        // ── Legend zone refresh with art (DEV-10) ─────────────────────────────
+
+        private void RefreshLegendArt(Transform legendContainer, LegendInstance legend)
+        {
+            if (legendContainer == null || legend == null) return;
+
+            // Find or create the art image
+            Transform artTransform = legendContainer.Find("LegendArt");
+            if (legend.DisplayData != null && legend.DisplayData.ArtSprite != null)
+            {
+                Image artImg;
+                if (artTransform == null)
+                {
+                    var artGO = new GameObject("LegendArt");
+                    artGO.transform.SetParent(legendContainer, false);
+                    artGO.transform.SetAsFirstSibling();
+                    var rt = artGO.AddComponent<RectTransform>();
+                    rt.anchorMin = Vector2.zero;
+                    rt.anchorMax = Vector2.one;
+                    rt.offsetMin = Vector2.zero;
+                    rt.offsetMax = Vector2.zero;
+                    artImg = artGO.AddComponent<Image>();
+                    artImg.preserveAspect = true;
+                    artImg.raycastTarget = false;
+                    // Semi-transparent so text remains readable
+                    artImg.color = new Color(1f, 1f, 1f, 0.6f);
+                }
+                else
+                {
+                    artImg = artTransform.GetComponent<Image>();
+                }
+
+                if (artImg != null)
+                    artImg.sprite = legend.DisplayData.ArtSprite;
             }
         }
 
@@ -628,6 +746,178 @@ namespace FWTCG.UI
                 _confirmRunesBtn.interactable = isPlayerAction;
             if (_skipReactionBtn != null)
                 _skipReactionBtn.interactable = isPlayerAction;
+        }
+
+        // ── Log panel toggle (DEV-10) ────────────────────────────────────────
+
+        public void ToggleLog()
+        {
+            _logCollapsed = !_logCollapsed;
+
+            if (_logToggleText != null)
+                _logToggleText.text = _logCollapsed ? ">" : "<";
+
+            if (_logAnimCoroutine != null) StopCoroutine(_logAnimCoroutine);
+            _logAnimCoroutine = StartCoroutine(AnimateLogToggle(_logCollapsed));
+        }
+
+        private IEnumerator AnimateLogToggle(bool collapse)
+        {
+            float duration = 0.3f;
+            float elapsed = 0f;
+
+            // Log panel width animation
+            float logStartWidth = collapse ? 200f : 0f;
+            float logEndWidth = collapse ? 0f : 200f;
+
+            // Board right offset animation (expand when log collapsed)
+            float boardStartOffset = collapse ? -200f : 0f;
+            float boardEndOffset = collapse ? 0f : -200f;
+
+            while (elapsed < duration)
+            {
+                elapsed += Time.deltaTime;
+                float t = Mathf.SmoothStep(0f, 1f, elapsed / duration);
+
+                float currentLogWidth = Mathf.Lerp(logStartWidth, logEndWidth, t);
+                float currentBoardOffset = Mathf.Lerp(boardStartOffset, boardEndOffset, t);
+
+                if (_logPanel != null)
+                {
+                    var logRT = _logPanel.GetComponent<RectTransform>();
+                    if (logRT != null)
+                    {
+                        logRT.SetSizeWithCurrentAnchors(RectTransform.Axis.Horizontal, currentLogWidth);
+                    }
+                }
+
+                if (_boardWrapperOuter != null)
+                {
+                    _boardWrapperOuter.offsetMax = new Vector2(currentBoardOffset, _boardWrapperOuter.offsetMax.y);
+                }
+
+                yield return null;
+            }
+
+            // Final values
+            if (_logPanel != null)
+            {
+                _logPanel.SetActive(!collapse);
+            }
+        }
+
+        // ── Discard / Exile viewer (DEV-10) ──────────────────────────────────
+
+        public void ShowDiscardViewer(List<UnitInstance> cards, string title = "弃牌堆")
+        {
+            ShowViewer(cards, title);
+        }
+
+        public void ShowExileViewer(List<UnitInstance> cards, string title = "放逐堆")
+        {
+            ShowViewer(cards, title);
+        }
+
+        private void ShowViewer(List<UnitInstance> cards, string title)
+        {
+            if (_viewerPanel == null) return;
+
+            _viewerPanel.SetActive(true);
+            if (_viewerTitle != null)
+                _viewerTitle.text = $"{title} ({(cards != null ? cards.Count : 0)})";
+
+            // Clear existing children
+            if (_viewerCardContainer != null)
+            {
+                for (int i = _viewerCardContainer.childCount - 1; i >= 0; i--)
+                    Destroy(_viewerCardContainer.GetChild(i).gameObject);
+
+                if (cards != null && _cardViewPrefab != null)
+                {
+                    // Show in reverse order (most recent first)
+                    for (int i = cards.Count - 1; i >= 0; i--)
+                    {
+                        GameObject go = Instantiate(_cardViewPrefab, _viewerCardContainer);
+                        CardView cv = go.GetComponent<CardView>();
+                        if (cv != null)
+                            cv.Setup(cards[i], true, null, _onCardRightClicked);
+                    }
+                }
+            }
+        }
+
+        private void CloseViewer()
+        {
+            if (_viewerPanel != null) _viewerPanel.SetActive(false);
+        }
+
+        // ── Turn timer (DEV-10) ──────────────────────────────────────────────
+
+        public void StartTurnTimer(Action onExpired)
+        {
+            _onTimerExpired = onExpired;
+            _timerSeconds = 30;
+
+            if (_timerDisplay != null) _timerDisplay.SetActive(true);
+            UpdateTimerDisplay();
+
+            if (_timerCoroutine != null) StopCoroutine(_timerCoroutine);
+            _timerCoroutine = StartCoroutine(TimerCountdown());
+        }
+
+        public void ClearTurnTimer()
+        {
+            if (_timerCoroutine != null)
+            {
+                StopCoroutine(_timerCoroutine);
+                _timerCoroutine = null;
+            }
+            if (_timerDisplay != null) _timerDisplay.SetActive(false);
+            _onTimerExpired = null;
+        }
+
+        private IEnumerator TimerCountdown()
+        {
+            while (_timerSeconds > 0)
+            {
+                yield return new WaitForSeconds(1f);
+                _timerSeconds--;
+                UpdateTimerDisplay();
+            }
+
+            // Timer expired
+            _timerCoroutine = null;
+            if (_timerDisplay != null) _timerDisplay.SetActive(false);
+            _onTimerExpired?.Invoke();
+        }
+
+        private void UpdateTimerDisplay()
+        {
+            if (_timerText != null)
+                _timerText.text = _timerSeconds.ToString();
+
+            if (_timerFill != null)
+            {
+                float pct = _timerSeconds / 30f;
+                _timerFill.fillAmount = pct;
+
+                // Color: green > 15s, yellow 5-15s, red < 5s
+                if (_timerSeconds > 15)
+                    _timerFill.color = GameColors.ScoreCirclePlayer; // green
+                else if (_timerSeconds > 5)
+                    _timerFill.color = new Color(1f, 0.85f, 0.3f, 1f); // yellow
+                else
+                    _timerFill.color = GameColors.ScoreCircleEnemy; // red
+            }
+        }
+
+        // ── Discard/Exile click setup (DEV-10) ──────────────────────────────
+
+        private Action<string, string> _onPileClicked; // (owner, pileType)
+
+        public void SetPileClickCallback(Action<string, string> callback)
+        {
+            _onPileClicked = callback;
         }
 
         // ── Utility ───────────────────────────────────────────────────────────

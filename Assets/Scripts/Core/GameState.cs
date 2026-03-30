@@ -90,6 +90,22 @@ namespace FWTCG.Core
         /// <summary>Whether 梦幻树 (dreaming_tree) draw has already triggered this turn.</summary>
         public bool DreamingTreeTriggeredThisTurn { get; set; }
 
+        // ── Hero zone ─────────────────────────────────────────────────────────
+        /// <summary>Player's hero card (extracted from deck at game start, rule 103.2.a).</summary>
+        public UnitInstance PHero { get; set; }
+
+        /// <summary>Enemy's hero card (extracted from deck at game start).</summary>
+        public UnitInstance EHero { get; set; }
+
+        public UnitInstance GetHero(string owner) =>
+            owner == GameRules.OWNER_PLAYER ? PHero : EHero;
+
+        public void SetHero(string owner, UnitInstance hero)
+        {
+            if (owner == GameRules.OWNER_PLAYER) PHero = hero;
+            else EHero = hero;
+        }
+
         // ── Legend zone ────────────────────────────────────────────────────────
         /// <summary>Player's legend (Kaisa). Initialized by GameManager at game start.</summary>
         public LegendInstance PLegend { get; set; }
