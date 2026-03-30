@@ -413,12 +413,15 @@ namespace FWTCG.UI
                 if (_cardViewPrefab != null)
                 {
                     GameObject go = Instantiate(_cardViewPrefab, container);
-                    // Fixed card size — don't let layout stretch it
+                    // Stretch to fill the hero slot area
                     var rt = go.GetComponent<RectTransform>();
-                    if (rt != null) rt.sizeDelta = new Vector2(75f, 105f);
-                    var le = go.GetComponent<LayoutElement>() ?? go.AddComponent<LayoutElement>();
-                    le.preferredWidth = 75f;
-                    le.preferredHeight = 105f;
+                    if (rt != null)
+                    {
+                        rt.anchorMin = Vector2.zero;
+                        rt.anchorMax = Vector2.one;
+                        rt.offsetMin = Vector2.zero;
+                        rt.offsetMax = Vector2.zero;
+                    }
 
                     CardView cv = go.GetComponent<CardView>();
                     if (cv != null)
@@ -430,7 +433,10 @@ namespace FWTCG.UI
                 GameObject ph = new GameObject("HeroPlaceholder");
                 ph.transform.SetParent(container, false);
                 var rt = ph.AddComponent<RectTransform>();
-                rt.sizeDelta = new Vector2(75f, 20f);
+                rt.anchorMin = Vector2.zero;
+                rt.anchorMax = Vector2.one;
+                rt.offsetMin = Vector2.zero;
+                rt.offsetMax = Vector2.zero;
                 var txt = ph.AddComponent<Text>();
                 txt.text = "已出场";
                 txt.font = _playerScoreText != null ? _playerScoreText.font : Font.CreateDynamicFontFromOSFont("Arial", 12);

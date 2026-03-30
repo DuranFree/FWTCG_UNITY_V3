@@ -815,33 +815,29 @@ namespace FWTCG.Editor
             var img = go.AddComponent<Image>();
             img.color = GameColors.PileBackground;
 
-            var vlg = go.AddComponent<VerticalLayoutGroup>();
-            vlg.childControlWidth = false;
-            vlg.childControlHeight = false;
-            vlg.childForceExpandWidth = false;
-            vlg.childForceExpandHeight = false;
-            vlg.childAlignment = TextAnchor.MiddleCenter;
-            vlg.spacing = 2f;
-            vlg.padding = new RectOffset(2, 2, 2, 2);
+            // Tag label — top center
+            var tagGO = new GameObject("HeroTag");
+            tagGO.transform.SetParent(go.transform, false);
+            var tagRT = tagGO.AddComponent<RectTransform>();
+            tagRT.anchorMin = new Vector2(0f, 0.88f);
+            tagRT.anchorMax = new Vector2(1f, 1f);
+            tagRT.offsetMin = Vector2.zero;
+            tagRT.offsetMax = Vector2.zero;
+            var tagText = tagGO.AddComponent<Text>();
+            tagText.text = "英雄位";
+            tagText.color = GameColors.Gold;
+            tagText.fontSize = 10;
+            tagText.alignment = TextAnchor.MiddleCenter;
+            if (_font != null) tagText.font = _font;
 
-            var tagLE = CreateTMPText(go.transform, "HeroTag", "英雄位", GameColors.Gold, 10, TextAnchor.MiddleCenter);
-            var tagLEComp = tagLE.gameObject.AddComponent<LayoutElement>();
-            tagLEComp.preferredHeight = 14f;
-            tagLEComp.preferredWidth = 80f;
-
-            // Card slot — fixed size, centered
+            // Card slot — centered in remaining area
             var slotGO = new GameObject("HeroSlot");
             slotGO.transform.SetParent(go.transform, false);
-            slotGO.AddComponent<RectTransform>();
-            var slotLE = slotGO.AddComponent<LayoutElement>();
-            slotLE.preferredWidth = 80f;
-            slotLE.preferredHeight = 110f;
-            var slotHLG = slotGO.AddComponent<HorizontalLayoutGroup>();
-            slotHLG.childControlWidth = false;
-            slotHLG.childControlHeight = false;
-            slotHLG.childForceExpandWidth = false;
-            slotHLG.childForceExpandHeight = false;
-            slotHLG.childAlignment = TextAnchor.MiddleCenter;
+            var slotRT = slotGO.AddComponent<RectTransform>();
+            slotRT.anchorMin = new Vector2(0.1f, 0.05f);
+            slotRT.anchorMax = new Vector2(0.9f, 0.85f);
+            slotRT.offsetMin = Vector2.zero;
+            slotRT.offsetMax = Vector2.zero;
 
             heroContainer = slotGO.transform;
         }
