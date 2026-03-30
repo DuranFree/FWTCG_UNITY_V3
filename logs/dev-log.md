@@ -2,6 +2,40 @@
 
 ---
 
+## DEV-9：UI 布局补全 — 2026-03-30
+
+**Status**: ✅ Completed
+
+**技术决策**:
+- 布局：anchor 定位模拟 7×5 网格（替代 CSS Grid），不用嵌套 LayoutGroup
+- 手牌区移到棋盘外部（敌方50px/玩家120px），匹配原版布局
+- 传奇区删除 HP 显示（传奇不可被摧毁，规则167.3）
+
+**新功能**:
+- 得分轨道（左=玩家 8→0，右=敌方 0→8，各9个圆圈）
+- 弃牌堆 + 放逐堆（双方各一组，显示计数）
+- 英雄区（双方各一个槽位，等待英雄牌出场）
+- 主牌堆计数 + 符文牌堆计数（双方各一个）
+- 战场控制标记（绿=玩家/红=敌方）
+- 信息条（双方：名字/法力/符文计数/牌堆计数）
+- 行动面板（全部横置/取消/确认符文/跳过响应/结束行动/反应）
+- 传奇区重做（网格内定位 + 技能按钮 + 无HP）
+- GameState.PExile/EExile 放��堆数据
+- RefreshScoreTrack/RefreshPileCounts/RefreshBFControlBadges/RefreshInfoStrips/RefreshActionButtons
+
+**修改文件**:
+- `Assets/Scripts/Core/GameState.cs`（+PExile/EExile）
+- `Assets/Scripts/UI/GameColors.cs`（+15 颜色常量）
+- `Assets/Scripts/Editor/SceneBuilder.cs`（重写布局 + 8个新方法 + 连线扩展）
+- `Assets/Scripts/UI/GameUI.cs`（+30字段 + 5刷新方法）
+- `Assets/Scripts/GameManager.cs`（+TapAllRunes/SkipReaction 按钮回调）
+- `Assets/Scripts/UI/ReactiveWindowUI.cs`（+SkipReaction 公开方法）
+- `Assets/Tests/EditMode/DEV9LayoutTests.cs`（新建，25个测试）
+
+**测试结果**: 203 全绿（25 新 + 178 现有），0 失败
+
+---
+
 ## DEV-8：视觉升级 Part 1 — 2026-03-30
 
 **Status**: ✅ Completed

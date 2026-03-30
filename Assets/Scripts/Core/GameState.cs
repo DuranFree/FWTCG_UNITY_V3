@@ -34,6 +34,10 @@ namespace FWTCG.Core
         public List<UnitInstance> PDiscard { get; set; } = new List<UnitInstance>();
         public List<UnitInstance> EDiscard { get; set; } = new List<UnitInstance>();
 
+        // ── Exile piles ──────────────────────────────────────────────────────
+        public List<UnitInstance> PExile { get; set; } = new List<UnitInstance>();
+        public List<UnitInstance> EExile { get; set; } = new List<UnitInstance>();
+
         // ── Runes in play ─────────────────────────────────────────────────────
         public List<RuneInstance> PRunes { get; set; } = new List<RuneInstance>();
         public List<RuneInstance> ERunes { get; set; } = new List<RuneInstance>();
@@ -179,6 +183,9 @@ namespace FWTCG.Core
 
         public List<UnitInstance> GetDiscard(string owner) =>
             owner == GameRules.OWNER_PLAYER ? PDiscard : EDiscard;
+
+        public List<UnitInstance> GetExile(string owner) =>
+            owner == GameRules.OWNER_PLAYER ? PExile : EExile;
 
         public List<RuneInstance> GetRunes(string owner) =>
             owner == GameRules.OWNER_PLAYER ? PRunes : ERunes;

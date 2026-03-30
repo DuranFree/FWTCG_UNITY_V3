@@ -95,6 +95,10 @@ namespace FWTCG
                 ? _aiReactionTcs.Task
                 : Task.CompletedTask;
 
+        // ── Action buttons (DEV-9) ───────────────────────────────────────────
+        [SerializeField] private Button _tapAllRunesBtn;
+        [SerializeField] private Button _skipReactionBtn;
+
         // ── DEBUG panel (left-bottom overlay, always visible in dev) ──────────
         [SerializeField] private Button _debugSpellBtn;
         [SerializeField] private Button _debugEquipBtn;
@@ -136,6 +140,10 @@ namespace FWTCG
             // Wire react button
             if (_reactBtn != null) _reactBtn.onClick.AddListener(OnReactClicked);
             if (_legendSkillBtn != null) _legendSkillBtn.onClick.AddListener(OnLegendSkillClicked);
+
+            // Wire DEV-9 action buttons
+            if (_tapAllRunesBtn != null)   _tapAllRunesBtn.onClick.AddListener(OnTapAllRunesClicked);
+            if (_skipReactionBtn != null)  _skipReactionBtn.onClick.AddListener(OnSkipReactionClicked);
 
             // Wire debug buttons
             if (_debugSpellBtn != null)    _debugSpellBtn.onClick.AddListener(() => DebugDraw("spell"));
@@ -550,6 +558,44 @@ namespace FWTCG
             if (unit == null) return;
             if (_cardDetailPopup != null)
                 _cardDetailPopup.Show(unit);
+        }
+
+        // ── DEV-9: Action button handlers ───────────────────────────────────
+
+        /// <summary>
+        /// Tap all un-tapped player runes for mana.
+        /// </summary>
+        public void OnTapAllRunesClicked()
+        {
+            if (_gs == null || _gs.GameOver) return;
+            if (_gs.Turn != GameRules.OWNER_PLAYER) return;
+            if (_gs.Phase != GameRules.PHASE_ACTION) return;
+
+            int tapped = 0;
+            foreach (var rune in _gs.PRunes)
+            {
+                if (!rune.Tapped)
+                {
+                    rune.Tapped = true;
+                    _gs.PMana += 1;
+                    tapped++;
+                }
+            }
+            if (tapped > 0)
+                TurnManager.BroadcastMessage_Static($"[全部横置] 横置 {tapped} 个符文，法力 → {_gs.PMana}");
+            else
+                TurnManager.BroadcastMessage_Static("[提示] 没有可横置的符文");
+
+            RefreshUI();
+        }
+
+        /// <summary>
+        /// Skip the current reaction window, delegating to ReactiveWindowUI.
+        /// </summary>
+        public void OnSkipReactionClicked()
+        {
+            if (_reactiveWindowUI != null)
+                _reactiveWindowUI.SkipReaction();
         }
 
         // ── Private helpers ───────────────────────────────────────────────────

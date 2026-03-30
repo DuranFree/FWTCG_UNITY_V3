@@ -75,6 +75,42 @@ namespace FWTCG.UI
         [SerializeField] private Text _enemyLegendText;    // shows Masteryi name / exhausted
         [SerializeField] private Button _legendSkillBtn;   // 虚空感知 button
 
+        // ── Score track circles (DEV-9) ──────────────────────────────────────
+        [SerializeField] private Image[] _playerScoreCircles;
+        [SerializeField] private Image[] _enemyScoreCircles;
+
+        // ── Pile count texts (DEV-9) ─────────────────────────────────────────
+        [SerializeField] private Text _playerDeckCountText;
+        [SerializeField] private Text _enemyDeckCountText;
+        [SerializeField] private Text _playerRunePileCountText;
+        [SerializeField] private Text _enemyRunePileCountText;
+        [SerializeField] private Text _playerDiscardCountText;
+        [SerializeField] private Text _enemyDiscardCountText;
+        [SerializeField] private Text _playerExileCountText;
+        [SerializeField] private Text _enemyExileCountText;
+
+        // ── BF control badges (DEV-9) ────────────────────────────────────────
+        [SerializeField] private Image _bf1CtrlBadge;
+        [SerializeField] private Image _bf2CtrlBadge;
+        [SerializeField] private Text _bf1CtrlBadgeText;
+        [SerializeField] private Text _bf2CtrlBadgeText;
+
+        // ── Hero zones (DEV-9) ───────────────────────────────────────────────
+        [SerializeField] private Transform _playerHeroContainer;
+        [SerializeField] private Transform _enemyHeroContainer;
+
+        // ── Action buttons (DEV-9) ───────────────────────────────────────────
+        [SerializeField] private Button _tapAllRunesBtn;
+        [SerializeField] private Button _cancelRunesBtn;
+        [SerializeField] private Button _confirmRunesBtn;
+        [SerializeField] private Button _skipReactionBtn;
+
+        // ── Info strip texts (DEV-9) ─────────────────────────────────────────
+        [SerializeField] private Text _playerRuneInfoText;
+        [SerializeField] private Text _enemyRuneInfoText;
+        [SerializeField] private Text _playerDeckInfoText;
+        [SerializeField] private Text _enemyDeckInfoText;
+
         // ── Banner overlay ────────────────────────────────────────────────────
         [SerializeField] private GameObject _bannerPanel;
         [SerializeField] private Text _bannerText;
@@ -175,6 +211,11 @@ namespace FWTCG.UI
             RefreshRunes(gs);
             RefreshEndTurnButton(gs);
             RefreshLegends(gs);
+            RefreshScoreTrack(gs);
+            RefreshPileCounts(gs);
+            RefreshBFControlBadges(gs);
+            RefreshInfoStrips(gs);
+            RefreshActionButtons(gs.Phase, gs.Turn);
         }
 
         // ── Individual panel refresh ──────────────────────────────────────────
@@ -466,6 +507,127 @@ namespace FWTCG.UI
         {
             UnityEngine.SceneManagement.SceneManager.LoadScene(
                 UnityEngine.SceneManagement.SceneManager.GetActiveScene().name);
+        }
+
+        // ── Score track refresh (DEV-9) ──────────────────────────────────────
+
+        public void RefreshScoreTrack(GameState gs)
+        {
+            if (_playerScoreCircles != null)
+            {
+                for (int i = 0; i < _playerScoreCircles.Length; i++)
+                {
+                    if (_playerScoreCircles[i] == null) continue;
+                    if (i < gs.PScore)
+                        _playerScoreCircles[i].color = GameColors.ScoreCirclePlayer;
+                    else if (i == gs.PScore && gs.PScore < GameRules.WIN_SCORE)
+                        _playerScoreCircles[i].color = GameColors.ScoreCircleCurrent;
+                    else
+                        _playerScoreCircles[i].color = GameColors.ScoreCircleInactive;
+                }
+            }
+            if (_enemyScoreCircles != null)
+            {
+                for (int i = 0; i < _enemyScoreCircles.Length; i++)
+                {
+                    if (_enemyScoreCircles[i] == null) continue;
+                    if (i < gs.EScore)
+                        _enemyScoreCircles[i].color = GameColors.ScoreCircleEnemy;
+                    else if (i == gs.EScore && gs.EScore < GameRules.WIN_SCORE)
+                        _enemyScoreCircles[i].color = GameColors.ScoreCircleCurrent;
+                    else
+                        _enemyScoreCircles[i].color = GameColors.ScoreCircleInactive;
+                }
+            }
+        }
+
+        // ── Pile count refresh (DEV-9) ───────────────────────────────────────
+
+        public void RefreshPileCounts(GameState gs)
+        {
+            if (_playerDeckCountText != null)
+                _playerDeckCountText.text = gs.PDeck.Count.ToString();
+            if (_enemyDeckCountText != null)
+                _enemyDeckCountText.text = gs.EDeck.Count.ToString();
+            if (_playerRunePileCountText != null)
+                _playerRunePileCountText.text = gs.PRuneDeck.Count.ToString();
+            if (_enemyRunePileCountText != null)
+                _enemyRunePileCountText.text = gs.ERuneDeck.Count.ToString();
+            if (_playerDiscardCountText != null)
+                _playerDiscardCountText.text = gs.PDiscard.Count.ToString();
+            if (_enemyDiscardCountText != null)
+                _enemyDiscardCountText.text = gs.EDiscard.Count.ToString();
+            if (_playerExileCountText != null)
+                _playerExileCountText.text = gs.PExile.Count.ToString();
+            if (_enemyExileCountText != null)
+                _enemyExileCountText.text = gs.EExile.Count.ToString();
+        }
+
+        // ── BF control badge refresh (DEV-9) ────────────────────────────────
+
+        public void RefreshBFControlBadges(GameState gs)
+        {
+            if (gs.BF == null) return;
+
+            if (_bf1CtrlBadge != null && gs.BF.Length > 0)
+            {
+                bool isPlayer = gs.BF[0].Ctrl == GameRules.OWNER_PLAYER;
+                bool isEnemy  = gs.BF[0].Ctrl == GameRules.OWNER_ENEMY;
+                _bf1CtrlBadge.color = isPlayer ? GameColors.CtrlBadgePlayer
+                                    : isEnemy  ? GameColors.CtrlBadgeEnemy
+                                    : GameColors.ScoreCircleInactive;
+            }
+            if (_bf1CtrlBadgeText != null && gs.BF.Length > 0)
+            {
+                _bf1CtrlBadgeText.text = gs.BF[0].Ctrl == GameRules.OWNER_PLAYER ? "玩"
+                                       : gs.BF[0].Ctrl == GameRules.OWNER_ENEMY  ? "敌"
+                                       : "—";
+            }
+            if (_bf2CtrlBadge != null && gs.BF.Length > 1)
+            {
+                bool isPlayer = gs.BF[1].Ctrl == GameRules.OWNER_PLAYER;
+                bool isEnemy  = gs.BF[1].Ctrl == GameRules.OWNER_ENEMY;
+                _bf2CtrlBadge.color = isPlayer ? GameColors.CtrlBadgePlayer
+                                    : isEnemy  ? GameColors.CtrlBadgeEnemy
+                                    : GameColors.ScoreCircleInactive;
+            }
+            if (_bf2CtrlBadgeText != null && gs.BF.Length > 1)
+            {
+                _bf2CtrlBadgeText.text = gs.BF[1].Ctrl == GameRules.OWNER_PLAYER ? "玩"
+                                        : gs.BF[1].Ctrl == GameRules.OWNER_ENEMY  ? "敌"
+                                        : "—";
+            }
+        }
+
+        // ── Info strip refresh (DEV-9) ───────────────────────────────────────
+
+        public void RefreshInfoStrips(GameState gs)
+        {
+            if (_playerRuneInfoText != null)
+                _playerRuneInfoText.text = $"{gs.PRunes.Count}/{gs.PRunes.Count + gs.PRuneDeck.Count}";
+            if (_enemyRuneInfoText != null)
+                _enemyRuneInfoText.text = $"{gs.ERunes.Count}/{gs.ERunes.Count + gs.ERuneDeck.Count}";
+            if (_playerDeckInfoText != null)
+                _playerDeckInfoText.text = $"牌库:{gs.PDeck.Count}";
+            if (_enemyDeckInfoText != null)
+                _enemyDeckInfoText.text = $"牌库:{gs.EDeck.Count}";
+        }
+
+        // ── Action button refresh (DEV-9) ────────────────────────────────────
+
+        public void RefreshActionButtons(string phase, string turn)
+        {
+            bool isPlayerAction = turn == GameRules.OWNER_PLAYER
+                                  && phase == GameRules.PHASE_ACTION;
+
+            if (_tapAllRunesBtn != null)
+                _tapAllRunesBtn.interactable = isPlayerAction;
+            if (_cancelRunesBtn != null)
+                _cancelRunesBtn.interactable = isPlayerAction;
+            if (_confirmRunesBtn != null)
+                _confirmRunesBtn.interactable = isPlayerAction;
+            if (_skipReactionBtn != null)
+                _skipReactionBtn.interactable = isPlayerAction;
         }
 
         // ── Utility ───────────────────────────────────────────────────────────

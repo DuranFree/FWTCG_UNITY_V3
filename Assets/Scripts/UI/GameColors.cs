@@ -65,6 +65,28 @@ namespace FWTCG.UI
         // ── Rune tapped state ─────────────────────────────────────────────────
         public static readonly Color RuneTapped = new Color(0.5f, 0.5f, 0.5f, 1f);
 
+        // ── Score track ──────────────────────────────────────────────────────
+        public static readonly Color ScoreCircleInactive = new Color(0.47f, 0.35f, 0.16f, 0.4f); // dim gold border
+        public static readonly Color ScoreCirclePlayer   = new Color(0.29f, 0.87f, 0.5f, 1f);    // green achieved
+        public static readonly Color ScoreCircleEnemy    = new Color(0.97f, 0.44f, 0.44f, 1f);   // red achieved
+        public static readonly Color ScoreCircleCurrent  = Hex("#f0e6d2");                         // bright gold active
+
+        // ── Pile zones ───────────────────────────────────────────────────────
+        public static readonly Color PileBorder     = new Color(0.78f, 0.67f, 0.43f, 0.4f); // dashed gold
+        public static readonly Color PileBackground = new Color(0.004f, 0.04f, 0.07f, 0.8f); // dark navy
+
+        // ── Battlefield control badge ────────────────────────────────────────
+        public static readonly Color CtrlBadgePlayer = new Color(0.25f, 0.91f, 0.54f, 1f);  // green
+        public static readonly Color CtrlBadgeEnemy  = new Color(0.91f, 0.25f, 0.34f, 1f);  // red
+
+        // ── Action buttons ───────────────────────────────────────────────────
+        public static readonly Color ActionBtnPrimary   = Hex("#c8aa6e"); // gold
+        public static readonly Color ActionBtnSecondary = new Color(0.5f, 0.5f, 0.55f, 1f);
+        public static readonly Color ActionBtnDanger    = new Color(0.85f, 0.2f, 0.2f, 1f);
+
+        // ── Info strip ───────────────────────────────────────────────────────
+        public static readonly Color InfoStripBg = new Color(0.02f, 0.05f, 0.1f, 0.9f);
+
         /// <summary>
         /// Convert a hex color string (#RRGGBB or #RRGGBBAA) to a Unity Color.
         /// </summary>

@@ -88,6 +88,19 @@ namespace FWTCG.UI
             return _tcs.Task;
         }
 
+        /// <summary>
+        /// Skips the current reaction window, completing with null.
+        /// Called by the "跳过响应" action button (DEV-9).
+        /// </summary>
+        public void SkipReaction()
+        {
+            if (_tcs != null && !_tcs.Task.IsCompleted)
+            {
+                HidePanel();
+                _tcs.TrySetResult(null);
+            }
+        }
+
         // ── Private callbacks ─────────────────────────────────────────────────
 
         private void OnCardClicked(UnitInstance card)
