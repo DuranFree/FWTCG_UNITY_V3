@@ -410,10 +410,16 @@ namespace FWTCG.UI
 
             if (hero != null)
             {
-                // Show hero card
                 if (_cardViewPrefab != null)
                 {
                     GameObject go = Instantiate(_cardViewPrefab, container);
+                    // Fixed card size — don't let layout stretch it
+                    var rt = go.GetComponent<RectTransform>();
+                    if (rt != null) rt.sizeDelta = new Vector2(75f, 105f);
+                    var le = go.GetComponent<LayoutElement>() ?? go.AddComponent<LayoutElement>();
+                    le.preferredWidth = 75f;
+                    le.preferredHeight = 105f;
+
                     CardView cv = go.GetComponent<CardView>();
                     if (cv != null)
                         cv.Setup(hero, isPlayer, isPlayer ? _onUnitClicked : null, _onCardRightClicked);
@@ -421,15 +427,14 @@ namespace FWTCG.UI
             }
             else
             {
-                // Show "已出场" placeholder
                 GameObject ph = new GameObject("HeroPlaceholder");
                 ph.transform.SetParent(container, false);
                 var rt = ph.AddComponent<RectTransform>();
-                rt.sizeDelta = new Vector2(80f, 30f);
+                rt.sizeDelta = new Vector2(75f, 20f);
                 var txt = ph.AddComponent<Text>();
                 txt.text = "已出场";
                 txt.font = _playerScoreText != null ? _playerScoreText.font : Font.CreateDynamicFontFromOSFont("Arial", 12);
-                txt.fontSize = 12;
+                txt.fontSize = 11;
                 txt.alignment = TextAnchor.MiddleCenter;
                 txt.color = new Color(1f, 1f, 1f, 0.5f);
             }

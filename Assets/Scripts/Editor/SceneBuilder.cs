@@ -816,30 +816,32 @@ namespace FWTCG.Editor
             img.color = GameColors.PileBackground;
 
             var vlg = go.AddComponent<VerticalLayoutGroup>();
-            vlg.childControlWidth = true;
-            vlg.childControlHeight = true;
-            vlg.childForceExpandWidth = true;
+            vlg.childControlWidth = false;
+            vlg.childControlHeight = false;
+            vlg.childForceExpandWidth = false;
             vlg.childForceExpandHeight = false;
             vlg.childAlignment = TextAnchor.MiddleCenter;
             vlg.spacing = 2f;
             vlg.padding = new RectOffset(2, 2, 2, 2);
 
-            CreateTMPText(go.transform, "HeroTag", "英雄位", GameColors.Gold, 11, TextAnchor.MiddleCenter);
+            var tagLE = CreateTMPText(go.transform, "HeroTag", "英雄位", GameColors.Gold, 10, TextAnchor.MiddleCenter);
+            var tagLEComp = tagLE.gameObject.AddComponent<LayoutElement>();
+            tagLEComp.preferredHeight = 14f;
+            tagLEComp.preferredWidth = 80f;
 
-            // Card slot container
+            // Card slot — fixed size, centered
             var slotGO = new GameObject("HeroSlot");
             slotGO.transform.SetParent(go.transform, false);
             slotGO.AddComponent<RectTransform>();
             var slotLE = slotGO.AddComponent<LayoutElement>();
-            slotLE.flexibleWidth = 1f;
-            slotLE.flexibleHeight = 1f;
+            slotLE.preferredWidth = 80f;
+            slotLE.preferredHeight = 110f;
             var slotHLG = slotGO.AddComponent<HorizontalLayoutGroup>();
             slotHLG.childControlWidth = false;
-            slotHLG.childControlHeight = true;
+            slotHLG.childControlHeight = false;
             slotHLG.childForceExpandWidth = false;
-            slotHLG.childForceExpandHeight = true;
+            slotHLG.childForceExpandHeight = false;
             slotHLG.childAlignment = TextAnchor.MiddleCenter;
-            slotHLG.spacing = 4f;
 
             heroContainer = slotGO.transform;
         }
@@ -890,23 +892,23 @@ namespace FWTCG.Editor
 
             var vlg = go.AddComponent<VerticalLayoutGroup>();
             vlg.childControlWidth = true;
-            vlg.childControlHeight = true;
+            vlg.childControlHeight = false;
             vlg.childForceExpandWidth = true;
             vlg.childForceExpandHeight = false;
-            vlg.padding = new RectOffset(4, 4, 4, 4);
-            vlg.spacing = 3f;
+            vlg.padding = new RectOffset(4, 4, 2, 2);
+            vlg.spacing = 2f;
 
             // Title
-            string titleStr = isPlayer ? "── 传奇 ──" : "── AI传奇 ──";
+            string titleStr = isPlayer ? "传奇" : "AI传奇";
             Color titleColor = isPlayer ? new Color(1f, 0.85f, 0.3f, 1f) : new Color(1f, 0.5f, 0.5f, 1f);
             var titleGO = new GameObject("LegendTitle");
             titleGO.transform.SetParent(go.transform, false);
             var titleLE = titleGO.AddComponent<LayoutElement>();
-            titleLE.preferredHeight = 18f;
+            titleLE.preferredHeight = 14f;
             var titleT = titleGO.AddComponent<Text>();
             titleT.text = titleStr;
             titleT.color = titleColor;
-            titleT.fontSize = 12;
+            titleT.fontSize = 10;
             titleT.alignment = TextAnchor.MiddleCenter;
             titleT.horizontalOverflow = HorizontalWrapMode.Overflow;
             titleT.verticalOverflow   = VerticalWrapMode.Overflow;
@@ -916,12 +918,12 @@ namespace FWTCG.Editor
             var textGO = new GameObject(isPlayer ? "LegendText" : "EnemyLegendText");
             textGO.transform.SetParent(go.transform, false);
             var textLE = textGO.AddComponent<LayoutElement>();
-            textLE.preferredHeight = 28f;
+            textLE.preferredHeight = 22f;
             legendText = textGO.AddComponent<Text>();
-            legendText.text = isPlayer ? "卡莎·传奇" : "易大师·传奇";
+            legendText.text = isPlayer ? "卡莎" : "易大师";
             legendText.color = Color.white;
             legendText.fontSize = 11;
-            legendText.alignment = TextAnchor.MiddleLeft;
+            legendText.alignment = TextAnchor.MiddleCenter;
             legendText.horizontalOverflow = HorizontalWrapMode.Wrap;
             legendText.verticalOverflow   = VerticalWrapMode.Overflow;
             if (_font != null) legendText.font = _font;
@@ -932,20 +934,19 @@ namespace FWTCG.Editor
             {
                 skillBtn = CreateDebugButton(go.transform, "虚空感知", new Color(0.4f, 0.1f, 0.8f, 1f));
                 var skillLE = skillBtn.GetComponent<LayoutElement>();
-                if (skillLE != null) skillLE.preferredHeight = 26f;
+                if (skillLE != null) skillLE.preferredHeight = 22f;
             }
             else
             {
-                // Enemy passive text
                 var passiveGO = new GameObject("PassiveText");
                 passiveGO.transform.SetParent(go.transform, false);
                 var passiveLE = passiveGO.AddComponent<LayoutElement>();
-                passiveLE.preferredHeight = 20f;
+                passiveLE.preferredHeight = 16f;
                 var passiveT = passiveGO.AddComponent<Text>();
                 passiveT.text = "[被动] 无极剑道";
                 passiveT.color = new Color(0.7f, 0.7f, 0.7f, 1f);
-                passiveT.fontSize = 10;
-                passiveT.alignment = TextAnchor.MiddleLeft;
+                passiveT.fontSize = 9;
+                passiveT.alignment = TextAnchor.MiddleCenter;
                 passiveT.horizontalOverflow = HorizontalWrapMode.Wrap;
                 passiveT.verticalOverflow   = VerticalWrapMode.Overflow;
                 if (_font != null) passiveT.font = _font;
