@@ -78,9 +78,9 @@ namespace FWTCG.UI
                         float nx = Mathf.Clamp(localPoint.x / (size.x * 0.5f), -1f, 1f);
                         float ny = Mathf.Clamp(localPoint.y / (size.y * 0.5f), -1f, 1f);
 
-                        // Tilt: Y axis from horizontal mouse, X axis from vertical mouse (inverted)
-                        _targetTiltY = nx * MAX_TILT;
-                        _targetTiltX = -ny * MAX_TILT;
+                        // Tilt: card edge nearest to mouse rises toward viewer
+                        _targetTiltY = -nx * MAX_TILT;
+                        _targetTiltX = ny * MAX_TILT;
 
                         // Update shine position (0-1 UV)
                         if (_shineMat != null)
