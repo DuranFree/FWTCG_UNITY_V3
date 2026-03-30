@@ -183,18 +183,18 @@
 - ✅ 可出牌提示（发光边框 Shader：绿色动态粒子轨迹）— DEV-8
 - ✅ 3D 倾斜效果（鼠标跟随 18°，CardTilt.cs）— DEV-8
 - [ ] 拖拽出牌（dragAnim.js 移植：漩涡/传送门视觉效果）
-- [ ] 点击出牌（备选交互方式）
+- ✅ 点击出牌（OnUnitClicked → TryPlayCard，点击手牌直接打出）— DEV-1
 - [ ] 目标选择高亮（合法目标 .targetable 绿色框 + 已选目标 .spell-targeted 红色框）
 - [ ] 卡牌选中状态视觉（.selected 黄色高亮 + 轨道光环旋转）
 - [ ] 悬停预判符文高亮（canPlayCard：法力+未横置符文>=费用时绿边提示）
 - [ ] 拖拽释放时资源消耗提示（目标区域高亮 + 符文消耗预览）
 
 ### 战场交互
-- [ ] 单位点击选中 / 取消选中
-- [ ] 战场点击目标（触发 pendingMove）
-- [ ] 确认移动按钮
+- ✅ 单位点击选中 / 取消选中 — DEV-1（OnUnitClicked 多选/单选切换）
+- ✅ 战场点击目标（OnBattlefieldClicked 批量移动）— DEV-1
+- ✅ 确认移动按钮（直接点击BF区域触发移动，无需额外确认）— DEV-1
 - [ ] 战斗动画（单位冲向目标，伤害数字飘出）
-- [ ] 战斗结算框 UI（cbt-overlay：双方战力对比 + VS + 结果显示 + 自动关闭）
+- ✅ 战斗结算框 UI（CombatResultPanel：双方战力对比 + VS + 结果显示 + 3s自动关闭）— DEV-10
 - [ ] 待命区域 UI（bf-1-standby / bf-2-standby，配合 zhonya 待命关键词）
 
 ### 特殊界面
@@ -327,7 +327,7 @@
 - ✅ 后手首回合符文 = 3（之后每回合2）— GameRules.RUNES_FIRST_TURN_SECOND（DEV-1已定义）
 - ✅ 初始手牌 = 4张 — GameRules.INITIAL_HAND_SIZE（DEV-1已定义）
 - ✅ 燃尽惩罚 = +1分 — ScoreManager.AddScore BURNOUT（DEV-1实现）
-- [ ] 软加权触发率 = 67%
+- ✅ 软加权触发率 = 67% — DEV-14 SeedOpeningHand Random.value <= 0.67f
 - ❌ 最后1分受限规则 — 不存在，已删除
 
 ### 关键移植陷阱
