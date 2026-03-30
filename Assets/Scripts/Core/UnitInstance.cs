@@ -46,6 +46,12 @@ namespace FWTCG.Core
         /// <summary>Whether this unit cannot be targeted by spells.</summary>
         public bool UntargetableBySpells { get; set; }
 
+        /// <summary>Equipment attached to this unit (null if none).</summary>
+        public UnitInstance AttachedEquipment { get; set; }
+
+        /// <summary>Unit this equipment is attached to (null if this is not equipment or unattached).</summary>
+        public UnitInstance AttachedTo { get; set; }
+
         /// <summary>"player" or "enemy"</summary>
         public string Owner { get; private set; }
 

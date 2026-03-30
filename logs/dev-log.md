@@ -2,6 +2,30 @@
 
 ---
 
+## DEV-13：装备附着系统 + 符能费用检查 + 常量验证 — 2026-03-31
+
+**Status**: ✅ Completed
+
+**技术决策**:
+- 装备附着：UnitInstance.AttachedEquipment/AttachedTo 双向引用，TryPlayEquipment自动选最强非装备单位
+- 符能费用：TryPlayUnit/TryPlayEquipment 都检查 RuneCost 并扣除对应符能
+- 游戏常量：确认所有关键常量已在 GameRules.cs 中定义
+
+**新功能**:
+- UnitInstance: AttachedEquipment / AttachedTo 属性（装备附着双向引用）
+- GameManager.TryPlayEquipment（自动附着到最强己方单位+ATK加成+费用检查）
+- GameManager.TryPlayUnit 增加符能费用检查（RuneCost+RuneType）
+- 确认标记：WIN_SCORE/INITIAL_HAND/TURN_TIMER/STRONG_POWER等常量
+
+**修改文件**:
+- `Assets/Scripts/Core/UnitInstance.cs`（+AttachedEquipment/AttachedTo）
+- `Assets/Scripts/GameManager.cs`（+TryPlayEquipment+TryPlayUnit符能检查）
+- `Assets/Tests/EditMode/DEV13EquipTests.cs`（新建，12个测试）
+
+**测试结果**: 254 全绿（12 新 + 242 现有），0 失败
+
+---
+
 ## DEV-12：AI符文回收 + 征服触发 + 系统确认 — 2026-03-31
 
 **Status**: ✅ Completed

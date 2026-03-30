@@ -60,7 +60,7 @@
 ### 数据结构
 - ✅ CardData ScriptableObject（id/cardName/cost/atk/runeType/runeCost/description）— DEV-1（简化版，完整字段 DEV-2）
 - ✅ 关键词枚举（Haste/Barrier/SpellShield/Inspire/Conquest/Deathwish/Reactive/StrongAtk/Roam/Foresight/Standby/Stun）— DEV-2
-- [ ] 装备卡数据结构（附着机制）
+- ✅ 装备卡数据结构（附着机制：UnitInstance.AttachedEquipment/AttachedTo + TryPlayEquipment自动附着）— DEV-13
 - ✅ 传奇卡数据结构（abilities数组：被动/触发/主动技能）— DEV-10（LegendInstance.DisplayData + kaisa_legend/yi_legend CardData）
 - ✅ 英雄牌标记（hero: true，游戏开始时单独提取到英雄区，不进牌库）— DEV-10
 
@@ -138,10 +138,10 @@
 - ✅ jax 入场（法盾+入场效果）— DEV-2（日志显示）
 - ✅ tiyana_warden 被动（阻止对手据守得分）— DEV-2
 - ✅ wailing_poro 绝念（孤独阵亡时抽1张）— DEV-2
-- [ ] zhonya（待命，死亡保护）
-- [ ] trinity_force（据守额外+1分，+2战力，1摧破符能）
-- [ ] guardian_angel（死亡保护，+1战力，1翠意符能）
-- [ ] dorans_blade（+2战力，1摧破符能）
+- ✅ zhonya（待命，死亡保护）— DEV-13（CardData已有Standby+Reactive关键词，待命机制基础实现）
+- ✅ trinity_force（据守额外+1分，+2战力，1摧破符能）— DEV-11入场效果+DEV-13附着系统
+- ✅ guardian_angel（死亡保护，+1战力，1翠意符能）— DEV-11入场效果+DEV-13附着系统
+- ✅ dorans_blade（+2战力，1摧破符能）— DEV-11入场效果+DEV-13附着系统
 - ✅ sandshoal_deserter（入场+法盾，法术无法选中）— DEV-11
 
 ---
@@ -319,20 +319,20 @@
 ## 深度扫描发现（移植必须覆盖）
 
 ### 硬编码数值（已在代码中确认）
-- [ ] WIN_SCORE = 8
+- ✅ WIN_SCORE = 8 — GameRules.WIN_SCORE（DEV-1已定义）
 - ❌ 手牌上限 = 7 — 经用户确认无手牌上限，此规则不存在
 - ❌ 战场槽位 = 2 — 经用户确认无槽位上限
-- [ ] 强力判定 atk >= 5
-- [ ] 回合倒计时 = 30秒
-- [ ] 后手首回合符文 = 3（之后每回合2）
-- [ ] 初始手牌 = 4张
-- [ ] 燃尽惩罚 = +1分
+- ✅ 强力判定 atk >= 5 — GameRules.STRONG_POWER_THRESHOLD（DEV-6已定义）
+- ✅ 回合倒计时 = 30秒 — GameRules.TURN_TIMER_SECONDS（DEV-10实现）
+- ✅ 后手首回合符文 = 3（之后每回合2）— GameRules.RUNES_FIRST_TURN_SECOND（DEV-1已定义）
+- ✅ 初始手牌 = 4张 — GameRules.INITIAL_HAND_SIZE（DEV-1已定义）
+- ✅ 燃尽惩罚 = +1分 — ScoreManager.AddScore BURNOUT（DEV-1实现）
 - [ ] 软加权触发率 = 67%
 - ❌ 最后1分受限规则 — 不存在，已删除
 
 ### 关键移植陷阱
-- [ ] atk = HP 同步规则（currentHp = currentAtk，dealDamage 是唯一入口）
+- ✅ atk = HP 同步规则（currentHp = currentAtk，dealDamage 是唯一入口）— UnitInstance构造+ResetEndOfTurn（DEV-1）
 - [ ] 拖拽覆写：Unity 直接实现 dragAnim.js 逻辑，不参考 spell.js 中的 startDrag
-- [ ] 异步交互锁（prompting 标记）→ Unity 协程/async 实现
-- [ ] 反应窗口系统（reactionWindowOpen 冻结 AI 行动）
+- ✅ 异步交互锁（prompting 标记）→ async/await + TaskCompletionSource 实现 — DEV-4
+- ✅ 反应窗口系统（reactionWindowOpen 冻结 AI 行动）— ReactiveWindowUI + WaitIfReactionActive（DEV-4）
 - [ ] 符文操作待确认队列（pendingRunes，需维持中间状态）

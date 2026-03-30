@@ -618,6 +618,8 @@ namespace FWTCG
         {
             if (unit.CardData.IsSpell)
                 TryPlaySpell(unit);
+            else if (unit.CardData.IsEquipment)
+                TryPlayEquipment(unit);
             else
                 TryPlayUnit(unit);
         }
@@ -632,9 +634,24 @@ namespace FWTCG
                 return;
             }
 
+            // Check schematic (rune) cost
+            if (unit.CardData.RuneCost > 0)
+            {
+                int haveSch = _gs.GetSch(GameRules.OWNER_PLAYER, unit.CardData.RuneType);
+                if (haveSch < unit.CardData.RuneCost)
+                {
+                    TurnManager.BroadcastMessage_Static(
+                        $"[提示] 符能不足：需要 {unit.CardData.RuneCost} {unit.CardData.RuneType}，当前 {haveSch}");
+                    _selectedUnit = null;
+                    return;
+                }
+            }
+
             _gs.PHand.Remove(unit);
             _gs.PBase.Add(unit);
             _gs.PMana -= unit.CardData.Cost;
+            if (unit.CardData.RuneCost > 0)
+                _gs.SpendSch(GameRules.OWNER_PLAYER, unit.CardData.RuneType, unit.CardData.RuneCost);
             unit.Exhausted = true;
             _gs.CardsPlayedThisTurn++;
 
@@ -650,6 +667,84 @@ namespace FWTCG
 
             _selectedUnit = null;
             _selectedUnitLoc = "base";
+            RefreshUI();
+        }
+
+        private void TryPlayEquipment(UnitInstance equip)
+        {
+            if (equip.CardData.Cost > _gs.PMana)
+            {
+                TurnManager.BroadcastMessage_Static(
+                    $"[提示] 法力不足：需要 {equip.CardData.Cost}，当前 {_gs.PMana}");
+                return;
+            }
+
+            // Check schematic cost
+            if (equip.CardData.RuneCost > 0)
+            {
+                int haveSch = _gs.GetSch(GameRules.OWNER_PLAYER, equip.CardData.RuneType);
+                if (haveSch < equip.CardData.RuneCost)
+                {
+                    TurnManager.BroadcastMessage_Static(
+                        $"[提示] 符能不足：需要 {equip.CardData.RuneCost} {equip.CardData.RuneType}，当前 {haveSch}");
+                    return;
+                }
+            }
+
+            // Find best target for auto-attach: strongest non-equipped friendly unit
+            UnitInstance target = null;
+            int bestAtk = -1;
+            foreach (var u in _gs.PBase)
+            {
+                if (u.AttachedEquipment == null && !u.CardData.IsSpell && !u.CardData.IsEquipment && u.CurrentAtk > bestAtk)
+                {
+                    target = u;
+                    bestAtk = u.CurrentAtk;
+                }
+            }
+            for (int i = 0; i < GameRules.BATTLEFIELD_COUNT; i++)
+            {
+                foreach (var u in _gs.BF[i].PlayerUnits)
+                {
+                    if (u.AttachedEquipment == null && u.CurrentAtk > bestAtk)
+                    {
+                        target = u;
+                        bestAtk = u.CurrentAtk;
+                    }
+                }
+            }
+
+            if (target == null)
+            {
+                TurnManager.BroadcastMessage_Static("[提示] 没有可附着的己方单位");
+                return;
+            }
+
+            // Pay costs
+            _gs.PHand.Remove(equip);
+            _gs.PMana -= equip.CardData.Cost;
+            if (equip.CardData.RuneCost > 0)
+                _gs.SpendSch(GameRules.OWNER_PLAYER, equip.CardData.RuneType, equip.CardData.RuneCost);
+            _gs.CardsPlayedThisTurn++;
+
+            // Attach equipment
+            target.AttachedEquipment = equip;
+            equip.AttachedTo = target;
+
+            // Apply equipment ATK bonus
+            int bonus = equip.CardData.EquipAtkBonus;
+            if (bonus > 0)
+            {
+                target.CurrentAtk += bonus;
+                target.CurrentHp += bonus;
+            }
+
+            TurnManager.BroadcastMessage_Static(
+                $"[装备] {equip.UnitName} 附着到 {target.UnitName}（+{bonus}战力），剩余法力 {_gs.PMana}");
+
+            // Trigger entry effects
+            _entryEffects?.OnUnitEntered(equip, GameRules.OWNER_PLAYER, _gs);
+
             RefreshUI();
         }
 
