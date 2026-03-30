@@ -1858,21 +1858,21 @@ namespace FWTCG.Editor
             costRT.offsetMin = Vector2.zero;
             costRT.offsetMax = Vector2.zero;
 
-            // ── AtkText — bottom banner (on top of art) ──
-            var atkBannerGO = new GameObject("AtkBanner");
-            atkBannerGO.transform.SetParent(root.transform, false);
-            var atkBannerImg = atkBannerGO.AddComponent<Image>();
-            atkBannerImg.color = new Color(0f, 0f, 0f, 0.7f);
-            atkBannerImg.raycastTarget = false;
-            var atkBannerRT = atkBannerGO.GetComponent<RectTransform>();
-            atkBannerRT.anchorMin = new Vector2(0f, 0f);
-            atkBannerRT.anchorMax = new Vector2(1f, 0.22f);
-            atkBannerRT.offsetMin = Vector2.zero;
-            atkBannerRT.offsetMax = Vector2.zero;
+            // ── AtkText — top-right badge (deep orange bg, black text) ──
+            var atkBadgeGO = new GameObject("AtkBadge");
+            atkBadgeGO.transform.SetParent(root.transform, false);
+            var atkBadgeImg = atkBadgeGO.AddComponent<Image>();
+            atkBadgeImg.color = new Color(0.85f, 0.35f, 0.15f, 0.95f); // deep orange-red
+            atkBadgeImg.raycastTarget = false;
+            var atkBadgeRT = atkBadgeGO.GetComponent<RectTransform>();
+            atkBadgeRT.anchorMin = new Vector2(0.72f, 0.78f);
+            atkBadgeRT.anchorMax = new Vector2(1f, 1f);
+            atkBadgeRT.offsetMin = new Vector2(1f, 1f);
+            atkBadgeRT.offsetMax = new Vector2(-1f, -1f);
 
-            var atkText = CreateTMPText(atkBannerGO.transform, "AtkText", "0", Color.white, 14, TextAnchor.MiddleCenter);
+            var atkText = CreateTMPText(atkBadgeGO.transform, "AtkText", "0", new Color(0.05f, 0.05f, 0.05f, 1f), 13, TextAnchor.MiddleCenter);
             atkText.fontStyle = FontStyle.Bold;
-            atkText.gameObject.AddComponent<Shadow>().effectColor = new Color(0f, 0f, 0f, 1f);
+            atkText.gameObject.AddComponent<Shadow>().effectColor = new Color(1f, 1f, 1f, 0.3f);
             var atkRT = atkText.GetComponent<RectTransform>();
             atkRT.anchorMin = Vector2.zero;
             atkRT.anchorMax = Vector2.one;
