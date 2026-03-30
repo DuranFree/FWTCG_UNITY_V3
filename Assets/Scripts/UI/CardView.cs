@@ -38,7 +38,6 @@ namespace FWTCG.UI
         private bool _costInsufficient;
         private Coroutine _stunPulse;
         private CardGlow _cardGlow;
-        private CardTilt _cardTilt;
 
         private void Awake()
         {
@@ -51,25 +50,6 @@ namespace FWTCG.UI
                 && _cardBg.material != Canvas.GetDefaultCanvasMaterial())
             {
                 _cardGlow.Init(_cardBg, _cardBg.material);
-            }
-
-            // Init tilt — connect shine material
-            _cardTilt = GetComponent<CardTilt>();
-            if (_cardTilt != null)
-            {
-                // Find ShineOverlay child
-                var shineT = transform.Find("ShineOverlay");
-                if (shineT != null)
-                {
-                    var shineImg = shineT.GetComponent<Image>();
-                    if (shineImg != null && shineImg.material != null)
-                    {
-                        // Clone the material so each card has its own
-                        var shineMat = new Material(shineImg.material);
-                        shineImg.material = shineMat;
-                        _cardTilt.SetShineMaterial(shineMat);
-                    }
-                }
             }
         }
 

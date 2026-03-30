@@ -1825,29 +1825,8 @@ namespace FWTCG.Editor
                 }
             }
 
-            // ── DEV-8: ShineOverlay (holographic shine, on top of art) ──
-            {
-                var shineMat = LoadOrCreateMaterial("Assets/Materials/CardShineMat.mat", "UI/CardShine");
-                // Always create the ShineOverlay child (even without material, for structure)
-                var shineGO = new GameObject("ShineOverlay");
-                shineGO.transform.SetParent(root.transform, false);
-                var shineImg = shineGO.AddComponent<Image>();
-                shineImg.raycastTarget = false;
-                shineImg.color = Color.white; // shader controls visibility via _ShineIntensity
-                if (shineMat != null)
-                {
-                    shineMat.SetFloat("_ShineIntensity", 0f);
-                    shineImg.material = shineMat;
-                }
-                var shineRT = shineGO.GetComponent<RectTransform>();
-                shineRT.anchorMin = Vector2.zero;
-                shineRT.anchorMax = Vector2.one;
-                shineRT.offsetMin = Vector2.zero;
-                shineRT.offsetMax = Vector2.zero;
-            }
-
-            // ── DEV-8: CardTilt component ──
-            var cardTilt = root.AddComponent<FWTCG.UI.CardTilt>();
+            // ── DEV-10: CardHoverScale (lightweight hover zoom, replaces CardTilt) ──
+            root.AddComponent<FWTCG.UI.CardHoverScale>();
 
             // Wire CardView serialized fields
             var so = new SerializedObject(cardView);
