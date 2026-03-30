@@ -1060,7 +1060,23 @@ namespace FWTCG.Editor
             badgeTextRT.offsetMax = Vector2.zero;
 
             // BF name label
-            var lbl = CreateTMPText(labelRow.transform, labelName, labelText, Color.white, 18, TextAnchor.MiddleCenter);
+            var lbl = CreateTMPText(labelRow.transform, labelName, labelText, Color.white, 14, TextAnchor.MiddleCenter);
+            var lblShadow = lbl.gameObject.AddComponent<Shadow>();
+            lblShadow.effectColor = new Color(0f, 0f, 0f, 0.9f);
+            lblShadow.effectDistance = new Vector2(1f, -1f);
+
+            // BF card art (horizontal/landscape, below label)
+            var bfArtRow = new GameObject("BFArtRow");
+            bfArtRow.transform.SetParent(panel.transform, false);
+            bfArtRow.AddComponent<RectTransform>();
+            var bfArtLE = bfArtRow.AddComponent<LayoutElement>();
+            bfArtLE.preferredHeight = 50f;
+            bfArtLE.flexibleHeight = 0f;
+            var bfArtImg = bfArtRow.AddComponent<Image>();
+            bfArtImg.color = new Color(0.1f, 0.15f, 0.2f, 0.5f); // placeholder; runtime loads real art
+            bfArtImg.preserveAspect = true;
+            bfArtImg.raycastTarget = false;
+            bfArtRow.name = "BFCardArt";
 
             // Player units zone
             CreateHorizontalZone(panel.transform, playerZoneName);
@@ -1812,6 +1828,8 @@ namespace FWTCG.Editor
             nameBannerRT.offsetMax = Vector2.zero;
 
             var cardName = CreateTMPText(nameBannerGO.transform, "CardName", "卡名", Color.white, 10, TextAnchor.MiddleCenter);
+            cardName.fontStyle = FontStyle.Bold;
+            cardName.gameObject.AddComponent<Shadow>().effectColor = new Color(0f, 0f, 0f, 1f);
             var nameRT = cardName.GetComponent<RectTransform>();
             nameRT.anchorMin = Vector2.zero;
             nameRT.anchorMax = Vector2.one;
@@ -1832,6 +1850,7 @@ namespace FWTCG.Editor
 
             var costText = CreateTMPText(costBadgeGO.transform, "CostText", "0", Color.white, 13, TextAnchor.MiddleCenter);
             costText.fontStyle = FontStyle.Bold;
+            costText.gameObject.AddComponent<Shadow>().effectColor = new Color(0f, 0f, 0f, 1f);
             var costRT = costText.GetComponent<RectTransform>();
             costRT.anchorMin = Vector2.zero;
             costRT.anchorMax = Vector2.one;
@@ -1852,6 +1871,7 @@ namespace FWTCG.Editor
 
             var atkText = CreateTMPText(atkBannerGO.transform, "AtkText", "0", Color.white, 14, TextAnchor.MiddleCenter);
             atkText.fontStyle = FontStyle.Bold;
+            atkText.gameObject.AddComponent<Shadow>().effectColor = new Color(0f, 0f, 0f, 1f);
             var atkRT = atkText.GetComponent<RectTransform>();
             atkRT.anchorMin = Vector2.zero;
             atkRT.anchorMax = Vector2.one;
@@ -1859,7 +1879,8 @@ namespace FWTCG.Editor
             atkRT.offsetMax = Vector2.zero;
 
             // ── Description text — inside bottom banner (on top of art) ──
-            var descText = CreateTMPText(root.transform, "DescText", "", new Color(0.85f, 0.85f, 0.85f, 1f), 7, TextAnchor.UpperCenter);
+            var descText = CreateTMPText(root.transform, "DescText", "", Color.white, 7, TextAnchor.UpperCenter);
+            descText.gameObject.AddComponent<Shadow>().effectColor = new Color(0f, 0f, 0f, 1f);
             var descRT = descText.GetComponent<RectTransform>();
             descRT.anchorMin = new Vector2(0.05f, 0.02f);
             descRT.anchorMax = new Vector2(0.95f, 0.18f);
@@ -2754,25 +2775,41 @@ namespace FWTCG.Editor
             go.SetActive(false);
 
             var rt = go.AddComponent<RectTransform>();
-            // Position: bottom-center, above the action bar, clearly visible
-            rt.anchorMin = new Vector2(0.5f, 0f);
-            rt.anchorMax = new Vector2(0.5f, 0f);
-            rt.pivot = new Vector2(0.5f, 0f);
-            rt.anchoredPosition = new Vector2(0f, 42f);
-            rt.sizeDelta = new Vector2(56f, 56f);
+            // Centered in battlefield area
+            rt.anchorMin = new Vector2(0.5f, 0.5f);
+            rt.anchorMax = new Vector2(0.5f, 0.5f);
+            rt.pivot = new Vector2(0.5f, 0.5f);
+            rt.anchoredPosition = Vector2.zero;
+            rt.sizeDelta = new Vector2(70f, 70f);
 
-            // Background circle
+            // Dark background circle
             var bgImg = go.AddComponent<Image>();
-            bgImg.color = new Color(0.1f, 0.1f, 0.1f, 0.8f);
+            bgImg.color = new Color(0.02f, 0.06f, 0.12f, 0.85f);
 
-            // Fill circle (radial fill)
+            // Outer ring (static border)
+            var ringGO = new GameObject("TimerRing");
+            ringGO.transform.SetParent(go.transform, false);
+            var ringRT = ringGO.AddComponent<RectTransform>();
+            ringRT.anchorMin = Vector2.zero;
+            ringRT.anchorMax = Vector2.one;
+            ringRT.offsetMin = new Vector2(2f, 2f);
+            ringRT.offsetMax = new Vector2(-2f, -2f);
+            var ringImg = ringGO.AddComponent<Image>();
+            ringImg.color = new Color(0.47f, 0.35f, 0.16f, 0.4f); // dim gold ring
+            ringImg.type = Image.Type.Filled;
+            ringImg.fillMethod = Image.FillMethod.Radial360;
+            ringImg.fillOrigin = (int)Image.Origin360.Top;
+            ringImg.fillClockwise = false;
+            ringImg.fillAmount = 1f;
+
+            // Countdown fill ring (animated)
             var fillGO = new GameObject("TimerFill");
             fillGO.transform.SetParent(go.transform, false);
             var fillRT = fillGO.AddComponent<RectTransform>();
-            fillRT.anchorMin = new Vector2(0.1f, 0.1f);
-            fillRT.anchorMax = new Vector2(0.9f, 0.9f);
-            fillRT.offsetMin = Vector2.zero;
-            fillRT.offsetMax = Vector2.zero;
+            fillRT.anchorMin = Vector2.zero;
+            fillRT.anchorMax = Vector2.one;
+            fillRT.offsetMin = new Vector2(4f, 4f);
+            fillRT.offsetMax = new Vector2(-4f, -4f);
             fillImage = fillGO.AddComponent<Image>();
             fillImage.color = GameColors.PlayerGreen;
             fillImage.type = Image.Type.Filled;
@@ -2781,7 +2818,18 @@ namespace FWTCG.Editor
             fillImage.fillClockwise = false;
             fillImage.fillAmount = 1f;
 
-            // Timer text
+            // Inner dark circle (donut hole)
+            var innerGO = new GameObject("TimerInner");
+            innerGO.transform.SetParent(go.transform, false);
+            var innerRT = innerGO.AddComponent<RectTransform>();
+            innerRT.anchorMin = new Vector2(0.18f, 0.18f);
+            innerRT.anchorMax = new Vector2(0.82f, 0.82f);
+            innerRT.offsetMin = Vector2.zero;
+            innerRT.offsetMax = Vector2.zero;
+            var innerImg = innerGO.AddComponent<Image>();
+            innerImg.color = new Color(0.02f, 0.06f, 0.12f, 0.95f);
+
+            // Timer text (large, bold)
             var textGO = new GameObject("TimerText");
             textGO.transform.SetParent(go.transform, false);
             var textRT = textGO.AddComponent<RectTransform>();
@@ -2791,10 +2839,14 @@ namespace FWTCG.Editor
             textRT.offsetMax = Vector2.zero;
             timerText = textGO.AddComponent<Text>();
             timerText.text = "30";
-            timerText.color = Color.white;
-            timerText.fontSize = 16;
+            timerText.color = GameColors.PlayerGreen;
+            timerText.fontSize = 22;
+            timerText.fontStyle = FontStyle.Bold;
             timerText.alignment = TextAnchor.MiddleCenter;
             if (_font != null) timerText.font = _font;
+            var timerShadow = textGO.AddComponent<Shadow>();
+            timerShadow.effectColor = new Color(0f, 0f, 0f, 0.9f);
+            timerShadow.effectDistance = new Vector2(1f, -1f);
 
             return go;
         }

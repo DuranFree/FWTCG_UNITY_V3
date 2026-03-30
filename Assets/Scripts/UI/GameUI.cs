@@ -189,6 +189,12 @@ namespace FWTCG.UI
                 _playerHandZoneRT.offsetMax = new Vector2(0f, _playerHandZoneRT.offsetMax.y);
             if (_enemyHandZoneRT != null)
                 _enemyHandZoneRT.offsetMax = new Vector2(0f, _enemyHandZoneRT.offsetMax.y);
+            // Move log toggle button to collapsed position (right edge)
+            if (_logToggleBtn != null)
+            {
+                var btnRT = _logToggleBtn.GetComponent<RectTransform>();
+                if (btnRT != null) btnRT.anchoredPosition = new Vector2(-4f, btnRT.anchoredPosition.y);
+            }
 
             FWTCG.Systems.TurnManager.OnBannerRequest += ShowBanner;
         }
@@ -1035,19 +1041,28 @@ namespace FWTCG.UI
             if (_timerText != null)
                 _timerText.text = _timerSeconds.ToString();
 
+            float pct = _timerSeconds / 30f;
+
+            // Color gradient: green → yellow → red
+            Color timerColor;
+            if (_timerSeconds > 15)
+                timerColor = GameColors.PlayerGreen;
+            else if (_timerSeconds > 5)
+                timerColor = Color.Lerp(new Color(1f, 0.85f, 0.3f, 1f), GameColors.PlayerGreen,
+                    (_timerSeconds - 5f) / 10f);
+            else
+                timerColor = Color.Lerp(new Color(0.95f, 0.2f, 0.15f, 1f), new Color(1f, 0.85f, 0.3f, 1f),
+                    _timerSeconds / 5f);
+
             if (_timerFill != null)
             {
-                float pct = _timerSeconds / 30f;
                 _timerFill.fillAmount = pct;
-
-                // Color: green > 15s, yellow 5-15s, red < 5s
-                if (_timerSeconds > 15)
-                    _timerFill.color = GameColors.ScoreCirclePlayer; // green
-                else if (_timerSeconds > 5)
-                    _timerFill.color = new Color(1f, 0.85f, 0.3f, 1f); // yellow
-                else
-                    _timerFill.color = GameColors.ScoreCircleEnemy; // red
+                _timerFill.color = timerColor;
             }
+
+            // Text color matches ring
+            if (_timerText != null)
+                _timerText.color = timerColor;
         }
 
         // ── Discard/Exile click setup (DEV-10) ──────────────────────────────
