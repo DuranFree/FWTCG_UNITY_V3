@@ -746,7 +746,8 @@ namespace FWTCG.Editor
             vlg.childForceExpandHeight = false;
             vlg.spacing = 2f;
             vlg.padding = new RectOffset(2, 2, 4, 4);
-            vlg.childAlignment = isPlayer ? TextAnchor.UpperCenter : TextAnchor.LowerCenter;
+            // Diagonal: player circles cluster at BOTTOM-left, enemy at TOP-right
+            vlg.childAlignment = isPlayer ? TextAnchor.LowerCenter : TextAnchor.UpperCenter;
 
             // Player: 8 at top, 0 at bottom (reversed). Enemy: 0 at top, 8 at bottom
             for (int raw = 0; raw < 9; raw++)
