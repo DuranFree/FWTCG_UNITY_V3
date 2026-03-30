@@ -5,12 +5,12 @@
 
 ## 一、颜色系统
 
-- [ ] GameColors 静态类（所有颜色常量统一管理，不硬编码）
-- [ ] 主色：金色 #c8aa6e / 亮金 #f0e6d2 / 暗金 #785a28
-- [ ] 副色：Hextech 青色 #0ac8b9 / 暗青 #005a82
-- [ ] 背景色：深海军蓝 #010a13 / 中调 #0a1428
-- [ ] 状态色：玩家绿 #4ade80 / 敌方红 #f87171
-- [ ] 符文颜色（6种：火橙 / 金黄 / 翠绿 / 红 / 紫 / 蓝，各含主色+发光色）
+- ✅ GameColors 静态类（所有颜色常量统一管理，不硬编码）— DEV-8
+- ✅ 主色：金色 #c8aa6e / 亮金 #f0e6d2 / 暗金 #785a28 — DEV-8
+- ✅ 副色：Hextech 青色 #0ac8b9 / 暗青 #005a82 — DEV-8
+- ✅ 背景色：深海军蓝 #010a13 / 中调 #0a1428 — DEV-8
+- ✅ 状态色：玩家绿 #4ade80 / 敌方红 #f87171 — DEV-8
+- ✅ 符文颜色（6种：火橙 / 金黄 / 翠绿 / 红 / 紫 / 蓝）— DEV-8
 - [ ] 蓝色魔法光效色 rgba(60,140,255) / rgba(96,165,250)（漩涡/法术）
 
 ---
@@ -25,27 +25,27 @@
 
 ## 三、背景与环境
 
-- [ ] 深海军蓝主背景（#010a13，带色调，非纯黑）
-- [ ] 六边形网格纹理叠加（Hextech 视觉标识）
-- [ ] 噪点纹理叠加（SVG feTurbulence 效果 → Shader Graph 噪点）
-- [ ] 分层渐变背景（中心青色光晕 + 角落金/青光晕）
-- [ ] 边角暗角 Vignette（URP Post Processing）
-- [ ] URP Post Processing Volume 配置（Bloom + Color Adjustments + Vignette + Film Grain）
+- ✅ 深海军蓝主背景（#010a13，带色调，非纯黑）— DEV-8
+- ✅ 六边形网格纹理叠加（HexGrid.shader 手写 HLSL）— DEV-8
+- ✅ 噪点纹理叠加（HexGrid.shader 程序化 hash 噪点）— DEV-8
+- ✅ 分层渐变背景（中心青色光晕 + 暗角，HexGrid.shader）— DEV-8
+- ✅ 边角暗角 Vignette（URP Post Processing + HexGrid.shader）— DEV-8
+- ✅ URP Post Processing Volume 配置（Bloom + Color Adjustments + Vignette + Film Grain）— DEV-8
 
 ---
 
 ## 四、卡牌视觉
 
 - [ ] 卡牌 Prefab 基础外观（边框/背景/图片层/文字层）
-- [ ] 悬停放大 + 发光效果（DOTween scale + Shader Graph 发光边框）
-- [ ] 3D 倾斜效果（鼠标跟随，18° 最大，LERP_IN 0.12 / LERP_OUT 0.08）
-- [ ] 全息光泽 Shine（鼠标位置驱动的 overlay 渐变，Shader Graph）
-- [ ] 可出牌粒子边框（conic gradient 彗星效果 → Shader Graph 轨道粒子）
+- [ ] 悬停放大 + 发光效果（DOTween scale + 发光边框 — DEV-9 scale 动画）
+- ✅ 3D 倾斜效果（鼠标跟随，18° 最大，CardTilt.cs）— DEV-8
+- ✅ 全息光泽 Shine（鼠标位置驱动的径向渐变，CardShine.shader）— DEV-8
+- ✅ 可出牌粒子边框（conic rotation 彗星效果，CardGlow.shader）— DEV-8
 - [ ] 入场 Foil Sweep（0.8s 对角光扫，DOTween + Shader）
-- [ ] 费用不足变暗（饱和度降低 + 整体压暗，Shader Graph）
-- [ ] 休眠状态（灰化 + 略微透明）
-- [ ] 眩晕状态（视觉标记，如闪烁/图标）
-- [ ] 增益指示物（+1/+1 token 图标，叠加在卡牌上）
+- ✅ 费用不足变暗（整体压暗 ×0.6，CardView.SetCostInsufficient）— DEV-8
+- ✅ 休眠状态（灰化 + CardExhausted 颜色）— DEV-8
+- ✅ 眩晕状态（红色脉冲叠加层，StunPulseRoutine 协程）— DEV-8
+- ✅ 增益指示物（+1/+1 金色图标，右上角叠加）— DEV-8
 - [ ] 卡牌背面样式
 
 ---

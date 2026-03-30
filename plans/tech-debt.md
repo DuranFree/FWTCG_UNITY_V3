@@ -18,3 +18,8 @@
 - [ ] 传奇升级无动画（Level 1→2 仅数值变化，无视觉表现）— DEV-5 简化，动画推迟至视觉Phase — Phase DEV-5
 - [ ] BF效果目标选择无UI（aspirant_climb/star_peak等自动选择）— DEV-6 简化，完整目标选择UI待后续Phase — Phase DEV-6
 - [ ] BF卡 SceneBuilder 尚未创建 CardData asset（19张BF卡仅有逻辑层，无.asset文件）— 运行时通过BFNames字符串ID触发，待资产Phase创建 — Phase DEV-6
+- [ ] CardGlow.shader 材质需在 SceneBuilder 中创建并赋予 CardPrefab（当前仅有 shader 文件，材质未连线）— Phase DEV-8
+- [ ] CardShine overlay 材质需在 SceneBuilder 中创建 ShineOverlay Image 子对象（当前 CardTilt 驱动 shine 但 overlay 层未在 Prefab 中创建）— Phase DEV-8
+- [ ] HexGrid.shader 材质需在 SceneBuilder 中赋予 Background Image（当前 Background 仍为纯色 Image）— Phase DEV-8
+- [ ] 悬停放大动画未实现（需 DOTween 或协程 scale 动画）— DEV-9 — Phase DEV-8
+- [ ] 入场 Foil Sweep 未实现（需对角光扫动画）— DEV-9 — Phase DEV-8

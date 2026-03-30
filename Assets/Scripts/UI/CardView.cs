@@ -1,15 +1,19 @@
 using System;
+using System.Collections;
 using UnityEngine;
 using UnityEngine.UI;
+using UnityEngine.EventSystems;
 using FWTCG.Core;
 
 namespace FWTCG.UI
 {
     /// <summary>
     /// Attached to a Card prefab. Displays unit data and handles click events.
-    /// Exhausted units are shown with a grey tint.
+    /// Left-click: gameplay action (play/select/target).
+    /// Right-click: show card detail popup.
+    /// DEV-8: visual states (stunned overlay, buff token, cost dimming).
     /// </summary>
-    public class CardView : MonoBehaviour
+    public class CardView : MonoBehaviour, IPointerClickHandler
     {
         [SerializeField] private Text _nameText;
         [SerializeField] private Text _costText;
@@ -19,21 +23,20 @@ namespace FWTCG.UI
         [SerializeField] private Image _artImage;
         [SerializeField] private Button _clickButton;
 
+        // DEV-8: visual state overlays
+        [SerializeField] private Image _stunnedOverlay;
+        [SerializeField] private GameObject _buffTokenIcon;
+        [SerializeField] private Text _buffTokenText;
+
         private UnitInstance _unit;
         private bool _isPlayerCard;
         private Action<UnitInstance> _onClick;
-
-        private static readonly Color ExhaustedColor    = new Color(0.4f, 0.4f, 0.4f, 1f);
-        private static readonly Color NormalColor        = Color.white;
-        private static readonly Color PlayerCardColor    = new Color(0.85f, 0.92f, 1f, 1f);
-        private static readonly Color EnemyCardColor     = new Color(1f, 0.85f, 0.85f, 1f);
-        private static readonly Color SpellPlayerColor   = new Color(0.95f, 0.85f, 1f, 1f); // purple tint for player spells
-        private static readonly Color SpellEnemyColor    = new Color(1f, 0.8f, 0.9f, 1f);   // pink tint for enemy spells
-        private static readonly Color SelectedColor      = new Color(0.4f, 1f, 0.4f, 1f);   // green highlight
-        private static readonly Color FaceDownColor      = new Color(0.12f, 0.16f, 0.25f, 1f); // dark blue-grey back
+        private Action<UnitInstance> _onRightClick;
 
         private bool _selected;
         private bool _faceDown;
+        private bool _costInsufficient;
+        private Coroutine _stunPulse;
 
         private void Awake()
         {
@@ -45,31 +48,34 @@ namespace FWTCG.UI
         {
             if (_clickButton != null)
                 _clickButton.onClick.RemoveListener(HandleClick);
+            if (_stunPulse != null)
+                StopCoroutine(_stunPulse);
         }
 
-        /// <summary>
-        /// Configures this card view for a unit.
-        /// </summary>
-        /// <param name="unit">Unit to display</param>
-        /// <param name="isPlayerCard">True if this belongs to the local player</param>
-        /// <param name="onClick">Callback when the card is clicked (null to disable interaction)</param>
-        public void Setup(UnitInstance unit, bool isPlayerCard, Action<UnitInstance> onClick)
+        public void Setup(UnitInstance unit, bool isPlayerCard, Action<UnitInstance> onClick,
+                          Action<UnitInstance> onRightClick = null)
         {
             _unit = unit;
             _isPlayerCard = isPlayerCard;
             _onClick = onClick;
+            _onRightClick = onRightClick;
+            _costInsufficient = false;
 
             Refresh();
 
-            // Clickable whenever an onClick callback is provided
-            // (enemy cards need to be clickable during spell targeting mode)
             if (_clickButton != null)
                 _clickButton.interactable = onClick != null;
         }
 
-        /// <summary>
-        /// Shows the card as face-down (enemy hand). Hides all unit data.
-        /// </summary>
+        public void OnPointerClick(PointerEventData eventData)
+        {
+            if (eventData.button == PointerEventData.InputButton.Right)
+            {
+                if (_unit != null && _onRightClick != null && !_faceDown)
+                    _onRightClick(_unit);
+            }
+        }
+
         public void SetFaceDown(bool faceDown)
         {
             _faceDown = faceDown;
@@ -84,14 +90,15 @@ namespace FWTCG.UI
             if (_atkText  != null) _atkText.gameObject.SetActive(!hide);
             if (_descText != null) _descText.gameObject.SetActive(!hide);
             if (_artImage != null) _artImage.enabled = !hide;
-            if (_cardBg   != null) _cardBg.color = hide ? FaceDownColor : (_selected ? SelectedColor : (_unit != null && _unit.Exhausted ? ExhaustedColor : (_isPlayerCard ? PlayerCardColor : EnemyCardColor)));
+            if (_cardBg   != null) _cardBg.color = hide ? GameColors.CardFaceDown
+                : (_selected ? GameColors.CardSelected
+                : (_unit != null && _unit.Exhausted ? GameColors.CardExhausted
+                : (_isPlayerCard ? GameColors.CardPlayer : GameColors.CardEnemy)));
             if (_clickButton != null) _clickButton.interactable = !hide;
+            if (_stunnedOverlay != null) _stunnedOverlay.gameObject.SetActive(false);
+            if (_buffTokenIcon != null) _buffTokenIcon.SetActive(false);
         }
 
-        /// <summary>
-        /// Re-reads the unit state and updates all displayed values.
-        /// Call this when unit state changes (e.g., after taking damage).
-        /// </summary>
         public void Refresh()
         {
             if (_faceDown) { RefreshFaceDown(); return; }
@@ -107,12 +114,10 @@ namespace FWTCG.UI
             {
                 if (_unit.CardData.IsSpell)
                 {
-                    // Spell cards show "法" instead of atk/hp
                     _atkText.text = "法";
                 }
                 else
                 {
-                    // Show current attack / hp. In FWTCG atk=HP so show both same value.
                     _atkText.text = $"{_unit.CurrentAtk}";
                     if (_unit.CurrentHp != _unit.CurrentAtk)
                         _atkText.text = $"{_unit.CurrentHp}/{_unit.CurrentAtk}";
@@ -132,27 +137,63 @@ namespace FWTCG.UI
                 _artImage.enabled = false;
             }
 
-            // Background colour by owner + exhausted + selected state
+            // Background color
             if (_cardBg != null)
             {
                 Color baseColor;
                 if (_unit.CardData.IsSpell)
-                    baseColor = _isPlayerCard ? SpellPlayerColor : SpellEnemyColor;
+                    baseColor = _isPlayerCard ? GameColors.CardSpellPlayer : GameColors.CardSpellEnemy;
                 else
-                    baseColor = _isPlayerCard ? PlayerCardColor : EnemyCardColor;
+                    baseColor = _isPlayerCard ? GameColors.CardPlayer : GameColors.CardEnemy;
 
                 if (_selected)
-                    _cardBg.color = SelectedColor;
-                else
-                    _cardBg.color = _unit.Exhausted ? ExhaustedColor : baseColor;
+                    baseColor = GameColors.CardSelected;
+                else if (_unit.Exhausted)
+                    baseColor = GameColors.CardExhausted;
+
+                // Cost insufficient dimming
+                if (_costInsufficient)
+                    baseColor *= GameColors.CostDimFactor;
+
+                _cardBg.color = baseColor;
             }
+
+            // Stunned overlay
+            if (_stunnedOverlay != null)
+            {
+                bool stunned = _unit.Stunned;
+                _stunnedOverlay.gameObject.SetActive(stunned);
+                if (stunned && _stunPulse == null)
+                    _stunPulse = StartCoroutine(StunPulseRoutine());
+                else if (!stunned && _stunPulse != null)
+                {
+                    StopCoroutine(_stunPulse);
+                    _stunPulse = null;
+                }
+            }
+
+            // Buff token indicator
+            if (_buffTokenIcon != null)
+            {
+                bool hasBuff = _unit.BuffTokens > 0;
+                _buffTokenIcon.SetActive(hasBuff);
+                if (hasBuff && _buffTokenText != null)
+                    _buffTokenText.text = $"+{_unit.BuffTokens}";
+            }
+        }
+
+        /// <summary>
+        /// Mark card as too expensive (dims the card).
+        /// Called by GameUI for hand cards when mana is insufficient.
+        /// </summary>
+        public void SetCostInsufficient(bool insufficient)
+        {
+            _costInsufficient = insufficient;
+            Refresh();
         }
 
         public UnitInstance Unit => _unit;
 
-        /// <summary>
-        /// Sets green highlight when unit is part of a multi-select batch.
-        /// </summary>
         public void SetSelected(bool selected)
         {
             _selected = selected;
@@ -163,6 +204,23 @@ namespace FWTCG.UI
         {
             if (_unit != null && _onClick != null)
                 _onClick(_unit);
+        }
+
+        private IEnumerator StunPulseRoutine()
+        {
+            float t = 0f;
+            while (true)
+            {
+                t += Time.deltaTime * 2f; // 2 Hz pulse
+                float alpha = Mathf.Lerp(0.15f, 0.45f, (Mathf.Sin(t) + 1f) * 0.5f);
+                if (_stunnedOverlay != null)
+                {
+                    var c = GameColors.StunnedOverlay;
+                    c.a = alpha;
+                    _stunnedOverlay.color = c;
+                }
+                yield return null;
+            }
         }
     }
 }

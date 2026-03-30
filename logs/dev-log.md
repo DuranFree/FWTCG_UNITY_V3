@@ -2,6 +2,50 @@
 
 ---
 
+## DEV-8：视觉升级 Part 1 — 2026-03-30
+
+**Status**: ✅ Completed
+
+**技术决策**:
+- Shader：手写 .shader (HLSL)，不用 Shader Graph（batch mode 兼容）
+- 动画：协程 + AnimationCurve，不用 DOTween（零依赖，DEV-9 再引入）
+- 字体：保持 Legacy UI.Text + 系统字体（SimHei/微软雅黑）
+
+**新功能**:
+- `GameColors.cs`（新建）：静态颜色常量类，Gold/Teal/Background + 6种符文色 + 8种卡牌状态色 + 发光色 + UI面板色，Hex() 工具方法
+- `CardDetailPopup.cs`（新建）：右键弹窗，显示完整卡牌信息（图片/名称/费用/ATK/关键词+描述/效果文字/运行时状态），Escape 或点击外部关闭
+- `CardTilt.cs`（新建）：3D 鼠标跟随倾斜，MAX_TILT=18°, LERP_IN=0.12, LERP_OUT=0.08，IPointerEnterHandler/ExitHandler
+- `CardGlow.cs`（新建）：发光边框材质控制器，克隆材质/OnDestroy销毁（防泄漏），SetPlayable/SetHovered/SetNormal
+- `CardGlow.shader`（新建）：UI Unlit 发光边框，conic rotation 粒子轨迹动画，边缘 smoothstep 淡出
+- `CardShine.shader`（新建）：UI 径向白色渐变叠加，_ShineX/_ShineY 控制光泽位置
+- `HexGrid.shader`（新建）：六边形网格背景 + 程序化噪点 + 暗角 + 中心青色光晕
+- URP Post Processing Volume：Bloom(1.2/0.8) + ColorAdjustments(0.1/10) + Vignette(0.3) + FilmGrain(0.1)
+- `CardView.cs`：IPointerClickHandler 右键支持 + 眩晕红色脉冲叠加层 + 增益指示物金色图标 + 费用不足压暗
+
+**修改文件**:
+- `Assets/Scripts/UI/CardView.cs`（重写：IPointerClickHandler + 视觉状态 + GameColors 迁移）
+- `Assets/Scripts/UI/GameUI.cs`（CardDetailPopup 引用 + 右键回调透传 + 费用不足 mana 参数）
+- `Assets/Scripts/GameManager.cs`（CardDetailPopup 引用 + OnCardRightClicked 方法）
+- `Assets/Scripts/Editor/SceneBuilder.cs`（CreateCardDetailPopup + SetupPostProcessing + Prefab 新增 StunnedOverlay/BuffTokenIcon/CardTilt + 连线）
+- `Assets/Scripts/Editor/FWTCG.Editor.asmdef`（添加 URP Runtime + Core Runtime 引用）
+
+**新建文件**:
+- `Assets/Scripts/UI/GameColors.cs`
+- `Assets/Scripts/UI/CardDetailPopup.cs`
+- `Assets/Scripts/UI/CardTilt.cs`
+- `Assets/Scripts/UI/CardGlow.cs`
+- `Assets/Shaders/CardGlow.shader`
+- `Assets/Shaders/CardShine.shader`
+- `Assets/Shaders/HexGrid.shader`
+- `Assets/Tests/EditMode/DEV8VisualTests.cs`
+- `Assets/Settings/PostProcessProfile.asset`（SceneBuilder 生成）
+
+**测试**:
+- `DEV8VisualTests.cs`（新建）：14项视觉系统测试（GameColors 6项 + 关键词 2项 + 视觉状态 4项 + UnitInstance 2项）
+- 🔵 [引擎测试] 178/178 全绿（164前序 + 14新增），编译无 error CS
+
+---
+
 ## DEV-7：AI 策略升级 — 2026-03-30
 
 **Status**: ✅ Completed

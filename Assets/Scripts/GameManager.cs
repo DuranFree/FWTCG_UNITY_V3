@@ -40,6 +40,7 @@ namespace FWTCG
         [SerializeField] private ReactiveWindowUI _reactiveWindowUI;
         [SerializeField] private LegendSystem _legendSys;
         [SerializeField] private BattlefieldSystem _bfSys;
+        [SerializeField] private CardDetailPopup _cardDetailPopup;
 
         // ── React button / Legend skill button ────────────────────────────────
         [SerializeField] private Button _reactBtn;
@@ -177,7 +178,8 @@ namespace FWTCG
                     onEndTurn: OnEndTurnClicked,
                     onBF: OnBattlefieldClicked,
                     onUnit: OnUnitClicked,
-                    onRune: OnRuneClicked
+                    onRune: OnRuneClicked,
+                    onCardRightClick: OnCardRightClicked
                 );
             }
 
@@ -538,6 +540,16 @@ namespace FWTCG
             }
 
             RefreshUI();
+        }
+
+        /// <summary>
+        /// Called when the player right-clicks any visible card. Shows detail popup.
+        /// </summary>
+        public void OnCardRightClicked(UnitInstance unit)
+        {
+            if (unit == null) return;
+            if (_cardDetailPopup != null)
+                _cardDetailPopup.Show(unit);
         }
 
         // ── Private helpers ───────────────────────────────────────────────────

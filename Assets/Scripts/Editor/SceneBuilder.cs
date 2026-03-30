@@ -1,5 +1,7 @@
 using UnityEngine;
 using UnityEngine.UI;
+using UnityEngine.Rendering;
+using UnityEngine.Rendering.Universal;
 using UnityEditor;
 using UnityEditor.SceneManagement;
 using FWTCG.Data;
@@ -53,6 +55,9 @@ namespace FWTCG.Editor
             cam.orthographic = true;
             cam.depth = -1;
             cameraGO.AddComponent<AudioListener>();
+
+            // ── URP Post Processing (DEV-8) ──────────────────────────────────
+            SetupPostProcessing(cameraGO);
 
             // ── EventSystem (required for all UI interaction) ─────────────────
             var esGO = new GameObject("EventSystem");
@@ -148,6 +153,12 @@ namespace FWTCG.Editor
             var enemyLegendPanel = CreateEnemyLegendPanel(canvasGO.transform,
                 out var enemyLegendText);
 
+            // ── Card Detail Popup (DEV-8) ────────────────────────────────────
+            var cardDetailPopup = CreateCardDetailPopup(canvasGO.transform,
+                out var cdpArtImage, out var cdpNameText, out var cdpCostText,
+                out var cdpAtkText, out var cdpKeywordsText, out var cdpEffectText,
+                out var cdpStateText, out var cdpCloseButton);
+
             // ── CardArt: ensure all PNGs are imported as Sprite ──────────────
             EnsureCardArtImportedAsSprite();
 
@@ -172,6 +183,7 @@ namespace FWTCG.Editor
             var legendSys    = gmGO.AddComponent<FWTCG.Systems.LegendSystem>();
             var bfSys        = gmGO.AddComponent<FWTCG.Systems.BattlefieldSystem>();
             var toastUI      = gmGO.AddComponent<FWTCG.UI.ToastUI>();
+            var cardDetailPopupComp = gmGO.AddComponent<FWTCG.UI.CardDetailPopup>();
 
             // ── Wire UI references via SerializedObject ───────────────────────
             WireGameUI(gameUI, cardPrefab, runePrefab,
@@ -207,6 +219,33 @@ namespace FWTCG.Editor
             toastSO.FindProperty("_toastPanel").objectReferenceValue = toastPanel;
             toastSO.FindProperty("_toastText").objectReferenceValue  = toastText;
             toastSO.ApplyModifiedPropertiesWithoutUndo();
+
+            // ── Wire CardDetailPopup (DEV-8) ─────────────────────────────────
+            var cdpSO = new SerializedObject(cardDetailPopupComp);
+            cdpSO.FindProperty("_panel").objectReferenceValue        = cardDetailPopup;
+            cdpSO.FindProperty("_artImage").objectReferenceValue     = cdpArtImage;
+            cdpSO.FindProperty("_nameText").objectReferenceValue     = cdpNameText;
+            cdpSO.FindProperty("_costText").objectReferenceValue     = cdpCostText;
+            cdpSO.FindProperty("_atkText").objectReferenceValue      = cdpAtkText;
+            cdpSO.FindProperty("_keywordsText").objectReferenceValue = cdpKeywordsText;
+            cdpSO.FindProperty("_effectText").objectReferenceValue   = cdpEffectText;
+            cdpSO.FindProperty("_stateText").objectReferenceValue    = cdpStateText;
+            cdpSO.FindProperty("_closeButton").objectReferenceValue  = cdpCloseButton;
+            cdpSO.ApplyModifiedPropertiesWithoutUndo();
+
+            // Wire into GameUI
+            {
+                var guiSO = new SerializedObject(gameUI);
+                guiSO.FindProperty("_cardDetailPopup").objectReferenceValue = cardDetailPopupComp;
+                guiSO.ApplyModifiedPropertiesWithoutUndo();
+            }
+
+            // Wire into GameManager
+            {
+                var gmSO = new SerializedObject(gameMgr);
+                gmSO.FindProperty("_cardDetailPopup").objectReferenceValue = cardDetailPopupComp;
+                gmSO.ApplyModifiedPropertiesWithoutUndo();
+            }
 
             // ── Save scene ────────────────────────────────────────────────────
             EnsureDirectory("Assets/Scenes");
@@ -892,6 +931,96 @@ namespace FWTCG.Editor
             return go;
         }
 
+        // ── Card Detail Popup (DEV-8) ─────────────────────────────────────────
+
+        private static GameObject CreateCardDetailPopup(Transform parent,
+            out Image artImage, out Text nameText, out Text costText,
+            out Text atkText, out Text keywordsText, out Text effectText,
+            out Text stateText, out Button closeButton)
+        {
+            // Fullscreen dimmed overlay (click to close)
+            var overlay = CreateFullscreenPanel(parent, "CardDetailPopup", new Color(0f, 0f, 0f, 0.7f));
+            closeButton = overlay.AddComponent<Button>();
+            // Make the background image act as click target
+            overlay.GetComponent<Image>().raycastTarget = true;
+
+            // Center detail panel (500x700)
+            var panel = new GameObject("DetailPanel");
+            panel.transform.SetParent(overlay.transform, false);
+            var panelImg = panel.AddComponent<Image>();
+            panelImg.color = new Color(0.12f, 0.12f, 0.19f, 0.95f); // #1e1e2f-ish
+            panelImg.raycastTarget = true; // block clicks from going to overlay
+
+            var panelRT = panel.GetComponent<RectTransform>();
+            panelRT.anchorMin = new Vector2(0.5f, 0.5f);
+            panelRT.anchorMax = new Vector2(0.5f, 0.5f);
+            panelRT.pivot     = new Vector2(0.5f, 0.5f);
+            panelRT.sizeDelta = new Vector2(500f, 700f);
+
+            var vlg = panel.AddComponent<VerticalLayoutGroup>();
+            vlg.childControlWidth  = true;
+            vlg.childControlHeight = false;
+            vlg.childForceExpandWidth = true;
+            vlg.childForceExpandHeight = false;
+            vlg.padding = new RectOffset(20, 20, 16, 16);
+            vlg.spacing = 8f;
+
+            // -- Card Art (240px tall)
+            var artGO = new GameObject("CDPArt");
+            artGO.transform.SetParent(panel.transform, false);
+            var artLE = artGO.AddComponent<LayoutElement>();
+            artLE.preferredHeight = 240f;
+            artImage = artGO.AddComponent<Image>();
+            artImage.color = new Color(0.2f, 0.2f, 0.3f, 1f);
+            artImage.preserveAspect = true;
+
+            // -- Card Name (gold, 28pt)
+            nameText = CreateDetailText(panel.transform, "CDPName", "", 28,
+                new Color(0.98f, 0.75f, 0.15f, 1f), TextAnchor.MiddleCenter, 36f);
+
+            // -- Cost & Type
+            costText = CreateDetailText(panel.transform, "CDPCost", "", 16,
+                new Color(0.91f, 0.85f, 0.75f, 1f), TextAnchor.MiddleLeft, 24f);
+
+            // -- ATK/HP
+            atkText = CreateDetailText(panel.transform, "CDPAtk", "", 16,
+                Color.white, TextAnchor.MiddleLeft, 24f);
+
+            // -- Keywords (multi-line)
+            keywordsText = CreateDetailText(panel.transform, "CDPKeywords", "", 14,
+                new Color(0.6f, 0.85f, 1f, 1f), TextAnchor.UpperLeft, 100f, true);
+
+            // -- Effect description (multi-line)
+            effectText = CreateDetailText(panel.transform, "CDPEffect", "", 14,
+                new Color(0.85f, 0.85f, 0.85f, 1f), TextAnchor.UpperLeft, 80f, true);
+
+            // -- Runtime state
+            stateText = CreateDetailText(panel.transform, "CDPState", "", 13,
+                new Color(1f, 0.9f, 0.5f, 1f), TextAnchor.UpperLeft, 60f, true);
+
+            overlay.SetActive(false);
+            return overlay;
+        }
+
+        private static Text CreateDetailText(Transform parent, string name, string defaultText,
+            int fontSize, Color color, TextAnchor alignment, float height, bool multiLine = false)
+        {
+            var go = new GameObject(name);
+            go.transform.SetParent(parent, false);
+            var le = go.AddComponent<LayoutElement>();
+            le.preferredHeight = height;
+            if (multiLine) le.flexibleHeight = 1f;
+            var t = go.AddComponent<Text>();
+            t.text = defaultText;
+            t.color = color;
+            t.fontSize = fontSize;
+            t.alignment = alignment;
+            t.horizontalOverflow = multiLine ? HorizontalWrapMode.Wrap : HorizontalWrapMode.Overflow;
+            t.verticalOverflow   = VerticalWrapMode.Overflow;
+            if (_font != null) t.font = _font;
+            return t;
+        }
+
         // ── Card Prefab ───────────────────────────────────────────────────────
 
         private static GameObject CreateCardPrefab()
@@ -947,14 +1076,63 @@ namespace FWTCG.Editor
             artRT.offsetMin = new Vector2(2f, 2f);
             artRT.offsetMax = new Vector2(-2f, -2f);
 
+            // Description text — below art area (small)
+            var descText = CreateTMPText(root.transform, "DescText", "", new Color(0.3f, 0.3f, 0.3f, 1f), 8, TextAnchor.UpperCenter);
+            var descRT = descText.GetComponent<RectTransform>();
+            descRT.anchorMin = new Vector2(0.05f, 0.05f);
+            descRT.anchorMax = new Vector2(0.95f, 0.2f);
+            descRT.offsetMin = Vector2.zero;
+            descRT.offsetMax = Vector2.zero;
+            descText.horizontalOverflow = HorizontalWrapMode.Wrap;
+            descText.verticalOverflow = VerticalWrapMode.Truncate;
+
+            // ── DEV-8: Stunned overlay (fullscreen red tint, starts inactive) ──
+            var stunnedGO = new GameObject("StunnedOverlay");
+            stunnedGO.transform.SetParent(root.transform, false);
+            var stunnedImg = stunnedGO.AddComponent<Image>();
+            stunnedImg.color = new Color(1f, 0.3f, 0.3f, 0.3f);
+            stunnedImg.raycastTarget = false;
+            var stunnedRT = stunnedGO.GetComponent<RectTransform>();
+            stunnedRT.anchorMin = Vector2.zero;
+            stunnedRT.anchorMax = Vector2.one;
+            stunnedRT.offsetMin = Vector2.zero;
+            stunnedRT.offsetMax = Vector2.zero;
+            stunnedGO.SetActive(false);
+
+            // ── DEV-8: Buff token icon (top-right corner, gold) ──
+            var buffGO = new GameObject("BuffTokenIcon");
+            buffGO.transform.SetParent(root.transform, false);
+            var buffImg = buffGO.AddComponent<Image>();
+            buffImg.color = new Color(0.98f, 0.75f, 0.15f, 0.9f);
+            buffImg.raycastTarget = false;
+            var buffRT = buffGO.GetComponent<RectTransform>();
+            buffRT.anchorMin = new Vector2(0.7f, 0.8f);
+            buffRT.anchorMax = new Vector2(1f, 1f);
+            buffRT.offsetMin = new Vector2(-2f, -2f);
+            buffRT.offsetMax = new Vector2(-2f, -2f);
+            var buffText = CreateTMPText(buffGO.transform, "BuffText", "+1", Color.white, 10, TextAnchor.MiddleCenter);
+            var buffTextRT = buffText.GetComponent<RectTransform>();
+            buffTextRT.anchorMin = Vector2.zero;
+            buffTextRT.anchorMax = Vector2.one;
+            buffTextRT.offsetMin = Vector2.zero;
+            buffTextRT.offsetMax = Vector2.zero;
+            buffGO.SetActive(false);
+
+            // ── DEV-8: CardTilt component ──
+            root.AddComponent<FWTCG.UI.CardTilt>();
+
             // Wire CardView serialized fields
             var so = new SerializedObject(cardView);
             so.FindProperty("_nameText").objectReferenceValue  = cardName;
             so.FindProperty("_costText").objectReferenceValue  = costText;
             so.FindProperty("_atkText").objectReferenceValue   = atkText;
+            so.FindProperty("_descText").objectReferenceValue  = descText;
             so.FindProperty("_artImage").objectReferenceValue  = artImg;
             so.FindProperty("_cardBg").objectReferenceValue    = rootImg;
             so.FindProperty("_clickButton").objectReferenceValue = root.GetComponent<Button>();
+            so.FindProperty("_stunnedOverlay").objectReferenceValue = stunnedImg;
+            so.FindProperty("_buffTokenIcon").objectReferenceValue  = buffGO;
+            so.FindProperty("_buffTokenText").objectReferenceValue  = buffText;
             so.ApplyModifiedPropertiesWithoutUndo();
 
             // Save as prefab
@@ -1579,6 +1757,48 @@ namespace FWTCG.Editor
         private static CardData LoadCard(string id)
         {
             return AssetDatabase.LoadAssetAtPath<CardData>($"Assets/Resources/Cards/{id}.asset");
+        }
+
+        // ── URP Post Processing Setup (DEV-8) ─────────────────────────────────
+
+        private static void SetupPostProcessing(GameObject cameraGO)
+        {
+            // Enable post-processing on camera
+            var urpCamData = cameraGO.GetComponent<UniversalAdditionalCameraData>();
+            if (urpCamData == null)
+                urpCamData = cameraGO.AddComponent<UniversalAdditionalCameraData>();
+            urpCamData.renderPostProcessing = true;
+
+            // Create Volume Profile asset
+            EnsureDirectory("Assets/Settings");
+            var profile = ScriptableObject.CreateInstance<VolumeProfile>();
+
+            // Bloom
+            var bloom = profile.Add<Bloom>(true);
+            bloom.threshold.value = 1.2f;
+            bloom.intensity.value = 0.8f;
+
+            // Color Adjustments
+            var colorAdj = profile.Add<ColorAdjustments>(true);
+            colorAdj.postExposure.value = 0.1f;
+            colorAdj.contrast.value = 10f;
+
+            // Vignette
+            var vignette = profile.Add<Vignette>(true);
+            vignette.intensity.value = 0.3f;
+
+            // Film Grain
+            var filmGrain = profile.Add<FilmGrain>(true);
+            filmGrain.intensity.value = 0.1f;
+
+            string profilePath = "Assets/Settings/PostProcessProfile.asset";
+            AssetDatabase.CreateAsset(profile, profilePath);
+
+            // Create Volume GameObject
+            var volumeGO = new GameObject("PostProcessVolume");
+            var volume = volumeGO.AddComponent<Volume>();
+            volume.isGlobal = true;
+            volume.profile = AssetDatabase.LoadAssetAtPath<VolumeProfile>(profilePath);
         }
 
         private static Color HexColor(string hex)

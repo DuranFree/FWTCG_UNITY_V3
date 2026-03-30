@@ -80,11 +80,15 @@ namespace FWTCG.UI
         [SerializeField] private Text _bannerText;
         private const float BANNER_DURATION = 1.8f;
 
+        // ── Card detail popup ─────────────────────────────────────────────────
+        [SerializeField] private CardDetailPopup _cardDetailPopup;
+
         // ── Callbacks set by GameManager ──────────────────────────────────────
         private Action _onEndTurnClicked;
         private Action<int> _onBFClicked;
         private Action<UnitInstance> _onUnitClicked;
         private Action<int, bool> _onRuneClicked; // (runeIdx, recycle)
+        private Action<UnitInstance> _onCardRightClicked;
 
         // ── Message log state ─────────────────────────────────────────────────
         private const int MAX_MESSAGES = 5;
@@ -130,12 +134,14 @@ namespace FWTCG.UI
         // ── Setup ─────────────────────────────────────────────────────────────
 
         public void SetCallbacks(Action onEndTurn, Action<int> onBF,
-                                 Action<UnitInstance> onUnit, Action<int, bool> onRune)
+                                 Action<UnitInstance> onUnit, Action<int, bool> onRune,
+                                 Action<UnitInstance> onCardRightClick = null)
         {
             _onEndTurnClicked = onEndTurn;
             _onBFClicked = onBF;
             _onUnitClicked = onUnit;
             _onRuneClicked = onRune;
+            _onCardRightClicked = onCardRightClick;
         }
 
         // ── Selection state (set by GameManager) ─────────────────────────────
@@ -218,8 +224,8 @@ namespace FWTCG.UI
 
         private void RefreshHands(GameState gs)
         {
-            // Player hand
-            RefreshUnitList(_playerHandContainer, gs.PHand, true, _onUnitClicked);
+            // Player hand (with cost-insufficient dimming)
+            RefreshUnitList(_playerHandContainer, gs.PHand, true, _onUnitClicked, gs.PMana);
             // Enemy hand (face-down — show count only)
             RefreshEnemyHand(_enemyHandContainer, gs.EHand.Count);
         }
@@ -308,7 +314,8 @@ namespace FWTCG.UI
         // ── Unit list renderer ────────────────────────────────────────────────
 
         private void RefreshUnitList(Transform container, List<UnitInstance> units,
-                                     bool isPlayer, Action<UnitInstance> onClick)
+                                     bool isPlayer, Action<UnitInstance> onClick,
+                                     int currentMana = -1)
         {
             if (container == null) return;
 
@@ -324,10 +331,13 @@ namespace FWTCG.UI
                 CardView cv = go.GetComponent<CardView>();
                 if (cv != null)
                 {
-                    cv.Setup(u, isPlayer, onClick);
+                    cv.Setup(u, isPlayer, onClick, _onCardRightClicked);
                     // Highlight multi-selected base units
                     if (_selectedBaseUnits != null && _selectedBaseUnits.Contains(u))
                         cv.SetSelected(true);
+                    // Dim hand cards that can't be afforded
+                    if (currentMana >= 0 && u.CardData.Cost > currentMana)
+                        cv.SetCostInsufficient(true);
                 }
             }
         }
@@ -399,7 +409,7 @@ namespace FWTCG.UI
                 // Visual tint for tapped state
                 Image img = go.GetComponent<Image>();
                 if (img != null)
-                    img.color = r.Tapped ? new Color(0.5f, 0.5f, 0.5f) : Color.white;
+                    img.color = r.Tapped ? GameColors.RuneTapped : Color.white;
             }
         }
 
