@@ -1409,9 +1409,18 @@ namespace FWTCG.Editor
             var titleLE = titleGO.AddComponent<LayoutElement>();
             titleLE.preferredHeight = 22f;
             var titleImg = titleGO.AddComponent<Image>();
-            titleImg.color = new Color(0f, 0f, 0f, 0.01f);
+            titleImg.color = new Color(0f, 0f, 0f, 0.3f);
             var titleBtn = titleGO.AddComponent<Button>();
-            var titleT = titleGO.AddComponent<Text>();
+
+            // Text as child (Image and Text can't coexist on same GO)
+            var titleTextGO = new GameObject("TitleText");
+            titleTextGO.transform.SetParent(titleGO.transform, false);
+            var titleTextRT = titleTextGO.AddComponent<RectTransform>();
+            titleTextRT.anchorMin = Vector2.zero;
+            titleTextRT.anchorMax = Vector2.one;
+            titleTextRT.offsetMin = Vector2.zero;
+            titleTextRT.offsetMax = Vector2.zero;
+            var titleT = titleTextGO.AddComponent<Text>();
             titleT.text = "── DEBUG ──";
             titleT.color = new Color(1f, 0.8f, 0.2f, 1f);
             titleT.fontSize = 13;
