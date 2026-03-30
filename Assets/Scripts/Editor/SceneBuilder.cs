@@ -615,8 +615,9 @@ namespace FWTCG.Editor
             CreateDeckPile(go.transform, "PlayerRunePile", "符文堆",
                 0.175f, 0.305f, 0.13f, 0.25f, out playerRunePileCount);
 
+            // CSS: #pdiscard-exile-wrap { grid-column: 2/4; grid-row: 4; }
             CreateDiscardExileZone(go.transform, "Player",
-                0.045f, 0.305f, 0.00f, 0.13f,
+                0.045f, 0.305f, 0.12f, 0.25f,
                 out playerDiscardCount, out playerExileCount);
 
             CreateHorizontalZoneAnchored(go.transform, "PlayerRunes",
