@@ -14,7 +14,7 @@
 - [ ] 反应窗口仅在 AI 施法时触发（玩家施法时 AI 不反应）— DEV-4 简化，完整轮流响应待 DEV-5+ — Phase DEV-4
 - [ ] 反应牌自动选目标（无目标选择UI）— DEV-4 简化，完整目标选择待 DEV-5+ — Phase DEV-4
 - [ ] 反应按钮无倒计时（点击后玩家可无限等待）— DEV-4 简化，30秒倒计时+自动随机出牌待 DEV-11 — Phase DEV-4
-- [ ] AI 传奇技能决策未实现（AI 不会主动使用卡莎虚空感知）— DEV-5 简化，完整AI传奇逻辑待后续Phase — Phase DEV-5
+- ✅ AI 传奇技能决策 — DEV-7 已实现：卡莎虚空感知（手牌有炽烈法术且符能不足时触发）— Phase DEV-7
 - [ ] 传奇升级无动画（Level 1→2 仅数值变化，无视觉表现）— DEV-5 简化，动画推迟至视觉Phase — Phase DEV-5
 - [ ] BF效果目标选择无UI（aspirant_climb/star_peak等自动选择）— DEV-6 简化，完整目标选择UI待后续Phase — Phase DEV-6
 - [ ] BF卡 SceneBuilder 尚未创建 CardData asset（19张BF卡仅有逻辑层，无.asset文件）— 运行时通过BFNames字符串ID触发，待资产Phase创建 — Phase DEV-6

@@ -197,13 +197,15 @@
 
 ## 五、AI 系统（ai.js → AIController.cs）
 
-- [ ] AI 回合启动（aiAction，700ms延迟）
-- [ ] 局面评分（aiBoardScore）
-- [ ] AI 出牌决策（aiPlayCard：法力/符能/目标选择）
+- ✅ AI 回合启动（aiAction，700ms延迟）— DEV-7
+- ✅ 局面评分（aiBoardScore：得分差×3 + 手牌差/2 + 控场×2 + 战力差/3）— DEV-7
+- ✅ AI 出牌决策（法力+符能双重检查 / 法术优先级 / 智能目标选择）— DEV-7
 - ✅ AI 移动多单位（循环移动所有非休眠基地单位）— DEV-1 规则修正
-- [ ] AI 符文操作（自动横置/回收）
+- ✅ AI 移动决策（基于局面评分：征服15 / 制胜+12 / 分差比较 / 绝境特殊逻辑）— DEV-7
+- ✅ AI 符文操作（自动横置符文获取法力）— DEV-1
+- [ ] AI 符文回收（回收低价值符文获取符能）
 - [ ] AI 反应窗口处理（对决期间AI响应迅捷/反应牌）
-- [ ] AI 延迟链（_aiNextAction，等待玩家响应后继续）
+- ❌ AI 延迟链（_aiNextAction）— 新架构改用 async/await 循环，此机制不适用
 
 ---
 
@@ -223,7 +225,7 @@
 - [ ] 英雄牌单独提取 + 英雄区域（游戏开始时从牌库分离，规则103.2.a）
 - ✅ checkLegendPassives 战后触发（TriggerCombat 后 CheckLegendDeaths）— DEV-5
 - ✅ triggerLegendEvent 事件系统（LegendSystem.OnLegendLog 静态事件）— DEV-5
-- [ ] AI 传奇技能决策
+- ✅ AI 传奇技能决策（卡莎虚空感知：手牌有炽烈法术且符能不足时触发）— DEV-7
 
 ---
 

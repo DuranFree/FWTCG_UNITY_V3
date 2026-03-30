@@ -294,7 +294,8 @@ namespace FWTCG.Systems
             {
                 Broadcast("[行动] AI 回合思考中…");
                 await _ai.TakeAction(gs, this, _combatSys, _scoreMgr, _entryEffects,
-                                     _spellSys, _reactiveSys, _reactiveWindow);
+                                     _spellSys, _reactiveSys, _reactiveWindow,
+                                     _legendSys, _bfSys);
             }
 
             // If any contested battlefields remain when turn ends, auto-resolve them

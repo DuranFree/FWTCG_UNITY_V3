@@ -2,6 +2,41 @@
 
 ---
 
+## DEV-7：AI 策略升级 — 2026-03-30
+
+**Status**: ✅ Completed
+
+**新功能**:
+- `SimpleAI.cs`（完全重写）：9步回合流程替代原5步；新增7个 public static 方法供测试直接调用：
+  - `AiBoardScore`：局面评分 = 得分差×3 + 手牌差/2 + 控场×2 + 战力差/3
+  - `AiCardValue`：卡牌价值 = 攻费比×10 + Haste(+4) + Barrier(+3) + StrongAtk(+2) + Deathwish(+2) + Conquest(+1) + Inspire(+1)
+  - `AiMinReactiveCost`：最低反应法术费用（预留法力）
+  - `AiShouldPlaySpell`：判断是否出法术（法力充足 + 有效目标 + 非预留）
+  - `AiSpellPriority`：法术优先级排序（rally_call > balance_resolve > slam > ...）
+  - `AiChooseSpellTarget`：智能目标选择（slam优先BF敌方最高ATK / buff优先BF己方最强单位）
+  - `AiDecideMovement`：移动决策（征服15 / 制胜12+分差 / 平局1 / 劣势-3 + 绝境/双空场特殊处理）
+  - `AiUseLegendAbility`：传奇技能决策（卡莎手牌有炽烈法术且符能不足时使用虚空感知）
+- `CanAfford`：法力 + 符能双重检查（DEV-4 AI 仅检查法力）
+- 移动循环：反复调用 AiDecideMovement 直到无可动单位（等同于 JS 递归 aiAction）
+- 双空场分兵策略：2个空未控战场时，分别向BF0和BF1各派1支队
+- `TurnManager.cs`：TakeAction 调用现在传递 `_legendSys` 和 `_bfSys`（已注入但之前未转发）
+
+**设计决定**:
+- BF卡ID通过 `gs.BFNames[i]` 获取（BattlefieldState无card字段）
+- rockfall_path战场不纳入移动候选（无法直接出牌，AI也不移动到此）
+- 移动评分基于局面评分差（移动后评分 - 移动前评分）
+
+**测试**:
+- `DEV7AITests.cs`（新建）：29项AI逻辑测试（AiCardValue×3 / AiBoardScore×5 / AiMinReactiveCost×3 / AiSpellPriority×2 / AiShouldPlaySpell×5 / AiChooseSpellTarget×5 / AiDecideMovement×6）
+- 🔵 [引擎测试] 164/164 全绿（135前序 + 29新增），编译无 error CS
+
+**Files modified**:
+- `Assets/Scripts/AI/SimpleAI.cs`（完全重写）
+- `Assets/Scripts/Systems/TurnManager.cs`（TakeAction 调用增加 legendSys/bfSys 参数）
+- `Assets/Tests/EditMode/DEV7AITests.cs`（新建）
+
+---
+
 ## DEV-6：战场特殊能力（19张）— 2026-03-30
 
 **Status**: ✅ Completed
