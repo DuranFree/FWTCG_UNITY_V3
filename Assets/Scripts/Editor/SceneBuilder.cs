@@ -318,7 +318,8 @@ namespace FWTCG.Editor
             // ── Debug Panel ───────────────────────────────────────────────────
             var debugPanel = CreateDebugPanel(canvasGO.transform,
                 out var debugSpellBtn, out var debugEquipBtn,
-                out var debugUnitBtn, out var debugReactiveBtn, out var debugManaBtn);
+                out var debugUnitBtn, out var debugReactiveBtn, out var debugManaBtn,
+                out var debugSchBtn);
 
             // ── Reactive Window Panel ─────────────────────────────────────────
             var reactivePanel = CreateReactiveWindowPanel(canvasGO.transform,
@@ -410,7 +411,7 @@ namespace FWTCG.Editor
                             mulliganConfirmButton, mulliganConfirmLabel, cardPrefab,
                             reactivePanel, reactiveContextText, reactiveCardContainer,
                             reactBtn, legendSys, legendSkillBtn, bfSys,
-                            debugSpellBtn, debugEquipBtn, debugUnitBtn, debugReactiveBtn, debugManaBtn,
+                            debugSpellBtn, debugEquipBtn, debugUnitBtn, debugReactiveBtn, debugManaBtn, debugSchBtn,
                             tapAllRunesBtn, skipReactionBtn,
                             spellShowcaseGO);
 
@@ -1522,7 +1523,8 @@ namespace FWTCG.Editor
         /// </summary>
         private static GameObject CreateDebugPanel(Transform parent,
             out Button spellBtn, out Button equipBtn,
-            out Button unitBtn, out Button reactiveBtn, out Button manaBtn)
+            out Button unitBtn, out Button reactiveBtn, out Button manaBtn,
+            out Button schBtn)
         {
             var go = new GameObject("DebugPanel");
             go.transform.SetParent(parent, false);
@@ -1533,7 +1535,7 @@ namespace FWTCG.Editor
             rt.anchorMax = new Vector2(0f, 0f);
             rt.pivot     = new Vector2(0f, 0f);
             rt.anchoredPosition = new Vector2(5f, 105f); // just above BottomBar
-            rt.sizeDelta = new Vector2(130f, 215f);
+            rt.sizeDelta = new Vector2(130f, 251f);
 
             var img = go.AddComponent<Image>();
             img.color = new Color(0f, 0f, 0f, 0.75f);
@@ -1577,6 +1579,7 @@ namespace FWTCG.Editor
             unitBtn     = CreateDebugButton(go.transform, "摸单位牌", new Color(0.2f, 0.4f, 0.8f, 1f));
             reactiveBtn = CreateDebugButton(go.transform, "摸反应牌", new Color(0.8f, 0.4f, 0.1f, 1f));
             manaBtn     = CreateDebugButton(go.transform, "+5 法力",  new Color(0.7f, 0.4f, 0.1f, 1f));
+            schBtn      = CreateDebugButton(go.transform, "+5 全符能", new Color(0.1f, 0.5f, 0.7f, 1f));
 
             // Default: collapsed (only title visible)
             spellBtn.gameObject.SetActive(false);
@@ -1584,6 +1587,7 @@ namespace FWTCG.Editor
             unitBtn.gameObject.SetActive(false);
             reactiveBtn.gameObject.SetActive(false);
             manaBtn.gameObject.SetActive(false);
+            schBtn.gameObject.SetActive(false);
             rt.sizeDelta = new Vector2(130f, 30f);
             titleT.text = "▶ DEBUG";
 
@@ -2688,7 +2692,7 @@ namespace FWTCG.Editor
             Transform reactiveCardContainer, Button reactBtn,
             FWTCG.Systems.LegendSystem legendSys, Button legendSkillBtn,
             FWTCG.Systems.BattlefieldSystem bfSys,
-            Button debugSpellBtn, Button debugEquipBtn, Button debugUnitBtn, Button debugReactiveBtn, Button debugManaBtn,
+            Button debugSpellBtn, Button debugEquipBtn, Button debugUnitBtn, Button debugReactiveBtn, Button debugManaBtn, Button debugSchBtn,
             Button tapAllRunesBtn = null, Button skipReactionBtn = null,
             GameObject spellShowcaseGO = null)
         {
@@ -2710,6 +2714,7 @@ namespace FWTCG.Editor
             so.FindProperty("_debugUnitBtn").objectReferenceValue     = debugUnitBtn;
             so.FindProperty("_debugReactiveBtn").objectReferenceValue = debugReactiveBtn;
             so.FindProperty("_debugManaBtn").objectReferenceValue     = debugManaBtn;
+            so.FindProperty("_debugSchBtn").objectReferenceValue      = debugSchBtn;
 
             // Wire StartupFlowUI panels
             var startupSO = new SerializedObject(startupFlowUI);

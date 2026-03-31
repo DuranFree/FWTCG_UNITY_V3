@@ -108,6 +108,7 @@ namespace FWTCG
         [SerializeField] private Button _debugUnitBtn;
         [SerializeField] private Button _debugReactiveBtn;
         [SerializeField] private Button _debugManaBtn;
+        [SerializeField] private Button _debugSchBtn;
 
         // ── Game state ────────────────────────────────────────────────────────
         private GameState _gs;
@@ -155,6 +156,7 @@ namespace FWTCG
             if (_debugUnitBtn != null)     _debugUnitBtn.onClick.AddListener(() => DebugDraw("unit"));
             if (_debugReactiveBtn != null) _debugReactiveBtn.onClick.AddListener(() => DebugDraw("reactive"));
             if (_debugManaBtn != null)     _debugManaBtn.onClick.AddListener(DebugAddMana);
+            if (_debugSchBtn != null)      _debugSchBtn.onClick.AddListener(DebugAddSch);
         }
 
         private void OnEnable()
@@ -1197,6 +1199,15 @@ namespace FWTCG
             if (_gs == null) return;
             _gs.PMana += 5;
             TurnManager.BroadcastMessage_Static($"[DEBUG] +5法力 → {_gs.PMana}");
+            RefreshUI();
+        }
+
+        private void DebugAddSch()
+        {
+            if (_gs == null) return;
+            foreach (RuneType rt in System.Enum.GetValues(typeof(RuneType)))
+                _gs.AddSch(GameRules.OWNER_PLAYER, rt, 5);
+            TurnManager.BroadcastMessage_Static("[DEBUG] +5 全符能");
             RefreshUI();
         }
     }

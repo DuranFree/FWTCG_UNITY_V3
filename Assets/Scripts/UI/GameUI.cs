@@ -1106,7 +1106,7 @@ namespace FWTCG.UI
             // Resize panel
             var rt = _debugPanel.GetComponent<RectTransform>();
             if (rt != null)
-                rt.sizeDelta = _debugCollapsed ? new Vector2(130f, 30f) : new Vector2(130f, 215f);
+                rt.sizeDelta = _debugCollapsed ? new Vector2(130f, 30f) : new Vector2(130f, 251f);
 
             // Update title text
             var titleText = _debugPanel.transform.Find("DebugTitle/TitleText");
