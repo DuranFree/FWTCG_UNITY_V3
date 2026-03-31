@@ -126,14 +126,34 @@ namespace FWTCG.UI
                 btn.colors = cb;
                 btn.onClick.AddListener(() => SelectTarget(u));
 
+                // Optional card art thumbnail (left 38px)
+                float artWidth = 0f;
+                var artSprite = u.CardData?.ArtSprite;
+                if (artSprite != null)
+                {
+                    artWidth = 38f;
+                    var artGO = new GameObject("Art");
+                    artGO.transform.SetParent(go.transform, false);
+                    var artRT = artGO.AddComponent<RectTransform>();
+                    artRT.anchorMin = new Vector2(0f, 0f);
+                    artRT.anchorMax = new Vector2(0f, 1f);
+                    artRT.pivot     = new Vector2(0f, 0.5f);
+                    artRT.offsetMin = new Vector2(2f,  2f);
+                    artRT.offsetMax = new Vector2(artWidth - 2f, -2f);
+                    var artImg2 = artGO.AddComponent<Image>();
+                    artImg2.sprite = artSprite;
+                    artImg2.preserveAspect = true;
+                }
+
                 var lblGO = new GameObject("Label");
                 lblGO.transform.SetParent(go.transform, false);
                 var lblRT = lblGO.AddComponent<RectTransform>();
                 lblRT.anchorMin  = Vector2.zero;
                 lblRT.anchorMax  = Vector2.one;
-                lblRT.offsetMin  = new Vector2(4f, 0f);
+                lblRT.offsetMin  = new Vector2(artWidth + 4f, 0f);
                 lblRT.offsetMax  = new Vector2(-4f, 0f);
                 var lbl = lblGO.AddComponent<Text>();
+                lbl.font              = Resources.GetBuiltinResource<Font>("Arial.ttf");
                 lbl.text              = $"{u.UnitName}  [{u.CurrentAtk}/{u.CurrentHp}]";
                 lbl.color             = Color.white;
                 lbl.fontSize          = 14;

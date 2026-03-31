@@ -1494,9 +1494,9 @@ namespace FWTCG.Editor
             var erLE = enemyRow.AddComponent<LayoutElement>();
             erLE.preferredHeight = 46f;
             var erHLG = enemyRow.AddComponent<HorizontalLayoutGroup>();
-            erHLG.childControlWidth    = false;
+            erHLG.childControlWidth    = true;
             erHLG.childControlHeight   = true;
-            erHLG.childForceExpandWidth = false;
+            erHLG.childForceExpandWidth = true;
             erHLG.childAlignment = TextAnchor.MiddleLeft;
             erHLG.spacing = 6f;
 
@@ -1519,9 +1519,9 @@ namespace FWTCG.Editor
             var prLE = playerRow.AddComponent<LayoutElement>();
             prLE.preferredHeight = 46f;
             var prHLG = playerRow.AddComponent<HorizontalLayoutGroup>();
-            prHLG.childControlWidth    = false;
+            prHLG.childControlWidth    = true;
             prHLG.childControlHeight   = true;
-            prHLG.childForceExpandWidth = false;
+            prHLG.childForceExpandWidth = true;
             prHLG.childAlignment = TextAnchor.MiddleLeft;
             prHLG.spacing = 6f;
 
