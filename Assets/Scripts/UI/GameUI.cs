@@ -534,16 +534,17 @@ namespace FWTCG.UI
         {
             if (container == null) return;
 
-            // Clear existing children
-            for (int i = container.childCount - 1; i >= 0; i--)
-                Destroy(container.GetChild(i).gameObject);
-
             if (hero != null)
             {
-                if (_cardViewPrefab != null)
+                // Remove placeholder if it exists
+                Transform ph = container.Find("HeroPlaceholder");
+                if (ph != null) Destroy(ph.gameObject);
+
+                // Reuse existing CardView or create one
+                CardView cv = container.GetComponentInChildren<CardView>();
+                if (cv == null && _cardViewPrefab != null)
                 {
                     GameObject go = Instantiate(_cardViewPrefab, container);
-                    // Stretch to fill the hero slot area
                     var rt = go.GetComponent<RectTransform>();
                     if (rt != null)
                     {
@@ -552,27 +553,36 @@ namespace FWTCG.UI
                         rt.offsetMin = Vector2.zero;
                         rt.offsetMax = Vector2.zero;
                     }
-
-                    CardView cv = go.GetComponent<CardView>();
-                    if (cv != null)
-                        cv.Setup(hero, isPlayer, isPlayer ? _onUnitClicked : null, _onCardRightClicked);
+                    cv = go.GetComponent<CardView>();
                 }
+
+                if (cv != null)
+                    cv.Setup(hero, isPlayer, isPlayer ? _onUnitClicked : null, _onCardRightClicked);
             }
             else
             {
-                GameObject ph = new GameObject("HeroPlaceholder");
-                ph.transform.SetParent(container, false);
-                var rt = ph.AddComponent<RectTransform>();
-                rt.anchorMin = Vector2.zero;
-                rt.anchorMax = Vector2.one;
-                rt.offsetMin = Vector2.zero;
-                rt.offsetMax = Vector2.zero;
-                var txt = ph.AddComponent<Text>();
-                txt.text = "已出场";
-                txt.font = _playerScoreText != null ? _playerScoreText.font : Font.CreateDynamicFontFromOSFont("Arial", 12);
-                txt.fontSize = 11;
-                txt.alignment = TextAnchor.MiddleCenter;
-                txt.color = new Color(1f, 1f, 1f, 0.5f);
+                // Remove CardView if it exists
+                CardView cv = container.GetComponentInChildren<CardView>();
+                if (cv != null) Destroy(cv.gameObject);
+
+                // Reuse or create placeholder
+                Transform ph = container.Find("HeroPlaceholder");
+                if (ph == null)
+                {
+                    GameObject phGo = new GameObject("HeroPlaceholder");
+                    phGo.transform.SetParent(container, false);
+                    var rt = phGo.AddComponent<RectTransform>();
+                    rt.anchorMin = Vector2.zero;
+                    rt.anchorMax = Vector2.one;
+                    rt.offsetMin = Vector2.zero;
+                    rt.offsetMax = Vector2.zero;
+                    var txt = phGo.AddComponent<Text>();
+                    txt.text = "已出场";
+                    txt.font = _playerScoreText != null ? _playerScoreText.font : Font.CreateDynamicFontFromOSFont("Arial", 12);
+                    txt.fontSize = 11;
+                    txt.alignment = TextAnchor.MiddleCenter;
+                    txt.color = new Color(1f, 1f, 1f, 0.5f);
+                }
             }
         }
 
