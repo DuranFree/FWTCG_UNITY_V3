@@ -28,9 +28,14 @@ namespace FWTCG
         public static event System.Action<string> OnHintToast;
         /// <summary>Fired with the UnitInstance that failed to play — subscribers shake the CardView.</summary>
         public static event System.Action<UnitInstance> OnCardPlayFailed;
+        /// <summary>Fired whenever any unit takes damage: (unit, amount, sourceName). Used for red flash + shake + toast.</summary>
+        public static event System.Action<UnitInstance, int, string> OnUnitDamaged;
 
         /// <summary>Allows non-GameManager code to send a hint toast.</summary>
         public static void FireHintToast(string msg) => OnHintToast?.Invoke(msg);
+        /// <summary>Allows any system (spell, combat, reactive) to fire damage feedback.</summary>
+        public static void FireUnitDamaged(UnitInstance unit, int damage, string source = "")
+            => OnUnitDamaged?.Invoke(unit, damage, source);
 
         // ── Card data (assign in Inspector) ──────────────────────────────────
         [SerializeField] private CardData[] _kaisaDeck;   // 5 cards

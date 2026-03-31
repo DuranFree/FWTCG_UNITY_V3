@@ -2,6 +2,7 @@ using System.Collections.Generic;
 using UnityEngine;
 using FWTCG.Core;
 using FWTCG.Data;
+using FWTCG;
 
 namespace FWTCG.Systems
 {
@@ -113,6 +114,7 @@ namespace FWTCG.Systems
                         {
                             t.CurrentHp -= 2;
                             Log($"[罪恶乐趣] {t.UnitName} 受到2点伤害（剩余HP:{t.CurrentHp}）");
+                            GameManager.FireUnitDamaged(t, 2, "罪恶乐趣");
                             if (t.CurrentHp <= 0) RemoveDeadUnit(t, gs);
                         }
                         else

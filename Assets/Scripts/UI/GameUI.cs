@@ -199,7 +199,7 @@ namespace FWTCG.UI
             FWTCG.Systems.TurnManager.OnBannerRequest += ShowBanner;
             FWTCG.Systems.LegendSystem.OnLegendEvolved += OnLegendEvolved; // DEV-15
             GameManager.OnCardPlayFailed += ShakeHandCard;
-            FWTCG.Systems.SpellSystem.OnUnitDamaged += OnSpellUnitDamaged;
+            GameManager.OnUnitDamaged += OnSpellUnitDamaged;
         }
 
         private void OnDestroy()
@@ -211,7 +211,7 @@ namespace FWTCG.UI
             FWTCG.Systems.TurnManager.OnBannerRequest -= ShowBanner;
             FWTCG.Systems.LegendSystem.OnLegendEvolved -= OnLegendEvolved; // DEV-15
             GameManager.OnCardPlayFailed -= ShakeHandCard;
-            FWTCG.Systems.SpellSystem.OnUnitDamaged -= OnSpellUnitDamaged;
+            GameManager.OnUnitDamaged -= OnSpellUnitDamaged;
         }
 
         // ── Card shake on play failure ────────────────────────────────────────

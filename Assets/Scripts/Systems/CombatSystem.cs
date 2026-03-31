@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using UnityEngine;
 using FWTCG.Core;
+using FWTCG;
 
 namespace FWTCG.Systems
 {
@@ -322,6 +323,7 @@ namespace FWTCG.Systems
                 int dmg = Mathf.Min(remaining, u.CurrentHp);
                 u.CurrentHp -= dmg;
                 remaining -= dmg;
+                if (dmg > 0) GameManager.FireUnitDamaged(u, dmg, "战斗");
 
                 if (u.CurrentHp <= 0)
                 {
