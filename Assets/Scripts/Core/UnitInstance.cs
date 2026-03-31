@@ -96,6 +96,7 @@ namespace FWTCG.Core
             HasBarrier = data.HasKeyword(CardKeyword.Barrier);
             HasStrongAtk = data.HasKeyword(CardKeyword.StrongAtk);
             HasGuard = data.HasKeyword(CardKeyword.Guard);
+            IsEphemeral = data.HasKeyword(CardKeyword.Ephemeral);
             Owner = owner;
         }
 

@@ -29,7 +29,7 @@
 - [ ] GameUI.OnUnitDied/OnUnitDamaged 订阅在 Awake/OnDestroy，禁用组件时仍活跃 — 应改为 OnEnable/OnDisable — Phase DEV-17（Codex Medium）
 - [ ] OnBattlefieldClicked async void 无结构化异常处理 — await 后异常无法传播 — Phase DEV-17（Codex Medium）
 - [ ] CardView.OnDestroy 只停 _stunPulse，_shake/_flash/_death 靠 Unity 隐式停止 — Phase DEV-17（Codex Low）
-- [ ] Ephemeral 单位打出时未设置 IsEphemeral=true/SummonedOnRound=gs.Round — **HIGH**：TryPlayUnit 需检查 HasKeyword(Ephemeral) 并赋值；UnitInstance 构造函数也应从 CardData 初始化 IsEphemeral；当前无卡牌使用该关键词，暂不影响游戏，但任何卡获得 Ephemeral 前必须修复 — Phase DEV-18（Claude 审查 High）
+- ✅ Ephemeral 单位打出时未设置 IsEphemeral/SummonedOnRound — 已修复：UnitInstance 构造函数从 CardData.HasKeyword(Ephemeral) 初始化 IsEphemeral；TryPlayUnit 打出瞬息单位时设置 SummonedOnRound=gs.Round — Phase DEV-18（Claude 审查 High → 已解决）
 - [ ] CombatAnimator 并发冲击波未保护 — 同一 BF 快速连续战斗时第二个 PlayShockwave 会与第一个同时运行，第一个结束时 SetActive(false) 打断第二个动画；修复：OnCombatResult 先 StopCoroutine 再重启 — Phase DEV-18（Claude 审查 Medium）
 - [ ] AI 出牌不触发 OnCardPlayed/BoardFlash — FireCardPlayed 只在玩家三条出牌路径调用，AI 出牌无棋盘闪烁；如需视觉对称须补充 AI 路径调用 — Phase DEV-18（Claude 审查 Medium，设计待确认）
 - [ ] CtrlGlowLoop 无控制方时 alpha 非零 — NoGlow=(0,0,0,0) 但 Lerp(0.10,0.35,pulse) 始终>0，产生微弱黑色叠加；修复：_currentCtrl==null 时直接 alpha=0 — Phase DEV-18（Claude 审查 Low）

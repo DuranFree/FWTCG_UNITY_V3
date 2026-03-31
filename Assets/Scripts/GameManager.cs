@@ -730,6 +730,7 @@ namespace FWTCG
             if (unit.CardData.RuneCost > 0)
                 _gs.SpendSch(GameRules.OWNER_PLAYER, unit.CardData.RuneType, unit.CardData.RuneCost);
             unit.Exhausted = true;
+            if (unit.IsEphemeral) unit.SummonedOnRound = _gs.Round;
             _gs.CardsPlayedThisTurn++;
             FireCardPlayed(unit, GameRules.OWNER_PLAYER);
 
