@@ -627,7 +627,7 @@
 
 ---
 
-## DEV-25：Tech-Debt Cleanup
+## DEV-26：Tech-Debt Cleanup
 
 **目标：** 清理所有功能 Phase 积累的 Medium/Low 技术债，为架构优化铺平道路
 
@@ -651,9 +651,9 @@
 
 ---
 
-## DEV-26 — Architecture Improvement
+## DEV-27 — Architecture Improvement
 
-**前置条件：** DEV-25 Tech-Debt Cleanup 完成
+**前置条件：** DEV-26 Tech-Debt Cleanup 完成
 
 **触发文件：** `E:\claudeCode\DOC\skills\migration\06-architecture.md`
 
@@ -690,7 +690,7 @@
 
 ---
 
-## 剩余 Phase 总览（DEV-15 ~ DEV-26）
+## 剩余 Phase 总览（DEV-15 ~ DEV-27）
 
 | Phase | 核心内容 | 类型 |
 |-------|---------|------|
@@ -705,7 +705,7 @@
 | DEV-22 | 字体系统+视觉细节打磨 | 视觉 |
 | DEV-23 | 开始流程+过渡动画+标题界面 | 视觉 |
 | DEV-24 | 音频资源接入+玻璃态UI | 功能+视觉 |
-| DEV-25 | Tech-Debt Cleanup | 稳定性 |
-| DEV-26 | Architecture Improvement | 架构 |
+| DEV-26 | Tech-Debt Cleanup | 稳定性 |
+| DEV-27 | Architecture Improvement | 架构 |
 
-*最后更新：2026-03-31（新增 DEV-26 Architecture Improvement，对应工作流 06-architecture.md）*
+*最后更新：2026-03-31（DEV-25 编号已被规则对齐修复占用，Tech-Debt Cleanup 改为 DEV-26，Architecture Improvement 改为 DEV-27）*

@@ -153,6 +153,10 @@ namespace FWTCG.Systems
             // Reset legend ability usage
             _legendSys?.ResetForTurn(who, gs);
 
+            // Rule 728: Destroy ephemeral units from the PREVIOUS turn for BOTH players.
+            // Ephemeral units have SummonedOnRound < gs.Round (they were created in a past round).
+            DestroyEphemeralUnits(gs);
+
             Broadcast($"[觉醒] {DisplayName(who)} 符文解除横置，符能清零");
             await Delay(GameRules.PHASE_DELAY_MS);
         }
@@ -412,5 +416,46 @@ namespace FWTCG.Systems
 
         private string DisplayName(string owner) =>
             owner == GameRules.OWNER_PLAYER ? "玩家" : "AI";
+
+        /// <summary>
+        /// Rule 728: Destroy ephemeral units whose SummonedOnRound is before the current round.
+        /// Called at the start of Awaken for both players.
+        /// </summary>
+        private void DestroyEphemeralUnits(GameState gs)
+        {
+            foreach (string owner in new[] { GameRules.OWNER_PLAYER, GameRules.OWNER_ENEMY })
+            {
+                // Check base
+                var baseList = gs.GetBase(owner);
+                for (int i = baseList.Count - 1; i >= 0; i--)
+                {
+                    UnitInstance u = baseList[i];
+                    if (u.IsEphemeral && u.SummonedOnRound < gs.Round)
+                    {
+                        GameManager.FireUnitDied(u);
+                        baseList.RemoveAt(i);
+                        Broadcast($"[瞬息] {u.UnitName}({DisplayName(owner)}) 回合开始前销毁");
+                    }
+                }
+
+                // Check battlefields
+                for (int bfId = 0; bfId < GameRules.BATTLEFIELD_COUNT; bfId++)
+                {
+                    List<UnitInstance> bfUnits = owner == GameRules.OWNER_PLAYER
+                        ? gs.BF[bfId].PlayerUnits
+                        : gs.BF[bfId].EnemyUnits;
+                    for (int i = bfUnits.Count - 1; i >= 0; i--)
+                    {
+                        UnitInstance u = bfUnits[i];
+                        if (u.IsEphemeral && u.SummonedOnRound < gs.Round)
+                        {
+                            GameManager.FireUnitDied(u);
+                            bfUnits.RemoveAt(i);
+                            Broadcast($"[瞬息] {u.UnitName}({DisplayName(owner)}) 回合开始前销毁");
+                        }
+                    }
+                }
+            }
+        }
     }
 }

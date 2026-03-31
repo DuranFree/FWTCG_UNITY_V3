@@ -138,7 +138,9 @@ namespace FWTCG.Editor
                 out var bf1CtrlBadgeText, out var bf2CtrlBadgeText,
                 out var playerHeroContainer, out var enemyHeroContainer,
                 out var boardPlayerLegendText, out var boardLegendSkillBtn,
-                out var boardEnemyLegendText);
+                out var boardEnemyLegendText,
+                out var bf1CardArt, out var bf2CardArt,
+                out var bf1Glow, out var bf2Glow);
 
             // ── Player hand (below board, full width, ~120px) ────────────
             var playerHandZone = new GameObject("PlayerHandZone");
@@ -245,6 +247,19 @@ namespace FWTCG.Editor
             // ── DEV-10: TimerDisplay ─────────────────────────────────────────
             var timerDisplay = CreateTimerDisplay(canvasGO.transform,
                 out var timerFill, out var timerText);
+
+            // ── DEV-18: BoardFlashOverlay ─────────────────────────────────────
+            // Full-screen transparent Image that briefly flashes when a card is played.
+            var boardFlashGO = new GameObject("BoardFlashOverlay");
+            boardFlashGO.transform.SetParent(canvasGO.transform, false);
+            var boardFlashRT = boardFlashGO.AddComponent<RectTransform>();
+            boardFlashRT.anchorMin = Vector2.zero;
+            boardFlashRT.anchorMax = Vector2.one;
+            boardFlashRT.offsetMin = Vector2.zero;
+            boardFlashRT.offsetMax = Vector2.zero;
+            var boardFlashImg = boardFlashGO.AddComponent<Image>();
+            boardFlashImg.color = new Color(0.78f, 0.67f, 0.43f, 0f); // starts fully transparent
+            boardFlashImg.raycastTarget = false;
 
             // Collect sub-references from TopBar
             var playerScoreText  = topBar.transform.Find("PlayerScore").GetComponent<Text>();
@@ -366,6 +381,7 @@ namespace FWTCG.Editor
             var bfSys        = gmGO.AddComponent<FWTCG.Systems.BattlefieldSystem>();
             var toastUI      = gmGO.AddComponent<FWTCG.UI.ToastUI>();
             var cardDetailPopupComp = gmGO.AddComponent<FWTCG.UI.CardDetailPopup>();
+            var combatAnimator = gmGO.AddComponent<FWTCG.UI.CombatAnimator>(); // DEV-18
 
             // ── Wire UI references via SerializedObject ───────────────────────
             WireGameUI(gameUI, cardPrefab, runePrefab,
@@ -404,7 +420,9 @@ namespace FWTCG.Editor
                 viewerPanel, viewerTitle, viewerCardContainer, viewerCloseBtn,
                 timerDisplay, timerFill, timerText,
                 playerHandZone.GetComponent<RectTransform>(),
-                enemyHandZone.GetComponent<RectTransform>());
+                enemyHandZone.GetComponent<RectTransform>(),
+                // DEV-18 additions
+                bf1Glow, bf2Glow, bf1CardArt, bf2CardArt, boardFlashImg);
 
             WireGameManager(gameMgr, turnMgr, combatSys, scoreMgr, simpleAI, gameUI,
                             entryEffects, deathwish, spellSys, reactiveSys,
@@ -467,6 +485,16 @@ namespace FWTCG.Editor
                 guiSO2.FindProperty("_crBfNameText").objectReferenceValue = crBfNameText;
 
                 guiSO2.ApplyModifiedPropertiesWithoutUndo();
+            }
+
+            // ── DEV-18: Wire CombatAnimator ──────────────────────────────────
+            {
+                var caSO = new SerializedObject(combatAnimator);
+                caSO.FindProperty("_bf1Panel").objectReferenceValue =
+                    bf1Panel?.GetComponent<RectTransform>();
+                caSO.FindProperty("_bf2Panel").objectReferenceValue =
+                    bf2Panel?.GetComponent<RectTransform>();
+                caSO.ApplyModifiedPropertiesWithoutUndo();
             }
 
             // ── Save scene ────────────────────────────────────────────────────
@@ -566,7 +594,9 @@ namespace FWTCG.Editor
             out Image bf1CtrlBadge, out Image bf2CtrlBadge,
             out Text bf1CtrlBadgeText, out Text bf2CtrlBadgeText,
             out Transform playerHeroContainer, out Transform enemyHeroContainer,
-            out Text playerLegendText, out Button legendSkillBtn, out Text enemyLegendText)
+            out Text playerLegendText, out Button legendSkillBtn, out Text enemyLegendText,
+            out Image bf1CardArt, out Image bf2CardArt,
+            out BattlefieldGlow bf1Glow, out BattlefieldGlow bf2Glow)
         {
             var go = new GameObject("BoardWrapper");
             go.transform.SetParent(parent, false);
@@ -669,9 +699,9 @@ namespace FWTCG.Editor
                 hlg.spacing = 5f;
 
                 CreateBattlefieldPanel(bfArea.transform, "BF1Panel", "BF1EnemyUnits", "战场1", "BF1Label", "BF1PlayerUnits",
-                    out bf1CtrlBadge, out bf1CtrlBadgeText);
+                    out bf1CtrlBadge, out bf1CtrlBadgeText, out bf1CardArt, out bf1Glow);
                 CreateBattlefieldPanel(bfArea.transform, "BF2Panel", "BF2EnemyUnits", "战场2", "BF2Label", "BF2PlayerUnits",
-                    out bf2CtrlBadge, out bf2CtrlBadgeText);
+                    out bf2CtrlBadge, out bf2CtrlBadgeText, out bf2CardArt, out bf2Glow);
             }
 
             return go;
@@ -684,7 +714,8 @@ namespace FWTCG.Editor
             // DEV-9: replaced by CreateBoardWrapper; this stub exists only for compile compat
             return CreateBoardWrapper(parent,
                 out _, out _, out _, out _, out _, out _, out _, out _, out _, out _,
-                out _, out _, out _, out _, out _, out _, out _, out _, out _);
+                out _, out _, out _, out _, out _, out _, out _, out _, out _,
+                out _, out _, out _, out _);
         }
 
         private static GameObject CreateAreaWithLayoutElement(Transform parent, string name, float flexibleHeight)
@@ -1029,12 +1060,13 @@ namespace FWTCG.Editor
             return go;
         }
 
-        // ── Battlefield panel (DEV-9: with control badge) ────────────────────
+        // ── Battlefield panel (DEV-9: control badge; DEV-18: glow + standby + BF art) ──
 
         private static void CreateBattlefieldPanel(Transform parent,
             string panelName, string enemyZoneName, string labelText,
             string labelName, string playerZoneName,
-            out Image ctrlBadge, out Text ctrlBadgeText)
+            out Image ctrlBadge, out Text ctrlBadgeText,
+            out Image bfCardArtImg, out BattlefieldGlow bfGlow)
         {
             var panel = new GameObject(panelName);
             panel.transform.SetParent(parent, false);
@@ -1103,8 +1135,63 @@ namespace FWTCG.Editor
             bfArtOutline.effectColor = new Color(0.47f, 0.35f, 0.16f, 0.5f);
             bfArtOutline.effectDistance = new Vector2(1f, -1f);
 
+            // Expose BF card art Image for GameUI.UpdateBFCardArt
+            bfCardArtImg = bfArtImg;
+
             // Player units zone
             CreateHorizontalZone(panel.transform, playerZoneName);
+
+            // DEV-18: Standby zone (face-down cards, compact height)
+            var standbyZone = new GameObject("StandbyZone");
+            standbyZone.transform.SetParent(panel.transform, false);
+            standbyZone.AddComponent<RectTransform>();
+            var standbyLE = standbyZone.AddComponent<LayoutElement>();
+            standbyLE.preferredHeight = 18f;
+            standbyLE.flexibleHeight = 0f;
+            var standbyHLG = standbyZone.AddComponent<HorizontalLayoutGroup>();
+            standbyHLG.childControlWidth = false;
+            standbyHLG.childControlHeight = false;
+            standbyHLG.childForceExpandWidth = false;
+            standbyHLG.childForceExpandHeight = false;
+            standbyHLG.spacing = 2f;
+            standbyHLG.childAlignment = TextAnchor.MiddleCenter;
+            var standbyBg = standbyZone.AddComponent<Image>();
+            standbyBg.color = new Color(0.05f, 0.05f, 0.15f, 0.25f);
+            var standbyLabel = CreateTMPText(standbyZone.transform, "StandbyLabel", "待命区",
+                new Color(0.47f, 0.35f, 0.16f, 0.6f), 8, TextAnchor.MiddleCenter);
+            var standbyLabelLE = standbyLabel.gameObject.AddComponent<LayoutElement>();
+            standbyLabelLE.minWidth = 30f;
+
+            // DEV-18: Ambient breathe overlay (full-panel, pointer pass-through)
+            var ambientGO = new GameObject("AmbientOverlay");
+            ambientGO.transform.SetParent(panel.transform, false);
+            var ambientRT = ambientGO.AddComponent<RectTransform>();
+            ambientRT.anchorMin = Vector2.zero;
+            ambientRT.anchorMax = Vector2.one;
+            ambientRT.offsetMin = Vector2.zero;
+            ambientRT.offsetMax = Vector2.zero;
+            var ambientImg = ambientGO.AddComponent<Image>();
+            ambientImg.color = new Color(0.05f, 0.15f, 0.30f, 0.02f);
+            ambientImg.raycastTarget = false;
+
+            // DEV-18: Control glow overlay (full-panel, pointer pass-through)
+            var ctrlGlowGO = new GameObject("CtrlGlowOverlay");
+            ctrlGlowGO.transform.SetParent(panel.transform, false);
+            var ctrlGlowRT = ctrlGlowGO.AddComponent<RectTransform>();
+            ctrlGlowRT.anchorMin = Vector2.zero;
+            ctrlGlowRT.anchorMax = Vector2.one;
+            ctrlGlowRT.offsetMin = Vector2.zero;
+            ctrlGlowRT.offsetMax = Vector2.zero;
+            var ctrlGlowImg = ctrlGlowGO.AddComponent<Image>();
+            ctrlGlowImg.color = new Color(0f, 0f, 0f, 0f);
+            ctrlGlowImg.raycastTarget = false;
+
+            // Attach BattlefieldGlow component to panel
+            bfGlow = panel.AddComponent<BattlefieldGlow>();
+            var glowSO = new UnityEditor.SerializedObject(bfGlow);
+            glowSO.FindProperty("_ambientOverlay").objectReferenceValue = ambientImg;
+            glowSO.FindProperty("_ctrlGlowOverlay").objectReferenceValue = ctrlGlowImg;
+            glowSO.ApplyModifiedProperties();
 
             // Add button to panel for BF click
             panel.AddComponent<Button>();
@@ -1116,7 +1203,16 @@ namespace FWTCG.Editor
             string labelName, string playerZoneName)
         {
             CreateBattlefieldPanel(parent, panelName, enemyZoneName, labelText,
-                labelName, playerZoneName, out _, out _);
+                labelName, playerZoneName, out _, out _, out _, out _);
+        }
+
+        private static void CreateBattlefieldPanel(Transform parent,
+            string panelName, string enemyZoneName, string labelText,
+            string labelName, string playerZoneName,
+            out Image ctrlBadge, out Text ctrlBadgeText)
+        {
+            CreateBattlefieldPanel(parent, panelName, enemyZoneName, labelText,
+                labelName, playerZoneName, out ctrlBadge, out ctrlBadgeText, out _, out _);
         }
 
         // ── BottomBar: PlayerInfoStrip + ActionPanel (DEV-9) ─────────────────
@@ -2684,7 +2780,11 @@ namespace FWTCG.Editor
             RectTransform boardWrapperOuter,
             GameObject viewerPanel, Text viewerTitle, Transform viewerCardContainer, Button viewerCloseBtn,
             GameObject timerDisplay, Image timerFill, Text timerText,
-            RectTransform playerHandZoneRT, RectTransform enemyHandZoneRT)
+            RectTransform playerHandZoneRT, RectTransform enemyHandZoneRT,
+            // DEV-18 additions
+            BattlefieldGlow bf1Glow, BattlefieldGlow bf2Glow,
+            Image bf1CardArt, Image bf2CardArt,
+            Image boardFlashOverlay)
         {
             var so = new SerializedObject(gameUI);
 
@@ -2807,6 +2907,13 @@ namespace FWTCG.Editor
             // ── DEV-10: Hand zone RTs (for log toggle animation) ──
             so.FindProperty("_playerHandZoneRT").objectReferenceValue = playerHandZoneRT;
             so.FindProperty("_enemyHandZoneRT").objectReferenceValue  = enemyHandZoneRT;
+
+            // ── DEV-18: BF glow + BF card art + board flash ──
+            if (bf1Glow != null) so.FindProperty("_bf1Glow").objectReferenceValue = bf1Glow;
+            if (bf2Glow != null) so.FindProperty("_bf2Glow").objectReferenceValue = bf2Glow;
+            if (bf1CardArt != null) so.FindProperty("_bf1CardArt").objectReferenceValue = bf1CardArt;
+            if (bf2CardArt != null) so.FindProperty("_bf2CardArt").objectReferenceValue = bf2CardArt;
+            if (boardFlashOverlay != null) so.FindProperty("_boardFlashOverlay").objectReferenceValue = boardFlashOverlay;
 
             so.ApplyModifiedPropertiesWithoutUndo();
         }

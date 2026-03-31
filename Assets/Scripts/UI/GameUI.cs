@@ -152,6 +152,14 @@ namespace FWTCG.UI
         // ── Card detail popup ─────────────────────────────────────────────────
         [SerializeField] private CardDetailPopup _cardDetailPopup;
 
+        // ── DEV-18: BF visual effects ─────────────────────────────────────────
+        [SerializeField] private BattlefieldGlow _bf1Glow;
+        [SerializeField] private BattlefieldGlow _bf2Glow;
+        [SerializeField] private Image _boardFlashOverlay;
+        [SerializeField] private Image _bf1CardArt;
+        [SerializeField] private Image _bf2CardArt;
+        private Coroutine _boardFlashCoroutine;
+
         // ── Callbacks set by GameManager ──────────────────────────────────────
         private Action _onEndTurnClicked;
         private Action<int> _onBFClicked;
@@ -201,6 +209,7 @@ namespace FWTCG.UI
             GameManager.OnCardPlayFailed += ShakeHandCard;
             GameManager.OnUnitDamaged += OnSpellUnitDamaged;
             GameManager.OnUnitDied += OnUnitDiedHandler;
+            GameManager.OnCardPlayed += OnCardPlayedHandler; // DEV-18
         }
 
         private void OnDestroy()
@@ -214,6 +223,7 @@ namespace FWTCG.UI
             GameManager.OnCardPlayFailed -= ShakeHandCard;
             GameManager.OnUnitDamaged -= OnSpellUnitDamaged;
             GameManager.OnUnitDied -= OnUnitDiedHandler;
+            GameManager.OnCardPlayed -= OnCardPlayedHandler; // DEV-18
         }
 
         // ── Card shake on play failure ────────────────────────────────────────
@@ -407,6 +417,8 @@ namespace FWTCG.UI
             RefreshScoreTrack(gs);
             RefreshPileCounts(gs);
             RefreshBFControlBadges(gs);
+            UpdateBFGlows(gs);        // DEV-18
+            UpdateBFCardArt(gs);      // DEV-18
             RefreshInfoStrips(gs);
             RefreshActionButtons(gs.Phase, gs.Turn);
         }
@@ -1100,6 +1112,84 @@ namespace FWTCG.UI
                                         : gs.BF[1].Ctrl == GameRules.OWNER_ENEMY  ? "敌"
                                         : "—";
             }
+        }
+
+        // ── DEV-18: BF glow + board flash + BF art ───────────────────────────
+
+        /// <summary>Update BattlefieldGlow components with current control state.</summary>
+        public void UpdateBFGlows(GameState gs)
+        {
+            if (gs.BF == null) return;
+            if (_bf1Glow != null && gs.BF.Length > 0)
+                _bf1Glow.SetControl(gs.BF[0].Ctrl);
+            if (_bf2Glow != null && gs.BF.Length > 1)
+                _bf2Glow.SetControl(gs.BF[1].Ctrl);
+        }
+
+        /// <summary>
+        /// Load BF card art sprites from Resources and assign to BFCardArt Images.
+        /// Safe to call repeatedly — only loads when sprite is not already set.
+        /// </summary>
+        public void UpdateBFCardArt(GameState gs)
+        {
+            if (gs.BFNames == null) return;
+            AssignBFArt(_bf1CardArt, gs.BFNames.Length > 0 ? gs.BFNames[0] : null);
+            AssignBFArt(_bf2CardArt, gs.BFNames.Length > 1 ? gs.BFNames[1] : null);
+        }
+
+        private static void AssignBFArt(Image img, string bfId)
+        {
+            if (img == null || string.IsNullOrEmpty(bfId)) return;
+            if (img.sprite != null) return; // already loaded
+            Sprite sp = Resources.Load<Sprite>($"CardArt/bf_{bfId}");
+            if (sp != null)
+            {
+                img.sprite = sp;
+                img.color = Color.white;
+                img.preserveAspect = true;
+            }
+        }
+
+        /// <summary>Card-played board flash — brief golden overlay on the board. DEV-18.</summary>
+        private void OnCardPlayedHandler(UnitInstance unit, string owner)
+        {
+            if (_boardFlashOverlay == null) return;
+            if (_boardFlashCoroutine != null) StopCoroutine(_boardFlashCoroutine);
+            _boardFlashCoroutine = StartCoroutine(BoardFlashRoutine(owner));
+        }
+
+        private IEnumerator BoardFlashRoutine(string owner)
+        {
+            // Player flash: gold. Enemy flash: red-tint.
+            Color flashCol = owner == FWTCG.Core.GameRules.OWNER_PLAYER
+                ? new Color(0.78f, 0.67f, 0.43f, 0.18f)
+                : new Color(0.97f, 0.30f, 0.30f, 0.12f);
+            Color clear = new Color(flashCol.r, flashCol.g, flashCol.b, 0f);
+
+            const float HALF = 0.425f; // 0.85s total / 2
+            float elapsed = 0f;
+
+            // Fade in
+            while (elapsed < HALF)
+            {
+                elapsed += Time.deltaTime;
+                float t = elapsed / HALF;
+                _boardFlashOverlay.color = Color.Lerp(clear, flashCol, t);
+                yield return null;
+            }
+
+            elapsed = 0f;
+            // Fade out
+            while (elapsed < HALF)
+            {
+                elapsed += Time.deltaTime;
+                float t = elapsed / HALF;
+                _boardFlashOverlay.color = Color.Lerp(flashCol, clear, t);
+                yield return null;
+            }
+
+            _boardFlashOverlay.color = clear;
+            _boardFlashCoroutine = null;
         }
 
         // ── Info strip refresh (DEV-9) ───────────────────────────────────────

@@ -41,6 +41,7 @@ namespace FWTCG.UI
             { CardKeyword.Stun,       "眩晕" },
             { CardKeyword.Echo,       "回响" },
             { CardKeyword.Guard,      "坚守" },
+            { CardKeyword.Ephemeral,  "瞬息" },
         };
 
         private static readonly Dictionary<CardKeyword, string> KeywordDescriptions = new Dictionary<CardKeyword, string>
@@ -59,6 +60,7 @@ namespace FWTCG.UI
             { CardKeyword.Stun,       "目标无法贡献战力" },
             { CardKeyword.Echo,       "本回合可再次施放" },
             { CardKeyword.Guard,      "+1 防御战力" },
+            { CardKeyword.Ephemeral,  "下回合开始前销毁（Rule 728）" },
         };
 
         private void Awake()

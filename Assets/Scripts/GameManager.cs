@@ -41,6 +41,10 @@ namespace FWTCG
         public static event System.Action<UnitInstance> OnUnitDied;
         public static void FireUnitDied(UnitInstance unit) => OnUnitDied?.Invoke(unit);
 
+        /// <summary>Fired when a card is successfully played by any player. Used for board flash effect. DEV-18.</summary>
+        public static event System.Action<UnitInstance, string> OnCardPlayed;
+        public static void FireCardPlayed(UnitInstance unit, string owner) => OnCardPlayed?.Invoke(unit, owner);
+
         // ── Card data (assign in Inspector) ──────────────────────────────────
         [SerializeField] private CardData[] _kaisaDeck;   // 5 cards
         [SerializeField] private CardData[] _yiDeck;      // 5 cards
@@ -727,6 +731,7 @@ namespace FWTCG
                 _gs.SpendSch(GameRules.OWNER_PLAYER, unit.CardData.RuneType, unit.CardData.RuneCost);
             unit.Exhausted = true;
             _gs.CardsPlayedThisTurn++;
+            FireCardPlayed(unit, GameRules.OWNER_PLAYER);
 
             TurnManager.BroadcastMessage_Static(
                 $"[打出] {unit.UnitName}（费用{unit.CardData.Cost}），剩余法力 {_gs.PMana}");
@@ -797,6 +802,7 @@ namespace FWTCG
             if (equip.CardData.RuneCost > 0)
                 _gs.SpendSch(GameRules.OWNER_PLAYER, equip.CardData.RuneType, equip.CardData.RuneCost);
             _gs.CardsPlayedThisTurn++;
+            FireCardPlayed(equip, GameRules.OWNER_PLAYER);
 
             // Attach equipment
             target.AttachedEquipment = equip;
@@ -869,6 +875,7 @@ namespace FWTCG
 
             _gs.PMana -= spell.CardData.Cost;
             _gs.CardsPlayedThisTurn++;
+            FireCardPlayed(spell, GameRules.OWNER_PLAYER);
             _gs.PHand.Remove(spell);
 
             if (spell.CardData.SpellTargetType == SpellTargetType.None)

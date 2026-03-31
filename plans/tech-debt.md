@@ -29,3 +29,4 @@
 - [ ] GameUI.OnUnitDied/OnUnitDamaged 订阅在 Awake/OnDestroy，禁用组件时仍活跃 — 应改为 OnEnable/OnDisable — Phase DEV-17（Codex Medium）
 - [ ] OnBattlefieldClicked async void 无结构化异常处理 — await 后异常无法传播 — Phase DEV-17（Codex Medium）
 - [ ] CardView.OnDestroy 只停 _stunPulse，_shake/_flash/_death 靠 Unity 隐式停止 — Phase DEV-17（Codex Low）
+- [ ] Ephemeral 单位打出时未设置 IsEphemeral=true/SummonedOnRound=gs.Round — GameManager.TryPlayUnit 需在出牌后检查 CardKeyword.Ephemeral 并赋值；当前无卡牌使用该关键词，暂不影响游戏 — Phase DEV-18（Medium）

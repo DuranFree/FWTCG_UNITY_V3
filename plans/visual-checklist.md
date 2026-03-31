@@ -73,14 +73,14 @@
 
 ## 六、战场视觉
 
-- [ ] 战场区域环境呼吸动画（bf-ambient-breathe，5s）
-- [ ] 玩家控制战场绿色光晕（bf-ctrl-player-glow 3s 交替脉冲）
-- [ ] 敌方控制战场红色光晕（bf-ctrl-enemy-glow 3s 交替脉冲）
-- [ ] 战场卡牌展示（战场特殊卡的图片显示）
+- ✅ 战场区域环境呼吸动画（bf-ambient-breathe，5s）— DEV-18（BattlefieldGlow.AmbientBreatheLoop）
+- ✅ 玩家控制战场绿色光晕（bf-ctrl-player-glow 3s 交替脉冲）— DEV-18（BattlefieldGlow.CtrlGlowLoop 绿色）
+- ✅ 敌方控制战场红色光晕（bf-ctrl-enemy-glow 3s 交替脉冲）— DEV-18（BattlefieldGlow.CtrlGlowLoop 红色）
+- ✅ 战场卡牌展示（战场特殊卡的图片显示）— DEV-18（GameUI.UpdateBFCardArt Resources.Load）
 - [ ] 战斗触发特效（单位冲向对方 + 碰撞闪光）
-- [ ] 战斗冲击波（playCombatShockwave，中央扩散金色+青蓝光环）
+- ✅ 战斗冲击波（playCombatShockwave，中央扩散金色光环）— DEV-18（CombatAnimator.PlayShockwave 0.45s scale 0→1.5）
 - [ ] 征服动画（Duel Banner 横幅）
-- [ ] 出牌时环境光闪烁（board-event-player/enemy + board-event-fade 0.85s）
+- ✅ 出牌时环境光闪烁（board-event-fade 0.85s）— DEV-18（GameUI.BoardFlashRoutine OnCardPlayed 事件驱动）
 
 ---
 

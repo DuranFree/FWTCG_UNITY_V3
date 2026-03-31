@@ -57,6 +57,20 @@ namespace FWTCG.Core
         /// <summary>Whether this unit cannot be targeted by spells.</summary>
         public bool UntargetableBySpells { get; set; }
 
+        /// <summary>
+        /// Ephemeral units (Rule 728) are destroyed at the start of the next turn.
+        /// Set SummonedOnRound to the current gs.Round when creating an ephemeral unit.
+        /// </summary>
+        public bool IsEphemeral { get; set; }
+        public int SummonedOnRound { get; set; } = -1;
+
+        /// <summary>
+        /// Standby units (Rule 716) are deployed face-down at 0 cost.
+        /// While IsStandby=true the unit does not participate in combat and
+        /// cannot be targeted. The owner may flip it face-up as a 0-cost action.
+        /// </summary>
+        public bool IsStandby { get; set; }
+
         /// <summary>Equipment attached to this unit (null if none).</summary>
         public UnitInstance AttachedEquipment { get; set; }
 

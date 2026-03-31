@@ -4,13 +4,17 @@
 
 **每次新会话开始时，立即执行：**
 读取以下文件了解当前项目状态，然后告知用户当前进度：
-- `./plans/feature-checklist.md`
-- `./plans/visual-checklist.md`
-- `./logs/dev-log.md`
+- `./logs/dev-log.md`（只读最后 2 个 Phase 的记录）
 - `./plans/known-bugs.md`
 - `./plans/tech-debt.md`
+- `./plans/phase-roadmap.md`
 
-检查 git status，如果 `plans/phase-roadmap.md` 出现在修改列表中，立即读取它。
+**开始新 Phase 前必须读取：**
+- `./plans/feature-checklist.md`
+- `./plans/visual-checklist.md`
+
+检查 git status，如果以下文件出现在修改列表中，立即读取：
+- `plans/assets-index.json`
 
 ---
 

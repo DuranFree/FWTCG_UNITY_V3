@@ -59,7 +59,7 @@
 
 ### 数据结构
 - ✅ CardData ScriptableObject（id/cardName/cost/atk/runeType/runeCost/description）— DEV-1（简化版，完整字段 DEV-2）
-- ✅ 关键词枚举（Haste/Barrier/SpellShield/Inspire/Conquest/Deathwish/Reactive/StrongAtk/Roam/Foresight/Standby/Stun）— DEV-2
+- ✅ 关键词枚举（Haste/Barrier/SpellShield/Inspire/Conquest/Deathwish/Reactive/StrongAtk/Roam/Foresight/Standby/Stun/Ephemeral）— DEV-2 + DEV-18（Ephemeral Rule 728）
 - ✅ 装备卡数据结构（附着机制：UnitInstance.AttachedEquipment/AttachedTo + TryPlayEquipment自动附着）— DEV-13
 - ✅ 传奇卡数据结构（abilities数组：被动/触发/主动技能）— DEV-10（LegendInstance.DisplayData + kaisa_legend/yi_legend CardData）
 - ✅ 英雄牌标记（hero: true，游戏开始时单独提取到英雄区，不进牌库）— DEV-10
@@ -138,7 +138,7 @@
 - ✅ jax 入场（法盾+入场效果）— DEV-2（日志显示）
 - ✅ tiyana_warden 被动（阻止对手据守得分）— DEV-2
 - ✅ wailing_poro 绝念（孤独阵亡时抽1张）— DEV-2
-- ✅ zhonya（待命，死亡保护）— DEV-13（CardData已有Standby+Reactive关键词，待命机制基础实现）
+- ✅ zhonya（待命，死亡保护）— DEV-13（基础）+ DEV-18（IsStandby字段 + Rule 716完整实现）
 - ✅ trinity_force（据守额外+1分，+2战力，1摧破符能）— DEV-11入场效果+DEV-13附着系统
 - ✅ guardian_angel（死亡保护，+1战力，1翠意符能）— DEV-11入场效果+DEV-13附着系统
 - ✅ dorans_blade（+2战力，1摧破符能）— DEV-11入场效果+DEV-13附着系统
@@ -195,7 +195,7 @@
 - ✅ 确认移动按钮（直接点击BF区域触发移动，无需额外确认）— DEV-1
 - [ ] 战斗动画（单位冲向目标，伤害数字飘出）
 - ✅ 战斗结算框 UI（CombatResultPanel：双方战力对比 + VS + 结果显示 + 3s自动关闭）— DEV-10
-- [ ] 待命区域 UI（bf-1-standby / bf-2-standby，配合 zhonya 待命关键词）
+- ✅ 待命区域 UI（bf-1-standby / bf-2-standby，配合 zhonya 待命关键词）— DEV-18
 
 ### 特殊界面
 - ✅ 掷硬币界面（显示先手结果 + 战场名 + OK按钮）— DEV-2（无动画，DEV-3添加）

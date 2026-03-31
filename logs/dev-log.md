@@ -2,6 +2,26 @@
 
 ---
 
+## DEV-18：战斗视觉 + 待命/瞬息机制 — 2026-03-31
+
+**Status**: ✅ Completed
+**Tests**: 309/309 🟢
+
+**What was done**:
+
+- **Ephemeral 关键词（Rule 728）** — `CardKeyword.cs` 新增 `Ephemeral = 1 << 14`；`CardDetailPopup.cs` 新增名称+描述条目；`UnitInstance.cs` 新增 `IsEphemeral`、`SummonedOnRound`（默认-1）、`IsStandby` 三个属性；`TurnManager.cs` 在 DoAwaken 阶段新增 `DestroyEphemeralUnits(gs)` 遍历基地+所有BF单位，`SummonedOnRound < gs.Round` 即销毁并 Fire `UnitDied` 事件。
+- **战斗冲击波（Rule 战斗视觉）** — 新建 `CombatAnimator.cs`，订阅 `CombatSystem.OnCombatResult`，BF1/BF2 各生成一个 ShockwaveRing 子 Image，每次战斗结果触发 `PlayShockwave` 协程（scale 0→1.5，alpha 0.80→0，0.45s）。
+- **战场环境光晕** — 新建 `BattlefieldGlow.cs`，AmbientBreatheLoop（5s，alpha 0.02~0.08）+ CtrlGlowLoop（3s，绿/红/透，alpha 0.10~0.35）；`SetControl(owner)` 由 `GameUI.UpdateBFGlows()` 每次 Refresh 调用。
+- **出牌板闪烁** — `GameManager.cs` 新增 `OnCardPlayed` 静态事件，`TryPlayUnit/Equipment/SpellAsync` 均 Fire；`GameUI.cs` 订阅后触发 `BoardFlashRoutine`（0.85s，淡入0.3s+淡出0.55s，覆盖全棋盘 overlay）。
+- **战场卡牌图片** — `GameUI.UpdateBFCardArt()` 从 `gs.BF1Id/BF2Id` 拼接 `Resources/CardArt/bf_{id}` 路径，`Resources.Load<Sprite>` 加载并赋给 SceneBuilder 创建的 Image。
+- **待命区域 UI** — `SceneBuilder.CreateBattlefieldPanel` 新增 StandbyZone（18px 高，STANDBY 标签），以及 AmbientOverlay + CtrlGlowOverlay 两个全面板 Image，BattlefieldGlow 组件通过 SerializedObject wiring 与两个 overlay 关联。
+- **SceneBuilder 扩展** — CreateBoardWrapper / WireGameUI 参数扩展支持 bf1Glow/bf2Glow/bf1CardArt/bf2CardArt/boardFlashOverlay；添加 CombatAnimator 组件并 wire BF panel RectTransforms。
+- **测试** — 新建 `DEV18CombatVisualTests.cs`（18 tests）：Ephemeral 枚举/HasKeyword/UnitInstance 默认值/Standby flip/4条瞬息条件逻辑/BF art 路径格式/BF_DISPLAY_NAMES spot-check/OnCardPlayed 事件订阅反订阅。同步修复 `DEV8VisualTests.CardDetailPopup_15KeywordsExist`（14→15）。
+
+**Files changed**: `CardKeyword.cs`、`CardDetailPopup.cs`、`UnitInstance.cs`、`TurnManager.cs`、`GameManager.cs`、`GameUI.cs`、`SceneBuilder.cs`（新建：`BattlefieldGlow.cs`、`CombatAnimator.cs`、`DEV18CombatVisualTests.cs`）
+
+---
+
 ## DEV-25：规则对齐修复（16条对照表）— 2026-03-31
 
 **Status**: ✅ Completed

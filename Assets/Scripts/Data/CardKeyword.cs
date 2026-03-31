@@ -24,5 +24,6 @@ namespace FWTCG.Data
         Stun        = 1 << 11, // 眩晕: cannot contribute power in combat
         Echo        = 1 << 12, // 回响: can be played a second time this turn
         Guard       = 1 << 13, // 坚守: +1 power when defending
+        Ephemeral   = 1 << 14, // 瞬息: destroyed at start of next turn (Rule 728)
     }
 }
