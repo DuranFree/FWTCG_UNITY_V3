@@ -109,8 +109,22 @@ namespace FWTCG.AI
                 gs.GetHand(GameRules.OWNER_ENEMY).Remove(toPlay);
                 SpendCost(toPlay.CardData, gs);
                 gs.EBase.Add(toPlay);
-                // Units with Haste keyword enter active (not exhausted)
-                toPlay.Exhausted = !toPlay.CardData.HasKeyword(CardKeyword.Haste);
+
+                // Rule 717: Haste is OPTIONAL. Pay extra [1] mana + [1C] sch to enter active.
+                bool useHaste = false;
+                if (toPlay.CardData.HasKeyword(CardKeyword.Haste))
+                {
+                    bool hasExtraMana = gs.EMana >= 1;
+                    bool hasExtraSch  = gs.GetSch(GameRules.OWNER_ENEMY, toPlay.CardData.RuneType) >= 1;
+                    if (hasExtraMana && hasExtraSch)
+                    {
+                        gs.EMana -= 1;
+                        gs.SpendSch(GameRules.OWNER_ENEMY, toPlay.CardData.RuneType, 1);
+                        useHaste = true;
+                        Log($"[AI] 急速！支付额外1法力+1{toPlay.CardData.RuneType}符能，{toPlay.UnitName}以活跃状态进场");
+                    }
+                }
+                toPlay.Exhausted = !useHaste;
                 gs.CardsPlayedThisTurn++;
                 Log($"[AI] 出 {toPlay.UnitName}（费用{toPlay.CardData.Cost}，战力{toPlay.CurrentAtk}），剩余法力 {gs.EMana}");
                 entryEffects?.OnUnitEntered(toPlay, GameRules.OWNER_ENEMY, gs);
@@ -333,20 +347,28 @@ namespace FWTCG.AI
                     var enemies = GetAllPlayerUnits(gs);
                     if (enemies.Count == 0) return null;
 
+                    // Rule 721: units with SpellShield cost 1 extra sch to target.
+                    // Only include them if the AI has at least 1 sch available.
+                    int aiTotalSch = gs.GetSch(GameRules.OWNER_ENEMY);
+                    var affordableEnemies = enemies
+                        .Where(u => !u.HasSpellShield || aiTotalSch >= 1)
+                        .ToList();
+                    if (affordableEnemies.Count == 0) return null;
+
                     if (spell.CardData.EffectId == "slam")
                     {
                         // Stun: prefer BF units (they fight), pick highest ATK, unstunned
                         UnitInstance bfTarget = GetPlayerBFUnits(gs)
-                            .Where(u => !u.Stunned)
+                            .Where(u => !u.Stunned && (!u.HasSpellShield || aiTotalSch >= 1))
                             .OrderByDescending(u => u.EffectiveAtk())
                             .FirstOrDefault();
                         if (bfTarget != null) return bfTarget;
-                        return enemies.Where(u => !u.Stunned)
+                        return affordableEnemies.Where(u => !u.Stunned)
                             .OrderByDescending(u => u.EffectiveAtk()).FirstOrDefault();
                     }
 
                     // Default damage spells: hit highest effective ATK enemy
-                    return enemies.OrderByDescending(u => u.EffectiveAtk()).First();
+                    return affordableEnemies.OrderByDescending(u => u.EffectiveAtk()).First();
                 }
 
                 case SpellTargetType.FriendlyUnit:
@@ -554,6 +576,15 @@ namespace FWTCG.AI
         {
             SpendCost(spell.CardData, gs);
             gs.CardsPlayedThisTurn++;
+            // Rule 721: pay 1 extra sch of any type if target has SpellShield
+            if (target != null && target.HasSpellShield)
+            {
+                foreach (RuneType rt in System.Enum.GetValues(typeof(RuneType)))
+                {
+                    if (gs.GetSch(GameRules.OWNER_ENEMY, rt) > 0)
+                    { gs.SpendSch(GameRules.OWNER_ENEMY, rt, 1); break; }
+                }
+            }
             Log($"[AI] 发动法术 {spell.UnitName}（费用{spell.CardData.Cost}）　⚡ 可点击【反应】按钮响应！");
 
             // Give player a window to click the React button
@@ -670,7 +701,7 @@ namespace FWTCG.AI
                     {
                         RuneInstance r = runes[i];
                         runes.RemoveAt(i);
-                        gs.GetRuneDeck(GameRules.OWNER_ENEMY).Insert(0, r);
+                        gs.GetRuneDeck(GameRules.OWNER_ENEMY).Add(r); // Rule: recycle goes to deck bottom
                         gs.AddSch(GameRules.OWNER_ENEMY, r.RuneType, 1);
                         remaining--;
                         Log($"[AI回收] 回收已横置符文 {r.RuneType}，+1{r.RuneType}符能");
@@ -684,7 +715,7 @@ namespace FWTCG.AI
                     {
                         RuneInstance r = runes[i];
                         runes.RemoveAt(i);
-                        gs.GetRuneDeck(GameRules.OWNER_ENEMY).Insert(0, r);
+                        gs.GetRuneDeck(GameRules.OWNER_ENEMY).Add(r); // Rule: recycle goes to deck bottom
                         gs.AddSch(GameRules.OWNER_ENEMY, r.RuneType, 1);
                         remaining--;
                         Log($"[AI回收] 回收未横置符文 {r.RuneType}（牺牲法力），+1{r.RuneType}符能");

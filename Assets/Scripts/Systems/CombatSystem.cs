@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using UnityEngine;
 using FWTCG.Core;
 using FWTCG;
@@ -308,7 +309,8 @@ namespace FWTCG.Systems
 
         /// <summary>
         /// Distributes damage sequentially among target units.
-        /// First unit absorbs damage until dead, excess carries to next unit.
+        /// Rule 727 (Barrier): units with HasBarrier must receive lethal damage before non-Barrier units.
+        /// Within each group, order is preserved. Excess damage carries over.
         /// Returns list of units with CurrentHp <= 0 (dead).
         /// </summary>
         private List<UnitInstance> DistributeDamage(int totalDamage, List<UnitInstance> targets)
@@ -316,7 +318,12 @@ namespace FWTCG.Systems
             List<UnitInstance> dead = new List<UnitInstance>();
             int remaining = totalDamage;
 
-            foreach (UnitInstance u in targets)
+            // Barrier units must take lethal damage first (Rule 727.1.b)
+            IEnumerable<UnitInstance> ordered = targets
+                .Where(u => u.HasBarrier)
+                .Concat(targets.Where(u => !u.HasBarrier));
+
+            foreach (UnitInstance u in ordered)
             {
                 if (remaining <= 0) break;
 

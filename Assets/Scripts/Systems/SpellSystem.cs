@@ -133,13 +133,9 @@ namespace FWTCG.Systems
         {
             if (target == null) return;
 
-            // Spell shield: absorbs one instance of spell damage
-            if (target.HasSpellShield)
-            {
-                target.HasSpellShield = false;
-                Log($"[法盾] {target.UnitName} 法术护盾抵消了 {amount} 点伤害");
-                return;
-            }
+            // Rule 721: SpellShield is an extra targeting COST, not a damage absorber.
+            // By the time we are here, the caster has already paid the SpellShield cost
+            // (checked in GameManager / AI targeting). Damage resolves normally.
 
             // void_gate: +1 damage to units on that BF
             if (_bfSys != null)
@@ -324,13 +320,8 @@ namespace FWTCG.Systems
         {
             if (target == null) return;
 
-            if (target.HasSpellShield)
-            {
-                target.HasSpellShield = false;
-                Log($"[冲击] {target.UnitName} 法术护盾抵消了眩晕");
-                return;
-            }
-
+            // Rule 721: SpellShield is an extra targeting COST, not a stun-blocker.
+            // The targeting cost was already paid before CastSpell was called.
             target.Stunned = true;
             Log($"[冲击] {target.UnitName} 被眩晕（本回合无法攻击）");
         }

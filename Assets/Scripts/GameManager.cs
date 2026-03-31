@@ -362,6 +362,14 @@ namespace FWTCG
                     return;
                 }
 
+                // Rule 721: SpellShield forces caster to pay 1 extra sch to target the unit
+                if (!TryPaySpellShieldCost(GameRules.OWNER_PLAYER, unit))
+                {
+                    TurnManager.BroadcastMessage_Static(
+                        $"[法盾] 符能不足：{unit.UnitName} 拥有法盾，需要至少1点符能才能选为目标");
+                    return; // Stay in targeting mode so player can pick another target
+                }
+
                 // Valid target — give AI a reaction window before resolving (DEV-15)
                 UnitInstance spell = _targetingSpell;
                 _targetingSpell = null;
@@ -576,9 +584,9 @@ namespace FWTCG
 
             if (recycle)
             {
-                // Recycle: remove from active runes, place on top of rune deck, gain +1 sch
+                // Recycle: remove from active runes, place at bottom of rune deck, gain +1 sch
                 runes.RemoveAt(runeIdx);
-                _gs.PRuneDeck.Insert(0, rune);
+                _gs.PRuneDeck.Add(rune);
                 _gs.AddSch(GameRules.OWNER_PLAYER, rune.RuneType, 1);
                 TurnManager.BroadcastMessage_Static(
                     $"[回收] 符文 {rune.RuneType} 回收，获得 1 点{rune.RuneType}符能");
@@ -657,6 +665,28 @@ namespace FWTCG
             string hint = msg.StartsWith("[提示] ") ? msg.Substring(5) : msg;
             OnHintToast?.Invoke(hint);
             if (card != null) OnCardPlayFailed?.Invoke(card);
+        }
+
+        /// <summary>
+        /// Rule 721: If the target has SpellShield, the caster must pay 1 sch of any type.
+        /// Deducts 1 sch from the first available type for the given owner.
+        /// Returns true if paid (or not needed), false if the cost cannot be met.
+        /// </summary>
+        private bool TryPaySpellShieldCost(string owner, UnitInstance target)
+        {
+            if (target == null || !target.HasSpellShield) return true;
+            var sch = owner == GameRules.OWNER_PLAYER ? _gs.PSch : _gs.ESch;
+            foreach (var kv in sch)
+            {
+                if (kv.Value > 0)
+                {
+                    _gs.SpendSch(owner, kv.Key, 1);
+                    TurnManager.BroadcastMessage_Static(
+                        $"[法盾] 支付1点{kv.Key}符能，将 {target.UnitName} 选为目标");
+                    return true;
+                }
+            }
+            return false; // can't afford
         }
 
         private void TryPlayCard(UnitInstance unit)
@@ -876,6 +906,18 @@ namespace FWTCG
                 _gs.PMana += spell.CardData.Cost;
                 _gs.CardsPlayedThisTurn--;
                 TurnManager.BroadcastMessage_Static($"[法术] 取消 {spell.UnitName} 的目标选择，法力退还");
+                RefreshUI();
+                return;
+            }
+
+            // Rule 721: SpellShield forces caster to pay 1 extra sch to target the unit
+            if (!TryPaySpellShieldCost(GameRules.OWNER_PLAYER, target))
+            {
+                // Can't afford — treat as cancelled, refund
+                _gs.PHand.Add(spell);
+                _gs.PMana += spell.CardData.Cost;
+                _gs.CardsPlayedThisTurn--;
+                ShowPlayError($"[法盾] 符能不足：{target.UnitName} 拥有法盾，需要至少1点符能才能选为目标", spell);
                 RefreshUI();
                 return;
             }

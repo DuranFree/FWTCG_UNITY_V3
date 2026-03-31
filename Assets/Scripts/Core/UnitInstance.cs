@@ -25,14 +25,25 @@ namespace FWTCG.Core
         public bool Exhausted { get; set; }
         public bool Stunned { get; set; }
 
-        /// <summary>Buff tokens (+1/+1 each, non-stackable beyond 1).</summary>
-        public int BuffTokens { get; set; }
+        /// <summary>
+        /// Buff tokens on this unit. Rule 702: a unit can hold at most 1 buff token.
+        /// Setting this value will be clamped to [0, 1].
+        /// </summary>
+        private int _buffTokens;
+        public int BuffTokens
+        {
+            get => _buffTokens;
+            set => _buffTokens = Mathf.Clamp(value, 0, 1);
+        }
 
         /// <summary>Temporary attack bonus (e.g. Darius entry effect). Cleared end of turn.</summary>
         public int TempAtkBonus { get; set; }
 
         /// <summary>Whether this unit currently has a spell shield charge.</summary>
         public bool HasSpellShield { get; set; }
+
+        /// <summary>Whether this unit has Barrier (壁垒): must absorb lethal damage first in combat.</summary>
+        public bool HasBarrier { get; set; }
 
         /// <summary>Whether this unit has StrongAtk (强攻): +1 power when attacking.</summary>
         public bool HasStrongAtk { get; set; }
@@ -65,9 +76,10 @@ namespace FWTCG.Core
             CurrentHp = data.Atk;   // atk = HP core rule
             Exhausted = false;
             Stunned = false;
-            BuffTokens = 0;
+            _buffTokens = 0;
             TempAtkBonus = 0;
             HasSpellShield = data.HasKeyword(CardKeyword.SpellShield);
+            HasBarrier = data.HasKeyword(CardKeyword.Barrier);
             HasStrongAtk = data.HasKeyword(CardKeyword.StrongAtk);
             HasGuard = data.HasKeyword(CardKeyword.Guard);
             Owner = owner;

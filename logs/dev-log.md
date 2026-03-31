@@ -2,6 +2,26 @@
 
 ---
 
+## DEV-25：规则对齐修复（16条对照表）— 2026-03-31
+
+**Status**: ✅ Completed
+
+**What was done**:
+
+对照《符文战场》核心规则文档，逐条修复逻辑偏差，共修改 7 个文件：
+
+- **#1 法盾语义（Rule 721）** — `SpellSystem.cs`：移除 DealDamage/Slam 中的伤害/眩晕吸收逻辑。`GameManager.cs`：新增 `TryPaySpellShieldCost()`，在玩家选择目标时（点击路径+弹窗路径）检查并扣除1点符能；无法支付则拦截选择。`SimpleAI.cs`：`AiChooseSpellTarget` 跳过符能不足时无法承担法盾费用的目标；`CastAISpell` 在施法时扣除对应符能。
+- **#2 壁垒优先（Rule 727）** — `CombatSystem.cs`：`DistributeDamage` 通过 LINQ 将 `HasBarrier=true` 的单位排在前面，确保先于普通单位承受致命伤害。`UnitInstance.cs`：新增 `HasBarrier` 属性，构造时从 `CardData` 读取关键词初始化。
+- **#7 抽牌阶段符文池清空（Rule 515.4.d）** — `TurnManager.cs`：`DoDraw` 所有三条退出路径（燃尽/无牌/正常）末尾均清空所有玩家的法力和符能池。
+- **#8 回收放底部** — `GameManager.cs`：`OnRuneClicked` 回收时改为 `PRuneDeck.Add(rune)`（原为 `Insert(0, rune)`）。`SimpleAI.cs`：`AiRecycleRunes` 两处 `Insert(0, r)` 改为 `.Add(r)`。
+- **#9 增益上限1（Rule 702）** — `UnitInstance.cs`：`BuffTokens` 改为手动属性，`set` 用 `Mathf.Clamp(value, 0, 1)` 确保最多1个增益指示物。
+- **#15 急速费用（Rule 717）** — `SimpleAI.cs`：单位有 Haste 关键词时，AI 先判断是否有多余1法力+1C符能；有则额外扣除并进场为活跃状态（原为自动免费给活跃状态）。
+- **#17 手牌调度回收（Rule 117.3）** — `StartupFlowUI.cs`：`PerformMulligan` 退还牌改为 `deck.Add(u)`（原为 `deck.Insert(Random.Range(...))`）。
+
+**Tests**: 289/289 EditMode 全绿（3条旧测试同步更新为 Rule 721 正确语义）
+
+---
+
 ## DEV-17：伤害数字飘出 + 单位死亡动画 — 2026-03-31
 
 **Status**: ✅ Completed

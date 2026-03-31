@@ -244,6 +244,9 @@ namespace FWTCG.Systems
                 if (discard.Count == 0)
                 {
                     Broadcast($"[燃尽] {DisplayName(who)} 牌库和废牌堆均为空，无法抽牌");
+                    // Rule 515.4.d: clear all pools even when no draw occurs
+                    foreach (string p in new[] { GameRules.OWNER_PLAYER, GameRules.OWNER_ENEMY })
+                    { gs.SetMana(p, 0); gs.ResetSch(p); }
                     await Delay(GameRules.PHASE_DELAY_MS);
                     return;
                 }
@@ -258,6 +261,9 @@ namespace FWTCG.Systems
             if (deck.Count == 0)
             {
                 Broadcast($"[抽牌] {DisplayName(who)} 无牌可抽");
+                // Rule 515.4.d: clear all pools even when no draw occurs
+                foreach (string p in new[] { GameRules.OWNER_PLAYER, GameRules.OWNER_ENEMY })
+                { gs.SetMana(p, 0); gs.ResetSch(p); }
                 await Delay(GameRules.PHASE_DELAY_MS);
                 return;
             }
@@ -266,6 +272,14 @@ namespace FWTCG.Systems
             deck.RemoveAt(0);
             hand.Add(drawn);
             Broadcast($"[抽牌] {DisplayName(who)} 抽到 {drawn.UnitName}（手牌 {hand.Count}）");
+
+            // Rule 515.4.d: clear ALL players' mana pools at end of draw phase
+            foreach (string p in new[] { GameRules.OWNER_PLAYER, GameRules.OWNER_ENEMY })
+            {
+                gs.SetMana(p, 0);
+                gs.ResetSch(p);
+            }
+            Broadcast("[抽牌结束] 所有玩家符文池清空");
 
             await Delay(GameRules.PHASE_DELAY_MS);
         }

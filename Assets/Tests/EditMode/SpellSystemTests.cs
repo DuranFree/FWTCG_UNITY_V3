@@ -144,16 +144,19 @@ namespace FWTCG.Tests.EditMode
         }
 
         [Test]
-        public void HexRay_WithSpellShield_AbsorbsDamageAndConsumesShield()
+        public void HexRay_WithSpellShield_DamageResolvesNormally_Rule721()
         {
+            // Rule 721.1.c: SpellShield forces extra sch cost at TARGETING time.
+            // Once the targeting cost is paid, the spell resolves fully — damage is NOT absorbed.
             var spell  = MakeSpellInHand(GameRules.OWNER_PLAYER, "hex_ray", "hex_ray", SpellTargetType.EnemyUnit);
             var target = MakeUnitInBase(GameRules.OWNER_ENEMY, "enemy_unit", 3, 6);
             target.HasSpellShield = true;
+            // Simulate: targeting cost already paid (GameManager handles this before CastSpell)
 
             _spellSys.CastSpell(spell, GameRules.OWNER_PLAYER, target, _gs);
 
-            Assert.AreEqual(6, target.CurrentHp, "SpellShield should block all damage");
-            Assert.IsFalse(target.HasSpellShield, "SpellShield should be consumed after blocking");
+            Assert.AreEqual(3, target.CurrentHp, "Rule 721: SpellShield is a targeting cost, not damage absorb — hex_ray deals 3 damage normally (6-3=3)");
+            Assert.IsTrue(target.HasSpellShield, "SpellShield charge is NOT consumed at resolution (it was already paid at targeting)");
         }
 
         // ── VoidSeek ──────────────────────────────────────────────────────────
@@ -275,16 +278,18 @@ namespace FWTCG.Tests.EditMode
         }
 
         [Test]
-        public void Slam_WithSpellShield_BlocksStunAndConsumesShield()
+        public void Slam_WithSpellShield_StunAppliesNormally_Rule721()
         {
+            // Rule 721.1.c: SpellShield only forces extra sch cost to TARGET the unit.
+            // The stun effect resolves normally once targeting cost is paid.
             var spell  = MakeSpellInHand(GameRules.OWNER_PLAYER, "slam", "slam", SpellTargetType.EnemyUnit);
             var target = MakeUnitInBase(GameRules.OWNER_ENEMY, "shielded_unit", 3, 5);
             target.HasSpellShield = true;
+            // Simulate: targeting cost already paid by the caster (GameManager handles this)
 
             _spellSys.CastSpell(spell, GameRules.OWNER_PLAYER, target, _gs);
 
-            Assert.IsFalse(target.Stunned, "SpellShield should block slam's stun");
-            Assert.IsFalse(target.HasSpellShield, "SpellShield should be consumed");
+            Assert.IsTrue(target.Stunned, "Rule 721: SpellShield is a targeting cost gate, NOT a stun-blocker — slam stuns normally");
         }
 
         // ── StrikeAskLater ────────────────────────────────────────────────────
@@ -409,21 +414,23 @@ namespace FWTCG.Tests.EditMode
             Assert.IsFalse(isRejected, "FriendlyUnit spell should accept a friendly target");
         }
 
-        // ── SpellShield on DealDamage: stardrop second hit still blocked? ─────
+        // ── SpellShield + stardrop: both hits land (Rule 721) ────────────────
 
         [Test]
-        public void Stardrop_SpellShieldOnlyBlocksFirstHit_SecondHitDeals3Damage()
+        public void Stardrop_WithSpellShield_BothHitsDealFullDamage_Rule721()
         {
+            // Rule 721.1.c: SpellShield is a targeting cost paid ONCE at selection time.
+            // Both stardrop hits resolve normally — neither is absorbed.
             var spell  = MakeSpellInHand(GameRules.OWNER_PLAYER, "stardrop", "stardrop", SpellTargetType.EnemyUnit);
             var target = MakeUnitInBase(GameRules.OWNER_ENEMY, "shielded_tough", 3, 10);
             target.HasSpellShield = true;
+            // Simulate: 1 sch targeting cost already paid before CastSpell
 
             _spellSys.CastSpell(spell, GameRules.OWNER_PLAYER, target, _gs);
 
-            // First 3 is blocked by shield; second 3 deals 3 damage → 10-3=7
-            Assert.AreEqual(7, target.CurrentHp,
-                "stardrop: shield absorbs first 3, second 3 goes through → 10-3=7");
-            Assert.IsFalse(target.HasSpellShield, "SpellShield consumed after first hit");
+            // Both hits deal 3 damage → 10-3-3=4
+            Assert.AreEqual(4, target.CurrentHp,
+                "Rule 721: SpellShield is a targeting cost, not damage absorb — both stardrop hits land (10-3-3=4)");
         }
 
         // ── Dead unit removed from BF, control updated ─────────────────────

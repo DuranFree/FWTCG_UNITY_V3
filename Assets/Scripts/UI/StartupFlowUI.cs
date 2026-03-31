@@ -188,12 +188,11 @@ namespace FWTCG.UI
             List<UnitInstance> deck = gs.PDeck;
             List<UnitInstance> hand = gs.PHand;
 
-            // Return selected cards to random positions in the deck
+            // Rule 117.3 + 594.1.a: return selected cards to BOTTOM of deck
             foreach (UnitInstance u in _selectedForSwap)
             {
                 hand.Remove(u);
-                int insertIdx = Random.Range(0, deck.Count + 1);
-                deck.Insert(insertIdx, u);
+                deck.Add(u);
             }
 
             // Draw replacements
