@@ -1423,7 +1423,7 @@ namespace FWTCG.Editor
             showcaseSO.FindProperty("_artImage").objectReferenceValue    = artImg;
             showcaseSO.ApplyModifiedPropertiesWithoutUndo();
 
-            go.SetActive(false);
+            // Do NOT SetActive(false) — CanvasGroup controls visibility; panel must stay active.
             return go;
         }
 
@@ -1558,7 +1558,7 @@ namespace FWTCG.Editor
             popupSO.FindProperty("_cancelBtn").objectReferenceValue      = cancelBtn;
             popupSO.ApplyModifiedPropertiesWithoutUndo();
 
-            backdrop.SetActive(false);
+            // Do NOT SetActive(false) — CanvasGroup controls visibility; panel must stay active.
             return backdrop;
         }
 
