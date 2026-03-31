@@ -197,6 +197,7 @@ namespace FWTCG.UI
             }
 
             FWTCG.Systems.TurnManager.OnBannerRequest += ShowBanner;
+            FWTCG.Systems.LegendSystem.OnLegendEvolved += OnLegendEvolved; // DEV-15
         }
 
         private void OnDestroy()
@@ -206,6 +207,44 @@ namespace FWTCG.UI
             if (_bf2Button != null) _bf2Button.onClick.RemoveAllListeners();
             if (_restartButton != null) _restartButton.onClick.RemoveAllListeners();
             FWTCG.Systems.TurnManager.OnBannerRequest -= ShowBanner;
+            FWTCG.Systems.LegendSystem.OnLegendEvolved -= OnLegendEvolved; // DEV-15
+        }
+
+        // ── DEV-15: Legend evolution flash ───────────────────────────────────
+
+        private void OnLegendEvolved(string owner, int newLevel)
+        {
+            Text legendText = owner == FWTCG.Core.GameRules.OWNER_PLAYER
+                ? _playerLegendText
+                : _enemyLegendText;
+            if (legendText != null)
+                StartCoroutine(FlashLegendText(legendText));
+        }
+
+        private IEnumerator FlashLegendText(Text text)
+        {
+            Color original = text.color;
+            Color flash    = new Color(1f, 0.85f, 0.1f); // bright gold
+            float duration = 0.15f;
+
+            for (int i = 0; i < 4; i++)
+            {
+                float t = 0f;
+                while (t < duration)
+                {
+                    text.color = Color.Lerp(original, flash, t / duration);
+                    t += Time.deltaTime;
+                    yield return null;
+                }
+                t = 0f;
+                while (t < duration)
+                {
+                    text.color = Color.Lerp(flash, original, t / duration);
+                    t += Time.deltaTime;
+                    yield return null;
+                }
+            }
+            text.color = original;
         }
 
         public void ShowBanner(string text)

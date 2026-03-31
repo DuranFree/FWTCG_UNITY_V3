@@ -2,6 +2,37 @@
 
 ---
 
+## DEV-15：AI 反应对称 + 传奇升级动画 — 2026-03-31
+
+**Status**: ✅ Completed
+
+**技术决策**:
+- AI 反应到玩家施法：`CastPlayerSpellWithReactionAsync`（async Task，fire-and-forget）给 AI 700ms 窗口，同步等待结算，期间 `_aiReactionPending` 锁定玩家输入
+- `AiPickBestReactiveCard`：5 级明确优先级（风墙 > 闪电反制 > 嘲讽 > 精英训练 > 决斗姿态），每级独立 foreach 保证优先级不受列表顺序影响
+- 传奇升级动画：`LegendSystem.OnLegendEvolved` 静态事件 → `GameUI.FlashLegendText` 金色闪烁协程（4 次 0.15s 脉冲）
+
+**新功能**:
+- `SimpleAI.AiPickBestReactiveCard`（public static，可测试）
+- `GameManager.CastPlayerSpellWithReactionAsync`（玩家法术给 AI 反应窗口）
+- `GameManager.AiTryReact`（AI 手牌筛选 + 费用扣除 + ApplyReactive 调用）
+- `GameManager._aiReactionPending`（防止反应期间玩家重复操作）
+- `LegendSystem.OnLegendEvolved`（`Action<string, int>`：owner + newLevel）
+- `GameUI.OnLegendEvolved` + `FlashLegendText`（协程金色闪烁）
+
+**修改文件**:
+- `Assets/Scripts/AI/SimpleAI.cs`（+AiPickBestReactiveCard）
+- `Assets/Scripts/GameManager.cs`（+_aiReactionPending + CastPlayerSpellWithReactionAsync + AiTryReact）
+- `Assets/Scripts/Systems/LegendSystem.cs`（+OnLegendEvolved 事件）
+- `Assets/Scripts/UI/GameUI.cs`（+OnLegendEvolved 订阅 + FlashLegendText 协程）
+- `plans/feature-checklist.md`、`plans/visual-checklist.md`、`plans/tech-debt.md`
+
+**New files**:
+- `Assets/Tests/EditMode/DEV15ReactionTests.cs`（11 个测试）
+
+**测试结果**: 274 全绿（11 新 + 263 现有），0 失败
+
+---
+
 ## DEV-14：软加权手牌 + 音频框架 + 系统验证 — 2026-03-31
 
 **Status**: ✅ Completed

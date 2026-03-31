@@ -20,6 +20,9 @@ namespace FWTCG.Systems
     {
         public static event Action<string> OnLegendLog;
 
+        /// <summary>DEV-15: Fired when a legend evolves. (legendOwner, newLevel)</summary>
+        public static event Action<string, int> OnLegendEvolved;
+
         public const string KAISA_LEGEND_ID = "kaisa";
         public const string YI_LEGEND_ID    = "masteryi";
 
@@ -104,6 +107,7 @@ namespace FWTCG.Systems
                 legend.Evolve();
                 Log($"[传奇] 卡莎进化！盟友拥有{distinctCount}种关键词 — 升至等级2！");
                 TurnManager.ShowBanner_Static("⭐ 卡莎·进化！Lv.2");
+                OnLegendEvolved?.Invoke(kaisaOwner, legend.Level); // DEV-15
             }
         }
 

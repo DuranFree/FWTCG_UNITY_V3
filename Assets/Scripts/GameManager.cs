@@ -116,6 +116,7 @@ namespace FWTCG
         private string _selectedUnitLoc;          // "hand", "base", "0", "1"
         private List<UnitInstance> _selectedBaseUnits = new List<UnitInstance>(); // multi-select for batch move
         private UnitInstance _targetingSpell;     // non-null = awaiting target click for spell
+        private bool _aiReactionPending;          // DEV-15: true while AI reaction resolves
 
         // ── Unity lifecycle ───────────────────────────────────────────────────
 
@@ -314,6 +315,7 @@ namespace FWTCG
             if (_gs.GameOver) return;
             if (_gs.Turn != GameRules.OWNER_PLAYER) return;
             if (_gs.Phase != GameRules.PHASE_ACTION) return;
+            if (_aiReactionPending) return; // DEV-15: block input while AI resolves reaction
 
             // ── Spell targeting mode: resolve target ──
             if (_targetingSpell != null)
@@ -337,15 +339,10 @@ namespace FWTCG
                     return;
                 }
 
-                // Valid target — cast spell
+                // Valid target — give AI a reaction window before resolving (DEV-15)
                 UnitInstance spell = _targetingSpell;
                 _targetingSpell = null;
-                if (_spellSys != null)
-                    _spellSys.CastSpell(spell, GameRules.OWNER_PLAYER, unit, _gs);
-                else
-                {
-                    _gs.GetDiscard(GameRules.OWNER_PLAYER).Add(spell);
-                }
+                _ = CastPlayerSpellWithReactionAsync(spell, unit);
                 RefreshUI();
                 return;
             }
@@ -428,6 +425,7 @@ namespace FWTCG
             if (_gs.GameOver) return;
             if (_gs.Turn != GameRules.OWNER_PLAYER) return;
             if (_gs.Phase != GameRules.PHASE_ACTION) return;
+            if (_aiReactionPending) return; // DEV-15
 
             // Ignore BF click while in spell targeting mode
             if (_targetingSpell != null)
@@ -803,19 +801,15 @@ namespace FWTCG
 
             if (spell.CardData.SpellTargetType == SpellTargetType.None)
             {
-                // No target needed — cast immediately
-                if (_spellSys != null)
-                    _spellSys.CastSpell(spell, GameRules.OWNER_PLAYER, null, _gs);
-                else
-                {
-                    _gs.PHand.Remove(spell);
-                    _gs.PDiscard.Add(spell);
-                }
+                // No target needed — remove from hand, give AI reaction window (DEV-15)
+                _gs.PHand.Remove(spell);
+                _ = CastPlayerSpellWithReactionAsync(spell, null);
                 RefreshUI();
             }
             else
             {
                 // Needs target — remove from hand, enter targeting mode
+                // AI reaction window fires after target is confirmed in OnUnitClicked
                 _gs.PHand.Remove(spell);
                 _targetingSpell = spell;
                 string typeLabel = spell.CardData.SpellTargetType == SpellTargetType.EnemyUnit ? "敌方"
@@ -824,6 +818,79 @@ namespace FWTCG
                     $"[法术] {spell.UnitName} — 请点击一个{typeLabel}单位作为目标（结束回合可取消）");
                 RefreshUI();
             }
+        }
+
+        // ── DEV-15: AI reaction to player spells ─────────────────────────���────
+
+        /// <summary>
+        /// Casts a player spell after giving the AI a brief window to play a reactive card.
+        /// Fire-and-forget (assigned to _ to suppress warning). Sets _aiReactionPending
+        /// to block player input during the window.
+        /// </summary>
+        private async Task CastPlayerSpellWithReactionAsync(UnitInstance spell, UnitInstance target)
+        {
+            _aiReactionPending = true;
+
+            string targetName = target != null ? $" → {target.UnitName}" : "";
+            TurnManager.BroadcastMessage_Static(
+                $"[法术] {spell.UnitName}{targetName}！⚡ AI响应中…");
+            RefreshUI();
+
+            await Task.Delay(GameRules.AI_ACTION_DELAY_MS);
+            if (_gs.GameOver) { _aiReactionPending = false; return; }
+
+            bool negated = AiTryReact(spell);
+
+            if (negated)
+            {
+                await Task.Delay(300); // brief pause so player reads the negation log
+                TurnManager.BroadcastMessage_Static($"[法术] {spell.UnitName} 被无效化！");
+            }
+            else if (!_gs.GameOver)
+            {
+                if (_spellSys != null)
+                    _spellSys.CastSpell(spell, GameRules.OWNER_PLAYER, target, _gs);
+                else
+                {
+                    _gs.PDiscard.Add(spell);
+                }
+                _legendSys?.CheckKaisaEvolution(GameRules.OWNER_PLAYER, _gs);
+            }
+
+            _aiReactionPending = false;
+            RefreshUI();
+        }
+
+        /// <summary>
+        /// AI decides whether to play a reactive card in response to a player spell.
+        /// Returns true if the player's spell was negated.
+        /// </summary>
+        private bool AiTryReact(UnitInstance playerSpell)
+        {
+            if (_reactiveSys == null) return false;
+
+            // Collect AI's affordable reactive cards
+            var reactives = new System.Collections.Generic.List<UnitInstance>();
+            foreach (var c in _gs.EHand)
+            {
+                if (c.CardData.IsSpell &&
+                    c.CardData.HasKeyword(CardKeyword.Reactive) &&
+                    c.CardData.Cost <= _gs.EMana)
+                {
+                    reactives.Add(c);
+                }
+            }
+
+            if (reactives.Count == 0) return false;
+
+            UnitInstance chosen = SimpleAI.AiPickBestReactiveCard(reactives, playerSpell, _gs);
+            if (chosen == null) return false;
+
+            // Pay cost and apply reactive
+            _gs.EMana -= chosen.CardData.Cost;
+            TurnManager.ShowBanner_Static($"⚡ [AI] 反应！{chosen.UnitName}");
+            bool negated = _reactiveSys.ApplyReactive(chosen, GameRules.OWNER_ENEMY, playerSpell, _gs);
+            return negated;
         }
 
         private void BuildDeck(string owner, CardData[] cardDatas)

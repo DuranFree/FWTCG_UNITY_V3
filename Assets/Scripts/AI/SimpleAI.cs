@@ -679,6 +679,59 @@ namespace FWTCG.AI
             }
         }
 
+        // ═══════════════════════════════════════════════════════════════════════
+        // ── AI Reactive Card Selection (DEV-15) ──────────────────────────────
+        // ═══════════════════════════════════════════════════════════════════════
+
+        /// <summary>
+        /// Selects the best reactive card for AI to play in response to a player spell.
+        /// Returns null if AI should pass (no affordable card, or none worth playing).
+        ///
+        /// Priority:
+        ///   1. Full-negation: wind_wall (any spell), flash_counter (enemy spell), scoff (cost≤4)
+        ///   2. Significant buff with allies: well_trained, duel_stance
+        ///   3. Pass (return null)
+        /// </summary>
+        public static UnitInstance AiPickBestReactiveCard(
+            List<UnitInstance> reactives, UnitInstance triggerSpell, GameState gs)
+        {
+            if (reactives == null || reactives.Count == 0) return null;
+
+            // Evaluate each card at its explicit priority level so that
+            // a higher-priority card always wins regardless of list order.
+
+            // Priority 1: wind_wall — negates any spell unconditionally
+            foreach (var r in reactives)
+                if (r.CardData.EffectId == "wind_wall") return r;
+
+            // Priority 2: flash_counter — negates a player spell
+            foreach (var r in reactives)
+                if (r.CardData.EffectId == "flash_counter"
+                    && triggerSpell != null
+                    && triggerSpell.Owner == GameRules.OWNER_PLAYER)
+                    return r;
+
+            // Priority 3: scoff — negates spells with cost ≤ 4
+            foreach (var r in reactives)
+                if (r.CardData.EffectId == "scoff"
+                    && triggerSpell != null
+                    && triggerSpell.CardData.Cost <= 4)
+                    return r;
+
+            // Priority 4: well_trained — +2 ATK this turn + draw (needs an ally)
+            foreach (var r in reactives)
+                if (r.CardData.EffectId == "well_trained" && GetAllAIUnits(gs).Count > 0)
+                    return r;
+
+            // Priority 5: duel_stance — +1/+1 permanent (needs an ally)
+            foreach (var r in reactives)
+                if (r.CardData.EffectId == "duel_stance" && GetAllAIUnits(gs).Count > 0)
+                    return r;
+
+            // No beneficial reaction found → AI passes
+            return null;
+        }
+
         // ── Logging/Delay helpers ─────────────────────────────────────────────
         private static void Log(string msg) => TurnManager.BroadcastMessage_Static(msg);
         private static Task Delay(int ms)   => Task.Delay(ms);

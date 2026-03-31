@@ -169,7 +169,7 @@
 
 ## 十五、传奇/英雄特殊视觉
 
-- [ ] 传奇升级火焰特效（legend-leveled-flame 3s）
+- ✅ 传奇升级视觉（金色闪烁4次协程，FlashLegendText，0.15s × 4 脉冲）— DEV-15
 - [ ] 中央 SVG 旋转装饰（spin-slow 20s 顺时针 + spin-reverse 12s 逆时针）
 
 ---
