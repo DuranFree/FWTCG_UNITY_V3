@@ -131,7 +131,10 @@ namespace FWTCG
         [SerializeField] private Button _debugReactiveBtn;
         [SerializeField] private Button _debugManaBtn;
         [SerializeField] private Button _debugSchBtn;
-        [SerializeField] private Button _debugFloatBtn;   // DEV-18b: cycle float/banner test
+        [SerializeField] private Button _debugFloatBtn;    // DEV-18b: cycle float/banner test
+        [SerializeField] private InputField _debugDmgInput; // damage value for hit buttons
+        [SerializeField] private Button _debugTakeHitBtn;   // deal damage to player's units
+        [SerializeField] private Button _debugDealHitBtn;   // deal damage to enemy's units
         [SerializeField] private SpellTargetPopup _spellTargetPopup;  // DEV-16b
 
         private int _debugFloatIndex = 0;
@@ -194,6 +197,8 @@ namespace FWTCG
             if (_debugManaBtn != null)     _debugManaBtn.onClick.AddListener(DebugAddMana);
             if (_debugSchBtn != null)      _debugSchBtn.onClick.AddListener(DebugAddSch);
             if (_debugFloatBtn != null)    _debugFloatBtn.onClick.AddListener(DebugCycleFloat);
+            if (_debugTakeHitBtn != null)  _debugTakeHitBtn.onClick.AddListener(() => DebugApplyDamage(GameRules.OWNER_PLAYER));
+            if (_debugDealHitBtn != null)  _debugDealHitBtn.onClick.AddListener(() => DebugApplyDamage(GameRules.OWNER_ENEMY));
         }
 
         private void OnEnable()
@@ -1381,6 +1386,64 @@ namespace FWTCG
                 var lbl = _debugFloatBtn.GetComponentInChildren<UnityEngine.UI.Text>();
                 if (lbl != null) lbl.text = _debugFloatLabels[next];
             }
+        }
+
+        /// <summary>
+        /// Applies debug damage to all board/base units of the given owner.
+        /// Handles death: fires OnUnitDied, moves to discard, triggers deathwish.
+        /// </summary>
+        private void DebugApplyDamage(string targetOwner)
+        {
+            if (_gs == null) return;
+
+            int dmg = 3;
+            if (_debugDmgInput != null && !string.IsNullOrEmpty(_debugDmgInput.text))
+                int.TryParse(_debugDmgInput.text, out dmg);
+            if (dmg <= 0) dmg = 1;
+
+            string label = targetOwner == GameRules.OWNER_PLAYER ? "玩家" : "AI";
+            TurnManager.BroadcastMessage_Static($"[DEBUG] 对{label}所有单位造成 {dmg} 点伤害");
+
+            var deathwish = GetComponent<Systems.DeathwishSystem>();
+
+            // ── Base units ───────────────────────────────────────────────────
+            var baseList = _gs.GetBase(targetOwner);
+            var baseDead = new List<UnitInstance>();
+            foreach (var u in new List<UnitInstance>(baseList))
+            {
+                u.CurrentHp -= dmg;
+                FireUnitDamaged(u, dmg, "DEBUG");
+                if (u.CurrentHp <= 0) baseDead.Add(u);
+            }
+            foreach (var u in baseDead)
+            {
+                FireUnitDied(u);
+                baseList.Remove(u);
+                _gs.GetDiscard(targetOwner).Add(u);
+            }
+            deathwish?.OnUnitsDied(baseDead, -1, _gs);
+
+            // ── Battlefield units ────────────────────────────────────────────
+            foreach (var bf in _gs.BF)
+            {
+                var bfList = targetOwner == GameRules.OWNER_PLAYER ? bf.PlayerUnits : bf.EnemyUnits;
+                var bfDead = new List<UnitInstance>();
+                foreach (var u in new List<UnitInstance>(bfList))
+                {
+                    u.CurrentHp -= dmg;
+                    FireUnitDamaged(u, dmg, "DEBUG");
+                    if (u.CurrentHp <= 0) bfDead.Add(u);
+                }
+                foreach (var u in bfDead)
+                {
+                    FireUnitDied(u);
+                    bfList.Remove(u);
+                    _gs.GetDiscard(targetOwner).Add(u);
+                }
+                deathwish?.OnUnitsDied(bfDead, bf.Id, _gs);
+            }
+
+            RefreshUI();
         }
 
         /// <summary>Returns all units currently on both battlefields + both bases.</summary>

@@ -340,7 +340,8 @@ namespace FWTCG.Editor
             var debugPanel = CreateDebugPanel(canvasGO.transform,
                 out var debugSpellBtn, out var debugEquipBtn,
                 out var debugUnitBtn, out var debugReactiveBtn, out var debugManaBtn,
-                out var debugSchBtn, out var debugFloatBtn);
+                out var debugSchBtn, out var debugFloatBtn,
+                out var debugDmgInput, out var debugTakeHitBtn, out var debugDealHitBtn);
 
             // ── Reactive Window Panel ─────────────────────────────────────────
             var reactivePanel = CreateReactiveWindowPanel(canvasGO.transform,
@@ -436,6 +437,7 @@ namespace FWTCG.Editor
                             reactivePanel, reactiveContextText, reactiveCardContainer,
                             reactBtn, legendSys, legendSkillBtn, bfSys,
                             debugSpellBtn, debugEquipBtn, debugUnitBtn, debugReactiveBtn, debugManaBtn, debugSchBtn, debugFloatBtn,
+                            debugDmgInput, debugTakeHitBtn, debugDealHitBtn,
                             tapAllRunesBtn, skipReactionBtn,
                             spellShowcaseGO, spellTargetPopupGO);
 
@@ -1807,18 +1809,19 @@ namespace FWTCG.Editor
         private static GameObject CreateDebugPanel(Transform parent,
             out Button spellBtn, out Button equipBtn,
             out Button unitBtn, out Button reactiveBtn, out Button manaBtn,
-            out Button schBtn, out Button floatBtn)
+            out Button schBtn, out Button floatBtn,
+            out InputField dmgInput, out Button takeHitBtn, out Button dealHitBtn)
         {
             var go = new GameObject("DebugPanel");
             go.transform.SetParent(parent, false);
 
             var rt = go.AddComponent<RectTransform>();
-            // Anchor bottom-left, 130px wide × 280px tall (7 buttons)
+            // Anchor bottom-left, 130px wide × 360px tall (7 buttons + input + hit row)
             rt.anchorMin = new Vector2(0f, 0f);
             rt.anchorMax = new Vector2(0f, 0f);
             rt.pivot     = new Vector2(0f, 0f);
             rt.anchoredPosition = new Vector2(5f, 105f); // just above BottomBar
-            rt.sizeDelta = new Vector2(130f, 280f);
+            rt.sizeDelta = new Vector2(130f, 360f);
 
             var img = go.AddComponent<Image>();
             img.color = new Color(0f, 0f, 0f, 0.75f);
@@ -1865,6 +1868,81 @@ namespace FWTCG.Editor
             schBtn      = CreateDebugButton(go.transform, "+5 全符能", new Color(0.1f, 0.5f, 0.7f, 1f));
             floatBtn    = CreateDebugButton(go.transform, "⚡[1] 战力+2(buff)", new Color(0.6f, 0.1f, 0.5f, 1f));
 
+            // ── Damage input row: "伤害:" label + InputField ──────────────────
+            var dmgRowGO = new GameObject("DmgInputRow");
+            dmgRowGO.transform.SetParent(go.transform, false);
+            var dmgRowLE = dmgRowGO.AddComponent<LayoutElement>();
+            dmgRowLE.preferredHeight = 32f;
+            var dmgRowImg = dmgRowGO.AddComponent<Image>();
+            dmgRowImg.color = new Color(0f, 0f, 0f, 0.3f);
+            var dmgRowHLG = dmgRowGO.AddComponent<HorizontalLayoutGroup>();
+            dmgRowHLG.childControlWidth = true;
+            dmgRowHLG.childControlHeight = true;
+            dmgRowHLG.childForceExpandWidth = false;
+            dmgRowHLG.childForceExpandHeight = true;
+            dmgRowHLG.spacing = 4f;
+            dmgRowHLG.padding = new RectOffset(4, 4, 4, 4);
+
+            // Label
+            var dmgLabelGO = new GameObject("DmgLabel");
+            dmgLabelGO.transform.SetParent(dmgRowGO.transform, false);
+            var dmgLabelLE = dmgLabelGO.AddComponent<LayoutElement>();
+            dmgLabelLE.preferredWidth = 42f;
+            dmgLabelLE.flexibleWidth = 0f;
+            var dmgLabelTxt = dmgLabelGO.AddComponent<Text>();
+            dmgLabelTxt.text = "伤害:";
+            dmgLabelTxt.color = Color.white;
+            dmgLabelTxt.fontSize = 13;
+            dmgLabelTxt.alignment = TextAnchor.MiddleRight;
+            if (_font != null) dmgLabelTxt.font = _font;
+
+            // InputField
+            var dmgInputGO = new GameObject("DmgInput");
+            dmgInputGO.transform.SetParent(dmgRowGO.transform, false);
+            var dmgInputLE = dmgInputGO.AddComponent<LayoutElement>();
+            dmgInputLE.flexibleWidth = 1f;
+            var dmgInputImg = dmgInputGO.AddComponent<Image>();
+            dmgInputImg.color = new Color(0.15f, 0.15f, 0.15f, 1f);
+            dmgInput = dmgInputGO.AddComponent<InputField>();
+            dmgInput.text = "3";
+            dmgInput.contentType = InputField.ContentType.IntegerNumber;
+
+            var dmgTextGO = new GameObject("Text");
+            dmgTextGO.transform.SetParent(dmgInputGO.transform, false);
+            var dmgText = dmgTextGO.AddComponent<Text>();
+            dmgText.text = "3";
+            dmgText.color = Color.white;
+            dmgText.fontSize = 15;
+            dmgText.alignment = TextAnchor.MiddleCenter;
+            if (_font != null) dmgText.font = _font;
+            var dmgTextRT = dmgTextGO.GetComponent<RectTransform>();
+            dmgTextRT.anchorMin = Vector2.zero;
+            dmgTextRT.anchorMax = Vector2.one;
+            dmgTextRT.offsetMin = new Vector2(4, 2);
+            dmgTextRT.offsetMax = new Vector2(-4, -2);
+            dmgInput.textComponent = dmgText;
+
+            // ── Hit buttons row (受击 | 施击) ──────────────────────────────────
+            var hitRowGO = new GameObject("HitBtnRow");
+            hitRowGO.transform.SetParent(go.transform, false);
+            var hitRowLE = hitRowGO.AddComponent<LayoutElement>();
+            hitRowLE.preferredHeight = 36f;
+            var hitRowHLG = hitRowGO.AddComponent<HorizontalLayoutGroup>();
+            hitRowHLG.childControlWidth = true;
+            hitRowHLG.childControlHeight = true;
+            hitRowHLG.childForceExpandWidth = true;
+            hitRowHLG.childForceExpandHeight = true;
+            hitRowHLG.spacing = 4f;
+            hitRowHLG.padding = new RectOffset(0, 0, 0, 0);
+
+            takeHitBtn = CreateDebugButton(hitRowGO.transform, "受击", new Color(0.75f, 0.1f, 0.1f, 1f));
+            dealHitBtn = CreateDebugButton(hitRowGO.transform, "施击", new Color(0.85f, 0.45f, 0.05f, 1f));
+            // Remove LayoutElement preferredHeight from these two (parent HLG drives height)
+            var takeLe = takeHitBtn.GetComponent<LayoutElement>();
+            if (takeLe != null) takeLe.preferredHeight = -1f;
+            var dealLe = dealHitBtn.GetComponent<LayoutElement>();
+            if (dealLe != null) dealLe.preferredHeight = -1f;
+
             // Default: collapsed (only title visible)
             spellBtn.gameObject.SetActive(false);
             equipBtn.gameObject.SetActive(false);
@@ -1873,6 +1951,8 @@ namespace FWTCG.Editor
             manaBtn.gameObject.SetActive(false);
             schBtn.gameObject.SetActive(false);
             floatBtn.gameObject.SetActive(false);
+            dmgRowGO.SetActive(false);
+            hitRowGO.SetActive(false);
             rt.sizeDelta = new Vector2(130f, 30f);
             titleT.text = "▶ DEBUG";
 
@@ -2999,6 +3079,7 @@ namespace FWTCG.Editor
             FWTCG.Systems.LegendSystem legendSys, Button legendSkillBtn,
             FWTCG.Systems.BattlefieldSystem bfSys,
             Button debugSpellBtn, Button debugEquipBtn, Button debugUnitBtn, Button debugReactiveBtn, Button debugManaBtn, Button debugSchBtn, Button debugFloatBtn,
+            InputField debugDmgInput, Button debugTakeHitBtn, Button debugDealHitBtn,
             Button tapAllRunesBtn = null, Button skipReactionBtn = null,
             GameObject spellShowcaseGO = null,
             GameObject spellTargetPopupGO = null)
@@ -3023,6 +3104,9 @@ namespace FWTCG.Editor
             so.FindProperty("_debugManaBtn").objectReferenceValue     = debugManaBtn;
             so.FindProperty("_debugSchBtn").objectReferenceValue      = debugSchBtn;
             so.FindProperty("_debugFloatBtn").objectReferenceValue    = debugFloatBtn;
+            so.FindProperty("_debugDmgInput").objectReferenceValue   = debugDmgInput;
+            so.FindProperty("_debugTakeHitBtn").objectReferenceValue = debugTakeHitBtn;
+            so.FindProperty("_debugDealHitBtn").objectReferenceValue = debugDealHitBtn;
 
             // Wire StartupFlowUI panels
             var startupSO = new SerializedObject(startupFlowUI);
