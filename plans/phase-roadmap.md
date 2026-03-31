@@ -625,13 +625,37 @@
 
 ---
 
-## 剩余 Phase 总览（DEV-15 ~ DEV-24）
+## DEV-25：Tech-Debt Cleanup
+
+**目标：** 清理所有功能 Phase 积累的 Medium/Low 技术债，为架构优化铺平道路
+
+**前置条件：** DEV-24 完成，所有功能测试全绿
+
+| 技术债条目 | 来源 | 优先级 |
+|-----------|------|--------|
+| GameUI OnUnitDied/OnUnitDamaged 订阅改为 OnEnable/OnDisable | DEV-17 Codex | Medium |
+| DamagePopup 改为对象池（减少 GC churn） | DEV-17 Codex | Low |
+| OnBattlefieldClicked async void 补结构化异常处理 | DEV-17 Codex | Medium |
+| CardView.OnDestroy 显式停所有协程 | DEV-17 Codex | Low |
+| StartupFlowUI 掷硬币无动画 | DEV-2 | Low |
+| UI 引用 GameObject.Find 连线脆弱性 | DEV-1 | Low |
+| 反应牌自动选目标无 UI | DEV-4 | Low |
+| 反应按钮无倒计时 | DEV-4 | Low |
+| BF效果目标选择无 UI | DEV-6 | Low |
+| BF卡 SceneBuilder 缺 CardData asset | DEV-6 | Low |
+| 入场 Foil Sweep 未实现 | DEV-8 | Low |
+| kaisa_legend/yi_legend 缺卡图 | DEV-10 | Low |
+| *(执行时以 tech-debt.md 当前内容为准，此处为预估)* | — | — |
+
+---
+
+## 剩余 Phase 总览（DEV-15 ~ DEV-25）
 
 | Phase | 核心内容 | 类型 |
 |-------|---------|------|
 | DEV-15 | 法术展示动画（飞行→展示→消散）| 功能+视觉 |
 | DEV-16 | 卡牌交互视觉（悬停/选中/目标/符文回收按钮）| 功能+视觉 |
-| DEV-17 | 手牌入场+死亡动画+卡牌完整外观+装备附着显示 | 视觉 |
+| DEV-17 | 伤害数字飘出 + 单位死亡动画 | 视觉 |
 | DEV-18 | 战斗动画+战场视觉氛围 | 功能+视觉 |
 | DEV-18b | 全局事件反馈系统（飘字/飘数字/小横幅）| 视觉 |
 | DEV-19 | UI补全（弹窗/通知/得分动画/AI反应窗口）| 功能+视觉 |
@@ -640,5 +664,6 @@
 | DEV-22 | 字体系统+视觉细节打磨 | 视觉 |
 | DEV-23 | 开始流程+过渡动画+标题界面 | 视觉 |
 | DEV-24 | 音频资源接入+玻璃态UI | 功能+视觉 |
+| DEV-25 | Tech-Debt Cleanup | 稳定性 |
 
-*最后更新：2026-03-31（新增 DEV-18b 全局事件反馈系统）*
+*最后更新：2026-03-31（新增 DEV-25 Tech-Debt Cleanup；DEV-17 实际内容更新）*
