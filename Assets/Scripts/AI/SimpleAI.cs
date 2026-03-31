@@ -561,7 +561,14 @@ namespace FWTCG.AI
             await GameManager.WaitIfReactionActive();
 
             if (!gs.GameOver)
-                spellSys.CastSpell(spell, GameRules.OWNER_ENEMY, target, gs);
+            {
+                // DEV-16: show showcase before resolving AI spell
+                if (SpellShowcaseUI.Instance != null)
+                    await SpellShowcaseUI.Instance.ShowAsync(spell, GameRules.OWNER_ENEMY);
+
+                if (!gs.GameOver)
+                    spellSys.CastSpell(spell, GameRules.OWNER_ENEMY, target, gs);
+            }
         }
 
         private static UnitInstance FindAffordableSpell(string effectId, GameState gs)

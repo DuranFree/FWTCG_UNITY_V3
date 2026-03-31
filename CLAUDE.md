@@ -102,6 +102,52 @@
 
 ---
 
+## 代码审查规则
+
+每个 Phase 完成、测试全绿后，必须执行代码审查，才能进入下一个 Phase。
+
+**第一步：判断本 Phase 改动类型**
+
+本 Phase 是否涉及以下任意一项？
+- 核心游戏逻辑 / 业务逻辑变动
+- 异步流程 / 事件系统 / 状态机改动
+- AI 决策逻辑
+- 数据结构或接口变动
+
+→ **是：执行 Codex 深度审查 + Claude 自身审查**
+→ **否（纯视觉 / 纯动画 / 纯资源接入）：只执行 Claude 自身审查，跳过 Codex**
+
+---
+
+**Claude 自身审查（每个 Phase 必做）：**
+
+对当前 Phase 所有变动做完整审查，重点检查：
+- 边界条件与异常路径
+- 跨系统调用是否有副作用
+- 新增代码与现有架构是否一致
+- 安全性与性能隐患
+
+---
+
+**Codex 深度审查（核心逻辑 Phase 额外触发）：**
+
+在 commit 前运行 `/codex adversarial-review`，触发时必须高亮提示：
+> `🔍 [Codex 审查] 正在调用 adversarial-review，审查当前 Phase 变动，请稍候...`
+
+审查结束后输出：
+> `✅ [Codex 审查完成]` 或 `⚠️ [Codex 不可用，已切换 Claude 自身审查]`
+
+**Codex 不可用时（账号过期 / 插件未安装 / 调用失败 / 中途中断）：**
+跳过 Codex，改用 Claude 自身从头完整审查当前 Phase 所有变动，不得跳过审查本身。
+
+---
+
+**审查结果处理：**
+- High priority → 必须修复后才能 commit 进入下一个 Phase
+- Medium / Low → 记入 `tech-debt.md`，不阻断流程
+
+---
+
 ## 破坏性 Git 操作规则
 
 执行任何破坏性 git 操作前（reset --hard、checkout .、restore .、clean -f、branch -D 等），必须：

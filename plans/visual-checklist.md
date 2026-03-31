@@ -170,6 +170,7 @@
 ## 十五、传奇/英雄特殊视觉
 
 - ✅ 传奇升级视觉（金色闪烁4次协程，FlashLegendText，0.15s × 4 脉冲）— DEV-15
+- ✅ 法术施放展示面板（SpellShowcaseUI：底部飞入+停留+上飞，卡名/效果/归属/卡图）— DEV-16
 - [ ] 中央 SVG 旋转装饰（spin-slow 20s 顺时针 + spin-reverse 12s 逆时针）
 
 ---

@@ -208,6 +208,7 @@
 - [ ] askPrompt 通用弹窗系统（目标选择弹窗 / 确认弹窗 / 卡片选择弹窗，Promise 异步）
 - ✅ 弃牌堆点击浏览器（ShowDiscardViewer，网格展示所有弃牌，可点击查看详情）— DEV-10
 - ✅ 放逐堆点击浏览器（ShowExileViewer，同上）— DEV-10
+- ✅ 法术展示动画（SpellShowcaseUI：全屏覆盖，飞入0.4s+停留0.5s+飞出0.35s，玩家/AI法术均触发）— DEV-16
 
 ### 日志面板
 - ✅ 日志折叠/展开按钮（LogToggleBtn，">" / "<" 切换）— DEV-10

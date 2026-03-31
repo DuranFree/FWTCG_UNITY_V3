@@ -186,6 +186,9 @@ namespace FWTCG.Editor
             // ── BannerPanel ───────────────────────────────────────────────────
             var bannerPanel = CreateBannerPanel(canvasGO.transform, out var bannerText);
 
+            // ── SpellShowcasePanel (DEV-16) ───────────────────────────────────
+            var spellShowcaseGO = CreateSpellShowcasePanel(canvasGO.transform);
+
             // ── CombatResultPanel (DEV-10: shows power comparison after combat) ──
             var combatResultPanel = CreateCombatResultPanel(canvasGO.transform,
                 out var crAttackerText, out var crDefenderText,
@@ -408,7 +411,8 @@ namespace FWTCG.Editor
                             reactivePanel, reactiveContextText, reactiveCardContainer,
                             reactBtn, legendSys, legendSkillBtn, bfSys,
                             debugSpellBtn, debugEquipBtn, debugUnitBtn, debugReactiveBtn, debugManaBtn,
-                            tapAllRunesBtn, skipReactionBtn);
+                            tapAllRunesBtn, skipReactionBtn,
+                            spellShowcaseGO);
 
             // ── Wire ToastUI ──────────────────────────────────────────────────
             var toastSO = new SerializedObject(toastUI);
@@ -1318,6 +1322,102 @@ namespace FWTCG.Editor
             btRT.offsetMin = Vector2.zero;
             btRT.offsetMax = Vector2.zero;
             bannerText.fontStyle = FontStyle.Bold;
+
+            go.SetActive(false);
+            return go;
+        }
+
+        // ── Spell Showcase Panel (DEV-16) ─────────────────────────────────────
+
+        private static GameObject CreateSpellShowcasePanel(Transform parent)
+        {
+            // Full-screen semi-transparent overlay; starts inactive
+            var go = new GameObject("SpellShowcasePanel");
+            go.transform.SetParent(parent, false);
+
+            // Full-screen RT
+            var rt = go.AddComponent<RectTransform>();
+            rt.anchorMin = Vector2.zero;
+            rt.anchorMax = Vector2.one;
+            rt.offsetMin = Vector2.zero;
+            rt.offsetMax = Vector2.zero;
+
+            // Semi-transparent dark background
+            var bg = go.AddComponent<Image>();
+            bg.color = new Color(0f, 0f, 0f, 0.72f);
+
+            // CanvasGroup for alpha animation
+            var cg = go.AddComponent<CanvasGroup>();
+            cg.interactable = false;
+            cg.blocksRaycasts = false; // don't block input during showcase
+
+            // ── Card container (animated) ──
+            var cardPanelGO = new GameObject("CardPanel");
+            cardPanelGO.transform.SetParent(go.transform, false);
+            var cpRT = cardPanelGO.AddComponent<RectTransform>();
+            cpRT.anchorMin = new Vector2(0.3f, 0.3f);
+            cpRT.anchorMax = new Vector2(0.7f, 0.75f);
+            cpRT.offsetMin = Vector2.zero;
+            cpRT.offsetMax = Vector2.zero;
+
+            var cpImg = cardPanelGO.AddComponent<Image>();
+            cpImg.color = new Color(0.02f, 0.06f, 0.14f, 0.95f);
+            var cpOutline = cardPanelGO.AddComponent<Outline>();
+            cpOutline.effectColor = new Color(200f/255f, 170f/255f, 110f/255f, 0.8f);
+            cpOutline.effectDistance = new Vector2(2f, -2f);
+
+            // Owner label (top of card panel)
+            var ownerLabel = CreateTMPText(cardPanelGO.transform, "OwnerLabel", "玩家",
+                new Color(0.29f, 0.87f, 0.5f), 22, TextAnchor.UpperCenter);
+            var olRT = ownerLabel.GetComponent<RectTransform>();
+            olRT.anchorMin = new Vector2(0f, 0.82f);
+            olRT.anchorMax = new Vector2(1f, 1f);
+            olRT.offsetMin = new Vector2(8f, 0f);
+            olRT.offsetMax = new Vector2(-8f, -4f);
+            ownerLabel.fontStyle = FontStyle.Bold;
+
+            // Art image (optional, center)
+            var artGO = new GameObject("ArtImage");
+            artGO.transform.SetParent(cardPanelGO.transform, false);
+            var artRT = artGO.AddComponent<RectTransform>();
+            artRT.anchorMin = new Vector2(0.15f, 0.46f);
+            artRT.anchorMax = new Vector2(0.85f, 0.82f);
+            artRT.offsetMin = Vector2.zero;
+            artRT.offsetMax = Vector2.zero;
+            var artImg = artGO.AddComponent<Image>();
+            artImg.preserveAspect = true;
+            artImg.color = Color.white;
+
+            // Card name (large, center)
+            var cardNameText = CreateTMPText(cardPanelGO.transform, "CardNameText", "法术名",
+                new Color(240f/255f, 230f/255f, 210f/255f), 32, TextAnchor.MiddleCenter);
+            var cnRT = cardNameText.GetComponent<RectTransform>();
+            cnRT.anchorMin = new Vector2(0f, 0.28f);
+            cnRT.anchorMax = new Vector2(1f, 0.46f);
+            cnRT.offsetMin = new Vector2(8f, 0f);
+            cnRT.offsetMax = new Vector2(-8f, 0f);
+            cardNameText.fontStyle = FontStyle.Bold;
+
+            // Effect text (smaller, bottom)
+            var effectText = CreateTMPText(cardPanelGO.transform, "EffectText", "",
+                new Color(180f/255f, 180f/255f, 180f/255f), 16, TextAnchor.UpperCenter);
+            var etRT = effectText.GetComponent<RectTransform>();
+            etRT.anchorMin = new Vector2(0f, 0f);
+            etRT.anchorMax = new Vector2(1f, 0.28f);
+            etRT.offsetMin = new Vector2(10f, 4f);
+            etRT.offsetMax = new Vector2(-10f, 0f);
+            effectText.horizontalOverflow = HorizontalWrapMode.Wrap;
+
+            // ── Attach SpellShowcaseUI component ──
+            var showcase = go.AddComponent<FWTCG.UI.SpellShowcaseUI>();
+            var showcaseSO = new UnityEditor.SerializedObject(showcase);
+            showcaseSO.FindProperty("_canvasGroup").objectReferenceValue = cg;
+            showcaseSO.FindProperty("_cardPanel").objectReferenceValue   = cpRT;
+            showcaseSO.FindProperty("_ownerLabel").objectReferenceValue  = ownerLabel;
+            showcaseSO.FindProperty("_cardNameText").objectReferenceValue = cardNameText;
+            showcaseSO.FindProperty("_effectText").objectReferenceValue  = effectText;
+            showcaseSO.FindProperty("_artImage").objectReferenceValue    = artImg;
+            showcaseSO.ApplyModifiedPropertiesWithoutUndo();
 
             go.SetActive(false);
             return go;
@@ -2589,7 +2689,8 @@ namespace FWTCG.Editor
             FWTCG.Systems.LegendSystem legendSys, Button legendSkillBtn,
             FWTCG.Systems.BattlefieldSystem bfSys,
             Button debugSpellBtn, Button debugEquipBtn, Button debugUnitBtn, Button debugReactiveBtn, Button debugManaBtn,
-            Button tapAllRunesBtn = null, Button skipReactionBtn = null)
+            Button tapAllRunesBtn = null, Button skipReactionBtn = null,
+            GameObject spellShowcaseGO = null)
         {
             var so = new SerializedObject(gameMgr);
             so.FindProperty("_turnMgr").objectReferenceValue        = turnMgr;
@@ -2644,6 +2745,14 @@ namespace FWTCG.Editor
             // Wire LegendSystem + BattlefieldSystem into GameManager
             so.FindProperty("_legendSys").objectReferenceValue       = legendSys;
             so.FindProperty("_bfSys").objectReferenceValue           = bfSys;
+
+            // DEV-16: Wire SpellShowcaseUI
+            if (spellShowcaseGO != null)
+            {
+                var showcase = spellShowcaseGO.GetComponent<FWTCG.UI.SpellShowcaseUI>();
+                if (showcase != null)
+                    so.FindProperty("_spellShowcase").objectReferenceValue = showcase;
+            }
 
             // Wire DeathwishSystem + LegendSystem + BattlefieldSystem into CombatSystem
             var combatSO = new SerializedObject(combatSys);

@@ -726,3 +726,34 @@
 
 **Problems encountered**:
 - 卡牌图片文件名（hash/OGN-xxx.png）无法自动映射到卡牌ID，需要用户提供映射表
+
+---
+
+## DEV-16：法术展示动画 — 2026-03-31
+
+**Status**: ✅ Completed
+
+**What was done**:
+- SpellShowcaseUI.cs 新建：全屏法术展示覆盖层（MonoBehaviour Singleton）
+  - 底部飞入（0.4s SmoothStep）+ 停留（0.5s）+ 向上飞出（0.35s）
+  - ShowAsync(UnitInstance, owner) 返回 Task，通过 TCS + Coroutine 桥接
+  - 显示：归属标签（玩家绿/AI红）、卡名、效果描述、卡图（可选）
+  - IsShowing 属性追踪动画状态，null-safe
+- GameManager.cs：CastPlayerSpellWithReactionAsync 结算前 await SpellShowcaseUI.ShowAsync
+- SimpleAI.cs：CastAISpell 结算前 await SpellShowcaseUI.Instance?.ShowAsync
+- SceneBuilder.cs：CreateSpellShowcasePanel() 新建全屏覆盖层，SerializedObject 连线全部引用字段
+- DEV16ShowcaseTests.cs：15个EditMode测试（常量/null安全/单例行为/CardData.IsSpell/OWNER常量）
+
+**Decisions made**:
+- 动画使用 unscaledDeltaTime（游戏暂停时仍可播放）
+- 展示面板初始 SetActive(false)，动画结束后再关闭
+- SceneBuilder 内联 SerializedObject 连线，无需 WireGameManager 传参修改接口
+
+**Technical debt**: 无新增
+
+**Problems encountered**:
+- Unity batch mode 测试不执行：-quit 与 -runTests 冲突导致项目加载后立即退出
+  解决：去除 -quit 和 -nographics 标志，与工作的 dev15 run 参数保持一致
+- SpellShowcaseUI.cs 编译错误：CardData.Art 不存在 → 修正为 CardData.ArtSprite
+
+**Tests**: 312/312 EditMode 全绿（含 DEV16ShowcaseTests 15项）

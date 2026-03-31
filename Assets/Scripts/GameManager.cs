@@ -43,6 +43,7 @@ namespace FWTCG
         [SerializeField] private LegendSystem _legendSys;
         [SerializeField] private BattlefieldSystem _bfSys;
         [SerializeField] private CardDetailPopup _cardDetailPopup;
+        [SerializeField] private SpellShowcaseUI _spellShowcase;  // DEV-16
 
         // ── React button / Legend skill button ────────────────────────────────
         [SerializeField] private Button _reactBtn;
@@ -848,13 +849,18 @@ namespace FWTCG
             }
             else if (!_gs.GameOver)
             {
-                if (_spellSys != null)
-                    _spellSys.CastSpell(spell, GameRules.OWNER_PLAYER, target, _gs);
-                else
+                // DEV-16: show spell showcase before resolving
+                if (_spellShowcase != null)
+                    await _spellShowcase.ShowAsync(spell, GameRules.OWNER_PLAYER);
+
+                if (!_gs.GameOver)
                 {
-                    _gs.PDiscard.Add(spell);
+                    if (_spellSys != null)
+                        _spellSys.CastSpell(spell, GameRules.OWNER_PLAYER, target, _gs);
+                    else
+                        _gs.PDiscard.Add(spell);
+                    _legendSys?.CheckKaisaEvolution(GameRules.OWNER_PLAYER, _gs);
                 }
-                _legendSys?.CheckKaisaEvolution(GameRules.OWNER_PLAYER, _gs);
             }
 
             _aiReactionPending = false;
