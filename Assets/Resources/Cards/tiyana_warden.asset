@@ -1,0 +1,31 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 17e2dcccae127ad4fba868ec0487bae7, type: 3}
+  m_Name: tiyana_warden
+  m_EditorClassIdentifier: 
+  _id: tiyana_warden
+  _cardName: "\u7F07\u4E9A\u5A1C\xB7\u5195\u536B"
+  _cost: 7
+  _runeType: 2
+  _runeCost: 2
+  _atk: 4
+  _keywords: 4
+  _effectId: tiyana_enter
+  _isEquipment: 0
+  _equipAtkBonus: 0
+  _equipRuneType: 0
+  _equipRuneCost: 0
+  _isHero: 0
+  _isSpell: 0
+  _spellTargetType: 0
+  _description: "\u6CD5\u76FE\u3002\u5728\u573A\u65F6\u5BF9\u624B\u65E0\u6CD5\u83B7\u5F97\u636E\u5B88\u5206"
+  _artSprite: {fileID: 21300000, guid: 2e6192c010513ba47b43b045ed34dd89, type: 3}

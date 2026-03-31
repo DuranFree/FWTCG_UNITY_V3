@@ -97,5 +97,16 @@
 - 不允许用 `2>/dev/null` 吞掉关键步骤的错误
 - 关闭后必须用进程列表确认目标进程不再运行（Windows 用 `tasklist`，Mac/Linux 用 `ps`）
 - 验证失败则重试或告知用户，不得假设成功后继续执行
+- Windows bash 环境下强制关闭进程必须用 `cmd.exe //C "taskkill /F /IM 进程名.exe"`，不可直接调用 taskkill（bash 会把 `/F` 等参数当路径解析）
+- 批量测试跑完后必须关闭引擎进程，不得残留
+
+---
+
+## 破坏性 Git 操作规则
+
+执行任何破坏性 git 操作前（reset --hard、checkout .、restore .、clean -f、branch -D 等），必须：
+1. 先运行 `git status` 检查是否有未提交修改
+2. 如果有未提交修改，必须先 `git stash` 保存，或明确告知用户并等待确认，不得直接执行
+3. 操作完成后提示用户是否需要 `git stash pop` 恢复
 
 

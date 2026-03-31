@@ -1,0 +1,31 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 17e2dcccae127ad4fba868ec0487bae7, type: 3}
+  m_Name: well_trained
+  m_EditorClassIdentifier: 
+  _id: well_trained
+  _cardName: "\u7CBE\u82F1\u8BAD\u7EC3"
+  _cost: 2
+  _runeType: 2
+  _runeCost: 0
+  _atk: 0
+  _keywords: 64
+  _effectId: well_trained
+  _isEquipment: 0
+  _equipAtkBonus: 0
+  _equipRuneType: 0
+  _equipRuneCost: 0
+  _isHero: 0
+  _isSpell: 1
+  _spellTargetType: 0
+  _description: "\u53CD\u5E94\u3002\u5DF1\u65B9\u4E00\u4E2A\u5355\u4F4D\u672C\u56DE\u5408+2\u6218\u529B\uFF0C\u64781\u5F20\u724C"
+  _artSprite: {fileID: 21300000, guid: 9eaee6ddf74030040953fd6ae9bcb2c9, type: 3}

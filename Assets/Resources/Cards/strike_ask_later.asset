@@ -1,0 +1,31 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 17e2dcccae127ad4fba868ec0487bae7, type: 3}
+  m_Name: strike_ask_later
+  m_EditorClassIdentifier: 
+  _id: strike_ask_later
+  _cardName: "\u5148\u65A9\u540E\u594F"
+  _cost: 1
+  _runeType: 3
+  _runeCost: 2
+  _atk: 0
+  _keywords: 1
+  _effectId: strike_ask_later
+  _isEquipment: 0
+  _equipAtkBonus: 0
+  _equipRuneType: 0
+  _equipRuneCost: 0
+  _isHero: 0
+  _isSpell: 1
+  _spellTargetType: 2
+  _description: "\u6025\u901F\u3002\u4F7F\u76EE\u6807\u5DF1\u65B9\u5355\u4F4D\u672C\u56DE\u5408+5\u6218\u529B"
+  _artSprite: {fileID: 21300000, guid: 26434635ad4b0b543a2af8e61720a8d4, type: 3}
