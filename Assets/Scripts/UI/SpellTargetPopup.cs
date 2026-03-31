@@ -113,8 +113,8 @@ namespace FWTCG.UI
                 go.transform.SetParent(container, false);
 
                 var le  = go.AddComponent<LayoutElement>();
-                le.preferredHeight = 38f;
-                le.flexibleWidth   = 1f;
+                le.preferredHeight = 40f;
+                le.minHeight       = 40f;
 
                 var img = go.AddComponent<Image>();
                 img.color = btnColor;

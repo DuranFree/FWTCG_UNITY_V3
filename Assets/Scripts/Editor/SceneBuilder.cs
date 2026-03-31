@@ -1450,15 +1450,18 @@ namespace FWTCG.Editor
             boxRT.anchorMin = new Vector2(0.5f, 0.5f);
             boxRT.anchorMax = new Vector2(0.5f, 0.5f);
             boxRT.pivot     = new Vector2(0.5f, 0.5f);
-            boxRT.sizeDelta = new Vector2(520f, 320f);
+            boxRT.sizeDelta = new Vector2(520f, 0f);  // height auto via ContentSizeFitter
             var boxImg = box.AddComponent<Image>();
             boxImg.color = new Color(0.04f, 0.09f, 0.16f, 0.97f);
             var boxVLG = box.AddComponent<VerticalLayoutGroup>();
-            boxVLG.childControlWidth    = true;
-            boxVLG.childControlHeight   = false;
+            boxVLG.childControlWidth     = true;
+            boxVLG.childControlHeight    = true;
             boxVLG.childForceExpandWidth = true;
+            boxVLG.childForceExpandHeight = false;
             boxVLG.padding  = new RectOffset(12, 12, 10, 10);
             boxVLG.spacing  = 8f;
+            var boxCSF = box.AddComponent<ContentSizeFitter>();
+            boxCSF.verticalFit = ContentSizeFitter.FitMode.PreferredSize;
 
             // Title
             var titleGO = new GameObject("Title");
@@ -1491,14 +1494,14 @@ namespace FWTCG.Editor
 
             var enemyRow = new GameObject("EnemyContainer");
             enemyRow.transform.SetParent(box.transform, false);
-            var erLE = enemyRow.AddComponent<LayoutElement>();
-            erLE.preferredHeight = 46f;
-            var erHLG = enemyRow.AddComponent<HorizontalLayoutGroup>();
-            erHLG.childControlWidth    = true;
-            erHLG.childControlHeight   = true;
-            erHLG.childForceExpandWidth = true;
-            erHLG.childAlignment = TextAnchor.MiddleLeft;
-            erHLG.spacing = 6f;
+            var erVLG = enemyRow.AddComponent<VerticalLayoutGroup>();
+            erVLG.childControlWidth      = true;
+            erVLG.childControlHeight     = true;
+            erVLG.childForceExpandWidth  = true;
+            erVLG.childForceExpandHeight = false;
+            erVLG.spacing = 4f;
+            var erCSF = enemyRow.AddComponent<ContentSizeFitter>();
+            erCSF.verticalFit = ContentSizeFitter.FitMode.PreferredSize;
 
             // ── Player section ─────────────────────────────────────────────────
             var playerHeader = new GameObject("PlayerHeader");
@@ -1516,14 +1519,14 @@ namespace FWTCG.Editor
 
             var playerRow = new GameObject("PlayerContainer");
             playerRow.transform.SetParent(box.transform, false);
-            var prLE = playerRow.AddComponent<LayoutElement>();
-            prLE.preferredHeight = 46f;
-            var prHLG = playerRow.AddComponent<HorizontalLayoutGroup>();
-            prHLG.childControlWidth    = true;
-            prHLG.childControlHeight   = true;
-            prHLG.childForceExpandWidth = true;
-            prHLG.childAlignment = TextAnchor.MiddleLeft;
-            prHLG.spacing = 6f;
+            var prVLG = playerRow.AddComponent<VerticalLayoutGroup>();
+            prVLG.childControlWidth      = true;
+            prVLG.childControlHeight     = true;
+            prVLG.childForceExpandWidth  = true;
+            prVLG.childForceExpandHeight = false;
+            prVLG.spacing = 4f;
+            var prCSF = playerRow.AddComponent<ContentSizeFitter>();
+            prCSF.verticalFit = ContentSizeFitter.FitMode.PreferredSize;
 
             // ── Cancel button ──────────────────────────────────────────────────
             var cancelGO = new GameObject("CancelBtn");
