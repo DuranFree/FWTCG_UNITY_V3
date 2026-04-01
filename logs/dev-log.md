@@ -2,6 +2,55 @@
 
 ---
 
+## DEV-21：粒子特效系统 — 2026-04-01
+
+**Status**: ✅ Completed
+**Tests**: 385/385 🟢（MCP EditMode 全绿）
+
+### 实现内容
+
+**ParticleManager.cs（新建）**:
+- BG_COUNT=55 背景粒子（金/青/蓝/紫，上浮+正弦漂移）
+- RUNE_COUNT=8 古北欧符文字形漂浮（金/青，旋转上浮）
+- FIREFLY_COUNT=12 萤火虫粒子（正弦振荡，双色光晕）
+- MIST_COUNT=4 底部云雾层（青色，水平漂移）
+- LINE_POOL=80 连线粒子池（LINE_RADIUS=90f，旋转 Image 条，pivot=(0,0.5)）
+- Update() 驱动全部5类粒子；所有常量 `public const` 供测试验证
+
+**MouseTrail.cs（新建）**:
+- TRAIL_LENGTH=18 点拖尾（DOT_MAX_SIZE=8f，TRAIL_HEAD_ALPHA=0.65f）
+- RectTransformUtility.ScreenPointToLocalPointInRectangle 鼠标→Canvas坐标转换
+- ClickEffectRoutine：涟漪环（20→80px，0.5s）+ 6个金色六边形点外扩（0→38px）
+
+**SpellVFX.cs（新建）**:
+- Awake/OnDestroy 订阅/退订：OnCardPlayed / OnUnitDiedAtPos / OnLegendEvolved
+- BurstParticles(origin, color, count)：16点径向爆裂，ease-out quad，0.6s，按RuneType着色
+- LegendFlame(origin)：20粒子，3s，橙→黄渐变，正弦横向抖动，超高度自动重生
+- GetCardBurstColor(UnitInstance)：static，RuneType→Color 映射，null-safe
+- 所有 handler 含 `isActiveAndEnabled` + `_vfxLayer != null` 卫语句
+
+**GameEventBus.cs（修改）**:
+- 新增 `OnUnitDiedAtPos`（Action\<UnitInstance, Vector2\>）+ `FireUnitDiedAtPos`
+
+**GameUI.cs（修改）**:
+- `OnUnitDiedHandler`：死亡单位位置转换 Canvas 本地坐标，调用 FireUnitDiedAtPos
+- Camera 统一使用 `rootCanvas.worldCamera`（Codex MEDIUM-3 修复）
+
+**SceneBuilder.cs（修改）**:
+- 创建 ParticleBGLayer（Canvas 后、Background 前）、ParticleFGLayer（前景最顶层）
+- GameManager GO 添加 ParticleManager / MouseTrail / SpellVFX 组件并连线所有 SerializedField
+
+**DEV21ParticleTests.cs（新建）**:
+- 22 项 EditMode 测试：常量值验证 / GetCardBurstColor 全RuneType / OnUnitDiedAtPos 事件 / Subscribe/Unsubscribe / LINE_RADIUS 边界
+
+**Codex 审查修复**:
+- MEDIUM-2：SpellVFX 所有 handler 添加 `isActiveAndEnabled` 卫语句（防订阅窗口 race）
+- MEDIUM-3：GameUI OnUnitDiedHandler camera 由 null 改为 `rootCanvas.worldCamera`
+
+**Files changed**: `ParticleManager.cs`（新建）、`MouseTrail.cs`（新建）、`SpellVFX.cs`（新建）、`GameEventBus.cs`、`GameUI.cs`、`SceneBuilder.cs`、`DEV21ParticleTests.cs`（新建，22条测试）
+
+---
+
 ## DEV-20：符文自动消耗系统 — 2026-04-01
 
 **Status**: ✅ Completed

@@ -278,9 +278,9 @@
 - ✅ 全局事件反馈系统（GameEventBus + FloatText 池化飘字 + EventBanner 小横幅队列）— DEV-18b
 - ✅ 飘字：单位战力 buff/debuff / 符文横置+法力 / 符文回收+符能 / 得分+N分 — DEV-18b
 - ✅ 小横幅：绝念/入场效果/据守分/征服分/传奇技能/进化/燃尽/时间扭曲 — DEV-18b
-- [ ] 法术施放特效
+- ✅ 法术施放特效（SpellVFX：出牌时16点径向爆裂按RuneType着色 / 阵亡时橙红爆裂 / 传奇进化时火焰粒子3s）— DEV-21
 - [ ] 征服/得分特效（粒子版）
-- [ ] 对决横幅动画（showDuelBanner）
+- ✅ 对决横幅动画（showDuelBanner，FireDuelBanner → ShowBanner slide 动画）— DEV-19
 
 ---
 

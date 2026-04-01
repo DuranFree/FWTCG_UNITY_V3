@@ -205,6 +205,7 @@ namespace FWTCG.UI
         // ── Rune highlight state (set by SetRuneHighlights) ───────────────────
         private System.Collections.Generic.HashSet<int> _runeHighlightTap     = new System.Collections.Generic.HashSet<int>();
         private System.Collections.Generic.HashSet<int> _runeHighlightRecycle = new System.Collections.Generic.HashSet<int>();
+        private Coroutine _runeHighlightPulseCoroutine;
 
         // ── Message log state ─────────────────────────────────────────────────
         private const int MAX_MESSAGES = 5;
@@ -259,6 +260,7 @@ namespace FWTCG.UI
 
         private void OnDestroy()
         {
+            if (_runeHighlightPulseCoroutine != null) StopCoroutine(_runeHighlightPulseCoroutine);
             if (_endTurnButton != null) _endTurnButton.onClick.RemoveAllListeners();
             if (_bf1Button != null) _bf1Button.onClick.RemoveAllListeners();
             if (_bf2Button != null) _bf2Button.onClick.RemoveAllListeners();
@@ -336,6 +338,24 @@ namespace FWTCG.UI
         {
             var cv = FindCardView(unit);
             cv?.PlayDeathAnimation();
+
+            // DEV-21: fire canvas position so SpellVFX can spawn death explosion
+            if (cv != null)
+            {
+                Canvas rootCanvas = GetRootCanvas();
+                if (rootCanvas != null)
+                {
+                    var cvRT = cv.GetComponent<RectTransform>();
+                    if (cvRT != null)
+                    {
+                        Vector2 screenPt = RectTransformUtility.WorldToScreenPoint(rootCanvas.worldCamera, cvRT.position);
+                        RectTransformUtility.ScreenPointToLocalPointInRectangle(
+                            rootCanvas.GetComponent<RectTransform>(), screenPt,
+                            rootCanvas.worldCamera, out Vector2 localPos);
+                        GameEventBus.FireUnitDiedAtPos(unit, localPos);
+                    }
+                }
+            }
         }
 
         private CardView FindCardView(FWTCG.Core.UnitInstance unit)
@@ -530,13 +550,95 @@ namespace FWTCG.UI
             _runeHighlightRecycle.Clear();
             if (tapIndices     != null) foreach (int i in tapIndices)     _runeHighlightTap.Add(i);
             if (recycleIndices != null) foreach (int i in recycleIndices) _runeHighlightRecycle.Add(i);
+
+            // Start breathing pulse coroutine
+            if (_runeHighlightPulseCoroutine != null) StopCoroutine(_runeHighlightPulseCoroutine);
+            if (_runeHighlightTap.Count > 0 || _runeHighlightRecycle.Count > 0)
+                _runeHighlightPulseCoroutine = StartCoroutine(RuneHighlightPulseRoutine());
         }
 
-        /// <summary>Clears all rune highlights. Call Refresh() to apply.</summary>
+        /// <summary>Clears all rune highlights and stops the pulse coroutine.</summary>
         public void ClearRuneHighlights()
         {
+            if (_runeHighlightPulseCoroutine != null)
+            {
+                StopCoroutine(_runeHighlightPulseCoroutine);
+                _runeHighlightPulseCoroutine = null;
+            }
+            // Reset border glow on highlighted runes immediately
+            if (_playerRuneContainer != null)
+            {
+                foreach (int idx in _runeHighlightTap)
+                    ResetRuneBorderGlow(idx);
+                foreach (int idx in _runeHighlightRecycle)
+                    ResetRuneBorderGlow(idx);
+            }
             _runeHighlightTap.Clear();
             _runeHighlightRecycle.Clear();
+        }
+
+        /// <summary>
+        /// Clears the RuneBorder glow on a single rune slot — Image transparent, Outline back to golden default.
+        /// </summary>
+        private void ResetRuneBorderGlow(int idx)
+        {
+            if (_playerRuneContainer == null || idx < 0 || idx >= _playerRuneContainer.childCount) return;
+            Transform circleT = _playerRuneContainer.GetChild(idx).Find("RuneCircle");
+            if (circleT == null) return;
+            Transform borderT = circleT.Find("RuneBorder");
+            if (borderT == null) return;
+            Image img = borderT.GetComponent<Image>();
+            if (img != null) img.color = new Color(0f, 0f, 0f, 0f); // fully transparent
+            UnityEngine.UI.Outline outline = borderT.GetComponent<UnityEngine.UI.Outline>();
+            if (outline != null)
+            {
+                outline.effectColor    = new Color(0.471f, 0.353f, 0.157f, 0f); // golden, but invisible
+                outline.effectDistance = new Vector2(2f, -2f); // restore default distance
+            }
+        }
+
+        private IEnumerator RuneHighlightPulseRoutine()
+        {
+            // Blue = needs tap for mana  |  Red = needs recycle for sch
+            // Alpha breathes 0.25 → 1.0 at ~1.75 Hz; solid RGB stays fixed for clarity
+            Color tapFill    = new Color(0.15f, 0.50f, 1.0f, 1f);
+            Color tapOutline = new Color(0.45f, 0.80f, 1.0f, 1f);
+            Color recFill    = new Color(1.0f,  0.15f, 0.15f, 1f);
+            Color recOutline = new Color(1.0f,  0.50f, 0.50f, 1f);
+
+            while (true)
+            {
+                float pulse = (Mathf.Sin(Time.time * 3.5f) + 1f) * 0.5f; // 0→1→0, ~1.75 Hz
+                float alpha = Mathf.Lerp(0.25f, 1.0f, pulse);
+
+                if (_playerRuneContainer != null)
+                {
+                    foreach (int idx in _runeHighlightTap)
+                        SetRuneBorderGlow(idx, tapFill, tapOutline, alpha);
+                    foreach (int idx in _runeHighlightRecycle)
+                        SetRuneBorderGlow(idx, recFill, recOutline, alpha);
+                }
+                yield return null;
+            }
+        }
+
+        private void SetRuneBorderGlow(int idx, Color fillRGB, Color outlineRGB, float alpha)
+        {
+            if (_playerRuneContainer == null || idx < 0 || idx >= _playerRuneContainer.childCount) return;
+            Transform circleT = _playerRuneContainer.GetChild(idx).Find("RuneCircle");
+            if (circleT == null) return;
+            Transform borderT = circleT.Find("RuneBorder");
+            if (borderT == null) return;
+
+            Image img = borderT.GetComponent<Image>();
+            if (img != null) img.color = new Color(fillRGB.r, fillRGB.g, fillRGB.b, alpha * 0.35f); // subtle inner fill
+
+            UnityEngine.UI.Outline outline = borderT.GetComponent<UnityEngine.UI.Outline>();
+            if (outline != null)
+            {
+                outline.effectColor = new Color(outlineRGB.r, outlineRGB.g, outlineRGB.b, alpha);
+                outline.effectDistance = new Vector2(4f, -4f); // wider glow when active
+            }
         }
 
         // ── Selection state (set by GameManager) ─────────────────────────────
@@ -1103,19 +1205,10 @@ namespace FWTCG.UI
                 Transform circleT = go.transform.Find("RuneCircle");
                 if (circleT != null)
                 {
-                    // Circle background color (highlight overrides base color for auto-consume preview)
+                    // Circle background color — always shows real rune state; border glow handles highlight
                     Image circleImg = circleT.GetComponent<Image>();
                     if (circleImg != null)
-                    {
-                        Color runeColor;
-                        if (isPlayer && _runeHighlightRecycle.Contains(idx))
-                            runeColor = new Color(1f, 0.25f, 0.25f, 1f);   // red = recycle for sch
-                        else if (isPlayer && _runeHighlightTap.Contains(idx))
-                            runeColor = new Color(0.25f, 0.55f, 1f, 1f);   // blue = tap for mana
-                        else
-                            runeColor = r.Tapped ? GameColors.RuneTapped : GameColors.GetRuneColor(r.RuneType);
-                        circleImg.color = runeColor;
-                    }
+                        circleImg.color = r.Tapped ? GameColors.RuneTapped : GameColors.GetRuneColor(r.RuneType);
 
                     // Art image
                     Transform artT = circleT.Find("RuneArt");

@@ -89,6 +89,20 @@ namespace FWTCG.Editor
                 }
             }
 
+            // ── DEV-21: Particle BG layer (behind all game UI) ───────────────
+            var particleBGLayer = new GameObject("ParticleBGLayer");
+            particleBGLayer.transform.SetParent(canvasGO.transform, false);
+            {
+                var rt = particleBGLayer.AddComponent<RectTransform>();
+                rt.anchorMin = Vector2.zero;
+                rt.anchorMax = Vector2.one;
+                rt.offsetMin = Vector2.zero;
+                rt.offsetMax = Vector2.zero;
+                var img = particleBGLayer.AddComponent<Image>();
+                img.color = Color.clear;
+                img.raycastTarget = false;
+            }
+
             // ── TopBar / EnemyInfoStrip ──────────────────────────────────────
             var topBar = CreateTopBar(canvasGO.transform,
                 out var enemyRuneInfoText, out var enemyDeckInfoText);
@@ -270,6 +284,20 @@ namespace FWTCG.Editor
             boardFlashImg.color = new Color(0.78f, 0.67f, 0.43f, 0f); // starts fully transparent
             boardFlashImg.raycastTarget = false;
 
+            // ── DEV-21: Particle FG layer (top-most — mouse trail + VFX) ──────
+            var particleFGLayer = new GameObject("ParticleFGLayer");
+            particleFGLayer.transform.SetParent(canvasGO.transform, false);
+            {
+                var rt = particleFGLayer.AddComponent<RectTransform>();
+                rt.anchorMin = Vector2.zero;
+                rt.anchorMax = Vector2.one;
+                rt.offsetMin = Vector2.zero;
+                rt.offsetMax = Vector2.zero;
+                var img = particleFGLayer.AddComponent<Image>();
+                img.color = Color.clear;
+                img.raycastTarget = false;
+            }
+
             // Collect sub-references from TopBar
             var playerScoreText  = topBar.transform.Find("PlayerScore").GetComponent<Text>();
             var roundInfoText    = topBar.transform.Find("RoundInfo").GetComponent<Text>();
@@ -393,6 +421,9 @@ namespace FWTCG.Editor
             var cardDetailPopupComp = gmGO.AddComponent<FWTCG.UI.CardDetailPopup>();
             var combatAnimator    = gmGO.AddComponent<FWTCG.UI.CombatAnimator>(); // DEV-18
             var askPromptUI       = gmGO.AddComponent<FWTCG.UI.AskPromptUI>();  // DEV-19
+            var particleManager   = gmGO.AddComponent<FWTCG.UI.ParticleManager>(); // DEV-21
+            var mouseTrail        = gmGO.AddComponent<FWTCG.UI.MouseTrail>();      // DEV-21
+            var spellVFX          = gmGO.AddComponent<FWTCG.UI.SpellVFX>();        // DEV-21
 
             // ── Wire UI references via SerializedObject ───────────────────────
             WireGameUI(gameUI, canvasGO.GetComponent<Canvas>(), cardPrefab, runePrefab,
@@ -527,6 +558,36 @@ namespace FWTCG.Editor
                 var guiSO3 = new SerializedObject(gameUI);
                 guiSO3.FindProperty("_askPromptUI").objectReferenceValue = askPromptUI;
                 guiSO3.ApplyModifiedPropertiesWithoutUndo();
+            }
+
+            // ── DEV-21: Wire ParticleManager ─────────────────────────────────
+            {
+                var pmSO = new SerializedObject(particleManager);
+                pmSO.FindProperty("_canvasRect").objectReferenceValue =
+                    canvasGO.GetComponent<RectTransform>();
+                pmSO.FindProperty("_bgLayer").objectReferenceValue =
+                    particleBGLayer.transform;
+                pmSO.ApplyModifiedPropertiesWithoutUndo();
+            }
+
+            // ── DEV-21: Wire MouseTrail ──────────────────────────────────────
+            {
+                var mtSO = new SerializedObject(mouseTrail);
+                mtSO.FindProperty("_canvasRect").objectReferenceValue =
+                    canvasGO.GetComponent<RectTransform>();
+                mtSO.FindProperty("_canvas").objectReferenceValue =
+                    canvasGO.GetComponent<Canvas>();
+                mtSO.FindProperty("_fgLayer").objectReferenceValue =
+                    particleFGLayer.transform;
+                mtSO.ApplyModifiedPropertiesWithoutUndo();
+            }
+
+            // ── DEV-21: Wire SpellVFX ────────────────────────────────────────
+            {
+                var svSO = new SerializedObject(spellVFX);
+                svSO.FindProperty("_vfxLayer").objectReferenceValue =
+                    particleFGLayer.transform;
+                svSO.ApplyModifiedPropertiesWithoutUndo();
             }
 
             // ── Save scene ────────────────────────────────────────────────────
@@ -670,11 +731,11 @@ namespace FWTCG.Editor
 
             // ── ENEMY SIDE (top) ──
             var enemyLegendZone = CreatePlayerLegendZone(go.transform, "EnemyLegendZone",
-                false, 0.045f, 0.175f, 0.75f, 1.00f,
+                false, 0.075f, 0.145f, 0.75f, 1.00f,
                 out enemyLegendText, out _);
 
             CreateHeroZone(go.transform, "EnemyHeroZone",
-                0.175f, 0.305f, 0.75f, 1.00f, out enemyHeroContainer);
+                0.205f, 0.275f, 0.75f, 1.00f, out enemyHeroContainer);
 
             CreateHorizontalZoneAnchored(go.transform, "EnemyBase",
                 0.305f, 0.695f, 0.87f, 1.00f);
@@ -713,10 +774,10 @@ namespace FWTCG.Editor
                 0.305f, 0.695f, 0.00f, 0.13f);
 
             CreateHeroZone(go.transform, "PlayerHeroZone",
-                0.695f, 0.825f, 0.00f, 0.25f, out playerHeroContainer);
+                0.725f, 0.795f, 0.00f, 0.25f, out playerHeroContainer);
 
             var playerLegendZone = CreatePlayerLegendZone(go.transform, "PlayerLegendZone",
-                true, 0.825f, 0.955f, 0.00f, 0.25f,
+                true, 0.855f, 0.925f, 0.00f, 0.25f,
                 out playerLegendText, out legendSkillBtn);
 
             // ── Battlefields: col 2-6, row 3 (center) ──
@@ -1013,6 +1074,7 @@ namespace FWTCG.Editor
             var lgOutline = go.AddComponent<Outline>();
             lgOutline.effectColor = ZoneBorderColor;
             lgOutline.effectDistance = new Vector2(1f, -1f);
+            go.AddComponent<FWTCG.UI.CardHoverScale>(); // hover zoom on legend zone
 
             // Card-shaped area centered (same 80x120 as hand cards)
             // -- LegendArt will be overlaid at runtime by RefreshLegendArt (ignoreLayout)
@@ -1052,6 +1114,10 @@ namespace FWTCG.Editor
                 var skillImg = skillGO.AddComponent<Image>();
                 skillImg.color = new Color(0.4f, 0.1f, 0.8f, 1f);
                 skillBtn = skillGO.AddComponent<Button>();
+                var skillGlowOutline = skillGO.AddComponent<UnityEngine.UI.Outline>();
+                skillGlowOutline.effectColor    = new Color(1f, 0.85f, 0.3f, 0f); // golden, starts invisible
+                skillGlowOutline.effectDistance = new Vector2(3f, -3f);
+                skillGO.AddComponent<FWTCG.UI.ButtonHoverGlow>();
                 var skillLabel = new GameObject("Label");
                 skillLabel.transform.SetParent(skillGO.transform, false);
                 var skillLabelRT = skillLabel.AddComponent<RectTransform>();
@@ -1535,8 +1601,8 @@ namespace FWTCG.Editor
             var cardPanelGO = new GameObject("CardPanel");
             cardPanelGO.transform.SetParent(go.transform, false);
             var cpRT = cardPanelGO.AddComponent<RectTransform>();
-            cpRT.anchorMin = new Vector2(0.3f, 0.3f);
-            cpRT.anchorMax = new Vector2(0.7f, 0.75f);
+            cpRT.anchorMin = new Vector2(0.41f, 0.25f);
+            cpRT.anchorMax = new Vector2(0.59f, 0.75f);
             cpRT.offsetMin = Vector2.zero;
             cpRT.offsetMax = Vector2.zero;
 
@@ -1780,52 +1846,66 @@ namespace FWTCG.Editor
             out Button confirmBtn, out Button cancelBtn,
             out Text confirmBtnText, out Text cancelBtnText)
         {
-            // Full-screen dim overlay
-            var panel = CreateFullscreenPanel(parent, "AskPromptPanel", new Color(0f, 0f, 0f, 0.75f));
+            // Full-screen dim overlay — opaque enough to hide hand cards behind it
+            var panel = CreateFullscreenPanel(parent, "AskPromptPanel", new Color(0f, 0f, 0f, 0.88f));
             panel.AddComponent<CanvasGroup>();
 
-            var vlg = panel.AddComponent<VerticalLayoutGroup>();
-            vlg.childControlWidth     = false;
-            vlg.childControlHeight    = false;
-            vlg.childForceExpandWidth = false;
-            vlg.childForceExpandHeight= false;
-            vlg.childAlignment        = TextAnchor.MiddleCenter;
-            vlg.spacing               = 16f;
+            // ── Inner content box (centered, fixed size, dark panel) ──────────
+            var boxGO = new GameObject("DialogBox");
+            boxGO.transform.SetParent(panel.transform, false);
+            var boxImg = boxGO.AddComponent<Image>();
+            boxImg.color = new Color(0.04f, 0.08f, 0.14f, 0.97f);
+            var boxRT = boxGO.GetComponent<RectTransform>();
+            boxRT.anchorMin = new Vector2(0.5f, 0.5f);
+            boxRT.anchorMax = new Vector2(0.5f, 0.5f);
+            boxRT.pivot     = new Vector2(0.5f, 0.5f);
+            boxRT.sizeDelta = new Vector2(720f, 420f);
+
+            var vlg = boxGO.AddComponent<VerticalLayoutGroup>();
+            vlg.childControlWidth      = true;
+            vlg.childControlHeight     = false;
+            vlg.childForceExpandWidth  = true;
+            vlg.childForceExpandHeight = false;
+            vlg.childAlignment         = TextAnchor.MiddleCenter;
+            vlg.spacing                = 18f;
+            vlg.padding                = new RectOffset(36, 36, 28, 28);
 
             // Title
             var titleGO = new GameObject("TitleText");
-            titleGO.transform.SetParent(panel.transform, false);
+            titleGO.transform.SetParent(boxGO.transform, false);
             titleText = titleGO.AddComponent<Text>();
             titleText.text      = "标题";
             titleText.color     = GameColors.GoldLight;
-            titleText.fontSize  = 28;
+            titleText.fontSize  = 26;
             titleText.fontStyle = FontStyle.Bold;
             titleText.alignment = TextAnchor.MiddleCenter;
+            titleText.horizontalOverflow = HorizontalWrapMode.Wrap;
+            titleText.verticalOverflow   = VerticalWrapMode.Overflow;
             if (_font != null) titleText.font = _font;
             var titleLE = titleGO.AddComponent<LayoutElement>();
-            titleLE.preferredWidth  = 700f;
-            titleLE.preferredHeight = 50f;
+            titleLE.preferredHeight = 40f;
+            titleLE.minHeight       = 40f;
 
-            // Message
+            // Message — tall enough for 5+ lines, explicit sizeDelta width
             var msgGO = new GameObject("MessageText");
-            msgGO.transform.SetParent(panel.transform, false);
+            msgGO.transform.SetParent(boxGO.transform, false);
             messageText = msgGO.AddComponent<Text>();
             messageText.text       = "";
-            messageText.color      = Color.white;
+            messageText.color      = new Color(0.92f, 0.92f, 0.92f, 1f);
             messageText.fontSize   = 20;
-            messageText.alignment  = TextAnchor.MiddleCenter;
+            messageText.lineSpacing = 1.3f;
+            messageText.alignment  = TextAnchor.UpperCenter;
             messageText.horizontalOverflow = HorizontalWrapMode.Wrap;
             messageText.verticalOverflow   = VerticalWrapMode.Overflow;
             if (_font != null) messageText.font = _font;
             var msgLE = msgGO.AddComponent<LayoutElement>();
-            msgLE.preferredWidth  = 700f;
-            msgLE.preferredHeight = 50f;
+            msgLE.preferredHeight = 160f;
+            msgLE.minHeight       = 80f;
 
             // Card container (horizontal row, for card-pick mode)
             var ccGO = new GameObject("CardContainer");
-            ccGO.transform.SetParent(panel.transform, false);
+            ccGO.transform.SetParent(boxGO.transform, false);
             var ccLE = ccGO.AddComponent<LayoutElement>();
-            ccLE.preferredWidth  = 700f;
             ccLE.preferredHeight = 150f;
             var hlg = ccGO.AddComponent<HorizontalLayoutGroup>();
             hlg.childControlWidth     = false;
@@ -1838,16 +1918,16 @@ namespace FWTCG.Editor
 
             // Button row
             var btnRowGO = new GameObject("ButtonRow");
-            btnRowGO.transform.SetParent(panel.transform, false);
+            btnRowGO.transform.SetParent(boxGO.transform, false);
             var btnLE = btnRowGO.AddComponent<LayoutElement>();
-            btnLE.preferredWidth  = 700f;
             btnLE.preferredHeight = 60f;
+            btnLE.minHeight       = 60f;
             var btnHlg = btnRowGO.AddComponent<HorizontalLayoutGroup>();
             btnHlg.childControlWidth     = false;
             btnHlg.childControlHeight    = false;
             btnHlg.childForceExpandWidth = false;
             btnHlg.childForceExpandHeight= false;
-            btnHlg.spacing               = 40f;
+            btnHlg.spacing               = 48f;
             btnHlg.childAlignment        = TextAnchor.MiddleCenter;
 
             confirmBtn     = CreateButton(btnRowGO.transform, "ConfirmBtn", "确认");
@@ -2186,6 +2266,8 @@ namespace FWTCG.Editor
             var img = go.AddComponent<Image>();
             img.color = new Color(0.1f, 0.05f, 0.2f, 0.9f); // dark purple
 
+            go.AddComponent<FWTCG.UI.CardHoverScale>(); // hover zoom on legend panel
+
             var vlg = go.AddComponent<VerticalLayoutGroup>();
             vlg.childControlWidth = true;
             vlg.childControlHeight = true;
@@ -2222,10 +2304,14 @@ namespace FWTCG.Editor
             legendText.verticalOverflow   = VerticalWrapMode.Overflow;
             if (_font != null) legendText.font = _font;
 
-            // Skill button
+            // Skill button — with hover glow outline
             skillBtn = CreateDebugButton(go.transform, "虚空感知", new Color(0.4f, 0.1f, 0.8f, 1f));
             var skillLE = skillBtn.GetComponent<LayoutElement>();
             if (skillLE != null) skillLE.preferredHeight = 28f;
+            var skillOutline = skillBtn.gameObject.AddComponent<UnityEngine.UI.Outline>();
+            skillOutline.effectColor    = new Color(1f, 0.85f, 0.3f, 0f); // golden, starts invisible
+            skillOutline.effectDistance = new Vector2(3f, -3f);
+            skillBtn.gameObject.AddComponent<FWTCG.UI.ButtonHoverGlow>();
 
             return go;
         }

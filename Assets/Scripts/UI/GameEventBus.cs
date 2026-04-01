@@ -70,6 +70,15 @@ namespace FWTCG.UI
         /// <summary>Clears all queued banners and toasts immediately. Call at turn start.</summary>
         public static void FireClearBanners() => OnClearBanners?.Invoke();
 
+        // ── Unit death position event (DEV-21) ────────────────────────────────
+        /// <summary>
+        /// Fired by GameUI when a unit dies, carrying the unit's canvas-local position.
+        /// SpellVFX subscribes to spawn death-explosion particles at the exact spot.
+        /// </summary>
+        public static event Action<UnitInstance, Vector2> OnUnitDiedAtPos;
+        public static void FireUnitDiedAtPos(UnitInstance unit, Vector2 canvasPos)
+            => OnUnitDiedAtPos?.Invoke(unit, canvasPos);
+
         // ── Convenience: score float texts ───────────────────────────────────
 
         /// <summary>Show "+X分" golden float in the owner's score zone.</summary>

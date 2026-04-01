@@ -46,3 +46,4 @@
 - [ ] GameUI.ShowCombatResult 无协程句柄 — 每次调用新建 HideCombatResult 协程无保存句柄，旧计时器可能提前隐藏新结果 — Phase DEV-19 patch（Codex Medium）
 - [ ] RuneAutoConsume.Compute 与 OnRuneClicked 符文可回收规则不一致 — Compute 跳过已横置符文，但 OnRuneClicked recycle 路径现已同步禁止，DEV-20 H-2 已修复互斥；更深层需统一符文状态机 — Phase DEV-20（Codex Medium）
 - [ ] ReactiveWindowUI 无 OnDisable 回退 — OnDestroy 已 TrySetCanceled，但 panel.SetActive(false) 后 _tcs 仍可能悬空；低风险（当前只通过 HidePanel/SkipReaction 关闭）— Phase DEV-20（Codex Medium）
+- [ ] SpellVFX.BurstParticles/LegendFlame 协程被中断时粒子 GO 泄漏 — OnDestroy 时若协程仍运行，已创建的 Image GO 无法被 Destroy 回收；低风险（SpellVFX 生命周期与场景同步）— Phase DEV-21（Codex Medium）

@@ -527,6 +527,8 @@ namespace FWTCG
                     }
                 }
 
+                UI.GameEventBus.FireDuelBanner(); // unit(s) entered battlefield
+
                 // After all units moved, check combat on this BF
                 _combatSys.CheckAndResolveCombat(bfId, GameRules.OWNER_PLAYER, _gs, _scoreMgr);
 
@@ -555,6 +557,7 @@ namespace FWTCG
                 }
 
                 _combatSys.MoveUnit(_selectedUnit, _selectedUnitLoc, bfId, GameRules.OWNER_PLAYER, _gs);
+                UI.GameEventBus.FireDuelBanner(); // unit entered battlefield
                 _combatSys.CheckAndResolveCombat(bfId, GameRules.OWNER_PLAYER, _gs, _scoreMgr);
 
                 _selectedUnit = null;
@@ -911,6 +914,7 @@ namespace FWTCG
             if (unit.IsEphemeral) unit.SummonedOnRound = _gs.Round;
             _gs.CardsPlayedThisTurn++;
             FireCardPlayed(unit, GameRules.OWNER_PLAYER);
+            _ = _spellShowcase?.ShowAsync(unit, GameRules.OWNER_PLAYER); // card art center reveal
 
             TurnManager.BroadcastMessage_Static(
                 $"[打出] {unit.UnitName}（费用{unit.CardData.Cost}），剩余法力 {_gs.PMana}");
@@ -1127,9 +1131,6 @@ namespace FWTCG
             TurnManager.BroadcastMessage_Static(
                 $"[法术] {spell.UnitName}{targetName}！⚡ AI响应中…");
             RefreshUI();
-
-            // DEV-19: fire duel banner as soon as we enter the reaction window
-            UI.GameEventBus.FireDuelBanner();
 
             await Task.Delay(GameRules.AI_ACTION_DELAY_MS);
             if (_gs.GameOver) { _aiReactionPending = false; return; }
@@ -1482,6 +1483,9 @@ namespace FWTCG
                 _gs.PMana -= picked.CardData.Cost;
                 TurnManager.BroadcastMessage_Static(
                     $"[反应] 打出 {picked.UnitName}（费用{picked.CardData.Cost}），剩余法力 {_gs.PMana}");
+                FireCardPlayed(picked, GameRules.OWNER_PLAYER); // triggers board flash
+                if (_spellShowcase != null)
+                    await _spellShowcase.ShowAsync(picked, GameRules.OWNER_PLAYER); // card art center reveal
                 // ApplyReactive handles hand→discard move internally
                 _reactiveSys?.ApplyReactive(picked, GameRules.OWNER_PLAYER, null, _gs);
                 RefreshUI();
