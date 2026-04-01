@@ -96,13 +96,15 @@
 - **跑测试前，必须先用引擎 MCP 停止 Play Mode（无论当前是否在运行），排除干扰后再执行测试**
 - **引擎编辑器开着时，必须用引擎 MCP 的 run_tests 工具跑测试，不得跳过直接用 batchmode**
 - **MCP 跑测试全绿后，不再重复跑 batchmode；两者互斥，只跑其中一种**
+- **PlayMode 测试或 MCP 场景验证前，必须先重建/确认场景已正确加载：**
+  - 查 memory 获取项目指定方式并执行
+  - memory 中无记录 → 询问用户"项目是否有场景重建方式"，用户回答后立即存入 memory，没有则跳过此步
 - MCP run_tests 出错 / 超时 / 无响应时，**必须按以下顺序排查，不得直接杀编辑器**：
   1. 停止 Play Mode
-  2. 执行 `FWTCG/Build Game Scene` 确保场景不为空
-  3. 重试 MCP（此时可能触发编译）
-  4. 等待编译完成
-  5. 如果本次有过 MCP 场景修改 → 调用 `save_scene`
-  6. 再次重试 MCP
+  2. 重试 MCP（此时可能触发编译）
+  3. 等待编译完成
+  4. 如果本次有过 MCP 场景修改 → 调用 `save_scene`
+  5. 再次重试 MCP
   - 以上全部完成后仍然失败 / 卡死 → 强制关闭引擎，切换 batchmode / headless，告知用户：`⚠️ 已强制关闭 [引擎名]，正在后台启动测试...`
     - Windows：`cmd.exe //C "taskkill /F /IM 进程名.exe"`，不可直接调用 taskkill
     - 关闭后必须用进程列表确认进程已退出（`tasklist` / `ps`），验证失败则重试，不得假设成功
