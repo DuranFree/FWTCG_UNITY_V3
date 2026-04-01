@@ -9,7 +9,6 @@
 - `./plans/tech-debt.md`
 - `./plans/phase-roadmap.md`
 
-只读以上 4 个文件，不得预读代码文件。代码文件在实际执行任务时按需读取。
 
 **开始新 Phase 前必须读取：**
 - `./plans/feature-checklist.md`
