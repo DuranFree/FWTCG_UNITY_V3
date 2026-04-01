@@ -9,6 +9,7 @@
 - `./plans/tech-debt.md`
 - `./plans/phase-roadmap.md`
 
+以上 4 个文件构成最小上下文。代码文件不得无目的预读或全量扫描，在执行任务时按调用链逐步读取。
 
 **开始新 Phase 前必须读取：**
 - `./plans/feature-checklist.md`
