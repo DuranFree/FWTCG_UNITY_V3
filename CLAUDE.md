@@ -118,10 +118,12 @@
 - MCP run_tests 出错 / 超时 / 无响应时，**必须按以下顺序排查，不得直接杀编辑器**：
   1. 等待 30 秒后重试 MCP（可能正在编译）
   2. 仍无响应 → 再等待 30 秒后重试 MCP（最多等待 2 次共 1 分钟）
-  3. 仍无响应 → 停止 Play Mode
-  4. 重试 MCP
-  5. 等待编译完成
-  6. 如果本次有过 MCP 场景修改 → 调用 `save_scene`
+  3. 仍无响应 → 调用 `save_scene` 探测状态：
+     - `save_scene` 报 "play mode" 错误 → 立刻停止 Play Mode（`execute_menu_item("Edit/Play")`），再重试 run_tests
+     - `save_scene` 成功 → 说明不在 Play Mode，等待编译完成后重试 MCP
+  4. 仍无响应 → 停止 Play Mode（如尚未停止）
+  5. 重试 MCP
+  6. 等待编译完成
   7. 再次重试 MCP
   - 以上全部完成后仍然失败 / 卡死 → 强制关闭引擎，切换 batchmode / headless，告知用户：`⚠️ 已强制关闭 [引擎名]，正在后台启动测试...`
     - Windows：`cmd.exe //C "taskkill /F /IM 进程名.exe"`，不可直接调用 taskkill
