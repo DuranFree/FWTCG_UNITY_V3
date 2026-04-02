@@ -11,7 +11,7 @@
 - ✅ 背景色：深海军蓝 #010a13 / 中调 #0a1428 — DEV-8
 - ✅ 状态色：玩家绿 #4ade80 / 敌方红 #f87171 — DEV-8
 - ✅ 符文颜色（6种：火橙 / 金黄 / 翠绿 / 红 / 紫 / 蓝）— DEV-8
-- [ ] 蓝色魔法光效色 rgba(60,140,255) / rgba(96,165,250)（漩涡/法术）
+- ✅ 蓝色魔法光效色 rgba(60,140,255)（GameColors.BlueSpell / BlueSpellDim）— DEV-23
 - ✅ 符文高亮预览色（蓝 rgb(64,140,255) = 待横置 / 红 rgb(255,64,64) = 待回收，悬停手牌时覆盖符文圆圈颜色）— DEV-20
 
 ---
@@ -32,6 +32,11 @@
 - ✅ 分层渐变背景（中心青色光晕 + 暗角，HexGrid.shader）— DEV-8
 - ✅ 边角暗角 Vignette（URP Post Processing + HexGrid.shader）— DEV-8
 - ✅ URP Post Processing Volume 配置（Bloom + Color Adjustments + Vignette + Film Grain）— DEV-8
+- ✅ 中央旋转装饰（SpinOuter 20s CW / SpinInner 12s CCW，蓝/青色半透明圆盘）— DEV-23
+- ✅ 中心符文旋转（SigilOuter 30s CW / SigilInner 20s CCW，金色半透明大圆盘）— DEV-23
+- ✅ 中央分隔线能量球（DividerOrb 18px，3.5s 正弦 Y 振荡 ±20px）— DEV-23
+- ✅ 角落宝石脉冲（4个角落 48px 金色图标，4s alpha 0.3↔0.9 循环）— DEV-23
+- ✅ 传奇槽位光晕（LegendGlow 蓝色叠加层，5s 呼吸 alpha 0.15↔0.6，覆盖传奇区）— DEV-23
 
 ---
 

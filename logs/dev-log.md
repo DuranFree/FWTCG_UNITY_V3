@@ -2,6 +2,50 @@
 
 ---
 
+## DEV-23：字体 + 视觉细节打磨 — 2026-04-02
+
+**Status**: ✅ Completed
+**Tests**: 431/431 🟢（MCP EditMode 全绿）
+
+### 实现内容
+
+**字体**：沿用 simhei.ttf（黑体），跳过 Cinzel / Noto Sans SC 导入（无字体文件）
+
+**GameColors.cs（修改）**：
+- 新增 `BlueSpell = rgba(60,140,255,1)` 和 `BlueSpellDim = rgba(60,140,255,0.35)`
+
+**SceneryUI.cs（新建）**：
+- `SpinLoop`：CW/CCW 无限旋转协程，`Mathf.Repeat` 防浮点漂移，null guard 防目标销毁
+- `DividerOrbLoop`：3.5s 正弦 Y 振荡 ±20px
+- `CornerGemLoop`：4s alpha 脉冲 0.3↔0.9，4个角落同步
+- `LegendGlowLoop`：5s 呼吸发光 0.15↔0.6，静态方法防 this 引用，null guard
+
+**SceneBuilder.cs（修改）**：
+- 新增 `DecorLayer`（fullscreen，layerZ=ParticleBGLayer+1，raycastTarget=false）
+  - SpinOuter 180px / SpinInner 120px（蓝/青，中心锚）
+  - SigilOuter 280px / SigilInner 190px（金/金亮，中心锚）
+  - DividerOrb 18px（蓝，中心锚）
+  - CornerGem0-3 48px（金，四角锚，±16px 偏移）
+  - LegendGlow 覆盖传奇区（pLegendZone / eLegendZone）
+- 新增 `CreateDecorDisc` / `CreateLegendGlowOverlay` helper
+- 全部颜色改用 GameColors 常量（L-01 修复）
+
+**新增测试**：
+- `DEV23SceneryTests.cs`：19 个 EditMode 测试（常量验证、alpha 范围、AddComponent、字段连线）
+
+### Codex 审查修复
+
+- **M-02 已修复**：LegendGlow 从 heroContainer → pLegendZone/eLegendZone（传奇槽位，非英雄槽）
+- **M-01 已修复**：SpinLoop / LegendGlowLoop 协程加 null guard，目标销毁时安全退出
+- **L-02 已修复**：SpinLoop 用 Mathf.Repeat 替代累加，消除浮点漂移风险
+- **L-01 已修复**：SceneBuilder 中硬编码颜色全部改用 GameColors.BlueSpell
+
+### 技术债新增
+
+- M-03：DividerOrb 基准位置只采样一次，分辨率变化时振荡中心偏移（风险低，游戏内无动态分辨率切换）
+
+---
+
 ## DEV-22：拖拽出牌系统（含漩涡视觉） — 2026-04-02
 
 **Status**: ✅ Completed

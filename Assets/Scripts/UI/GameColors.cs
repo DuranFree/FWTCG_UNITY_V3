@@ -101,6 +101,10 @@ namespace FWTCG.UI
         // ── Info strip ───────────────────────────────────────────────────────
         public static readonly Color InfoStripBg = new Color(0.02f, 0.05f, 0.1f, 0.9f);
 
+        // ── Blue magic / spell VFX (DEV-23) ──────────────────────────────────
+        public static readonly Color BlueSpell    = new Color(60f/255f, 140f/255f, 255f/255f, 1f);   // rgba(60,140,255)
+        public static readonly Color BlueSpellDim = new Color(60f/255f, 140f/255f, 255f/255f, 0.35f); // translucent variant
+
         // ── Event feedback (DEV-18b) ─────────────────────────────────────────
         public static readonly Color ScorePulseColor = new Color(1f, 0.85f, 0.1f, 1f);  // bright gold
         public static readonly Color ManaColor       = new Color(0.3f, 0.7f, 1f, 1f);   // blue (法力)

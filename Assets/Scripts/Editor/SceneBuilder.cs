@@ -103,6 +103,52 @@ namespace FWTCG.Editor
                 img.raycastTarget = false;
             }
 
+            // ── DEV-23: Decorative ambient layer (behind all game UI) ─────────
+            var decorLayerGO = new GameObject("DecorLayer");
+            decorLayerGO.transform.SetParent(canvasGO.transform, false);
+            SceneryUI _scenery;
+            Image _spinOuter, _spinInner, _sigilOuter, _sigilInner, _dividerOrb;
+            Image[] _cornerGems;
+            {
+                var dlRT = decorLayerGO.AddComponent<RectTransform>();
+                dlRT.anchorMin = Vector2.zero;
+                dlRT.anchorMax = Vector2.one;
+                dlRT.offsetMin = Vector2.zero;
+                dlRT.offsetMax = Vector2.zero;
+                _scenery = decorLayerGO.AddComponent<SceneryUI>();
+
+                // Center spinning rings (on top of each other at canvas center)
+                _spinOuter  = CreateDecorDisc(decorLayerGO.transform, "SpinOuter",  180f, new Color(GameColors.BlueSpell.r, GameColors.BlueSpell.g, GameColors.BlueSpell.b, 0.12f));
+                _spinInner  = CreateDecorDisc(decorLayerGO.transform, "SpinInner",  120f, new Color(GameColors.Teal.r, GameColors.Teal.g, GameColors.Teal.b, 0.10f));
+
+                // Sigil rotation layers (larger, slower)
+                _sigilOuter = CreateDecorDisc(decorLayerGO.transform, "SigilOuter", 280f, new Color(GameColors.Gold.r, GameColors.Gold.g, GameColors.Gold.b, 0.06f));
+                _sigilInner = CreateDecorDisc(decorLayerGO.transform, "SigilInner", 190f, new Color(GameColors.GoldLight.r, GameColors.GoldLight.g, GameColors.GoldLight.b, 0.08f));
+
+                // Divider energy orb (small glowing disc at canvas center)
+                _dividerOrb = CreateDecorDisc(decorLayerGO.transform, "DividerOrb",  18f, new Color(GameColors.BlueSpell.r, GameColors.BlueSpell.g, GameColors.BlueSpell.b, 0.75f));
+
+                // Corner gems — one per corner of the canvas
+                _cornerGems = new Image[4];
+                float gemSz = 48f;
+                Vector2[] cAnch = { new Vector2(0,1), new Vector2(1,1), new Vector2(0,0), new Vector2(1,0) };
+                Vector2[] cOff  = { new Vector2(16,-16), new Vector2(-16,-16), new Vector2(16,16), new Vector2(-16,16) };
+                for (int ci = 0; ci < 4; ci++)
+                {
+                    var gemGO = new GameObject($"CornerGem{ci}", typeof(RectTransform), typeof(Image));
+                    gemGO.transform.SetParent(decorLayerGO.transform, false);
+                    var gemRT = gemGO.GetComponent<RectTransform>();
+                    gemRT.anchorMin = cAnch[ci]; gemRT.anchorMax = cAnch[ci];
+                    gemRT.pivot = Vector2.one * 0.5f;
+                    gemRT.anchoredPosition = cOff[ci];
+                    gemRT.sizeDelta = Vector2.one * gemSz;
+                    var gemImg = gemGO.GetComponent<Image>();
+                    gemImg.color = new Color(GameColors.Gold.r, GameColors.Gold.g, GameColors.Gold.b, SceneryUI.CORNER_GEM_ALPHA_MIN);
+                    gemImg.raycastTarget = false;
+                    _cornerGems[ci] = gemImg;
+                }
+            }
+
             // ── TopBar / EnemyInfoStrip ──────────────────────────────────────
             var topBar = CreateTopBar(canvasGO.transform,
                 out var enemyRuneInfoText, out var enemyDeckInfoText);
@@ -356,6 +402,21 @@ namespace FWTCG.Editor
             if (pLegendZone != null) AddZoneBorder(pLegendZone, borderColor);
             if (eLegendZone != null) AddZoneBorder(eLegendZone, borderColor);
 
+            // ── DEV-23: Legend glow overlays (on legend zones, not hero containers) ──
+            Image _playerLegendGlow = null;
+            Image _enemyLegendGlow  = null;
+            if (pLegendZone != null) _playerLegendGlow = CreateLegendGlowOverlay(pLegendZone);
+            if (eLegendZone != null) _enemyLegendGlow  = CreateLegendGlowOverlay(eLegendZone);
+
+            _scenery.spinOuter        = _spinOuter;
+            _scenery.spinInner        = _spinInner;
+            _scenery.sigilOuter       = _sigilOuter;
+            _scenery.sigilInner       = _sigilInner;
+            _scenery.dividerOrb       = _dividerOrb;
+            _scenery.cornerGems       = _cornerGems;
+            _scenery.playerLegendGlow = _playerLegendGlow;
+            _scenery.enemyLegendGlow  = _enemyLegendGlow;
+
             // ── Card Prefab ───────────────────────────────────────────────────
             EnsureDirectory("Assets/Prefabs");
             var cardPrefab = CreateCardPrefab();
@@ -596,6 +657,42 @@ namespace FWTCG.Editor
             AssetDatabase.Refresh();
 
             Debug.Log("[SceneBuilder] GameScene.unity 创建成功！");
+        }
+
+        // ── DEV-23: Decorative helpers ────────────────────────────────────────
+
+        /// <summary>Creates a square disc Image centered at canvas midpoint, for ambient decor.</summary>
+        private static Image CreateDecorDisc(Transform parent, string name, float size, Color color)
+        {
+            var go = new GameObject(name, typeof(RectTransform), typeof(Image));
+            go.transform.SetParent(parent, false);
+            var rt = go.GetComponent<RectTransform>();
+            rt.anchorMin = Vector2.one * 0.5f;
+            rt.anchorMax = Vector2.one * 0.5f;
+            rt.pivot = Vector2.one * 0.5f;
+            rt.anchoredPosition = Vector2.zero;
+            rt.sizeDelta = Vector2.one * size;
+            var img = go.GetComponent<Image>();
+            img.color = color;
+            img.raycastTarget = false;
+            return img;
+        }
+
+        /// <summary>Creates a fullscreen glow overlay Image as last child of the given hero container.</summary>
+        private static Image CreateLegendGlowOverlay(Transform heroContainer)
+        {
+            var go = new GameObject("LegendGlow", typeof(RectTransform), typeof(Image));
+            go.transform.SetParent(heroContainer, false);
+            go.transform.SetAsLastSibling();
+            var rt = go.GetComponent<RectTransform>();
+            rt.anchorMin = Vector2.zero;
+            rt.anchorMax = Vector2.one;
+            rt.offsetMin = Vector2.zero;
+            rt.offsetMax = Vector2.zero;
+            var img = go.GetComponent<Image>();
+            img.color = new Color(GameColors.BlueSpell.r, GameColors.BlueSpell.g, GameColors.BlueSpell.b, SceneryUI.LEGEND_GLOW_ALPHA_MIN); // blue, starts dim
+            img.raycastTarget = false;
+            return img;
         }
 
         // ── Canvas ────────────────────────────────────────────────────────────
@@ -1654,15 +1751,49 @@ namespace FWTCG.Editor
             etRT.offsetMax = new Vector2(-10f, 0f);
             effectText.horizontalOverflow = HorizontalWrapMode.Wrap;
 
+            // ── Group panel (multi-card showcase, sibling to CardPanel) ──
+            var groupPanelGO = new GameObject("GroupPanel");
+            groupPanelGO.transform.SetParent(go.transform, false);
+            var gpRT = groupPanelGO.AddComponent<RectTransform>();
+            gpRT.anchorMin = new Vector2(0.10f, 0.30f);
+            gpRT.anchorMax = new Vector2(0.90f, 0.70f);
+            gpRT.offsetMin = Vector2.zero;
+            gpRT.offsetMax = Vector2.zero;
+
+            var gpImg = groupPanelGO.AddComponent<Image>();
+            gpImg.color = new Color(0.02f, 0.06f, 0.14f, 0.92f);
+            var gpOutline = groupPanelGO.AddComponent<Outline>();
+            gpOutline.effectColor = new Color(200f/255f, 170f/255f, 110f/255f, 0.7f);
+            gpOutline.effectDistance = new Vector2(2f, -2f);
+
+            // SlotsRoot: HLG row, centered inside GroupPanel
+            var slotsRootGO = new GameObject("SlotsRoot");
+            slotsRootGO.transform.SetParent(groupPanelGO.transform, false);
+            var srRT = slotsRootGO.AddComponent<RectTransform>();
+            srRT.anchorMin = new Vector2(0f, 0f);
+            srRT.anchorMax = new Vector2(1f, 1f);
+            srRT.offsetMin = new Vector2(16f, 16f);
+            srRT.offsetMax = new Vector2(-16f, -16f);
+            var hlg = slotsRootGO.AddComponent<HorizontalLayoutGroup>();
+            hlg.spacing             = 16f;
+            hlg.childAlignment      = TextAnchor.MiddleCenter;
+            hlg.childForceExpandWidth  = false;
+            hlg.childForceExpandHeight = false;
+            hlg.padding = new RectOffset(8, 8, 8, 8);
+
+            groupPanelGO.SetActive(false); // hidden until ShowGroupAsync activates it
+
             // ── Attach SpellShowcaseUI component ──
             var showcase = go.AddComponent<FWTCG.UI.SpellShowcaseUI>();
             var showcaseSO = new UnityEditor.SerializedObject(showcase);
-            showcaseSO.FindProperty("_canvasGroup").objectReferenceValue = cg;
-            showcaseSO.FindProperty("_cardPanel").objectReferenceValue   = cpRT;
-            showcaseSO.FindProperty("_ownerLabel").objectReferenceValue  = ownerLabel;
+            showcaseSO.FindProperty("_canvasGroup").objectReferenceValue  = cg;
+            showcaseSO.FindProperty("_cardPanel").objectReferenceValue    = cpRT;
+            showcaseSO.FindProperty("_ownerLabel").objectReferenceValue   = ownerLabel;
             showcaseSO.FindProperty("_cardNameText").objectReferenceValue = cardNameText;
-            showcaseSO.FindProperty("_effectText").objectReferenceValue  = effectText;
-            showcaseSO.FindProperty("_artImage").objectReferenceValue    = artImg;
+            showcaseSO.FindProperty("_effectText").objectReferenceValue   = effectText;
+            showcaseSO.FindProperty("_artImage").objectReferenceValue     = artImg;
+            showcaseSO.FindProperty("_groupPanel").objectReferenceValue   = gpRT;
+            showcaseSO.FindProperty("_slotsRoot").objectReferenceValue    = slotsRootGO.transform;
             showcaseSO.ApplyModifiedPropertiesWithoutUndo();
 
             // Do NOT SetActive(false) — CanvasGroup controls visibility; panel must stay active.

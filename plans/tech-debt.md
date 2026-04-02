@@ -55,3 +55,4 @@
 - [ ] CardDragHandler: GatherCluster 中对每个选中单位各调用一次 FindObjectsOfType，应由 GameUI 维护 UnitInstance→CardView 查找表 — Phase DEV-22（Codex Medium）
 - [ ] DEV-22 测试套件以常量断言为主，缺 HandleDrop 路径、CanStartDrag false、ghost 清理等行为测试 — Phase DEV-22（Codex Low）
 - [ ] ReactiveWindowUI._gs 仅在 WaitForReaction 时更新，AutoPlayRandom guard 仅能防止失效卡；若需更严格防御应在 SkipReaction 前遍历 _pendingCards — Phase DEV-22 patch（Codex Low）
+- [ ] SceneryUI.DividerOrbLoop 基准位置只采样一次，分辨率变化时振荡中心偏移；游戏内无动态分辨率切换，实际风险极低 — Phase DEV-23（Codex Medium）
