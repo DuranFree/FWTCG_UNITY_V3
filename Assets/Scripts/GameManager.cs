@@ -154,10 +154,13 @@ namespace FWTCG
         // ── Interaction state ─────────────────────────────────────────────────
         private UnitInstance _selectedUnit;       // single-select (for BF recall)
         private string _selectedUnitLoc;          // "hand", "base", "0", "1"
-        private List<UnitInstance> _selectedBaseUnits = new List<UnitInstance>(); // multi-select for batch move
+        private List<UnitInstance> _selectedBaseUnits = new List<UnitInstance>(); // multi-select for batch BF move
+        private List<UnitInstance> _selectedHandUnits = new List<UnitInstance>(); // multi-select for batch hand drag
         private UnitInstance _targetingSpell;     // non-null = awaiting target click for spell
         private bool _aiReactionPending;          // DEV-15: true while AI reaction resolves
+        private bool _suppressSpellShowcase;      // DEV-22: true when group showcase handles display
         private bool _bfClickInFlight;            // DEV-17: true while OnBattlefieldClicked awaits post-combat delay
+        private bool? _pendingDragHasteDecision;  // DEV-22: pre-answered Haste choice from drag flow prompt
 
         // ── DEV-22: Drag query helpers (used by CardDragHandler) ─────────────
 
@@ -174,6 +177,7 @@ namespace FWTCG
 
         /// <summary>Returns true if <paramref name="unit"/> is in the player's hand.</summary>
         public bool IsUnitInHand(UnitInstance unit) => _gs != null && _gs.PHand.Contains(unit);
+        public bool IsUnitHero(UnitInstance unit)   => _gs != null && _gs.PHero == unit;
 
         /// <summary>Returns true if <paramref name="unit"/> is in the player's base.</summary>
         public bool IsUnitInBase(UnitInstance unit) => _gs != null && _gs.PBase.Contains(unit);
@@ -184,6 +188,9 @@ namespace FWTCG
         /// </summary>
         public List<UnitInstance> GetSelectedBaseUnits() => _selectedBaseUnits;
 
+        /// <summary>Returns the current multi-select list for the player hand.</summary>
+        public List<UnitInstance> GetSelectedHandUnits() => _selectedHandUnits;
+
         /// <summary>
         /// DEV-22: Drag-to-base — equivalent to clicking a hand card.
         /// Handles both unit cards (plays to base) and spell cards (enters targeting mode).
@@ -193,6 +200,21 @@ namespace FWTCG
             if (!IsPlayerActionPhase()) return;
             if (_gs == null || !_gs.PHand.Contains(unit)) return;
             _ = PlayHandCardWithRuneConfirmAsync(unit);
+        }
+
+        /// <summary>
+        /// DEV-22: Multi-select hand unit drag — plays all units in the group to base.
+        /// </summary>
+        public void OnDragHandGroupToBase(List<UnitInstance> units)
+        {
+            if (!IsPlayerActionPhase()) return;
+            if (units == null || units.Count == 0) return;
+            _selectedHandUnits.Clear();
+            foreach (var u in units)
+            {
+                if (_gs != null && _gs.PHand.Contains(u) && !u.CardData.IsSpell)
+                    _ = PlayHandCardWithRuneConfirmAsync(u);
+            }
         }
 
         /// <summary>
@@ -208,9 +230,72 @@ namespace FWTCG
         }
 
         /// <summary>
+        /// DEV-22: Multiple selected spell cards dragged out of hand — shows group showcase then casts all.
+        /// </summary>
+        public void OnSpellGroupDraggedOut(List<UnitInstance> spells)
+        {
+            if (!IsPlayerActionPhase()) return;
+            if (spells == null || spells.Count == 0) return;
+            _selectedHandUnits.Clear();
+            _ = PlaySpellGroupAsync(spells);
+        }
+
+        private async System.Threading.Tasks.Task PlaySpellGroupAsync(List<UnitInstance> spells)
+        {
+            // Filter to valid hand spells only
+            var valid = new List<UnitInstance>();
+            foreach (var s in spells)
+                if (_gs != null && _gs.PHand.Contains(s) && s.CardData.IsSpell) valid.Add(s);
+            if (valid.Count == 0) return;
+
+            // Show all cards together in group showcase before casting
+            if (_spellShowcase != null)
+                await _spellShowcase.ShowGroupAsync(valid, GameRules.OWNER_PLAYER);
+
+            // Cast each spell (individual showcases suppressed since group already played)
+            _suppressSpellShowcase = true;
+            foreach (var spell in valid)
+            {
+                if (_gs != null && _gs.PHand.Contains(spell))
+                    await PlayHandCardWithRuneConfirmAsync(spell);
+            }
+            _suppressSpellShowcase = false;
+        }
+
+        /// <summary>
+        /// <summary>
+        /// Hero card dragged from hero zone to base — same as clicking the hero card.
+        /// </summary>
+        public void OnDragHeroToBase(UnitInstance hero)
+        {
+            if (!IsPlayerActionPhase()) return;
+            if (_gs == null || _gs.PHero != hero) return;
+            _ = TryPlayHeroAsync(hero);
+        }
+
         /// DEV-22: Drag base units to a battlefield — equivalent to multi-selecting then clicking the BF.
         /// Replaces the current selection with <paramref name="units"/> and routes to OnBattlefieldClicked.
         /// </summary>
+        /// <summary>
+        /// Returns true if dragging this unit to its zone should show a Haste prompt
+        /// BEFORE the landing animation plays. CardDragHandler calls this to freeze ghosts first.
+        /// </summary>
+        public bool DragNeedsHasteChoice(UnitInstance unit)
+        {
+            if (unit == null || _gs == null) return false;
+            if (!unit.CardData.HasKeyword(CardKeyword.Haste)) return false;
+            int extraManaNeeded = unit.CardData.Cost + 1;
+            int extraSchNeeded  = unit.CardData.RuneCost + 1;
+            int haveSch = _gs.GetSch(GameRules.OWNER_PLAYER, unit.CardData.RuneType);
+            return _gs.PMana >= extraManaNeeded && haveSch >= extraSchNeeded;
+        }
+
+        /// <summary>
+        /// Pre-answers the Haste choice so TryPlayUnitAsync / TryPlayHeroAsync skips the prompt.
+        /// Called by CardDragHandler after the user confirms in the drag-flow prompt.
+        /// </summary>
+        public void SetDragHasteDecision(bool useHaste) => _pendingDragHasteDecision = useHaste;
+
         public void OnDragUnitsToBF(List<UnitInstance> units, int bfId)
         {
             if (!IsPlayerActionPhase()) return;
@@ -326,9 +411,12 @@ namespace FWTCG
                 _ui.WirePileButtons();
                 // DEV-22: wire drag callbacks and push zone RTs to CardDragHandler
                 _ui.SetDragCallbacks(
-                    onDragCardToBase: OnDragCardToBase,
-                    onSpellDragOut:   OnSpellDraggedOut,
-                    onDragUnitsToBF:  OnDragUnitsToBF
+                    onDragCardToBase:      OnDragCardToBase,
+                    onDragHandGroupToBase: OnDragHandGroupToBase,
+                    onSpellDragOut:        OnSpellDraggedOut,
+                    onSpellGroupDragOut:   OnSpellGroupDraggedOut,
+                    onDragHeroToBase:      OnDragHeroToBase,
+                    onDragUnitsToBF:       OnDragUnitsToBF
                 );
                 _ui.SetupDragZones();
             }
@@ -348,17 +436,6 @@ namespace FWTCG
             _turnMgr.Inject(_gs, _scoreMgr, _combatSys, _ai, _entryEffects,
                             _spellSys, _reactiveSys, _reactiveWindowUI, _legendSys, _bfSys);
 
-            // Initialize legends (player = Kaisa/虚空, enemy = Masteryi/伊欧尼亚)
-            if (_legendSys != null)
-            {
-                _gs.PLegend = _legendSys.CreateLegend(LegendSystem.KAISA_LEGEND_ID, GameRules.OWNER_PLAYER);
-                _gs.ELegend = _legendSys.CreateLegend(LegendSystem.YI_LEGEND_ID, GameRules.OWNER_ENEMY);
-
-                // Associate CardData for legend art display (DEV-10)
-                if (_kaisaLegendData != null) _gs.PLegend.DisplayData = _kaisaLegendData;
-                if (_yiLegendData != null)    _gs.ELegend.DisplayData = _yiLegendData;
-            }
-
             // Random first player
             _gs.First = Random.value > 0.5f ? GameRules.OWNER_PLAYER : GameRules.OWNER_ENEMY;
             _gs.Turn = _gs.First;
@@ -372,6 +449,13 @@ namespace FWTCG
             // Extract hero cards from decks to hero zone (rule 103.2.a)
             ExtractHero(GameRules.OWNER_PLAYER);
             ExtractHero(GameRules.OWNER_ENEMY);
+
+            // Initialize legends — derived from each side's hero card (dynamic, not hardcoded)
+            if (_legendSys != null)
+            {
+                AssignLegendFromHero(GameRules.OWNER_PLAYER);
+                AssignLegendFromHero(GameRules.OWNER_ENEMY);
+            }
 
             // Deal initial hands
             DealInitialHand(GameRules.OWNER_PLAYER);
@@ -491,10 +575,20 @@ namespace FWTCG
                 return;
             }
 
-            // ── Hand card: play card (unit or spell) ──
+            // ── Hand card: toggle multi-select (drag is the play action) ──
             if (_gs.PHand.Contains(unit))
             {
-                _ = PlayHandCardWithRuneConfirmAsync(unit);
+                if (_selectedHandUnits.Contains(unit))
+                {
+                    _selectedHandUnits.Remove(unit);
+                    TurnManager.BroadcastMessage_Static($"[取消选择] {unit.UnitName}（已选{_selectedHandUnits.Count}张）");
+                }
+                else
+                {
+                    _selectedHandUnits.Add(unit);
+                    TurnManager.BroadcastMessage_Static($"[选择] {unit.UnitName}（已选{_selectedHandUnits.Count}张）— 拖拽出牌");
+                }
+                RefreshUI();
                 return;
             }
 
@@ -523,6 +617,13 @@ namespace FWTCG
                     }
                 }
                 RefreshUI();
+                return;
+            }
+
+            // ── Hero zone: play hero card to base ──
+            if (_gs.PHero == unit)
+            {
+                _ = TryPlayHeroAsync(unit);
                 return;
             }
 
@@ -703,6 +804,7 @@ namespace FWTCG
             _selectedUnit = null;
             _selectedUnitLoc = null;
             _selectedBaseUnits.Clear();
+            _selectedHandUnits.Clear();
             _turnMgr.EndTurn();
             RefreshUI();
         }
@@ -1015,22 +1117,31 @@ namespace FWTCG
             bool useHaste = false;
             if (unit.CardData.HasKeyword(CardKeyword.Haste))
             {
-                int extraManaNeeded = unit.CardData.Cost + 1; // base cost + 1 extra
-                int extraSchNeeded  = unit.CardData.RuneCost + 1;
-                int haveSch = _gs.GetSch(GameRules.OWNER_PLAYER, unit.CardData.RuneType);
-                bool canAfford = _gs.PMana >= extraManaNeeded && haveSch >= extraSchNeeded;
-
-                if (canAfford && AskPromptUI.Instance != null)
+                if (_pendingDragHasteDecision.HasValue)
                 {
-                    try
+                    // Pre-answered by drag-flow prompt — skip showing the dialog again
+                    useHaste = _pendingDragHasteDecision.Value;
+                    _pendingDragHasteDecision = null;
+                }
+                else
+                {
+                    int extraManaNeeded = unit.CardData.Cost + 1;
+                    int extraSchNeeded  = unit.CardData.RuneCost + 1;
+                    int haveSch = _gs.GetSch(GameRules.OWNER_PLAYER, unit.CardData.RuneType);
+                    bool canAfford = _gs.PMana >= extraManaNeeded && haveSch >= extraSchNeeded;
+
+                    if (canAfford && AskPromptUI.Instance != null)
                     {
-                        useHaste = await AskPromptUI.Instance.WaitForConfirm(
-                            "急速",
-                            $"额外支付 [1] 法力 + [1{unit.CardData.RuneType}] 符能，让 {unit.UnitName} 以活跃状态进场？",
-                            "使用急速",
-                            "休眠进场");
+                        try
+                        {
+                            useHaste = await AskPromptUI.Instance.WaitForConfirm(
+                                "急速",
+                                $"额外支付 [1] 法力 + [1{unit.CardData.RuneType}] 符能，让 {unit.UnitName} 以活跃状态进场？",
+                                "使用急速",
+                                "休眠进场");
+                        }
+                        catch { useHaste = false; }
                     }
-                    catch { useHaste = false; }
                 }
             }
 
@@ -1073,6 +1184,7 @@ namespace FWTCG
                 unit.Exhausted = false;
                 TurnManager.BroadcastMessage_Static(
                     $"[急速] {unit.UnitName} 支付额外1法力+1{unit.CardData.RuneType}符能，以活跃状态进场");
+                UI.GameEventBus.FireUnitFloatText(unit, "急速！", UI.GameColors.BuffColor);
             }
             else
             {
@@ -1082,8 +1194,6 @@ namespace FWTCG
             if (unit.IsEphemeral) unit.SummonedOnRound = _gs.Round;
             _gs.CardsPlayedThisTurn++;
             FireCardPlayed(unit, GameRules.OWNER_PLAYER);
-            _ = _spellShowcase?.ShowAsync(unit, GameRules.OWNER_PLAYER); // card art center reveal
-
             TurnManager.BroadcastMessage_Static(
                 $"[打出] {unit.UnitName}（费用{unit.CardData.Cost}），剩余法力 {_gs.PMana}");
 
@@ -1096,6 +1206,116 @@ namespace FWTCG
 
             _selectedUnit = null;
             _selectedUnitLoc = "base";
+            RefreshUI();
+        }
+
+        /// <summary>
+        /// Plays a hero card from the hero zone to the player's base.
+        /// Mirrors TryPlayUnitAsync but sources from gs.PHero instead of gs.PHand.
+        /// </summary>
+        private async Task TryPlayHeroAsync(UnitInstance hero)
+        {
+            if (hero.CardData.Cost > _gs.PMana)
+            {
+                ShowPlayError($"[提示] 法力不足：需要 {hero.CardData.Cost}，当前 {_gs.PMana}", hero);
+                return;
+            }
+
+            if (hero.CardData.RuneCost > 0)
+            {
+                int haveSch = _gs.GetSch(GameRules.OWNER_PLAYER, hero.CardData.RuneType);
+                if (haveSch < hero.CardData.RuneCost)
+                {
+                    ShowPlayError($"[提示] 符能不足：需要 {hero.CardData.RuneCost} {hero.CardData.RuneType}，当前 {haveSch}", hero);
+                    return;
+                }
+            }
+
+            // Haste prompt (same as unit)
+            bool useHaste = false;
+            if (hero.CardData.HasKeyword(CardKeyword.Haste))
+            {
+                if (_pendingDragHasteDecision.HasValue)
+                {
+                    useHaste = _pendingDragHasteDecision.Value;
+                    _pendingDragHasteDecision = null;
+                }
+                else
+                {
+                    int extraManaNeeded = hero.CardData.Cost + 1;
+                    int extraSchNeeded  = hero.CardData.RuneCost + 1;
+                    int haveSch = _gs.GetSch(GameRules.OWNER_PLAYER, hero.CardData.RuneType);
+                    bool canAfford = _gs.PMana >= extraManaNeeded && haveSch >= extraSchNeeded;
+                    if (canAfford && AskPromptUI.Instance != null)
+                    {
+                        try
+                        {
+                            useHaste = await AskPromptUI.Instance.WaitForConfirm(
+                                "急速",
+                                $"额外支付 [1] 法力 + [1{hero.CardData.RuneType}] 符能，让 {hero.UnitName} 以活跃状态进场？",
+                                "使用急速",
+                                "休眠进场");
+                        }
+                        catch { useHaste = false; }
+                    }
+                }
+            }
+
+            // Re-validate after async prompt
+            if (_gs == null || _gs.GameOver) return;
+            if (_gs.Turn != GameRules.OWNER_PLAYER || _gs.Phase != GameRules.PHASE_ACTION) return;
+            if (_gs.PHero != hero) return; // hero already deployed or replaced
+            if (_gs.PMana < hero.CardData.Cost)
+            {
+                ShowPlayError("[提示] 资源状态已变更，操作已取消", hero);
+                return;
+            }
+            if (hero.CardData.RuneCost > 0 &&
+                _gs.GetSch(GameRules.OWNER_PLAYER, hero.CardData.RuneType) < hero.CardData.RuneCost)
+            {
+                ShowPlayError("[提示] 资源状态已变更，操作已取消", hero);
+                return;
+            }
+            if (useHaste)
+            {
+                bool stillOk = _gs.PMana >= hero.CardData.Cost + 1 &&
+                               _gs.GetSch(GameRules.OWNER_PLAYER, hero.CardData.RuneType) >= hero.CardData.RuneCost + 1;
+                if (!stillOk) useHaste = false;
+            }
+
+            // Deploy: remove from hero zone → add to base
+            _gs.PHero = null;
+            _gs.PBase.Add(hero);
+            _gs.PMana -= hero.CardData.Cost;
+            if (hero.CardData.RuneCost > 0)
+                _gs.SpendSch(GameRules.OWNER_PLAYER, hero.CardData.RuneType, hero.CardData.RuneCost);
+
+            if (useHaste)
+            {
+                _gs.PMana -= 1;
+                _gs.SpendSch(GameRules.OWNER_PLAYER, hero.CardData.RuneType, 1);
+                hero.Exhausted = false;
+                TurnManager.BroadcastMessage_Static(
+                    $"[急速] {hero.UnitName} 支付额外1法力+1{hero.CardData.RuneType}符能，以活跃状态进场");
+                UI.GameEventBus.FireUnitFloatText(hero, "急速！", UI.GameColors.BuffColor);
+            }
+            else
+            {
+                hero.Exhausted = true;
+            }
+
+            if (hero.IsEphemeral) hero.SummonedOnRound = _gs.Round;
+            _gs.CardsPlayedThisTurn++;
+            FireCardPlayed(hero, GameRules.OWNER_PLAYER);
+            TurnManager.BroadcastMessage_Static(
+                $"[英雄出场] {hero.UnitName}（费用{hero.CardData.Cost}），剩余法力 {_gs.PMana}");
+
+            if (_entryEffects != null)
+                _entryEffects.OnUnitEntered(hero, GameRules.OWNER_PLAYER, _gs);
+
+            _legendSys?.CheckKaisaEvolution(GameRules.OWNER_PLAYER, _gs);
+
+            _selectedUnit = null;
             RefreshUI();
         }
 
@@ -1312,8 +1532,8 @@ namespace FWTCG
             }
             else if (!_gs.GameOver)
             {
-                // DEV-16: show spell showcase before resolving
-                if (_spellShowcase != null)
+                // DEV-16: show spell showcase before resolving (suppressed when group showcase already played)
+                if (_spellShowcase != null && !_suppressSpellShowcase)
                     await _spellShowcase.ShowAsync(spell, GameRules.OWNER_PLAYER);
 
                 if (!_gs.GameOver)
@@ -1475,10 +1695,54 @@ namespace FWTCG
             }
         }
 
+        /// <summary>
+        /// Assigns a legend to <paramref name="owner"/> based on which hero card was extracted.
+        /// Kaisa hero → Kaisa legend; Yi hero → Masteryi legend.
+        /// Display data is matched by legend ID so both sides work regardless of which deck they use.
+        /// </summary>
+        private void AssignLegendFromHero(string owner)
+        {
+            if (_legendSys == null) return;
+            UnitInstance hero = _gs.GetHero(owner);
+            if (hero == null) return;
+
+            string legendId = LegendIdFromHeroId(hero.CardData.Id);
+            if (string.IsNullOrEmpty(legendId)) return;
+
+            LegendInstance legend = _legendSys.CreateLegend(legendId, owner);
+
+            // Match display data by legend ID — works regardless of which side uses which deck
+            if (legendId == LegendSystem.KAISA_LEGEND_ID && _kaisaLegendData != null)
+                legend.DisplayData = _kaisaLegendData;
+            else if (legendId == LegendSystem.YI_LEGEND_ID && _yiLegendData != null)
+                legend.DisplayData = _yiLegendData;
+
+            if (owner == GameRules.OWNER_PLAYER) _gs.PLegend = legend;
+            else                                  _gs.ELegend = legend;
+
+            Debug.Log($"[InitGame] {owner} legend assigned: {legend.Name} (from hero {hero.CardData.Id})");
+        }
+
+        private static string LegendIdFromHeroId(string heroId)
+        {
+            if (heroId == null) return null;
+            if (heroId.StartsWith("kaisa")) return LegendSystem.KAISA_LEGEND_ID;
+            if (heroId.StartsWith("yi"))    return LegendSystem.YI_LEGEND_ID;
+            return null;
+        }
+
         private void RefreshUI()
         {
-            if (_ui != null)
-                _ui.Refresh(_gs, _selectedBaseUnits);
+            if (_ui == null) return;
+            // Force-clear visual selections when it is no longer the player's action phase
+            // (prevents highlights getting stuck through turn transitions and AI turns).
+            // Do NOT clear selections while a confirmation popup is showing — freeze card state.
+            if (!IsPlayerActionPhase() && !AskPromptUI.IsShowing)
+            {
+                _selectedBaseUnits.Clear();
+                _selectedHandUnits.Clear();
+            }
+            _ui.Refresh(_gs, _selectedBaseUnits, _selectedHandUnits);
         }
 
         // ── Event handlers ────────────────────────────────────────────────────

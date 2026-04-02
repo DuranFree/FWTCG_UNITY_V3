@@ -1,3 +1,4 @@
+using System.Collections;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 using UnityEngine;
@@ -25,6 +26,9 @@ namespace FWTCG.UI
         // ── Singleton ─────────────────────────────────────────────────────────
         public static AskPromptUI Instance { get; private set; }
 
+        /// <summary>True while the popup is visible (including entry/exit animation).</summary>
+        public static bool IsShowing { get; private set; }
+
         // ── Inspector refs (wired by SceneBuilder) ────────────────────────────
         [SerializeField] private GameObject  _panel;
         [SerializeField] private CanvasGroup _canvasGroup;
@@ -40,6 +44,9 @@ namespace FWTCG.UI
         // ── Async state ───────────────────────────────────────────────────────
         private TaskCompletionSource<UnitInstance> _cardTcs;
         private TaskCompletionSource<bool>         _confirmTcs;
+
+        // ── Animation state ───────────────────────────────────────────────────
+        private Coroutine _animCoroutine;
 
         // ── Unity lifecycle ───────────────────────────────────────────────────
 
@@ -194,24 +201,88 @@ namespace FWTCG.UI
 
         private void Show()
         {
-            if (_panel != null) _panel.SetActive(true);
+            IsShowing = true;
+            transform.SetAsLastSibling();
+            if (_panel != null)
+            {
+                _panel.SetActive(true);
+                _panel.transform.localScale = Vector3.zero;
+            }
             if (_canvasGroup != null)
             {
                 _canvasGroup.alpha          = 1f;
                 _canvasGroup.interactable   = true;
                 _canvasGroup.blocksRaycasts = true;
             }
+            if (_animCoroutine != null) StopCoroutine(_animCoroutine);
+            if (gameObject.activeInHierarchy)
+                _animCoroutine = StartCoroutine(ShowRoutine());
+            else if (_panel != null)
+                _panel.transform.localScale = Vector3.one;
         }
 
         private void Hide()
         {
-            if (_panel != null) _panel.SetActive(false);
+            IsShowing = false;
             if (_canvasGroup != null)
             {
-                _canvasGroup.alpha          = 0f;
                 _canvasGroup.interactable   = false;
                 _canvasGroup.blocksRaycasts = false;
             }
+            if (_animCoroutine != null) StopCoroutine(_animCoroutine);
+            bool panelVisible = _panel != null && _panel.activeSelf;
+            if (gameObject.activeInHierarchy && panelVisible)
+            {
+                _animCoroutine = StartCoroutine(HideRoutine());
+            }
+            else
+            {
+                if (_panel != null) _panel.SetActive(false);
+                if (_canvasGroup != null) _canvasGroup.alpha = 0f;
+            }
+        }
+
+        // ── Animation coroutines ──────────────────────────────────────────────
+
+        private IEnumerator ShowRoutine()
+        {
+            if (_panel == null) yield break;
+            Transform pt  = _panel.transform;
+            float     dur = 0.20f;
+            float     t   = 0f;
+            while (t < dur)
+            {
+                float p = t / dur;
+                // Ease-out with a slight overshoot: 0 → 1.08 → 1.0
+                float s = p < 0.75f
+                    ? Mathf.Lerp(0f,    1.08f, p / 0.75f)
+                    : Mathf.Lerp(1.08f, 1.00f, (p - 0.75f) / 0.25f);
+                pt.localScale = Vector3.one * s;
+                t += Time.unscaledDeltaTime;
+                yield return null;
+            }
+            pt.localScale  = Vector3.one;
+            _animCoroutine = null;
+        }
+
+        private IEnumerator HideRoutine()
+        {
+            if (_panel == null) yield break;
+            Transform pt  = _panel.transform;
+            float     dur = 0.12f;
+            float     t   = 0f;
+            while (t < dur)
+            {
+                float p = t / dur;
+                float s = Mathf.Lerp(1f, 0f, p * p); // ease-in shrink
+                pt.localScale = Vector3.one * s;
+                t += Time.unscaledDeltaTime;
+                yield return null;
+            }
+            pt.localScale = Vector3.zero;
+            if (_panel != null) _panel.SetActive(false);
+            if (_canvasGroup != null) _canvasGroup.alpha = 0f;
+            _animCoroutine = null;
         }
 
         private void ClearCardContainer()

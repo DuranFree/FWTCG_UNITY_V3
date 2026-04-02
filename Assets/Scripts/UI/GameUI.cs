@@ -203,8 +203,11 @@ namespace FWTCG.UI
         private Action<UnitInstance> _onCardHoverExit;
 
         // ── DEV-22: Drag callbacks ────────────────────────────────────────────
-        private Action<UnitInstance>            _onDragCardToBase;   // hand unit → base
-        private Action<UnitInstance>            _onSpellDragOut;     // hand spell → target popup
+        private Action<UnitInstance>            _onDragCardToBase;      // hand unit (single) → base
+        private Action<List<UnitInstance>>    _onDragHandGroupToBase; // hand units (multi) → base
+        private Action<UnitInstance>            _onSpellDragOut;      // hand spell → target popup
+        private Action<List<UnitInstance>>      _onSpellGroupDragOut; // multiple hand spells → group cast
+        private Action<UnitInstance>            _onDragHeroToBase;    // hero zone card → base
         private Action<List<UnitInstance>, int> _onDragUnitsToBF;    // base units → BF
 
         // ── Rune highlight state (set by SetRuneHighlights) ───────────────────
@@ -549,12 +552,18 @@ namespace FWTCG.UI
         /// </summary>
         public void SetDragCallbacks(
             Action<UnitInstance>            onDragCardToBase,
+            Action<List<UnitInstance>>      onDragHandGroupToBase,
             Action<UnitInstance>            onSpellDragOut,
+            Action<List<UnitInstance>>      onSpellGroupDragOut,
+            Action<UnitInstance>            onDragHeroToBase,
             Action<List<UnitInstance>, int> onDragUnitsToBF)
         {
-            _onDragCardToBase = onDragCardToBase;
-            _onSpellDragOut   = onSpellDragOut;
-            _onDragUnitsToBF  = onDragUnitsToBF;
+            _onDragCardToBase      = onDragCardToBase;
+            _onDragHandGroupToBase = onDragHandGroupToBase;
+            _onSpellDragOut        = onSpellDragOut;
+            _onSpellGroupDragOut   = onSpellGroupDragOut;
+            _onDragHeroToBase      = onDragHeroToBase;
+            _onDragUnitsToBF       = onDragUnitsToBF;
         }
 
         /// <summary>
@@ -680,6 +689,7 @@ namespace FWTCG.UI
 
         // ── Selection state (set by GameManager) ─────────────────────────────
         private List<UnitInstance> _selectedBaseUnits;
+        private List<UnitInstance> _selectedHandUnits;
 
         // ── Full refresh ──────────────────────────────────────────────────────
 
@@ -688,17 +698,18 @@ namespace FWTCG.UI
         /// </summary>
         public void Refresh(GameState gs)
         {
-            Refresh(gs, null);
+            Refresh(gs, _selectedBaseUnits, _selectedHandUnits); // preserve current selections on hover refresh
         }
 
         /// <summary>
         /// Redraws all UI panels. selectedBaseUnits highlights multi-selected units in green.
         /// </summary>
-        public void Refresh(GameState gs, List<UnitInstance> selectedBaseUnits)
+        public void Refresh(GameState gs, List<UnitInstance> selectedBaseUnits, List<UnitInstance> selectedHandUnits = null)
         {
             if (gs == null) return;
 
             _selectedBaseUnits = selectedBaseUnits;
+            _selectedHandUnits = selectedHandUnits;
 
             RefreshScores(gs);
             RefreshRoundPhase(gs);
@@ -863,6 +874,7 @@ namespace FWTCG.UI
             entry.eventID = UnityEngine.EventSystems.EventTriggerType.PointerClick;
             entry.callback.AddListener((data) =>
             {
+                if (CardDragHandler.BlockPointerEvents) return;
                 var pd = (UnityEngine.EventSystems.PointerEventData)data;
                 if (pd.button == UnityEngine.EventSystems.PointerEventData.InputButton.Right)
                 {
@@ -988,6 +1000,7 @@ namespace FWTCG.UI
                 entry.eventID = UnityEngine.EventSystems.EventTriggerType.PointerClick;
                 entry.callback.AddListener((data) =>
                 {
+                    if (CardDragHandler.BlockPointerEvents) return;
                     var pointerData = (UnityEngine.EventSystems.PointerEventData)data;
                     if (pointerData.button == UnityEngine.EventSystems.PointerEventData.InputButton.Right)
                     {
@@ -1039,7 +1052,16 @@ namespace FWTCG.UI
                 }
 
                 if (cv != null)
+                {
                     cv.Setup(hero, isPlayer, isPlayer ? _onUnitClicked : null, _onCardRightClicked);
+                    // Wire drag callback for player hero card
+                    if (isPlayer)
+                    {
+                        var dh = cv.GetComponent<CardDragHandler>();
+                        if (dh != null)
+                            dh.OnDragHeroToBase = _onDragHeroToBase;
+                    }
+                }
             }
             else
             {
@@ -1140,7 +1162,11 @@ namespace FWTCG.UI
                 {
                     UnitInstance u = units[i];
                     cv.Setup(u, isPlayer, onClick, _onCardRightClicked, onHoverEnter, onHoverExit);
+                    // Always reset first, then highlight only if in selection list
+                    cv.SetSelected(false);
                     if (_selectedBaseUnits != null && _selectedBaseUnits.Contains(u))
+                        cv.SetSelected(true);
+                    if (_selectedHandUnits != null && _selectedHandUnits.Contains(u))
                         cv.SetSelected(true);
                     if (currentMana >= 0 && u.CardData.Cost > currentMana)
                         cv.SetCostInsufficient(true);
@@ -1151,9 +1177,11 @@ namespace FWTCG.UI
                         var dh = cv.GetComponent<CardDragHandler>();
                         if (dh != null)
                         {
-                            dh.OnDragToBase  = _onDragCardToBase;
-                            dh.OnSpellDragOut = _onSpellDragOut;
-                            dh.OnDragToBF    = _onDragUnitsToBF;
+                            dh.OnDragToBase          = _onDragCardToBase;
+                            dh.OnDragHandGroupToBase = _onDragHandGroupToBase;
+                            dh.OnSpellDragOut        = _onSpellDragOut;
+                            dh.OnSpellGroupDragOut   = _onSpellGroupDragOut;
+                            dh.OnDragToBF            = _onDragUnitsToBF;
                         }
                     }
                 }

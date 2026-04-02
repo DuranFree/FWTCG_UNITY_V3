@@ -52,6 +52,16 @@ namespace FWTCG.UI
         private Coroutine _death;
         private CardGlow _cardGlow;
 
+        // ── Selection lift + float animation ────────────────────────────────
+        private bool      _isLifted;
+        private Coroutine _liftFloat;
+        private Coroutine _returnToRest;            // smooth de-select return animation
+        private float     _restAnchoredY;           // Y before lifting
+        private const float LiftOffset       = 12f;   // px raised when selected
+        private const float FloatAmplitude   = 4f;    // px peak of float wave
+        private const float FloatPeriod      = 1.5f;  // seconds per full cycle
+        private const float ReturnDuration   = 0.30f; // seconds for animated return
+
         private void Awake()
         {
             // Auto-wire SerializeField refs by child name if Inspector connections were lost
@@ -115,8 +125,9 @@ namespace FWTCG.UI
         {
             if (_clickButton != null)
                 _clickButton.onClick.RemoveListener(HandleClick);
-            if (_stunPulse != null)
-                StopCoroutine(_stunPulse);
+            if (_stunPulse    != null) StopCoroutine(_stunPulse);
+            if (_liftFloat    != null) StopCoroutine(_liftFloat);
+            if (_returnToRest != null) StopCoroutine(_returnToRest);
         }
 
         public void Setup(UnitInstance unit, bool isPlayerCard, Action<UnitInstance> onClick,
@@ -140,18 +151,21 @@ namespace FWTCG.UI
 
         public void OnPointerEnter(PointerEventData eventData)
         {
+            if (CardDragHandler.BlockPointerEvents) return;
             if (_unit != null && _onHoverEnter != null && !_faceDown)
                 _onHoverEnter(_unit);
         }
 
         public void OnPointerExit(PointerEventData eventData)
         {
+            if (CardDragHandler.BlockPointerEvents) return;
             if (_unit != null && _onHoverExit != null && !_faceDown)
                 _onHoverExit(_unit);
         }
 
         public void OnPointerClick(PointerEventData eventData)
         {
+            if (CardDragHandler.BlockPointerEvents) return;
             if (eventData.button == PointerEventData.InputButton.Right)
             {
                 if (_unit != null && _onRightClick != null && !_faceDown)
@@ -319,8 +333,89 @@ namespace FWTCG.UI
 
         public void SetSelected(bool selected)
         {
+            bool stateChanged = _selected != selected;
             _selected = selected;
             Refresh();
+
+            // Only touch animation when selection state actually changes;
+            // avoids flickering when Refresh() calls SetSelected with the same value.
+            if (!stateChanged) return;
+
+            var rt = (RectTransform)transform;
+            if (selected)
+            {
+                // If a return animation was in-progress, the card hasn't reached rest yet —
+                // _restAnchoredY is still the correct original rest Y, so don't overwrite it.
+                bool wasReturning = _returnToRest != null;
+                if (_returnToRest != null) { StopCoroutine(_returnToRest); _returnToRest = null; }
+                _isLifted = true;
+                if (!wasReturning)
+                    _restAnchoredY = rt.anchoredPosition.y;  // only save rest Y when truly at rest
+                if (_liftFloat != null) StopCoroutine(_liftFloat);
+                _liftFloat = StartCoroutine(LiftFloatRoutine());
+            }
+            else
+            {
+                _isLifted = false;
+                if (_liftFloat != null) { StopCoroutine(_liftFloat); _liftFloat = null; }
+                // Animate back to rest position instead of snapping
+                if (_returnToRest != null) StopCoroutine(_returnToRest);
+                _returnToRest = StartCoroutine(ReturnToRestRoutine(rt.anchoredPosition.y));
+            }
+        }
+
+        /// <summary>
+        /// Pauses the lift/float animation while this card is being cluster-dragged.
+        /// Does NOT change _selected or _isLifted so ResumeLift can restart correctly.
+        /// </summary>
+        public void SuspendLift()
+        {
+            if (_liftFloat != null) { StopCoroutine(_liftFloat); _liftFloat = null; }
+        }
+
+        /// <summary>
+        /// Resumes lift/float animation after cluster drag ends (if card is still selected).
+        /// </summary>
+        public void ResumeLift()
+        {
+            if (_selected && _isLifted && _liftFloat == null)
+                _liftFloat = StartCoroutine(LiftFloatRoutine());
+        }
+
+        private IEnumerator LiftFloatRoutine()
+        {
+            var rt = (RectTransform)transform;
+            float t = 0f;
+            while (_isLifted)
+            {
+                float floatY = Mathf.Sin(t * Mathf.PI * 2f / FloatPeriod) * FloatAmplitude;
+                rt.anchoredPosition = new Vector2(rt.anchoredPosition.x,
+                                                  _restAnchoredY + LiftOffset + floatY);
+                t += Time.deltaTime;
+                yield return null;
+            }
+        }
+
+        /// <summary>
+        /// Smoothly returns the card from its current lifted Y back to _restAnchoredY.
+        /// Called when the card is deselected (e.g. turn ends) so it eases down visually.
+        /// </summary>
+        private IEnumerator ReturnToRestRoutine(float startY)
+        {
+            var rt = (RectTransform)transform;
+            float elapsed = 0f;
+            while (elapsed < ReturnDuration)
+            {
+                elapsed += Time.deltaTime;
+                float t     = Mathf.Clamp01(elapsed / ReturnDuration);
+                float eased = t * (2f - t);   // ease-out quad — fast start, soft landing
+                rt.anchoredPosition = new Vector2(
+                    rt.anchoredPosition.x,
+                    Mathf.Lerp(startY, _restAnchoredY, eased));
+                yield return null;
+            }
+            rt.anchoredPosition = new Vector2(rt.anchoredPosition.x, _restAnchoredY);
+            _returnToRest = null;
         }
 
         private void HandleClick()

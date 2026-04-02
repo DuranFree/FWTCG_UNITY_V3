@@ -36,6 +36,7 @@ namespace FWTCG.UI
 
         public void OnPointerEnter(PointerEventData eventData)
         {
+            if (CardDragHandler.BlockPointerEvents) return;
             if (_overrideCanvas != null)
             {
                 _overrideCanvas.overrideSorting = true;
@@ -47,6 +48,7 @@ namespace FWTCG.UI
 
         public void OnPointerExit(PointerEventData eventData)
         {
+            if (CardDragHandler.BlockPointerEvents) return;
             if (_overrideCanvas != null)
                 _overrideCanvas.overrideSorting = false;
             _targetScale = Vector3.one;
@@ -55,6 +57,19 @@ namespace FWTCG.UI
 
         private void Update()
         {
+            // During drag all cards must be at normal scale — force-reset any that stayed zoomed
+            if (CardDragHandler.BlockPointerEvents)
+            {
+                if (transform.localScale != Vector3.one)
+                {
+                    transform.localScale = Vector3.one;
+                    if (_overrideCanvas != null) _overrideCanvas.overrideSorting = false;
+                }
+                _targetScale = Vector3.one;
+                _animating   = false;
+                return;
+            }
+
             if (!_animating) return;
 
             transform.localScale = Vector3.Lerp(transform.localScale, _targetScale,
