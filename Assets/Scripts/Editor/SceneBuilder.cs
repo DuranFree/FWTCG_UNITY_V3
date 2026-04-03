@@ -426,7 +426,8 @@ namespace FWTCG.Editor
 
             // ── Startup flow panels (coin flip + mulligan) ────────────────────
             var coinFlipPanel = CreateCoinFlipPanel(canvasGO.transform,
-                out var coinFlipText, out var coinFlipOkButton);
+                out var coinFlipText, out var coinFlipOkButton,
+                out var coinCircleImage, out var coinResultText, out var scanLightImage);
             var mulliganPanel = CreateMulliganPanel(canvasGO.transform,
                 out var mulliganTitleText, out var mulliganCardContainer,
                 out var mulliganConfirmButton, out var mulliganConfirmLabel);
@@ -531,6 +532,7 @@ namespace FWTCG.Editor
                             entryEffects, deathwish, spellSys, reactiveSys,
                             startupFlowUI, reactiveWindowUI,
                             coinFlipPanel, coinFlipText, coinFlipOkButton,
+                            coinCircleImage, coinResultText, scanLightImage,
                             mulliganPanel, mulliganTitleText, mulliganCardContainer,
                             mulliganConfirmButton, mulliganConfirmLabel, cardPrefab,
                             reactivePanel, reactiveContextText, reactiveCardContainer,
@@ -1580,6 +1582,8 @@ namespace FWTCG.Editor
             out Text resultText, out Button restartButton)
         {
             var go = CreateFullscreenPanel(parent, "GameOverPanel", new Color(0f, 0f, 0f, 0.8f));
+            // DEV-24: CanvasGroup for fade-in
+            go.AddComponent<CanvasGroup>();
 
             var vlg = go.AddComponent<VerticalLayoutGroup>();
             vlg.childControlWidth = false;
@@ -2073,9 +2077,12 @@ namespace FWTCG.Editor
         // ── Startup panels ────────────────────────────────────────────────────
 
         private static GameObject CreateCoinFlipPanel(Transform parent,
-            out Text coinFlipText, out Button okButton)
+            out Text coinFlipText, out Button okButton,
+            out Image coinCircleImage, out Text coinResultText, out Image scanLightImage)
         {
             var go = CreateFullscreenPanel(parent, "CoinFlipPanel", new Color(0.02f, 0.04f, 0.07f, 0.97f));
+            // DEV-24: CanvasGroup for fade transitions
+            go.AddComponent<CanvasGroup>();
 
             var vlg = go.AddComponent<VerticalLayoutGroup>();
             vlg.childControlWidth = false;
@@ -2083,11 +2090,55 @@ namespace FWTCG.Editor
             vlg.childForceExpandWidth = false;
             vlg.childForceExpandHeight = false;
             vlg.childAlignment = TextAnchor.MiddleCenter;
-            vlg.spacing = 30f;
+            vlg.spacing = 28f;
 
-            coinFlipText = CreateTMPText(go.transform, "CoinFlipText", "掷硬币",
-                Color.white, 40, TextAnchor.MiddleCenter);
+            // Title label
+            CreateTMPText(go.transform, "CoinTitle", "掷硬币",
+                new Color(0.78f, 0.67f, 0.43f, 1f), 44, TextAnchor.MiddleCenter);
+
+            // ── Coin circle + face text ───────────────────────────────────────
+            var coinContainer = new GameObject("CoinContainer");
+            coinContainer.transform.SetParent(go.transform, false);
+            var coinContRT = coinContainer.AddComponent<RectTransform>();
+            coinContRT.sizeDelta = new Vector2(160f, 160f);
+
+            var coinGO = new GameObject("CoinCircle");
+            coinGO.transform.SetParent(coinContainer.transform, false);
+            var coinRT = coinGO.AddComponent<RectTransform>();
+            coinRT.anchorMin = Vector2.zero;
+            coinRT.anchorMax = Vector2.one;
+            coinRT.offsetMin = Vector2.zero;
+            coinRT.offsetMax = Vector2.zero;
+            coinCircleImage = coinGO.AddComponent<Image>();
+            coinCircleImage.color = new Color(0.78f, 0.67f, 0.43f, 1f); // gold
+
+            // Face label on coin (先 / 后 / ?)
+            coinFlipText = CreateTMPText(coinContainer.transform, "CoinFaceText", "?",
+                new Color(0.10f, 0.07f, 0.02f, 1f), 48, TextAnchor.MiddleCenter);
+
+            // ── Result text (hidden initially) ────────────────────────────────
+            coinResultText = CreateTMPText(go.transform, "CoinResultText", "",
+                Color.white, 26, TextAnchor.MiddleCenter);
+            // Start fully transparent — StartupFlowUI fades this in after the flip
+            var rc = coinResultText.color;
+            rc.a = 0f;
+            coinResultText.color = rc;
+
             okButton = CreateButton(go.transform, "OkButton", "开始");
+
+            // ── Scan light (absolute positioned, not in VLG) ──────────────────
+            var scanGO = new GameObject("ScanLight");
+            scanGO.transform.SetParent(go.transform, false);
+            var scanRT = scanGO.AddComponent<RectTransform>();
+            scanRT.sizeDelta = new Vector2(240f, 3f);
+            scanRT.anchorMin = new Vector2(0f, 0.5f);
+            scanRT.anchorMax = new Vector2(0f, 0.5f);
+            scanRT.pivot = new Vector2(0.5f, 0.5f);
+            scanRT.anchoredPosition = new Vector2(-960f, 0f);
+            var scanLE = scanGO.AddComponent<LayoutElement>();
+            scanLE.ignoreLayout = true;
+            scanLightImage = scanGO.AddComponent<Image>();
+            scanLightImage.color = new Color(0.37f, 0.55f, 1f, 0.35f); // translucent blue-white
 
             go.SetActive(false);
             return go;
@@ -2098,6 +2149,8 @@ namespace FWTCG.Editor
             out Button confirmButton, out Text confirmLabel)
         {
             var go = CreateFullscreenPanel(parent, "MulliganPanel", new Color(0f, 0f, 0f, 0.85f));
+            // DEV-24: CanvasGroup for fade transitions
+            go.AddComponent<CanvasGroup>();
 
             var vlg = go.AddComponent<VerticalLayoutGroup>();
             vlg.childControlWidth = false;
@@ -3477,6 +3530,7 @@ namespace FWTCG.Editor
             FWTCG.UI.StartupFlowUI startupFlowUI,
             FWTCG.UI.ReactiveWindowUI reactiveWindowUI,
             GameObject coinFlipPanel, Text coinFlipText, Button coinFlipOkButton,
+            Image coinCircleImage, Text coinResultText, Image scanLightImage,
             GameObject mulliganPanel, Text mulliganTitleText, Transform mulliganCardContainer,
             Button mulliganConfirmButton, Text mulliganConfirmLabel, GameObject cardPrefab,
             GameObject reactivePanel, Text reactiveContextText,
@@ -3515,13 +3569,16 @@ namespace FWTCG.Editor
 
             // Wire StartupFlowUI panels
             var startupSO = new SerializedObject(startupFlowUI);
-            startupSO.FindProperty("_coinFlipPanel").objectReferenceValue      = coinFlipPanel;
-            startupSO.FindProperty("_coinFlipText").objectReferenceValue       = coinFlipText;
-            startupSO.FindProperty("_coinFlipOkButton").objectReferenceValue   = coinFlipOkButton;
-            startupSO.FindProperty("_mulliganPanel").objectReferenceValue      = mulliganPanel;
-            startupSO.FindProperty("_mulliganTitleText").objectReferenceValue  = mulliganTitleText;
+            startupSO.FindProperty("_coinFlipPanel").objectReferenceValue         = coinFlipPanel;
+            startupSO.FindProperty("_coinFlipText").objectReferenceValue          = coinFlipText;
+            startupSO.FindProperty("_coinFlipOkButton").objectReferenceValue      = coinFlipOkButton;
+            startupSO.FindProperty("_coinCircleImage").objectReferenceValue       = coinCircleImage;
+            startupSO.FindProperty("_coinResultText").objectReferenceValue        = coinResultText;
+            startupSO.FindProperty("_scanLightImage").objectReferenceValue        = scanLightImage;
+            startupSO.FindProperty("_mulliganPanel").objectReferenceValue         = mulliganPanel;
+            startupSO.FindProperty("_mulliganTitleText").objectReferenceValue     = mulliganTitleText;
             startupSO.FindProperty("_mulliganCardContainer").objectReferenceValue = mulliganCardContainer;
-            startupSO.FindProperty("_cardViewPrefab").objectReferenceValue     = cardPrefab;
+            startupSO.FindProperty("_cardViewPrefab").objectReferenceValue        = cardPrefab;
             startupSO.FindProperty("_mulliganConfirmButton").objectReferenceValue = mulliganConfirmButton;
             startupSO.FindProperty("_mulliganConfirmLabel").objectReferenceValue  = mulliganConfirmLabel;
             startupSO.ApplyModifiedPropertiesWithoutUndo();

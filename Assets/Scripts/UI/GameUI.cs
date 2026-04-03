@@ -1384,15 +1384,54 @@ namespace FWTCG.UI
 
             entry.text = msg;
             _messageTexts.Enqueue(entry);
+            // DEV-24: brief gold flash on new log entry
+            StartCoroutine(LogEntryFlashRoutine(entry));
+        }
+
+        private IEnumerator LogEntryFlashRoutine(Text entry)
+        {
+            if (entry == null) yield break;
+            Color original = entry.color;
+            Color gold = new Color(0.95f, 0.82f, 0.40f, 1f);
+            const float DUR = 0.8f;
+            float t = 0f;
+            while (t < 1f)
+            {
+                t += Time.deltaTime / DUR;
+                if (entry == null) yield break;
+                entry.color = Color.Lerp(gold, original, t);
+                yield return null;
+            }
+            if (entry != null) entry.color = original;
         }
 
         // ── Game over overlay ─────────────────────────────────────────────────
 
         public void ShowGameOver(string msg)
         {
-            if (_gameOverPanel != null) _gameOverPanel.SetActive(true);
+            if (_gameOverPanel == null) return;
+            _gameOverPanel.SetActive(true);
             if (_gameOverText != null) _gameOverText.text = msg;
             if (_endTurnButton != null) _endTurnButton.interactable = false;
+            // DEV-24: fade in game over panel
+            StartCoroutine(FadeInPanelRoutine(_gameOverPanel));
+        }
+
+        private IEnumerator FadeInPanelRoutine(GameObject panel)
+        {
+            var cg = panel.GetComponent<CanvasGroup>();
+            if (cg == null) cg = panel.AddComponent<CanvasGroup>();
+            cg.alpha = 0f;
+            const float DUR = 0.5f;
+            float t = 0f;
+            while (t < 1f)
+            {
+                t += Time.deltaTime / DUR;
+                if (cg == null) yield break; // guard: panel destroyed mid-fade
+                cg.alpha = Mathf.Clamp01(t);
+                yield return null;
+            }
+            cg.alpha = 1f;
         }
 
         // ── Button handlers ───────────────────────────────────────────────────

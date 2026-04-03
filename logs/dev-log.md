@@ -2,6 +2,48 @@
 
 ---
 
+## DEV-24：开始流程 + 过渡动画 — 2026-04-03
+
+**Status**: ✅ Completed
+**Tests**: 451/451 🟢（MCP EditMode 全绿）
+
+### 实现内容
+
+**StartupFlowUI.cs（重写视觉层）**：
+- `CanvasGroup` 面板管理：`HidePanel`/`EnsureCG`，Awake 初始化；OnDestroy 清理 TCS 防泄漏
+- 掷硬币翻转动画：`CoinSpinRoutine` 5次 scaleX 翻转（每次 0.13s × 2）+ 落地弹跳 0.3s = 总时长 ~1.8s；`ScaleCoinX` 加 mid-frame null guard
+- 结果文字淡入：`FadeTextIn` 0.4s
+- 扫光背景循环：`ScanLightLoop` 蓝色水平条，8s 周期
+- MulliganPanel 进场/退场：CanvasGroup 0.4s 淡入 / 0.3s 淡出
+- TCS 追踪：`_activeCoinTcs` / `_activeMulliganTcs`，OnDestroy resolve 防永久挂起
+- 按钮双击防护：onClick 触发时立即 disable + RemoveAllListeners
+
+**GameUI.cs（2处改动）**：
+- `ShowGameOver`：改为 CanvasGroup `FadeInPanelRoutine` 0.5s 淡入；mid-frame null guard
+- `ShowMessage`：追加 `LogEntryFlashRoutine`（金色 #f2d266 → 原色，0.8s，null guard）
+
+**SceneBuilder.cs（扩展 CoinFlipPanel）**：
+- CoinFlipPanel 新增子节点：CoinTitle（金色 44pt 标题）/ CoinContainer（160×160）/ CoinCircle Image（金色圆）/ CoinFaceText（先/后/?）/ CoinResultText（透明，flip 后淡入）/ ScanLight Image（ignoreLayout，水平扫光条）
+- CoinFlipPanel / MulliganPanel / GameOverPanel 均添加 CanvasGroup
+- WireGameManager 连线新字段：_coinCircleImage / _coinResultText / _scanLightImage
+
+**新增测试**：
+- `DEV24StartupTests.cs`：20 个 EditMode 测试（常量验证、字段存在性、null 安全、双击防护时序）
+
+### Codex 审查修复
+
+- **H-1 已修复**：TCS 追踪 + OnDestroy resolve，防止协程提前退出导致 Task 永久挂起
+- **H-2 已修复**：按钮 onClick 触发时立即 disable + RemoveAllListeners，防止 Mulligan 双击损坏手牌
+- **H-3 已修复**：ScaleCoinX / CoinSpinRoutine 所有 yield 后加 null check，防 MissingReference
+- **H-4（Medium 改为已修复）**：FadeInPanelRoutine mid-frame null guard
+
+### 技术债新增
+
+- ScanLightLoop 协程无 OnDisable 停止路径（OnDestroy 已覆盖，低风险）— DEV-24（Codex Medium）
+- FadeIn/FadeOut 协程无 mid-frame CanvasGroup null guard（销毁场景时低概率抛出）— DEV-24（Codex Medium）
+
+---
+
 ## DEV-23：字体 + 视觉细节打磨 — 2026-04-02
 
 **Status**: ✅ Completed

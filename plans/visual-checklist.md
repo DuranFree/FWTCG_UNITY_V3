@@ -132,16 +132,16 @@
 - [ ] 标题中心光束脉冲（titleBeamPulse，无限循环）
 - [ ] 按钮入场动画（titleBtnGlow，1s）
 - [ ] 分层背景光效（conic/radial gradients + noise）
-- [ ] 信息栏扫光（istrip-scan，8s）
+- ✅ 信息栏扫光（ScanLight 蓝色水平扫光，8s 周期，StartupFlowUI.ScanLightLoop）— DEV-24
 
 ---
 
 ## 十、掷硬币界面
 
-- [ ] 硬币正面图片（xianshou.png → Sprite）
-- [ ] 硬币背面图片（houshou.png → Sprite）
-- [ ] 翻转动画（1800ms，正面/背面方向）
-- [ ] 结果文字淡入
+- [ ] 硬币正面图片（xianshou.png → Sprite，用金色圆代替）
+- [ ] 硬币背面图片（houshou.png → Sprite，用铜色圆代替）
+- ✅ 翻转动画（1800ms，5次 scaleX 0→1 翻转 + 落地弹跳，StartupFlowUI.CoinSpinRoutine）— DEV-24
+- ✅ 结果文字淡入（0.4s FadeTextIn，coinResultText）— DEV-24
 
 ---
 
@@ -149,15 +149,15 @@
 
 - [ ] 换牌选中状态（选中卡牌视觉变化）
 - [ ] 确认按钮动画
-- [ ] 界面进场/退场过渡
+- ✅ 界面进场/退场过渡（CanvasGroup 0.4s 淡入 / 0.3s 淡出，MulliganFlowRoutine）— DEV-24
 
 ---
 
 ## 十二、过渡与切换效果
 
-- [ ] 界面淡入淡出（0.3-0.5s，所有界面切换）
-- [ ] 全屏 Banner 进场/退场
-- [ ] 游戏结束界面淡入
+- ✅ 界面淡入淡出（0.3-0.5s，CoinFlip/Mulligan 面板均使用 CanvasGroup fade）— DEV-24
+- ✅ 全屏 Banner 进场/退场（EventBanner slide 动画）— DEV-19
+- ✅ 游戏结束界面淡入（0.5s FadeInPanelRoutine，GameUI.ShowGameOver）— DEV-24
 
 ---
 
@@ -165,7 +165,7 @@
 
 - [ ] 日志折叠/展开按钮动画（">" ↔ "<" 旋转过渡）
 - [ ] 日志折叠联动棋盘居中（折叠时主区域自动扩展居中，展开时靠左）
-- [ ] 日志条目进入闪烁（log-entry-flash 0.8s，背景金色闪烁后恢复）
+- ✅ 日志条目进入闪烁（log-entry-flash 0.8s，金色→白色，GameUI.LogEntryFlashRoutine）— DEV-24
 
 ---
 
@@ -189,7 +189,7 @@
 
 - [ ] 玻璃态 UI（backdrop-filter blur 20px + saturate 1.2 → URP Full Screen Blur Pass）
 - [ ] 装备标签样式（18px高，青/红边框，滑入动画 equipTabSlideIn 0.22s）
-- [ ] 传奇槽位光晕（legend-arcane-ring，5s 内发光呼吸）
-- [ ] 中央分隔线能量球（divider-energy，3.5s 下移动画）
-- [ ] 角落宝石脉冲（corner-gem-pulse，4s L形括号闪烁）
-- [ ] 中心符文旋转（sigil-rotate，30s + 20s 反向双层）
+- ✅ 传奇槽位光晕（LegendGlow 蓝色叠加层，5s 呼吸动画）— DEV-23（同三节）
+- ✅ 中央分隔线能量球（DividerOrb 18px，3.5s 正弦振荡）— DEV-23（同三节）
+- ✅ 角落宝石脉冲（CornerGem 4s alpha 脉冲）— DEV-23（同三节）
+- ✅ 中心符文旋转（SigilOuter/Inner 双层旋转）— DEV-23（同三节）
