@@ -6,6 +6,7 @@ Shader "FWTCG/GlassPanel"
     // DEV-25.
     Properties
     {
+        [HideInInspector] _MainTex ("Texture", 2D) = "white" {}  // required by UGUI canvas system
         _TintColor      ("Tint Color",         Color)           = (0.04, 0.08, 0.18, 0.82)
         _NoiseScale     ("Frost Scale",         Range(20, 200))  = 80
         _NoiseStr       ("Frost Strength",      Range(0, 0.12))  = 0.04
@@ -44,6 +45,7 @@ Shader "FWTCG/GlassPanel"
                 float4 color  : COLOR;
             };
 
+            sampler2D _MainTex;  // declared to satisfy UGUI; not sampled
             float4 _TintColor;
             float  _NoiseScale, _NoiseStr;
             float4 _BorderColor;
