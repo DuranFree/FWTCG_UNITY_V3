@@ -1168,6 +1168,11 @@ namespace FWTCG.UI
                 if (cv != null)
                 {
                     UnitInstance u = units[i];
+                    // Reset CanvasGroup alpha — HideEquipCardInBase sets alpha=0 for fly
+                    // animation; if this CardView is reused for a different unit the alpha
+                    // must be restored or the new card appears transparent (white).
+                    var cg = cv.GetComponent<UnityEngine.CanvasGroup>();
+                    if (cg != null) cg.alpha = 1f;
                     cv.Setup(u, isPlayer, onClick, _onCardRightClicked, onHoverEnter, onHoverExit);
                     // Always reset first, then highlight only if in selection list
                     cv.SetSelected(false);

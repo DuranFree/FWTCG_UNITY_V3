@@ -591,6 +591,16 @@ namespace FWTCG.UI
             cRT.sizeDelta        = new Vector2(20f, 16f);
             cRT.anchoredPosition = new Vector2(pos.x, 2f); // 2px gap above card top
 
+            // ── Canvas override: force badge to render above all sibling panels ─
+            // Badges positioned outside card rect are occluded by sibling panels
+            // (e.g. PlayerHandZone) that render later in the hierarchy.
+            // Adding an override Canvas with high sortingOrder ensures the badge
+            // always renders on top regardless of hierarchy order.
+            var badgeCanvas = container.AddComponent<UnityEngine.Canvas>();
+            badgeCanvas.overrideSorting = true;
+            badgeCanvas.sortingOrder    = 100;
+            container.AddComponent<UnityEngine.UI.GraphicRaycaster>();
+
             // ── Glow layer (soft halo, renders before body) ────────────────────
             var glow   = new GameObject("Glow");
             glow.transform.SetParent(container.transform, false);
