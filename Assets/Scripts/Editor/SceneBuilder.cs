@@ -44,6 +44,10 @@ namespace FWTCG.Editor
         {
             _font = LoadFont();
 
+            // 0. 保存当前场景（若有未保存修改），防止 NewScene 触发保存弹窗卡住 MCP
+            var active = UnityEngine.SceneManagement.SceneManager.GetActiveScene();
+            if (active.isDirty) EditorSceneManager.SaveScene(active);
+
             // 1. Create a new empty scene
             var scene = EditorSceneManager.NewScene(NewSceneSetup.EmptyScene, NewSceneMode.Single);
 
