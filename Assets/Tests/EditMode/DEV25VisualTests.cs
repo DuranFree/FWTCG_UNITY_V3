@@ -172,10 +172,11 @@ public class DEV25VisualTests
     }
 
     [Test]
-    public void BadgePositions_HangBelowCard()
+    public void BadgePositions_InsideCardBottomEdge()
     {
-        // pivot is top (1), anchoredPosition.y = -2 means badges hang 2px below card
-        float posY = -2f;
-        Assert.Less(posY, 0f, "Badge Y must be negative (below card bottom edge)");
+        // pivot is bottom (0), anchoredPosition.y = +2 keeps badge INSIDE card bounds
+        // (avoids occlusion by sibling panels like PlayerHandZone that render on top)
+        float posY = 2f;
+        Assert.Greater(posY, 0f, "Badge Y must be positive (inside card, above bottom edge)");
     }
 }

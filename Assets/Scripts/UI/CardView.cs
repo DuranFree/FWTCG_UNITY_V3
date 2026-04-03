@@ -578,15 +578,17 @@ namespace FWTCG.UI
             var font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf")
                     ?? Resources.GetBuiltinResource<Font>("Arial.ttf");
 
-            // ── Container — positioned below card bottom edge ──────────────────
+            // ── Container — positioned at card bottom edge (inside card bounds) ─
+            // Note: badges use pivot-bottom + positive y so they stay within the card's
+            // RectTransform rect and aren't occluded by sibling panels (e.g. PlayerHandZone).
             var container = new GameObject("BadgeContainer_" + symbol);
             container.transform.SetParent(transform, false);
             var cRT             = container.AddComponent<RectTransform>();
             cRT.sizeDelta       = new Vector2(22f, 20f);
             cRT.anchorMin       = new Vector2(0.5f, 0f);
             cRT.anchorMax       = new Vector2(0.5f, 0f);
-            cRT.pivot           = new Vector2(0.5f, 1f);   // top pivot → hangs below card
-            cRT.anchoredPosition = pos;                    // pos.y = -2: 2px gap below card
+            cRT.pivot           = new Vector2(0.5f, 0f);   // bottom pivot → sits at card bottom
+            cRT.anchoredPosition = new Vector2(pos.x, 2f); // 2px above card bottom, inside bounds
 
             // ── Glow layer (soft halo, renders before body) ────────────────────
             var glow    = new GameObject("Glow");
