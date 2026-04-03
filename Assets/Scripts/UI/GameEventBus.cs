@@ -166,6 +166,11 @@ namespace FWTCG.UI
         public static void FireConquerScoreBanner()
             => FireEventBanner("征服！+1分", 1.0f);
 
+        // ── DEV-30 F1: conquest VFX ───────────────────────────────────────────
+        /// <summary>Fired when a conquest score is successfully awarded. SpellVFX subscribes for particle burst.</summary>
+        public static event Action<string> OnConquestScored;
+        public static void FireConquestScored(string owner) => OnConquestScored?.Invoke(owner);
+
         public static void FireBurnoutBanner(string burnedOwner)
         {
             string who = burnedOwner == GameRules.OWNER_PLAYER ? "玩家" : "AI";

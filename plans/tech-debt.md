@@ -22,7 +22,7 @@
 - ✅ CardShine overlay 材质已创建 ShineOverlay Image 子对象 — DEV-8 hotfix
 - ✅ HexGrid.shader 材质已赋予 Background Image — DEV-8 hotfix
 - ✅ 悬停放大动画 — CardHoverScale.cs 已实现（Lerp 1.08x scale，Update协程），SceneBuilder 已连线 — Phase DEV-8→DEV-9
-- [ ] 入场 Foil Sweep 未实现（需对角光扫动画）— DEV-9 — Phase DEV-8
+- ✅ 入场 Foil Sweep 未实现 — DEV-30 V6 已实现：EnsureShineOverlay + FoilSweepRoutine，CardShine.shader 克隆材质，OnDestroy 销毁 — Phase DEV-8→DEV-30
 - [ ] kaisa_legend/yi_legend CardData 缺少卡图（需 tempPic 中找传奇卡图片，或用户提供）— Phase DEV-10
 - ✅ 弃牌堆/放逐堆 Button onClick — 已通过 GameUI.SetPileClickCallback + WirePileButtons() 在运行时连线，实现正常 — Phase DEV-10
 - [ ] DamagePopup 每次 new GameObject（GC churn）— 高频伤害时压力大，应改为对象池 — Phase DEV-17（Codex Medium/Low）
@@ -58,3 +58,7 @@
 - [ ] ClearHeroAura 双重销毁风险 — 若外部代码绕过 ClearHeroAura 直接销毁 _heroAura 子对象，下次调用仍会通过 Unity fake-null 检测并再次调用 Destroy；当前无此路径，但脆弱 — Phase DEV-29（Codex Low）
 - [ ] ClearTargetHighlights GetComponent 每帧每子节点调用 — 与 ShowTargetHighlights 显式 null 检查写法不一致；性能可接受，风格不统一 — Phase DEV-29（Codex Low）
 - [ ] CreateOverlayImage sizeDelta 参数被忽略 — StartHeroAura 传入 (8,8) 期望光晕扩展超出卡牌，但实现中未使用该值，光晕与卡牌等大 — Phase DEV-28（Codex Low）
+- [ ] SpellDuelUI.FindRootCanvas 每次 ShowDuelOverlay 调用 FindObjectsOfType<Canvas>()（O(n) 分配）— 应在 Start 时缓存；async FireDuelBanner 路径若上游加 ConfigureAwait(false) 会导致线程安全问题 — Phase DEV-30（Codex HIGH-3 → Medium）
+- [ ] SpellDuelUI 无重复实例保护 — GameManager.Awake 用 AddComponent 添加，若场景已有 SpellDuelUI 组件会双重实例双重订阅；建议添加 `if (Instance != null && Instance != this) Destroy(this)` 守卫 — Phase DEV-30（Codex HIGH-2 → Medium）
+- [ ] SpellDuelUI 订阅 OnClearBanners 触发 HideDuelOverlay，同一事件也触发 ReactiveWindowUI.AutoPlayRandom — 轮次切换时两者同步触发，设计预期如此，但 AutoPlayRandom 强制打出随机牌会绕过对决倒计时；待业务确认 — Phase DEV-30（Codex HIGH-1 → 设计待确认）
+- [ ] ReactiveWindowUI.WaitForReaction 不取消旧 TCS 直接替换 — 重入调用时旧 Task 的等待方永久挂起；修复：_tcs?.TrySetCanceled() 替换前调用 — Phase DEV-30（Codex MEDIUM-4）

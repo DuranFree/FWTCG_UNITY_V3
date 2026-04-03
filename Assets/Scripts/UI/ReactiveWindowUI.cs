@@ -18,6 +18,9 @@ namespace FWTCG.UI
     /// </summary>
     public class ReactiveWindowUI : MonoBehaviour
     {
+        public static ReactiveWindowUI Instance { get; private set; }
+        private bool _initialized;
+
         [SerializeField] private GameObject    _panel;
         [SerializeField] private Text          _contextText;
         [SerializeField] private Transform     _cardContainer;
@@ -35,6 +38,9 @@ namespace FWTCG.UI
 
         private void Awake()
         {
+            if (_initialized) return; // guard: prevents double-init if called twice
+            _initialized = true;
+            Instance = this;
             if (_panel != null) _panel.SetActive(false);
         }
 
@@ -43,6 +49,7 @@ namespace FWTCG.UI
 
         private void OnDestroy()
         {
+            if (Instance == this) Instance = null;
             // H-3: Cancel any pending awaiter when the window is destroyed mid-flow
             _tcs?.TrySetCanceled();
         }
@@ -143,6 +150,12 @@ namespace FWTCG.UI
                 _tcs.TrySetResult(null);
             }
         }
+
+        /// <summary>
+        /// Called by SpellDuelUI when the 30s duel countdown expires.
+        /// Auto-completes the reaction window with null (no card selected). DEV-30 F2.
+        /// </summary>
+        public void AutoSkipReaction() => SkipReaction();
 
         // ── Countdown ─────────────────────────────────────────────────────────
 

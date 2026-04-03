@@ -2,6 +2,66 @@
 
 ---
 
+## DEV-30：视觉 + 功能收尾（最后功能 Phase）— 2026-04-03
+
+**Status**: ✅ Completed
+**Tests**: 527/527 🟢（MCP EditMode 全绿，新增 21 个测试）
+
+### 实现内容
+
+**V1 — 标题文字动画（StartupFlowUI.cs）**：
+- `TitleTextEntranceRoutine`：对标题子 Text 逐个 fadeInUp + scale 0.85→1，0.35s stagger 0.1s
+
+**V2 — 六边形呼吸光效（StartupFlowUI.cs）**：
+- `HexBreathLoop`：`_titleHexOverlay` alpha 0.3↔0.6，3s 正弦循环
+
+**V3 — 标题中心光束脉冲（StartupFlowUI.cs）**：
+- `TitleBeamPulseLoop`：`_titleBeam` alpha 0→0.5→0，2s 周期
+
+**V4/V8 — 按钮入场动画（SceneBuilder.cs）**：
+- 硬币面板「继续」按钮 + 梦想手牌确认按钮均添加 `ButtonCharge` 组件
+
+**V5 — 分层背景光效（StartupFlowUI.cs）**：
+- `BgGradientRotateLoop`：`_bgGradientOverlay` 持续慢速旋转，Hextech 青色极低透明度
+
+**V6 — 入场 Foil Sweep（CardView.cs）**：
+- `EnsureShineOverlay`：懒创建 "ShineOverlay" Image 子节点，克隆 CardShine.shader 材质
+- `FoilSweepRoutine`：0.8s 对角扫光（左下→右上），`_shineMat` 在 OnDestroy 销毁
+
+**V7 — 可出牌卡粒子特效（CardView.cs）**：
+- `PlayableSparkRoutine`：每 0.6s 生成 6px 白点，Y 上浮 20px，0.5s 生命周期
+- `SetPlayable(true)` 启动，`SetPlayable(false)` 停止并清理 `_sparkDots`
+
+**F1 — 征服得分粒子爆发（SpellVFX.cs + GameEventBus.cs）**：
+- `GameEventBus.OnConquestScored` + `FireConquestScored(owner)` 新增
+- `SpellVFX.OnConquestScored`：金色 20 点径向爆裂，获取得分区 canvas 坐标
+
+**F2 — 法术对决全屏叠加 UI（SpellDuelUI.cs + ReactiveWindowUI.cs）**：
+- `SpellDuelUI`（新建）：订阅 `OnDuelBanner/OnClearBanners`，程序化创建边框脉冲（4×4px 青色）+ 30s 倒计时 + 进度条；超时调用 `ReactiveWindowUI.Instance?.AutoSkipReaction()`
+- `ReactiveWindowUI`：新增 `Instance` 单例 + `AutoSkipReaction()` → `SkipReaction()`
+- `GameManager.Awake`：`if (_spellDuelUI == null) AddComponent<SpellDuelUI>()`
+
+**F4 — 装备卡显示（CardView.cs）**：
+- `RefreshBuffBadges()` 中 `AttachedEquipment != null` 时显示 `_equipBadge`，文字设为装备卡名
+
+**技术修复（跨 Phase 泛化）**：
+- SpellVFX 所有事件处理器添加 `if (!this) return;` 守卫（OnCardPlayed / OnUnitDiedAtPos / OnLegendEvolved / OnConquestScored）
+- SpellDuelUI ShowDuelOverlay/HideDuelOverlay/StopRoutines 添加 `if (!this) return;` 守卫
+- 修复全局测试跨类污染（stale 订阅调用已销毁对象的 isActiveAndEnabled 属性导致 MissingReferenceException）
+
+**DEV30Tests.cs（新建）**：
+- 21 个 EditMode 测试，覆盖 F1/F2/F4/V6/V7
+
+### 代码审查
+- Claude 自身审查：已确认无立即需修复的 High 问题
+- 🔍 Codex adversarial-review：High×3（HIGH-1 为设计预期；HIGH-2/HIGH-3 为潜在风险，已记入 tech-debt）+ Medium×5 + Low×2（均记入 tech-debt）
+
+### 场景验证
+- ✅ 场景已重建（FWTCG/Build Game Scene），SpellDuelUI 由 GameManager.Awake 程序化添加
+- ⚠️ [引擎场景验证] 标题动效 / Foil Sweep / 粒子特效为 Play Mode 视觉效果，需用户手动 Play Mode 确认
+
+---
+
 ## DEV-29：死亡飞行 + 卡背样式 + DEV-28 技术债修复 — 2026-04-03
 
 **Status**: ✅ Completed

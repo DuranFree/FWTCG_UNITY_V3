@@ -48,9 +48,9 @@
 - ✅ 3D 倾斜效果（鼠标跟随，18° 最大，CardTilt.cs）— DEV-8
 - ✅ 全息光泽 Shine（鼠标位置驱动的径向渐变，CardShine.shader）— DEV-8
 - ✅ 可出牌粒子边框（conic rotation 彗星效果，CardGlow.shader）— DEV-8
-- [ ] 入场 Foil Sweep（0.8s 对角光扫，DOTween + Shader）
+- ✅ 入场 Foil Sweep（0.8s 对角光扫，CardShine.shader + FoilSweepRoutine，EnsureShineOverlay）— DEV-30 V6
 - ✅ 手牌卡片入场动画（hand-card-enter 0.42s，Y -30px 飞入 + scale 0.82→1 + alpha 0→1，EaseOutQuad）— DEV-28
-- [ ] 可出牌卡粒子特效（playable-particle 3s，上方闪烁光点）
+- ✅ 可出牌卡粒子特效（playable-particle 3s，上方闪烁光点，PlayableSparkRoutine + _sparkDots）— DEV-30 V7
 - ✅ 卡牌选中轨道光环（selected-arcane-orbit 6s，10px 金色光点半径 60px 旋转）— DEV-28
 - ✅ 死亡飞行动画（Phase A 红闪缩小 0.3s + Phase B ghost 贝塞尔弧线飞向弃牌堆 0.5s，CardView.DeathRoutine）— DEV-29
 - ✅ 费用不足变暗（整体压暗 ×0.6，CardView.SetCostInsufficient）— DEV-8
@@ -88,6 +88,7 @@
 - ✅ 战斗触发特效（单位冲向对方 ghost overlay 0.20s 飞出 + 0.15s 弹回，CombatAnimator.FlyAndReturnRoutine）— DEV-28
 - ✅ 战斗冲击波（playCombatShockwave，中央扩散金色光环）— DEV-18（CombatAnimator.PlayShockwave 0.45s scale 0→1.5）
 - ✅ 征服/对决横幅动画（Duel Banner，FireDuelBanner → ShowBanner slide 动画）— DEV-19
+- ✅ 法术对决全屏叠加 UI（SpellDuelUI：青色4px边框脉冲 + 30s倒计时 + 进度条，自动跳过反应）— DEV-30 F2
 - ✅ 出牌时环境光闪烁（board-event-fade 0.85s）— DEV-18（GameUI.BoardFlashRoutine OnCardPlayed 事件驱动）
 
 ---
@@ -107,6 +108,7 @@
 - ✅ 通用飘字（FloatText 池化，上浮 60px+淡出 0.9s，支持颜色/大小）— DEV-18b
 - ✅ 小横幅（EventBanner CanvasGroup + 滑入 0.2s + 停留 + 淡出 0.25s，队列防重叠）— DEV-18b
 - ✅ 法术施放特效（SpellVFX：按RuneType着色16点径向爆裂；阵亡橙红爆裂12点；传奇进化3s火焰20粒）— DEV-21
+- ✅ 征服得分粒子爆发（金色20点径向爆裂，SpellVFX.OnConquestScored，GameEventBus.OnConquestScored）— DEV-30 F1
 
 ---
 
@@ -127,11 +129,11 @@
 
 ## 九、标题/开始界面视觉
 
-- [ ] 标题文字动画（fadeInUp + ScaleIn + SlideFromLeft/Right）
-- [ ] 六边形呼吸光效（hexBreath，50% 透明度脉冲）
-- [ ] 标题中心光束脉冲（titleBeamPulse，无限循环）
-- [ ] 按钮入场动画（titleBtnGlow，1s）
-- [ ] 分层背景光效（conic/radial gradients + noise）
+- ✅ 标题文字动画（fadeInUp + scale + fade stagger，TitleTextEntranceRoutine，StartupFlowUI）— DEV-30 V1
+- ✅ 六边形呼吸光效（hexBreath 3s alpha 脉冲，HexBreathLoop，StartupFlowUI）— DEV-30 V2
+- ✅ 标题中心光束脉冲（titleBeamPulse 2s 无限循环，TitleBeamPulseLoop，StartupFlowUI）— DEV-30 V3
+- ✅ 按钮入场动画（ButtonCharge 硬币面板 + 梦想手牌确认按钮，SceneBuilder）— DEV-30 V4/V8
+- ✅ 分层背景光效（旋转渐变覆层，BgGradientRotateLoop，StartupFlowUI）— DEV-30 V5
 - ✅ 信息栏扫光（ScanLight 蓝色水平扫光，8s 周期，StartupFlowUI.ScanLightLoop）— DEV-24
 
 ---
@@ -148,7 +150,7 @@
 ## 十一、梦想手牌界面
 
 - ✅ 换牌选中状态（CardView.SetSelected → GameColors.CardSelected 金色背景，StartupFlowUI.UpdateMulliganUI 驱动）— DEV-22/DEV-24
-- [ ] 确认按钮动画（梦想手牌确认按钮无 ButtonCharge/Pulse，待评估是否需要）
+- ✅ 确认按钮动画（梦想手牌确认按钮 ButtonCharge，SceneBuilder.CreateMulliganPanel）— DEV-30 V8
 - ✅ 界面进场/退场过渡（CanvasGroup 0.4s 淡入 / 0.3s 淡出，MulliganFlowRoutine）— DEV-24
 
 ---

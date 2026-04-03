@@ -542,6 +542,19 @@ namespace FWTCG.UI
 
         private Canvas GetRootCanvas() => _rootCanvas;
 
+        /// <summary>DEV-30 F1: Returns the canvas-local position of a named zone. Used by SpellVFX for conquest burst.</summary>
+        public Vector2 GetZoneCanvasPos(string zone)
+        {
+            Canvas rootCanvas = GetRootCanvas();
+            if (rootCanvas == null) return Vector2.zero;
+            RectTransform zoneRT = GetZoneRT(zone);
+            if (zoneRT == null) return Vector2.zero;
+            Vector2 screenPt = RectTransformUtility.WorldToScreenPoint(null, zoneRT.position);
+            RectTransformUtility.ScreenPointToLocalPointInRectangle(
+                rootCanvas.GetComponent<RectTransform>(), screenPt, rootCanvas.worldCamera, out Vector2 localPos);
+            return localPos;
+        }
+
         // ── DEV-15: Legend evolution flash ───────────────────────────────────
 
         private void OnLegendEvolved(string owner, int newLevel)

@@ -176,7 +176,7 @@
 - ✅ 卡牌 Prefab（正面：图片/名称/费用/战力/关键词/文字）— DEV-9（SceneBuilder.CreateCardPrefab）
 - ✅ 卡牌背面 Prefab（几何纹样覆层：边框条 + 菱形，CardView.EnsureCardBackOverlay）— DEV-29
 - ✅ 传奇卡特殊显示（卡图+技能描述+等级标记，不显示atk/hp）— DEV-10
-- [ ] 装备卡显示（附着在单位上）
+- ✅ 装备卡显示（附着在单位上，badge 显示装备名）— DEV-30 F4
 - ✅ 卡牌状态视觉（休眠变暗 / 眩晕标记 / 增益指示物标记）— DEV-8
 - ✅ 费用不足压暗提示（costInsufficient 手牌变暗）— DEV-8
 
@@ -206,7 +206,7 @@
 - ✅ 梦想手牌调度界面（mulligan，选≤2张换牌，StartupFlowUI）— DEV-2
 - ✅ 游戏结束界面（得分显示 + 全屏遮罩 + 消息文字）— DEV-9/DEV-12确认
 - ✅ 横幅提示系统（ShowBanner 大横幅 + 2s自动隐藏协程）— DEV-9/DEV-12确认
-- [ ] 对决界面（法术对决期间的特殊 UI）
+- ✅ 对决界面（法术对决期间：边框脉冲 + 30s 倒计时 + 进度条 + 自动跳过，SpellDuelUI）— DEV-30 F2
 - ✅ 飘屏提示（ToastUI：队列式 fade-in 0.3s + stay 1.5s + fade-out 0.4s，订阅 BattlefieldLog + HintToast）— DEV-16b
 - ✅ 法术目标选择弹窗（SpellTargetPopup：敌/己方两栏 + Task<UnitInstance> 异步返回）— DEV-16b
 - ✅ askPrompt 通用弹窗系统（确认弹窗 / 卡片选择弹窗，TaskCompletionSource 异步，AskPromptUI singleton）— DEV-19
@@ -281,7 +281,7 @@
 - ✅ 飘字：单位战力 buff/debuff / 符文横置+法力 / 符文回收+符能 / 得分+N分 — DEV-18b
 - ✅ 小横幅：绝念/入场效果/据守分/征服分/传奇技能/进化/燃尽/时间扭曲 — DEV-18b
 - ✅ 法术施放特效（SpellVFX：出牌时16点径向爆裂按RuneType着色 / 阵亡时橙红爆裂 / 传奇进化时火焰粒子3s）— DEV-21
-- [ ] 征服/得分特效（粒子版）
+- ✅ 征服/得分特效（粒子版，金色 20 点爆裂，SpellVFX.OnConquestScored）— DEV-30 F1
 - ✅ 对决横幅动画（showDuelBanner，FireDuelBanner → ShowBanner slide 动画）— DEV-19
 
 ---

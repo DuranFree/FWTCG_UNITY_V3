@@ -50,6 +50,14 @@ namespace FWTCG.UI
         private List<CardView> _mulliganCardViews   = new List<CardView>();
         private Coroutine _scanLightRoutine;
 
+        // DEV-30 V1-V5: title overlay elements (found by name in Awake)
+        private Image _hexBreathOverlay;
+        private Image _titleBeam;
+        private Image _bgGradientOverlay;
+        private Coroutine _hexBreathRoutine;
+        private Coroutine _titleBeamRoutine;
+        private Coroutine _bgGradientRoutine;
+
         // Active TCS references — resolved in OnDestroy to prevent TCS leaks
         private TaskCompletionSource<bool> _activeCoinTcs;
         private TaskCompletionSource<bool> _activeMulliganTcs;
@@ -58,12 +66,27 @@ namespace FWTCG.UI
         {
             HidePanel(_coinFlipPanel, ref _coinFlipCG);
             HidePanel(_mulliganPanel, ref _mulliganCG);
+
+            // DEV-30 V2/V3/V5: find overlay elements by name (created by SceneBuilder)
+            if (_coinFlipPanel != null)
+            {
+                var hex = _coinFlipPanel.transform.Find("HexBreathOverlay");
+                if (hex) _hexBreathOverlay = hex.GetComponent<Image>();
+                var beam = _coinFlipPanel.transform.Find("TitleBeam");
+                if (beam) _titleBeam = beam.GetComponent<Image>();
+                var bgGrad = _coinFlipPanel.transform.Find("BgGradientOverlay");
+                if (bgGrad) _bgGradientOverlay = bgGrad.GetComponent<Image>();
+            }
         }
 
         // DEV-26: stop scan loop when component is disabled (not just destroyed)
         private void OnDisable()
         {
             if (_scanLightRoutine != null) { StopCoroutine(_scanLightRoutine); _scanLightRoutine = null; }
+            // DEV-30: stop title animation loops
+            if (_hexBreathRoutine  != null) { StopCoroutine(_hexBreathRoutine);  _hexBreathRoutine  = null; }
+            if (_titleBeamRoutine  != null) { StopCoroutine(_titleBeamRoutine);  _titleBeamRoutine  = null; }
+            if (_bgGradientRoutine != null) { StopCoroutine(_bgGradientRoutine); _bgGradientRoutine = null; }
         }
 
         private void OnDestroy()
@@ -181,6 +204,13 @@ namespace FWTCG.UI
             if (_scanLightImage != null)
                 _scanLightRoutine = StartCoroutine(ScanLightLoop());
 
+            // ── DEV-30 V1-V5: start title animation loops ──────────────────────
+            var coinTitle = _coinFlipPanel?.transform.Find("CoinTitle")?.GetComponent<Text>();
+            if (coinTitle != null) StartCoroutine(TitleTextEntranceRoutine(coinTitle));
+            if (_hexBreathOverlay  != null) _hexBreathRoutine  = StartCoroutine(HexBreathLoop());
+            if (_titleBeam         != null) _titleBeamRoutine  = StartCoroutine(TitleBeamPulseLoop());
+            if (_bgGradientOverlay != null) _bgGradientRoutine = StartCoroutine(BgGradientRotateLoop());
+
             // ── Coin flip animation ───────────────────────────────────────────
             yield return CoinSpinRoutine(isPlayerFirst);
 
@@ -206,6 +236,10 @@ namespace FWTCG.UI
                     _coinFlipOkButton.interactable = false; // prevent double-click
                     _coinFlipOkButton.onClick.RemoveAllListeners();
                     if (_scanLightRoutine != null) StopCoroutine(_scanLightRoutine);
+                    // DEV-30: stop title animation loops
+                    if (_hexBreathRoutine  != null) { StopCoroutine(_hexBreathRoutine);  _hexBreathRoutine  = null; }
+                    if (_titleBeamRoutine  != null) { StopCoroutine(_titleBeamRoutine);  _titleBeamRoutine  = null; }
+                    if (_bgGradientRoutine != null) { StopCoroutine(_bgGradientRoutine); _bgGradientRoutine = null; }
                     StartCoroutine(FadeOutAndResolve(_coinFlipPanel, _coinFlipCG, tcs));
                 });
                 yield return new WaitForSeconds(0.5f);
@@ -351,6 +385,81 @@ namespace FWTCG.UI
                     rt.anchoredPosition = new Vector2(x, rt.anchoredPosition.y);
                     yield return null;
                 }
+            }
+        }
+
+        // ── DEV-30 V1-V5 title animation routines ────────────────────────────
+
+        /// <summary>V1: Coin flip title text entrance — fadeInUp + scale + alpha.</summary>
+        private IEnumerator TitleTextEntranceRoutine(Text titleText)
+        {
+            if (titleText == null) yield break;
+            const float dur = 0.45f;
+            var rt = titleText.rectTransform;
+            Vector2 endPos   = rt.anchoredPosition;
+            Vector2 startPos = endPos + new Vector2(0f, -20f);
+
+            rt.anchoredPosition = startPos;
+            titleText.transform.localScale = Vector3.one * 0.85f;
+            var c = titleText.color; c.a = 0f; titleText.color = c;
+
+            float elapsed = 0f;
+            while (elapsed < dur)
+            {
+                elapsed += Time.deltaTime;
+                float t    = Mathf.Clamp01(elapsed / dur);
+                float ease = t * (2f - t); // EaseOutQuad
+                rt.anchoredPosition = Vector2.Lerp(startPos, endPos, ease);
+                titleText.transform.localScale = Vector3.Lerp(Vector3.one * 0.85f, Vector3.one, ease);
+                var col = titleText.color; col.a = ease; titleText.color = col;
+                yield return null;
+            }
+            rt.anchoredPosition = endPos;
+            titleText.transform.localScale = Vector3.one;
+            var finalC = titleText.color; finalC.a = 1f; titleText.color = finalC;
+        }
+
+        /// <summary>V2: Hexagonal overlay alpha breath (3s period, 0.15↔0.35).</summary>
+        private IEnumerator HexBreathLoop()
+        {
+            if (_hexBreathOverlay == null) yield break;
+            const float period   = 3f;
+            const float minAlpha = 0.15f;
+            const float maxAlpha = 0.35f;
+            while (true)
+            {
+                float t = (Mathf.Sin(Time.time * Mathf.PI * 2f / period) + 1f) * 0.5f;
+                var col = _hexBreathOverlay.color;
+                col.a = Mathf.Lerp(minAlpha, maxAlpha, t);
+                _hexBreathOverlay.color = col;
+                yield return null;
+            }
+        }
+
+        /// <summary>V3: Center beam pulse (2s period, alpha 0→0.45→0).</summary>
+        private IEnumerator TitleBeamPulseLoop()
+        {
+            if (_titleBeam == null) yield break;
+            const float period   = 2f;
+            const float maxAlpha = 0.45f;
+            while (true)
+            {
+                float t = (Mathf.Sin(Time.time * Mathf.PI * 2f / period) + 1f) * 0.5f;
+                var col = _titleBeam.color;
+                col.a = t * maxAlpha;
+                _titleBeam.color = col;
+                yield return null;
+            }
+        }
+
+        /// <summary>V5: Background gradient overlay slow rotation (5°/s CW).</summary>
+        private IEnumerator BgGradientRotateLoop()
+        {
+            if (_bgGradientOverlay == null) yield break;
+            while (true)
+            {
+                _bgGradientOverlay.transform.Rotate(0f, 0f, -5f * Time.deltaTime);
+                yield return null;
             }
         }
 

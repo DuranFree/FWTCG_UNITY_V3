@@ -29,6 +29,7 @@ namespace FWTCG.UI
             GameEventBus.OnCardPlayed              += OnCardPlayed; // DEV-27: migrated from GameManager
             GameEventBus.OnUnitDiedAtPos          += OnUnitDiedAtPos;
             LegendSystem.OnLegendEvolved          += OnLegendEvolved;
+            GameEventBus.OnConquestScored         += OnConquestScored; // DEV-30 F1
         }
 
         private void OnDestroy()
@@ -36,6 +37,7 @@ namespace FWTCG.UI
             GameEventBus.OnCardPlayed              -= OnCardPlayed;
             GameEventBus.OnUnitDiedAtPos          -= OnUnitDiedAtPos;
             LegendSystem.OnLegendEvolved          -= OnLegendEvolved;
+            GameEventBus.OnConquestScored         -= OnConquestScored; // DEV-30 F1
 
             // DEV-26: destroy any particle GOs that leaked when coroutines were interrupted
             if (_vfxLayer != null)
@@ -49,6 +51,7 @@ namespace FWTCG.UI
 
         private void OnCardPlayed(UnitInstance card, string owner)
         {
+            if (!this) return;
             if (!isActiveAndEnabled || _vfxLayer == null) return;
             // Burst from player's area (bottom) or enemy's area (top)
             float y = (owner == GameRules.OWNER_PLAYER) ? -180f : 180f;
@@ -57,16 +60,30 @@ namespace FWTCG.UI
 
         private void OnUnitDiedAtPos(UnitInstance unit, Vector2 canvasPos)
         {
+            if (!this) return;
             if (!isActiveAndEnabled || _vfxLayer == null) return;
             StartCoroutine(BurstParticles(canvasPos, new Color(1f, 0.30f, 0.15f, 1f), 12));
         }
 
         private void OnLegendEvolved(string owner, int newLevel)
         {
+            if (!this) return;
             if (!isActiveAndEnabled || _vfxLayer == null) return;
             // Approximate legend zone positions (player left / enemy right)
             float x = (owner == GameRules.OWNER_PLAYER) ? -550f : 550f;
             StartCoroutine(LegendFlame(new Vector2(x, 250f)));
+        }
+
+        // DEV-30 F1: conquest VFX — gold burst at score zone when conquest score is earned
+        private void OnConquestScored(string owner)
+        {
+            if (!this) return; // guard: destroyed object may still hold a delegate reference
+            if (!isActiveAndEnabled || _vfxLayer == null) return;
+            string zone = owner == GameRules.OWNER_PLAYER ? "score_player" : "score_enemy";
+            Vector2 pos = GameUI.Instance != null
+                ? GameUI.Instance.GetZoneCanvasPos(zone)
+                : new Vector2(owner == GameRules.OWNER_PLAYER ? -400f : 400f, 0f);
+            StartCoroutine(BurstParticles(pos, GameColors.Gold, 20));
         }
 
         // ═══════════════════════════════════════════════════════════════════════

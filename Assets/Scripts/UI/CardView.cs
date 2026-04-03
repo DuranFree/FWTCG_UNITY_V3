@@ -102,6 +102,17 @@ namespace FWTCG.UI
         // ── DEV-29: Card back overlay (geometric pattern) ────────────────────
         private GameObject _cardBackOverlay;
 
+        // ── DEV-30: Foil Sweep (V6) ──────────────────────────────────────────
+        private Image     _shineOverlay;  // lazy-created full-size overlay with CardShine shader
+        private Material  _shineMat;      // per-card clone destroyed in OnDestroy
+        private Coroutine _foilSweep;
+
+        // ── DEV-30: Playable Spark (V7) ──────────────────────────────────────
+        private Coroutine _playableSpark;
+        private bool      _lastPlayable;
+        private readonly System.Collections.Generic.List<GameObject> _sparkDots =
+            new System.Collections.Generic.List<GameObject>();
+
         private void Awake()
         {
             // Auto-wire SerializeField refs by child name if Inspector connections were lost
@@ -185,6 +196,13 @@ namespace FWTCG.UI
             _badgeScaleCos.Clear();
             // H-3: destroy floating tooltip to prevent canvas leak when card is removed
             if (_statusTooltip != null) { Destroy(_statusTooltip); _statusTooltip = null; _currentStatusTip = null; }
+            // DEV-30 V6: destroy cloned shine material
+            if (_foilSweep != null) StopCoroutine(_foilSweep);
+            if (_shineMat  != null) { SafeDestroy(_shineMat); _shineMat = null; }
+            // DEV-30 V7: stop sparks and destroy dot GOs
+            if (_playableSpark != null) StopCoroutine(_playableSpark);
+            foreach (var d in _sparkDots) if (d) SafeDestroy(d);
+            _sparkDots.Clear();
         }
 
         public void Setup(UnitInstance unit, bool isPlayerCard, Action<UnitInstance> onClick,
@@ -445,13 +463,20 @@ namespace FWTCG.UI
                 _exhaustedOverlay.gameObject.SetActive(_unit.Exhausted && !_unit.Stunned);
 
             // Glow border (playable = affordable + not exhausted for hand cards)
+            bool playable = _isPlayerCard && !_unit.Exhausted && !_costInsufficient;
             if (_cardGlow != null)
+                _cardGlow.SetPlayable(playable);
+
+            // DEV-30 V7: playable spark — start/stop on state change
+            if (playable && !_lastPlayable)
+                _playableSpark ??= StartCoroutine(PlayableSparkRoutine());
+            else if (!playable && _lastPlayable)
             {
-                if (_isPlayerCard && !_unit.Exhausted && !_costInsufficient)
-                    _cardGlow.SetPlayable(true);
-                else
-                    _cardGlow.SetPlayable(false);
+                if (_playableSpark != null) { StopCoroutine(_playableSpark); _playableSpark = null; }
+                foreach (var d in _sparkDots) if (d) Destroy(d);
+                _sparkDots.Clear();
             }
+            _lastPlayable = playable;
 
             // Buff token indicator (legacy icon — kept for backward compat)
             if (_buffTokenIcon != null) _buffTokenIcon.SetActive(false);
@@ -769,12 +794,16 @@ namespace FWTCG.UI
             }
             else if (_buffBadge != null) _buffBadge.SetActive(false);
 
-            // ▲ Equipment (gold) — center  [x=0: above card, center slot]
+            // ▲ Equipment (gold) — center  [x=0: above card, center slot] — DEV-30 F4: shows equip name
             if (_unit.AttachedEquipment != null)
             {
                 if (_equipBadge == null)
-                    _equipBadge = CreateStatusBadge("▲", GameColors.Gold,
+                {
+                    string eName = _unit.AttachedEquipment.CardData?.CardName ?? "装备";
+                    string label = eName.Length > 4 ? eName.Substring(0, 4) : eName;
+                    _equipBadge = CreateStatusBadge(label, GameColors.Gold,
                         new Vector2(0f, 0f), () => ShowStatusTooltip(BadgeTip.Equip));
+                }
                 _equipBadge.SetActive(true);
             }
             else if (_equipBadge != null) _equipBadge.SetActive(false);
@@ -1193,6 +1222,110 @@ namespace FWTCG.UI
             rt.anchoredPosition = endPos;
             transform.localScale = endScale;
             cg.alpha = 1f;
+
+            // DEV-30 V6: trigger foil sweep after card enters
+            EnsureShineOverlay();
+            if (_shineMat != null)
+                _foilSweep = StartCoroutine(FoilSweepRoutine());
+        }
+
+        // ── DEV-30 V6: Foil Sweep ────────────────────────────────────────────
+
+        // Safe destroy: uses DestroyImmediate in Edit Mode (tests), Destroy at runtime.
+        private static void SafeDestroy(UnityEngine.Object obj)
+        {
+#if UNITY_EDITOR
+            if (!Application.isPlaying) { DestroyImmediate(obj); return; }
+#endif
+            Destroy(obj);
+        }
+
+        /// <summary>Lazily creates a full-size ShineOverlay Image with CardShine shader (per-card material clone).</summary>
+        private void EnsureShineOverlay()
+        {
+            if (_shineOverlay != null) return;
+            var go = new GameObject("ShineOverlay");
+            go.transform.SetParent(transform, false);
+            var rt = go.AddComponent<RectTransform>();
+            rt.anchorMin = Vector2.zero; rt.anchorMax = Vector2.one;
+            rt.offsetMin = Vector2.zero; rt.offsetMax = Vector2.zero;
+            _shineOverlay = go.AddComponent<Image>();
+            _shineOverlay.raycastTarget = false;
+            var shader = Shader.Find("UI/CardShine");
+            if (shader == null) return;
+            _shineMat = new Material(shader);
+            _shineOverlay.material = _shineMat;
+            _shineMat.SetFloat("_ShineIntensity", 0f);
+        }
+
+        /// <summary>V6: 0.8s diagonal foil sweep — animates ShineX/Y from bottom-left to top-right.</summary>
+        private IEnumerator FoilSweepRoutine()
+        {
+            if (_shineMat == null) yield break;
+            const float dur = 0.8f;
+            float elapsed = 0f;
+            _shineMat.SetFloat("_ShineIntensity", 0.7f);
+            while (elapsed < dur)
+            {
+                elapsed += Time.deltaTime;
+                float t = Mathf.Clamp01(elapsed / dur);
+                _shineMat.SetFloat("_ShineX", Mathf.Lerp(-0.3f, 1.3f, t));
+                _shineMat.SetFloat("_ShineY", Mathf.Lerp(1.3f, -0.3f, t));
+                yield return null;
+            }
+            _shineMat.SetFloat("_ShineIntensity", 0f);
+            _foilSweep = null;
+        }
+
+        // ── DEV-30 V7: Playable Spark ────────────────────────────────────────
+
+        /// <summary>V7: spawns small white dots above card while it is playable (every 0.6s, 0.5s lifetime).</summary>
+        private IEnumerator PlayableSparkRoutine()
+        {
+            var rt = (RectTransform)transform;
+            while (true)
+            {
+                // Spawn one sparkle dot
+                var dot = new GameObject("SparkDot");
+                dot.transform.SetParent(transform.parent ?? transform, false);
+                var drt = dot.AddComponent<RectTransform>();
+                drt.sizeDelta = new Vector2(5f, 5f);
+                // Random X within card, Y just above top edge
+                float halfW = rt.rect.width * 0.4f;
+                drt.anchoredPosition = rt.anchoredPosition
+                    + new Vector2(UnityEngine.Random.Range(-halfW, halfW), rt.rect.height * 0.5f + 4f);
+                var img = dot.AddComponent<Image>();
+                img.color = new Color(1f, 1f, 1f, 0f);
+                img.raycastTarget = false;
+                _sparkDots.Add(dot);
+
+                // Animate: fade in/out + float up
+                StartCoroutine(AnimateSparkDot(dot, img, drt));
+
+                yield return new WaitForSeconds(0.6f);
+            }
+        }
+
+        private IEnumerator AnimateSparkDot(GameObject dot, Image img, RectTransform drt)
+        {
+            if (dot == null) yield break;
+            const float dur = 0.5f;
+            Vector2 startPos = drt.anchoredPosition;
+            float elapsed = 0f;
+            while (elapsed < dur && dot != null)
+            {
+                elapsed += Time.deltaTime;
+                float t = elapsed / dur;
+                float alpha = t < 0.4f ? t / 0.4f : 1f - (t - 0.4f) / 0.6f; // up then down
+                if (img != null) img.color = new Color(1f, 1f, 1f, alpha * 0.85f);
+                if (drt != null) drt.anchoredPosition = startPos + new Vector2(0f, t * 18f);
+                yield return null;
+            }
+            if (dot != null)
+            {
+                _sparkDots.Remove(dot);
+                Destroy(dot);
+            }
         }
 
         // ── DEV-28: Overlay image helper ─────────────────────────────────────

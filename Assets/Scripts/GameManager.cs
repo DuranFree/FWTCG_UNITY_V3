@@ -53,6 +53,7 @@ namespace FWTCG
         [SerializeField] private BattlefieldSystem _bfSys;
         [SerializeField] private CardDetailPopup _cardDetailPopup;
         [SerializeField] private SpellShowcaseUI _spellShowcase;  // DEV-16
+        [SerializeField] private SpellDuelUI  _spellDuelUI;    // DEV-30 F2
 
         // ── React button / Legend skill button ────────────────────────────────
         [SerializeField] private Button _reactBtn;
@@ -323,6 +324,7 @@ namespace FWTCG
             if (_reactiveSys == null) _reactiveSys = GetComponent<ReactiveSystem>();
             if (_reactiveWindowUI == null) _reactiveWindowUI = GetComponent<ReactiveWindowUI>();
             if (_legendSys == null) _legendSys = GetComponent<LegendSystem>();
+            if (_spellDuelUI == null) _spellDuelUI = gameObject.AddComponent<SpellDuelUI>(); // DEV-30 F2
 
             // Wire react button
             if (_reactBtn != null) _reactBtn.onClick.AddListener(OnReactClicked);

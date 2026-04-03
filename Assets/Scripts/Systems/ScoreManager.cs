@@ -107,6 +107,8 @@ namespace FWTCG.Systems
             FWTCG.UI.GameEventBus.FireScoreFloat(who, pts);
             if (type == GameRules.SCORE_TYPE_HOLD)
                 FWTCG.UI.GameEventBus.FireHoldScoreBanner();
+            if (type == GameRules.SCORE_TYPE_CONQUER)
+                FWTCG.UI.GameEventBus.FireConquestScored(who); // DEV-30 F1: conquest VFX
 
             CheckWin(gs);
             return true;

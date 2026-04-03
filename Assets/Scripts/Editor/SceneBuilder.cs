@@ -2098,9 +2098,9 @@ namespace FWTCG.Editor
             vlg.childAlignment = TextAnchor.MiddleCenter;
             vlg.spacing = 28f;
 
-            // Title label
+            // Title label — DEV-30 V1: alpha=0, animated in by TitleTextEntranceRoutine
             CreateTMPText(go.transform, "CoinTitle", "掷硬币",
-                new Color(0.78f, 0.67f, 0.43f, 1f), 44, TextAnchor.MiddleCenter);
+                new Color(0.78f, 0.67f, 0.43f, 0f), 44, TextAnchor.MiddleCenter);
 
             // ── Coin circle + face text ───────────────────────────────────────
             var coinContainer = new GameObject("CoinContainer");
@@ -2132,6 +2132,7 @@ namespace FWTCG.Editor
             coinResultText.color = rc;
 
             okButton = CreateButton(go.transform, "OkButton", "开始");
+            AddButtonCharge(okButton.gameObject); // V4: 按钮入场动画
 
             // ── Scan light (absolute positioned, not in VLG) ──────────────────
             var scanGO = new GameObject("ScanLight");
@@ -2146,6 +2147,45 @@ namespace FWTCG.Editor
             scanLE.ignoreLayout = true;
             scanLightImage = scanGO.AddComponent<Image>();
             scanLightImage.color = new Color(0.37f, 0.55f, 1f, 0.35f); // translucent blue-white
+
+            // ── DEV-30 V2/V3/V5 visual overlays ──────────────────────────────────
+            // V5: BgGradientOverlay — slow-rotating diamond, subtle Hextech glow
+            {
+                var bgGO = new GameObject("BgGradientOverlay");
+                bgGO.transform.SetParent(go.transform, false);
+                bgGO.transform.localRotation = Quaternion.Euler(0f, 0f, 45f);
+                var le = bgGO.AddComponent<LayoutElement>(); le.ignoreLayout = true;
+                var rt = bgGO.AddComponent<RectTransform>();
+                rt.anchorMin = new Vector2(0.5f, 0.5f); rt.anchorMax = new Vector2(0.5f, 0.5f);
+                rt.pivot = new Vector2(0.5f, 0.5f); rt.sizeDelta = new Vector2(1500f, 1500f);
+                var img = bgGO.AddComponent<Image>();
+                img.color = new Color(0.04f, 0.55f, 0.7f, 0.08f);
+                img.raycastTarget = false;
+            }
+            // V2: HexBreathOverlay — full-screen Hextech blue alpha breath
+            {
+                var hexGO = new GameObject("HexBreathOverlay");
+                hexGO.transform.SetParent(go.transform, false);
+                var le = hexGO.AddComponent<LayoutElement>(); le.ignoreLayout = true;
+                var rt = hexGO.AddComponent<RectTransform>();
+                rt.anchorMin = Vector2.zero; rt.anchorMax = Vector2.one;
+                rt.offsetMin = Vector2.zero; rt.offsetMax = Vector2.zero;
+                var img = hexGO.AddComponent<Image>();
+                img.color = new Color(0.04f, 0.78f, 0.73f, 0.15f);
+                img.raycastTarget = false;
+            }
+            // V3: TitleBeam — centered horizontal glow beam, pulsing alpha
+            {
+                var beamGO = new GameObject("TitleBeam");
+                beamGO.transform.SetParent(go.transform, false);
+                var le = beamGO.AddComponent<LayoutElement>(); le.ignoreLayout = true;
+                var rt = beamGO.AddComponent<RectTransform>();
+                rt.anchorMin = new Vector2(0f, 0.5f); rt.anchorMax = new Vector2(1f, 0.5f);
+                rt.pivot = new Vector2(0.5f, 0.5f); rt.sizeDelta = new Vector2(0f, 60f);
+                var img = beamGO.AddComponent<Image>();
+                img.color = new Color(0.37f, 0.85f, 1f, 0f);
+                img.raycastTarget = false;
+            }
 
             go.SetActive(false);
             return go;
@@ -2184,6 +2224,7 @@ namespace FWTCG.Editor
 
             // Confirm button with label
             confirmButton = CreateButton(go.transform, "ConfirmButton", "确认");
+            AddButtonCharge(confirmButton.gameObject); // V8: 梦想手牌确认按钮动画
             confirmLabel  = confirmButton.GetComponentInChildren<Text>();
 
             go.SetActive(false);
