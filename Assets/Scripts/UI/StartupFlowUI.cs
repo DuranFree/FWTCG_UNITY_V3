@@ -60,6 +60,12 @@ namespace FWTCG.UI
             HidePanel(_mulliganPanel, ref _mulliganCG);
         }
 
+        // DEV-26: stop scan loop when component is disabled (not just destroyed)
+        private void OnDisable()
+        {
+            if (_scanLightRoutine != null) { StopCoroutine(_scanLightRoutine); _scanLightRoutine = null; }
+        }
+
         private void OnDestroy()
         {
             // Stop background loops
@@ -102,10 +108,12 @@ namespace FWTCG.UI
             float t = 0f;
             while (t < 1f)
             {
+                if (cg == null) yield break; // DEV-26: null guard
                 t += Time.deltaTime / duration;
                 cg.alpha = Mathf.Clamp01(t);
                 yield return null;
             }
+            if (cg == null) yield break;
             cg.alpha = 1f;
             cg.interactable = true;
             cg.blocksRaycasts = true;
@@ -113,16 +121,18 @@ namespace FWTCG.UI
 
         private IEnumerator FadeOut(CanvasGroup cg, float duration)
         {
+            if (cg == null) yield break; // DEV-26: null guard
             cg.interactable = false;
             cg.blocksRaycasts = false;
             float t = 1f;
             while (t > 0f)
             {
+                if (cg == null) yield break;
                 t -= Time.deltaTime / duration;
                 cg.alpha = Mathf.Clamp01(t);
                 yield return null;
             }
-            cg.alpha = 0f;
+            if (cg != null) cg.alpha = 0f;
         }
 
         private IEnumerator FadeOutAndResolve(GameObject panel, CanvasGroup cg,

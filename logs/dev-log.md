@@ -2,6 +2,55 @@
 
 ---
 
+## DEV-26：Tech-Debt Cleanup — 2026-04-03
+
+**Status**: ✅ Completed
+**Tests**: 466/466 🟢（MCP EditMode 全绿）
+
+### 实现内容（13 个文件）
+
+**GameUI.cs**：OnUnitDamaged / OnUnitDied 事件订阅从 Awake/OnDestroy 改为 OnEnable/OnDisable；FindCardView 改为 public
+
+**GameManager.cs**：
+- OnBattlefieldClicked async void 外层加 try/catch，catch 中补 RefreshUI()
+- 新增 HandleForesightPromptAsync(owner)：异步弹出"置底/保留"对话，await AskPromptUI.WaitForConfirm
+- TryPlayUnitAsync 在 OnUnitEntered 后调用 HandleForesightPromptAsync（Foresight 关键词触发）
+- TryPlayHeroAsync 补同样的 Foresight 调用（HIGH 修复）
+
+**CombatSystem.cs**：CombatResult struct 新增 int BFIndex 字段，TriggerCombat 填入 bfId
+
+**CombatAnimator.cs**：OnCombatResult 改用 result.BFIndex 替代 Contains("1") 字符串解析（HIGH 修复）；新增 _sw1Routine/_sw2Routine 句柄，避免并发动画累积
+
+**DEV18bEventFeedbackTests.cs**：lambda 取消订阅改为命名变量，修复 unsubscription 泄漏
+
+**ToastUI.cs**：Enqueue 加 string.IsNullOrEmpty 守卫
+
+**SpellVFX.cs**：OnDestroy 清理 _vfxLayer 所有子节点
+
+**CardDragHandler.cs**：FindObjectsOfType 替换为 GameUI.Instance.FindCardView（O(n) → O(1)）
+
+**SceneryUI.cs**：DividerOrbLoop 只缓存 baseY，消除每帧 anchoredPosition 读取赋值污染 X
+
+**StartupFlowUI.cs**：OnDisable 停止 _scanLightRoutine；FadeIn/FadeOut 内循环加 null 守卫
+
+**CardView.cs**：OnDestroy 显式 StopCoroutine _shake / _flash / _death
+
+**BattlefieldGlow.cs**：CtrlGlowLoop 无控制方时强制 alpha=0，修复黑色叠层可见 artifact
+
+**FloatText.cs**：_pool.Clear() 在重建前清除跨场景 stale 引用；GetFromPool 加 null 守卫
+
+**EntryEffectSystem.cs**：foresight_mech_enter 注释更新（玩家 prompt 已移至 GameManager）
+
+### 技术决策
+- Foresight 异步 UI 放在 GameManager（HandleForesightPromptAsync）而非 EntryEffectSystem，避免 EntryEffectSystem 引入 async 依赖
+- BFIndex 加入 CombatResult 而非用显示名称字符串解析，彻底去除脆弱 Contains("1") 判断
+- FindCardView 改 public 而非新增 wrapper，最小改动面
+
+### 技术债（新增）
+- 无新增
+
+---
+
 ## DEV-25：玻璃态 UI + 三徽章布局 + 装备标签 — 2026-04-03
 
 **Status**: ✅ Completed（音频部分跳过，无音频文件）

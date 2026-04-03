@@ -35,12 +35,15 @@ namespace FWTCG.Tests
             string receivedText = null;
             Color receivedColor = default;
 
-            GameEventBus.OnUnitFloatText += (u, t, c) => { received = u; receivedText = t; receivedColor = c; };
+            // DEV-26: save lambda reference so unsubscription actually works
+            System.Action<FWTCG.Core.UnitInstance, string, Color> handler =
+                (u, t, c) => { received = u; receivedText = t; receivedColor = c; };
+            GameEventBus.OnUnitFloatText += handler;
 
             var unit = MakeUnit("test_unit");
             GameEventBus.FireUnitFloatText(unit, "+1战力", Color.yellow);
 
-            GameEventBus.OnUnitFloatText -= (u, t, c) => { };  // can't easily unsub lambda, rely on next test isolation
+            GameEventBus.OnUnitFloatText -= handler;
 
             Assert.AreEqual(unit, received);
             Assert.AreEqual("+1战力", receivedText);

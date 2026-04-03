@@ -58,7 +58,8 @@ namespace FWTCG.Systems
                     break;
 
                 case "foresight_mech_enter":
-                    // View top deck card (AI: just log; player: TODO prompt in DEV-4)
+                    // DEV-26: logs for all owners; player also gets an interactive "置底?" prompt
+                    //         handled in GameManager.HandleForesightPromptAsync after this call returns.
                     List<UnitInstance> deck = gs.GetDeck(owner);
                     if (deck.Count > 0)
                         Log($"[预知] {unit.UnitName} — 牌库顶：{deck[0].UnitName}（ATK:{deck[0].CardData.Atk} 费用:{deck[0].CardData.Cost}）");

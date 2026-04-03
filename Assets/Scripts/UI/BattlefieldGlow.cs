@@ -83,11 +83,16 @@ namespace FWTCG.UI
                 float pulse = (Mathf.Sin(t * Mathf.PI * 2f) + 1f) * 0.5f;
                 float alpha = Mathf.Lerp(CTRL_MIN_A, CTRL_MAX_A, pulse);
 
-                Color baseCol = _currentCtrl == GameRules.OWNER_PLAYER ? PlayerGlow
-                              : _currentCtrl == GameRules.OWNER_ENEMY  ? EnemyGlow
-                              : NoGlow;
-
-                _ctrlGlowOverlay.color = new Color(baseCol.r, baseCol.g, baseCol.b, alpha);
+                // DEV-26: when no controller, alpha must be 0 (was lerping 0.10-0.35 over black = visible artifact)
+                if (_currentCtrl == null)
+                {
+                    _ctrlGlowOverlay.color = NoGlow;
+                }
+                else
+                {
+                    Color baseCol = _currentCtrl == GameRules.OWNER_PLAYER ? PlayerGlow : EnemyGlow;
+                    _ctrlGlowOverlay.color = new Color(baseCol.r, baseCol.g, baseCol.b, alpha);
+                }
                 yield return null;
             }
         }

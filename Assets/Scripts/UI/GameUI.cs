@@ -256,8 +256,6 @@ namespace FWTCG.UI
             FWTCG.Systems.TurnManager.OnBannerRequest += ShowBanner;
             FWTCG.Systems.LegendSystem.OnLegendEvolved += OnLegendEvolved; // DEV-15
             GameManager.OnCardPlayFailed += ShakeHandCard;
-            GameManager.OnUnitDamaged += OnSpellUnitDamaged;
-            GameManager.OnUnitDied += OnUnitDiedHandler;
             GameManager.OnCardPlayed += OnCardPlayedHandler; // DEV-18
             // DEV-18b: event feedback bus
             GameEventBus.OnUnitFloatText += OnUnitFloatTextHandler;
@@ -265,6 +263,19 @@ namespace FWTCG.UI
             // DEV-19
             FWTCG.Systems.ScoreManager.OnScoreAdded += OnScoreAddedHandler;
             GameEventBus.OnDuelBanner               += OnDuelBannerHandler;
+        }
+
+        // DEV-26: OnUnitDamaged/OnUnitDied drive animations — only subscribe when component is enabled
+        private void OnEnable()
+        {
+            GameManager.OnUnitDamaged += OnSpellUnitDamaged;
+            GameManager.OnUnitDied    += OnUnitDiedHandler;
+        }
+
+        private void OnDisable()
+        {
+            GameManager.OnUnitDamaged -= OnSpellUnitDamaged;
+            GameManager.OnUnitDied    -= OnUnitDiedHandler;
         }
 
         private void OnDestroy()
@@ -277,8 +288,6 @@ namespace FWTCG.UI
             FWTCG.Systems.TurnManager.OnBannerRequest -= ShowBanner;
             FWTCG.Systems.LegendSystem.OnLegendEvolved -= OnLegendEvolved; // DEV-15
             GameManager.OnCardPlayFailed -= ShakeHandCard;
-            GameManager.OnUnitDamaged -= OnSpellUnitDamaged;
-            GameManager.OnUnitDied -= OnUnitDiedHandler;
             GameManager.OnCardPlayed -= OnCardPlayedHandler; // DEV-18
             // DEV-18b
             GameEventBus.OnUnitFloatText -= OnUnitFloatTextHandler;
@@ -382,7 +391,7 @@ namespace FWTCG.UI
             }
         }
 
-        private CardView FindCardView(FWTCG.Core.UnitInstance unit)
+        public CardView FindCardView(FWTCG.Core.UnitInstance unit)
         {
             var containers = new Transform[]
             {

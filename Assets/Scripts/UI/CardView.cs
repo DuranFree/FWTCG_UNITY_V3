@@ -146,11 +146,14 @@ namespace FWTCG.UI
         {
             if (_clickButton != null)
                 _clickButton.onClick.RemoveListener(HandleClick);
-            if (_stunPulse  != null) StopCoroutine(_stunPulse);
-            if (_atkBreath  != null) StopCoroutine(_atkBreath);
-            if (_costBreath != null) StopCoroutine(_costBreath);
-            if (_schBreath  != null) StopCoroutine(_schBreath);
-            if (_liftFloat  != null) StopCoroutine(_liftFloat);
+            if (_stunPulse   != null) StopCoroutine(_stunPulse);
+            if (_shake       != null) StopCoroutine(_shake);   // DEV-26
+            if (_flash       != null) StopCoroutine(_flash);   // DEV-26
+            if (_death       != null) StopCoroutine(_death);   // DEV-26
+            if (_atkBreath   != null) StopCoroutine(_atkBreath);
+            if (_costBreath  != null) StopCoroutine(_costBreath);
+            if (_schBreath   != null) StopCoroutine(_schBreath);
+            if (_liftFloat   != null) StopCoroutine(_liftFloat);
             if (_returnToRest != null) StopCoroutine(_returnToRest);
             // Stop all badge scale coroutines
             foreach (var co in _badgeScaleCos.Values)

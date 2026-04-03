@@ -28,6 +28,7 @@ namespace FWTCG.Systems
         public struct CombatResult
         {
             public string BFName;
+            public int    BFIndex;        // DEV-26: 0-based index, avoids string parsing in CombatAnimator
             public string AttackerName;
             public string DefenderName;
             public int AttackerPower;
@@ -277,6 +278,7 @@ namespace FWTCG.Systems
             OnCombatResult?.Invoke(new CombatResult
             {
                 BFName         = bfDisplayName,
+                BFIndex        = bfId,
                 AttackerName   = DisplayName(attacker),
                 DefenderName   = DisplayName(defender),
                 AttackerPower  = attackerPower,

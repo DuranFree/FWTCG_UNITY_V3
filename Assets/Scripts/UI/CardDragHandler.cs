@@ -750,14 +750,9 @@ namespace FWTCG.UI
             return new List<UnitInstance> { dragged };
         }
 
+        // DEV-26: replaced FindObjectsOfType (O(n) scene scan) with GameUI.FindCardView lookup
         private static CardView FindCardViewInScene(UnitInstance unit)
-        {
-            foreach (var cv in FindObjectsOfType<CardView>())
-            {
-                if (cv.Unit == unit) return cv;
-            }
-            return null;
-        }
+            => GameUI.Instance != null ? GameUI.Instance.FindCardView(unit) : null;
 
         // ── Drop land animation (independent host) ───────────────────────────
 

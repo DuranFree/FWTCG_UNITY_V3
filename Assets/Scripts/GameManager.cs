@@ -682,6 +682,8 @@ namespace FWTCG
         /// </summary>
         public async void OnBattlefieldClicked(int bfId)
         {
+            try
+            {
             if (_gs.GameOver) return;
             if (_gs.Turn != GameRules.OWNER_PLAYER) return;
             if (_gs.Phase != GameRules.PHASE_ACTION) return;
@@ -798,6 +800,13 @@ namespace FWTCG
             }
 
             TurnManager.BroadcastMessage_Static("[提示] 请先选择基地中的单位");
+            } // DEV-26: outer try
+            catch (System.Exception ex)
+            {
+                Debug.LogError($"[OnBattlefieldClicked] 未处理异常: {ex}");
+                _bfClickInFlight = false;
+                RefreshUI(); // DEV-26: restore UI to consistent state after unexpected exception
+            }
         }
 
         /// <summary>
@@ -1221,6 +1230,10 @@ namespace FWTCG
             if (_entryEffects != null)
                 _entryEffects.OnUnitEntered(unit, GameRules.OWNER_PLAYER, _gs);
 
+            // DEV-26: Foresight prompt (player only — AI handled in EntryEffectSystem)
+            if (unit.CardData.HasKeyword(CardKeyword.Foresight))
+                await HandleForesightPromptAsync(GameRules.OWNER_PLAYER);
+
             // Check Kaisa evolution (4 distinct allied keywords → Lv.2)
             _legendSys?.CheckKaisaEvolution(GameRules.OWNER_PLAYER, _gs);
 
@@ -1231,6 +1244,38 @@ namespace FWTCG
 
         /// <summary>
         /// Plays a hero card from the hero zone to the player's base.
+        /// DEV-26: Shows a confirm dialog for Foresight keyword (preview top card, option to move to bottom).
+        /// Only called for the player; AI handling remains in EntryEffectSystem (log only).
+        /// </summary>
+        private async System.Threading.Tasks.Task HandleForesightPromptAsync(string owner)
+        {
+            var deck = _gs.GetDeck(owner);
+            if (deck.Count == 0) return;
+            var topCard = deck[0];
+
+            bool moveToBottom = false;
+            try
+            {
+                moveToBottom = await (UI.AskPromptUI.Instance?.WaitForConfirm(
+                    "预知",
+                    $"牌库顶：{topCard.UnitName}\n费用 {topCard.CardData.Cost}  战力 {topCard.CardData.Atk}\n\n将此牌置底？",
+                    "置底",
+                    "保留") ?? System.Threading.Tasks.Task.FromResult(false));
+            }
+            catch (System.OperationCanceledException) { moveToBottom = false; }
+
+            if (moveToBottom)
+            {
+                deck.RemoveAt(0);
+                deck.Add(topCard);
+                TurnManager.BroadcastMessage_Static($"[预知] {topCard.UnitName} 已置底");
+            }
+            else
+            {
+                TurnManager.BroadcastMessage_Static($"[预知] {topCard.UnitName} 保留在牌库顶");
+            }
+        }
+
         /// Mirrors TryPlayUnitAsync but sources from gs.PHero instead of gs.PHand.
         /// </summary>
         private async Task TryPlayHeroAsync(UnitInstance hero)
@@ -1332,6 +1377,10 @@ namespace FWTCG
 
             if (_entryEffects != null)
                 _entryEffects.OnUnitEntered(hero, GameRules.OWNER_PLAYER, _gs);
+
+            // DEV-26: mirror TryPlayUnitAsync — hero cards can also have Foresight
+            if (hero.CardData.HasKeyword(CardKeyword.Foresight))
+                await HandleForesightPromptAsync(GameRules.OWNER_PLAYER);
 
             _legendSys?.CheckKaisaEvolution(GameRules.OWNER_PLAYER, _gs);
 

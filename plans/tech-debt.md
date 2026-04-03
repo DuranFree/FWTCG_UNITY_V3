@@ -26,17 +26,10 @@
 - [ ] kaisa_legend/yi_legend CardData 缺少卡图（需 tempPic 中找传奇卡图片，或用户提供）— Phase DEV-10
 - ✅ 弃牌堆/放逐堆 Button onClick — 已通过 GameUI.SetPileClickCallback + WirePileButtons() 在运行时连线，实现正常 — Phase DEV-10
 - [ ] DamagePopup 每次 new GameObject（GC churn）— 高频伤害时压力大，应改为对象池 — Phase DEV-17（Codex Medium/Low）
-- [ ] GameUI.OnUnitDied/OnUnitDamaged 订阅在 Awake/OnDestroy，禁用组件时仍活跃 — 应改为 OnEnable/OnDisable — Phase DEV-17（Codex Medium）
-- [ ] OnBattlefieldClicked async void 无结构化异常处理 — await 后异常无法传播 — Phase DEV-17（Codex Medium）
-- [ ] CardView.OnDestroy 只停 _stunPulse，_shake/_flash/_death 靠 Unity 隐式停止 — Phase DEV-17（Codex Low）
 - ✅ Ephemeral 单位打出时未设置 IsEphemeral/SummonedOnRound — 已修复：UnitInstance 构造函数从 CardData.HasKeyword(Ephemeral) 初始化 IsEphemeral；TryPlayUnit 打出瞬息单位时设置 SummonedOnRound=gs.Round — Phase DEV-18（Claude 审查 High → 已解决）
-- [ ] CombatAnimator 并发冲击波未保护 — 同一 BF 快速连续战斗时第二个 PlayShockwave 会与第一个同时运行，第一个结束时 SetActive(false) 打断第二个动画；修复：OnCombatResult 先 StopCoroutine 再重启 — Phase DEV-18（Claude 审查 Medium）
 - [ ] AI 出牌不触发 OnCardPlayed/BoardFlash — FireCardPlayed 只在玩家三条出牌路径调用，AI 出牌无棋盘闪烁；如需视觉对称须补充 AI 路径调用 — Phase DEV-18（Claude 审查 Medium，设计待确认）
-- [ ] CtrlGlowLoop 无控制方时 alpha 非零 — NoGlow=(0,0,0,0) 但 Lerp(0.10,0.35,pulse) 始终>0，产生微弱黑色叠加；修复：_currentCtrl==null 时直接 alpha=0 — Phase DEV-18（Claude 审查 Low）
 - [ ] Ephemeral 销毁未加入弃牌堆 — DestroyEphemeralUnits 只从列表移除，未调用 gs.GetDiscard(owner).Add(u)；需确认是否设计意图 — Phase DEV-18（Claude 审查 Low）
-- [ ] FloatText._pool 静态列表跨场景不清空 — _poolRoot 场景销毁后变成 null 引用，EnsurePool 需检测 destroyed 状态 — Phase DEV-18b（Claude 审查 Low）
 - [ ] EventBanner.DrainQueue 协程在 OnDisable 时不会停止 — 组件禁用后仍可能继续运行（本项目 EventBanner 不会被禁用，风险低）— Phase DEV-18b（Claude 审查 Low）
-- [ ] GameEventBus 测试中 lambda 退订写法无效 — Action 委托退订需保存引用，测试间若有残留订阅可能互相干扰（当前测试全绿，实际无影响）— Phase DEV-18b（Claude 审查 Medium）
 - [ ] AskPromptUI._cardViewPrefab 为 null 时 card-pick 模式静默跳过卡片渲染 — 功能降级但不崩溃，SceneBuilder 已连线 cardPrefab — Phase DEV-19（Codex Medium）
 - [ ] ScoreRingRoutine 使用 AddComponent 动态生成 ring Image — 大量快速得分时可积累多个同时运行，实际游戏节奏不触发 — Phase DEV-19（Codex Low）
 - [ ] GameUI.RefreshScoreTrack 多分得分时只动画最终圆圈 — 1分得分触发一次 pulse，多分时中间圆圈无动画 — Phase DEV-19（Codex Medium）
@@ -46,17 +39,13 @@
 - [ ] GameUI.ShowCombatResult 无协程句柄 — 每次调用新建 HideCombatResult 协程无保存句柄，旧计时器可能提前隐藏新结果 — Phase DEV-19 patch（Codex Medium）
 - [ ] RuneAutoConsume.Compute 与 OnRuneClicked 符文可回收规则不一致 — Compute 跳过已横置符文，但 OnRuneClicked recycle 路径现已同步禁止，DEV-20 H-2 已修复互斥；更深层需统一符文状态机 — Phase DEV-20（Codex Medium）
 - [ ] ReactiveWindowUI 无 OnDisable 回退 — OnDestroy 已 TrySetCanceled，但 panel.SetActive(false) 后 _tcs 仍可能悬空；低风险（当前只通过 HidePanel/SkipReaction 关闭）— Phase DEV-20（Codex Medium）
-- [ ] SpellVFX.BurstParticles/LegendFlame 协程被中断时粒子 GO 泄漏 — OnDestroy 时若协程仍运行，已创建的 Image GO 无法被 Destroy 回收；低风险（SpellVFX 生命周期与场景同步）— Phase DEV-21（Codex Medium）
+- [ ] SpellVFX.BurstParticles/LegendFlame 协程被中断时粒子 GO 泄漏 — OnDestroy 已加子节点批量 Destroy 兜底，低风险（SpellVFX 生命周期与场景同步）— Phase DEV-21（Codex Medium，DEV-26 部分缓解）
 - [ ] Swift 关键词仅数据/UI层，法术对决实际判断仍只看 Reactive — 完整实现需 DEV-27 4状态回合状态机（Rule 718），两处 spell-duel 筛选已加 DEV-27 TODO 注释 — Phase DEV-25b（Codex High → 设计已知，延迟到 DEV-27）
 - [ ] TryPlayUnitAsync 缺少 Haste prompt 的行为测试 — 仅有枚举计数测试，缺 Haste confirm/cancel/资源不足/状态变更后回退流程测试 — Phase DEV-25b（Codex Low）
-- [ ] 预知 UI 未实现（Rule 729）— foresight_mech_enter 只打日志，缺查看牌库顶+选择回收的弹窗 — Phase DEV-26
 - [ ] CardDragHandler: PortalVFX.EnsureBuilt fallback 用 FindObjectOfType<Canvas>，应改 GetComponentInParent — Phase DEV-22（Codex Medium）
 - [ ] CardDragHandler: HandleDrop 未在 drop 时重验证游戏状态（GameManager 回调内部已验证，深度防御待补）— Phase DEV-22（Codex Medium）
-- [ ] CardDragHandler: GatherCluster 中对每个选中单位各调用一次 FindObjectsOfType，应由 GameUI 维护 UnitInstance→CardView 查找表 — Phase DEV-22（Codex Medium）
 - [ ] DEV-22 测试套件以常量断言为主，缺 HandleDrop 路径、CanStartDrag false、ghost 清理等行为测试 — Phase DEV-22（Codex Low）
 - [ ] ReactiveWindowUI._gs 仅在 WaitForReaction 时更新，AutoPlayRandom guard 仅能防止失效卡；若需更严格防御应在 SkipReaction 前遍历 _pendingCards — Phase DEV-22 patch（Codex Low）
-- [ ] SceneryUI.DividerOrbLoop 基准位置只采样一次，分辨率变化时振荡中心偏移；游戏内无动态分辨率切换，实际风险极低 — Phase DEV-23（Codex Medium）
-- [ ] StartupFlowUI.ScanLightLoop 协程无 OnDisable 停止路径（OnDestroy 已覆盖，低风险）— Phase DEV-24（Codex Medium）
-- [ ] StartupFlowUI.FadeIn/FadeOut 协程无 mid-frame CanvasGroup null guard（销毁场景时低概率抛出）— Phase DEV-24（Codex Medium）
+- [ ] SceneryUI.DividerOrbLoop 基准位置只采样一次，分辨率变化时振荡中心偏移；游戏内无动态分辨率切换，实际风险极低 — Phase DEV-23（Codex Medium，已 DEV-26 缓解：仅缓存 baseY）
 - [ ] GlassPanelFX Shader.Find 运行时查找 — 构建时若 "FWTCG/GlassPanel" 未加入 Always Included Shaders 会在打包后失效；修复：Project Settings → Graphics → Always Included Shaders 添加该 shader — Phase DEV-25（Codex M-2）
 - [ ] ShowStatusTooltip AutoDismissTooltip 只监听鼠标按下，键盘/游戏手柄操作无法关闭 tooltip — 低优先级，当前目标平台为 PC — Phase DEV-25（Low）

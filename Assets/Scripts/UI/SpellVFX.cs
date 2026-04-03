@@ -36,6 +36,13 @@ namespace FWTCG.UI
             GameManager.OnCardPlayed              -= OnCardPlayed;
             GameEventBus.OnUnitDiedAtPos          -= OnUnitDiedAtPos;
             LegendSystem.OnLegendEvolved          -= OnLegendEvolved;
+
+            // DEV-26: destroy any particle GOs that leaked when coroutines were interrupted
+            if (_vfxLayer != null)
+            {
+                for (int i = _vfxLayer.childCount - 1; i >= 0; i--)
+                    Destroy(_vfxLayer.GetChild(i).gameObject);
+            }
         }
 
         // ── Event handlers ────────────────────────────────────────────────────

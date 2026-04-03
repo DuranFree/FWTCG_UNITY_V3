@@ -49,6 +49,9 @@ namespace FWTCG.UI
         {
             if (_poolRoot != null) return;
 
+            // DEV-26: _poolRoot was destroyed (scene reload) — clear stale MonoBehaviour refs
+            _pool.Clear();
+
             var go = new GameObject("FloatTextPool");
             go.transform.SetParent(canvasRoot, false);
             // Must have a full-canvas RectTransform so children's anchoredPosition
@@ -68,6 +71,7 @@ namespace FWTCG.UI
         {
             foreach (var ft in _pool)
             {
+                if (ft == null) continue; // DEV-26: guard against destroyed instances after scene reload
                 if (!ft._inUse) return ft;
             }
             // Pool exhausted: create extra

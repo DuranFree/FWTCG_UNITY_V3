@@ -76,6 +76,9 @@ namespace FWTCG.UI
 
         private void Enqueue(string msg)
         {
+            // DEV-26: guard against null/empty messages matching each other
+            if (string.IsNullOrEmpty(msg)) return;
+
             // Same message currently showing → reset its stay timer instead of re-queuing
             if (_showing && msg == _currentText)
             {

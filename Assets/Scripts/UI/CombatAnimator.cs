@@ -31,6 +31,10 @@ namespace FWTCG.UI
         private Image _shockwave1;
         private Image _shockwave2;
 
+        // DEV-26: coroutine handles so concurrent results stop the previous animation
+        private Coroutine _sw1Routine;
+        private Coroutine _sw2Routine;
+
         private void Awake()
         {
             CombatSystem.OnCombatResult += OnCombatResult;
@@ -58,11 +62,18 @@ namespace FWTCG.UI
 
         private void OnCombatResult(CombatSystem.CombatResult result)
         {
-            // Determine which BF index fought. BFName is "战场1" or "战场2" etc.
-            int bfIdx = result.BFName.Contains("1") ? 0 : 1;
-            Image target = bfIdx == 0 ? _shockwave1 : _shockwave2;
-            if (target != null)
-                StartCoroutine(PlayShockwave(target));
+            int bfIdx = result.BFIndex; // DEV-26: use explicit index instead of string parsing
+            if (bfIdx == 0)
+            {
+                // DEV-26: stop previous shockwave before starting a new one
+                if (_sw1Routine != null) StopCoroutine(_sw1Routine);
+                if (_shockwave1 != null) _sw1Routine = StartCoroutine(PlayShockwave(_shockwave1));
+            }
+            else
+            {
+                if (_sw2Routine != null) StopCoroutine(_sw2Routine);
+                if (_shockwave2 != null) _sw2Routine = StartCoroutine(PlayShockwave(_shockwave2));
+            }
         }
 
         private IEnumerator PlayShockwave(Image img)
@@ -94,6 +105,9 @@ namespace FWTCG.UI
 
             img.gameObject.SetActive(false);
             rt.localScale = Vector3.zero;
+            // Clear handle so we don't StopCoroutine a finished routine
+            if (img == _shockwave1) _sw1Routine = null;
+            else if (img == _shockwave2) _sw2Routine = null;
         }
 
         private static Image CreateShockwave(RectTransform parent)

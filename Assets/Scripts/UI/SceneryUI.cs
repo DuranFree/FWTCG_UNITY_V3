@@ -82,13 +82,15 @@ namespace FWTCG.UI
         private IEnumerator DividerOrbLoop()
         {
             var rt = dividerOrb.rectTransform;
-            Vector2 basePos = rt.anchoredPosition;
+            // DEV-26: only cache base Y; X reads live so layout changes don't drift the center
+            float baseY = rt.anchoredPosition.y;
             float t = 0f;
             while (true)
             {
                 t += Time.deltaTime;
                 float y = Mathf.Sin(t / DIVIDER_ORB_DURATION * Mathf.PI * 2f) * DIVIDER_ORB_AMPLITUDE;
-                rt.anchoredPosition = new Vector2(basePos.x, basePos.y + y);
+                var pos = rt.anchoredPosition;
+                rt.anchoredPosition = new Vector2(pos.x, baseY + y);
                 yield return null;
             }
         }
