@@ -41,10 +41,10 @@
 - ✅ ReactiveWindowUI 无 OnDisable 回退 — DEV-31 已修复：OnDisable 加 `_tcs?.TrySetCanceled()`，组件禁用时取消悬挂 Task — Phase DEV-20→DEV-31
 - [ ] SpellVFX.BurstParticles/LegendFlame 协程被中断时粒子 GO 泄漏 — OnDestroy 已加子节点批量 Destroy 兜底，低风险（SpellVFX 生命周期与场景同步）— Phase DEV-21（Codex Medium，DEV-26 部分缓解）
 - ✅ Swift 关键词仅数据/UI层，法术对决实际判断仍只看 Reactive — DEV-27 已实现：TurnStateMachine CanPlaySpell Rule 718，AiTryReact + 玩家反应窗口两处筛选加 Swift — Phase DEV-25b→DEV-27
-- [ ] TryPlayUnitAsync 缺少 Haste prompt 的行为测试 — 仅有枚举计数测试，缺 Haste confirm/cancel/资源不足/状态变更后回退流程测试 — Phase DEV-25b（Codex Low）
+- ✅ TryPlayUnitAsync 缺少 Haste prompt 的行为测试 — DEV-32 已补充：HasteAffordability 4项测试 + HasteRevalidation 回退测试，覆盖资源不足/状态变更后回退路径 — Phase DEV-25b→DEV-32
 - ✅ CardDragHandler: PortalVFX.EnsureBuilt fallback — DEV-31 已修复：改用 GetComponentInParent<Canvas>() + rootCanvas 解析，移除 FindObjectOfType — Phase DEV-22→DEV-31
 - ✅ CardDragHandler: HandleDrop 重验证 — DEV-31 已修复：HandleDrop 开头加 `if (GameManager.Instance == null) return` 深度防御 — Phase DEV-22→DEV-31
-- [ ] DEV-22 测试套件以常量断言为主，缺 HandleDrop 路径、CanStartDrag false、ghost 清理等行为测试 — Phase DEV-22（Codex Low）
+- ✅ DEV-22 测试套件缺行为测试 — DEV-32 已补充：CanStartDrag=false 保护、BlockPointerEvents 清理、多回调覆盖、null 回调安全 — Phase DEV-22→DEV-32
 - [ ] ReactiveWindowUI._gs 仅在 WaitForReaction 时更新，AutoPlayRandom guard 仅能防止失效卡；若需更严格防御应在 SkipReaction 前遍历 _pendingCards — Phase DEV-22 patch（Codex Low）
 - ✅ SceneryUI.DividerOrbLoop 基准位置 — 已确认：DEV-26 已修复，仅缓存 baseY，X 轴读实时值 — Phase DEV-23 → DEV-31 confirmed resolved
 - [ ] GlassPanelFX Shader.Find 运行时查找 — 代码已有 LogWarning 兜底，属项目配置项；待打包前在 Project Settings → Graphics → Always Included Shaders 添加 FWTCG/GlassPanel — Phase DEV-25（配置待处理）
@@ -63,6 +63,15 @@
 - [ ] SpellDuelUI 订阅 OnClearBanners 触发 HideDuelOverlay，同一事件也触发 ReactiveWindowUI.AutoPlayRandom — 轮次切换时两者同步触发，设计预期如此，但 AutoPlayRandom 强制打出随机牌会绕过对决倒计时；待业务确认 — Phase DEV-30（设计待确认，DEV-31 保留）
 - ✅ ReactiveWindowUI.WaitForReaction 不取消旧 TCS — DEV-31 已修复：WaitForReaction 开头加 `_tcs?.TrySetCanceled()` 防止旧 Task 永久挂起 — Phase DEV-30→DEV-31
 - ✅ GameManager WaitForReaction await 无 OperationCanceledException 保护 — DEV-31 Codex HIGH 发现并修复：try/catch 包裹 await，防 OnDisable 取消后 _reactionWindowActive 卡死 — Phase DEV-31
-- [ ] CardView.EnterAnimRoutine 无重试路径 — Setup 时 GO 不活跃则跳过动画，_enterAnimPlayed 已 true 导致永远不会重播；实际路径（Mulligan）会重新 Setup，风险低 — Phase DEV-30（Codex Medium）
-- [ ] CardView.EnterAnimRoutine 一帧视觉闪烁 — yield return null 前未设 alpha=0/startScale，首帧以最终状态渲染；一帧几乎不可见 — Phase DEV-30（Codex Medium）
-- [ ] CardView.EnterAnimRoutine _enterAnimPlayed 竞态 — GO 在等待帧内被禁用时 yield break，动画永久丢失；同上实际路径不触发 — Phase DEV-30（Codex Medium）
+- ✅ CardView.EnterAnimRoutine 无重试路径 — DEV-32 已修复：_enterAnimPlayed 移入协程内部，失败路径重置为 false 允许重试 — Phase DEV-30→DEV-32
+- ✅ CardView.EnterAnimRoutine 一帧视觉闪烁 — DEV-32 已修复：yield return null 前设 cg.alpha=0/startScale，首帧从正确初始状态开始 — Phase DEV-30→DEV-32
+- ✅ CardView.EnterAnimRoutine _enterAnimPlayed 竞态 — DEV-32 已修复：标志现在协程内部管理，GO 禁用时重置为 false — Phase DEV-30→DEV-32
+- ✅ GameUI.RefreshScoreTrack 多分得分只动画最终圆圈 — DEV-32 已修复：保存 prevPScore/prevEScore，对每个新亮圆圈均触发脉冲 — Phase DEV-19→DEV-32
+- ✅ RuneAutoConsume.Compute 与 OnRuneClicked 符文规则不一致 — DEV-32 已统一：新增 CanTap()/CanRecycle() 静态方法，两处均使用 — Phase DEV-20→DEV-32
+- ✅ SpellVFX.BurstParticles/LegendFlame 协程中断时粒子 GO 泄漏 — DEV-32 已修复：_ownedParticles HashSet 精确追踪，OnDestroy 清理，不再依赖 vfxLayer 子节点批量销毁 — Phase DEV-21→DEV-32
+- [ ] 架构摩擦点 A1：GameState 被 12+ 个系统直接读写，无访问封装 — 详见 docs/architecture.md §六 — Phase DEV-32（架构改进建议，不阻塞）
+- [ ] 架构摩擦点 A2：UI 层无 ViewModel，依赖 RefreshUI() 手动同步 — 详见 docs/architecture.md §六 — Phase DEV-32（架构改进建议）
+- [ ] 架构摩擦点 A3：伤害/死亡逻辑分散在 Combat/Spell/ReactiveSystem 三处 — 详见 docs/architecture.md §六 — Phase DEV-32
+- [ ] 架构摩擦点 A4：反应窗口 static TaskCompletionSource 难以单元测试 — 详见 docs/architecture.md §六 — Phase DEV-32
+- [ ] 架构摩擦点 A5：TurnStateMachine + TurnManager + GameManager 三层状态管理并存 — 详见 docs/architecture.md §六 — Phase DEV-32
+- [ ] 架构摩擦点 A6：入场/死亡触发链通过直接调用编排，非统一事件总线 — 详见 docs/architecture.md §六 — Phase DEV-32

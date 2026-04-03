@@ -238,11 +238,9 @@ namespace FWTCG.UI
 
             // DEV-28: Hand enter animation — play once per new card assignment
             // Guard: coroutine can't start on an inactive GO (e.g. card inside hidden panel)
+            // _enterAnimPlayed is set inside the coroutine to allow retry if GO is deactivated mid-frame.
             if (isNewUnit && !_enterAnimPlayed && gameObject.activeInHierarchy)
-            {
-                _enterAnimPlayed = true;
                 StartCoroutine(EnterAnimRoutine());
-            }
         }
 
         public void OnPointerEnter(PointerEventData eventData)
@@ -1200,16 +1198,29 @@ namespace FWTCG.UI
 
         private IEnumerator EnterAnimRoutine()
         {
+            // Mark in-progress to prevent duplicate starts; reset below if we exit early.
+            _enterAnimPlayed = true;
+
             const float duration = 0.42f;
             var rt  = (RectTransform)transform;
             var cg  = GetComponent<CanvasGroup>() ?? gameObject.AddComponent<CanvasGroup>();
+
+            // Fix: set initial visual state BEFORE yielding to avoid a one-frame flash
+            // where the card appears at its final alpha/scale before the animation begins.
+            cg.alpha             = 0f;
+            transform.localScale = Vector3.one * 0.82f;
 
             // DEV-30 fix: wait one frame for LayoutGroup to calculate correct position
             // before reading anchoredPosition; otherwise the prefab default (0,0) is
             // captured and the animation fights the layout system, making cards appear
             // in wrong positions.
             yield return null;
-            if (this == null || !gameObject.activeInHierarchy) yield break;
+            if (this == null || !gameObject.activeInHierarchy)
+            {
+                // GO was deactivated this frame — allow the animation to retry next time.
+                _enterAnimPlayed = false;
+                yield break;
+            }
             Canvas.ForceUpdateCanvases();
 
             Vector2 startPos = rt.anchoredPosition + new Vector2(0f, -30f);

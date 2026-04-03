@@ -847,8 +847,8 @@ namespace FWTCG
 
             if (recycle)
             {
-                // H-2: Tapped runes cannot also be recycled — tap and recycle are mutually exclusive
-                if (rune.Tapped)
+                // Use RuneAutoConsume.CanRecycle as single source of truth (same rule as Compute()).
+                if (!RuneAutoConsume.CanRecycle(rune))
                 {
                     TurnManager.BroadcastMessage_Static("[提示] 已横置的符文无法回收");
                     return;
@@ -863,8 +863,8 @@ namespace FWTCG
             }
             else
             {
-                // Tap: gain +1 mana
-                if (rune.Tapped)
+                // Use RuneAutoConsume.CanTap as single source of truth (same rule as Compute()).
+                if (!RuneAutoConsume.CanTap(rune))
                 {
                     TurnManager.BroadcastMessage_Static("[提示] 该符文已横置");
                     return;

@@ -51,6 +51,19 @@ namespace FWTCG.Core
         /// Returns a plan with CanAfford=false when costs cannot be met even after consuming
         /// all available runes.
         /// </summary>
+        /// <summary>
+        /// Single source of truth for whether a rune can be tapped for mana.
+        /// Used by both Compute() and GameManager.OnRuneClicked() to ensure rule consistency.
+        /// </summary>
+        public static bool CanTap(RuneInstance rune) => rune != null && !rune.Tapped;
+
+        /// <summary>
+        /// Single source of truth for whether a rune can be recycled for schematic energy.
+        /// Tap and recycle are mutually exclusive — a tapped rune cannot also be recycled.
+        /// Used by both Compute() and GameManager.OnRuneClicked() to ensure rule consistency.
+        /// </summary>
+        public static bool CanRecycle(RuneInstance rune) => rune != null && !rune.Tapped;
+
         public static Plan Compute(UnitInstance card, GameState gs, string owner)
         {
             var plan = new Plan
@@ -74,12 +87,12 @@ namespace FWTCG.Core
 
             var runes = gs.GetRunes(owner);
 
-            // Pass 1 — cover schDeficit by recycling untapped matching-type runes
+            // Pass 1 — cover schDeficit by recycling eligible matching-type runes
             int schCovered = 0;
             for (int i = 0; i < runes.Count && schCovered < schDeficit; i++)
             {
                 RuneInstance r = runes[i];
-                if (!r.Tapped && r.RuneType == schType)
+                if (CanRecycle(r) && r.RuneType == schType)
                 {
                     plan.RecycleIndices.Add(i);
                     schCovered++;
@@ -89,12 +102,12 @@ namespace FWTCG.Core
             // Build a set of already-reserved indices so Pass 2 skips them
             var reserved = new System.Collections.Generic.HashSet<int>(plan.RecycleIndices);
 
-            // Pass 2 — cover manaDeficit by tapping remaining untapped runes (any type)
+            // Pass 2 — cover manaDeficit by tapping remaining eligible runes (any type)
             int manaCovered = 0;
             for (int i = 0; i < runes.Count && manaCovered < manaDeficit; i++)
             {
                 RuneInstance r = runes[i];
-                if (!r.Tapped && !reserved.Contains(i))
+                if (CanTap(r) && !reserved.Contains(i))
                 {
                     plan.TapIndices.Add(i);
                     manaCovered++;

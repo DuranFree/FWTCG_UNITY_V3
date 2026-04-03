@@ -22,6 +22,12 @@ namespace FWTCG.UI
         // ── Inspector refs ────────────────────────────────────────────────────
         [SerializeField] public Transform _vfxLayer;   // top-most canvas layer
 
+        // ── Particle ownership tracking ───────────────────────────────────────
+        // Tracks all particle GOs currently alive so OnDestroy can clean up any
+        // that were orphaned by a coroutine interrupted mid-animation.
+        private readonly System.Collections.Generic.HashSet<GameObject> _ownedParticles
+            = new System.Collections.Generic.HashSet<GameObject>();
+
         // ── Lifecycle ─────────────────────────────────────────────────────────
 
         private void Awake()
@@ -39,12 +45,11 @@ namespace FWTCG.UI
             LegendSystem.OnLegendEvolved          -= OnLegendEvolved;
             GameEventBus.OnConquestScored         -= OnConquestScored; // DEV-30 F1
 
-            // DEV-26: destroy any particle GOs that leaked when coroutines were interrupted
-            if (_vfxLayer != null)
-            {
-                for (int i = _vfxLayer.childCount - 1; i >= 0; i--)
-                    Destroy(_vfxLayer.GetChild(i).gameObject);
-            }
+            // Destroy any particle GOs orphaned by coroutines interrupted mid-animation.
+            // Using explicit ownership list avoids destroying unrelated _vfxLayer children.
+            foreach (var go in _ownedParticles)
+                if (go != null) Destroy(go);
+            _ownedParticles.Clear();
         }
 
         // ── Event handlers ────────────────────────────────────────────────────
@@ -98,6 +103,7 @@ namespace FWTCG.UI
             for (int i = 0; i < count; i++)
             {
                 var go = new GameObject($"BurstPt_{i}");
+                _ownedParticles.Add(go);
                 go.transform.SetParent(_vfxLayer, false);
 
                 var rt = go.AddComponent<RectTransform>();
@@ -142,7 +148,10 @@ namespace FWTCG.UI
             }
 
             for (int i = 0; i < count; i++)
+            {
+                _ownedParticles.Remove(rts[i].gameObject);
                 Destroy(rts[i].gameObject);
+            }
         }
 
         // ═══════════════════════════════════════════════════════════════════════
@@ -162,6 +171,7 @@ namespace FWTCG.UI
             for (int i = 0; i < FLAME_COUNT; i++)
             {
                 var go = new GameObject($"Flame_{i}");
+                _ownedParticles.Add(go);
                 go.transform.SetParent(_vfxLayer, false);
 
                 var rt = go.AddComponent<RectTransform>();
@@ -214,7 +224,10 @@ namespace FWTCG.UI
             }
 
             for (int i = 0; i < FLAME_COUNT; i++)
+            {
+                _ownedParticles.Remove(rts[i].gameObject);
                 Destroy(rts[i].gameObject);
+            }
         }
 
         // ═══════════════════════════════════════════════════════════════════════

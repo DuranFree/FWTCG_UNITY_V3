@@ -2,6 +2,40 @@
 
 ---
 
+## DEV-32：架构优化 — 2026-04-03
+
+**Status**: ✅ Completed
+**Tests**: 550/550 🟢（EditMode 全绿，新增 23 个测试）
+
+### 实现内容
+
+**Medium 技术债修复（4项）**：
+- `CardView.EnterAnimRoutine`：移动 `_enterAnimPlayed=true` 进协程（修竞态）；加首帧 alpha/scale 初始化（修首帧闪烁）；失败路径重置标志（加重试路径）
+- `GameUI.RefreshScoreTrack`：保存 prevPScore/prevEScore 后再更新缓存，多分得分时对每个新亮圆圈均触发脉冲
+- `RuneAutoConsume`：新增 `CanTap()` / `CanRecycle()` 静态方法作为单一规则源，Compute() 和 GameManager.OnRuneClicked 均统一使用
+- `SpellVFX`：用 `_ownedParticles` HashSet 显式追踪粒子 GO，OnDestroy 精确清理（不再误删其他 _vfxLayer 子节点）
+
+**测试缺口填补（23 个新测试）**：
+- `DEV32BehaviorTests.cs`：RuneAutoConsume.CanTap/CanRecycle 边界条件、Haste 关键词检测与可负担性前置条件、CardDragHandler CanStartDrag=false 保护、OnDestroy 清理、回调空安全、GameState 资源算术
+
+**BF 卡资产创建（19 张）**：
+- 在 `Assets/Resources/Cards/BF/` 创建 19 张战场卡 CardData .asset 文件
+- 数据层现完整，运行时通过 BattlefieldSystem 字符串 ID 匹配触发效果
+
+**架构文档**：
+- `docs/architecture.md`：总体架构图、模块职责表、事件系统说明、回合状态机、已知摩擦点列表、测试覆盖概况
+
+**Codex 深度审查**：无 HIGH 级问题。
+
+**Decisions made**：
+- 架构摩擦点（GameState 8向耦合、无 ViewModel、伤害分散等）记录进架构文档和技术债，不在本 Phase 重构
+- BF 卡资产使用 Python 直写 YAML，确保 GUID 唯一性
+
+**Technical debt**：
+- 架构文档中列出 6 项摩擦点（A1-A6）供未来重构参考，均为 Low/Medium 优先级
+
+---
+
 ## DEV-31：Tech-Debt Cleanup — 2026-04-03
 
 **Status**: ✅ Completed

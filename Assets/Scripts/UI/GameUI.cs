@@ -1554,11 +1554,14 @@ namespace FWTCG.UI
 
         public void RefreshScoreTrack(GameState gs)
         {
-            // DEV-19: detect score increase → trigger pulse on newly-lit circle
-            bool pScoreUp = gs.PScore > _cachedPScore && _cachedPScore >= 0;
-            bool eScoreUp = gs.EScore > _cachedEScore && _cachedEScore >= 0;
-            _cachedPScore = gs.PScore;
-            _cachedEScore = gs.EScore;
+            // DEV-19: detect score increase → trigger pulse on newly-lit circles.
+            // Save old values BEFORE updating cache so we know which circles to pulse.
+            int prevPScore = _cachedPScore;
+            int prevEScore = _cachedEScore;
+            bool pScoreUp  = gs.PScore > _cachedPScore && _cachedPScore >= 0;
+            bool eScoreUp  = gs.EScore > _cachedEScore && _cachedEScore >= 0;
+            _cachedPScore  = gs.PScore;
+            _cachedEScore  = gs.EScore;
 
             if (_playerScoreCircles != null)
             {
@@ -1572,9 +1575,11 @@ namespace FWTCG.UI
                     else
                         _playerScoreCircles[i].color = GameColors.ScoreCircleInactive;
                 }
-                // Pulse the circle that just lit up (index = newScore - 1)
-                if (pScoreUp && gs.PScore > 0 && gs.PScore - 1 < _playerScoreCircles.Length)
-                    TriggerScorePulse(_playerScoreCircles[gs.PScore - 1]);
+                // Pulse every circle that lit up this tick (handles multi-point score jumps).
+                if (pScoreUp)
+                    for (int s = prevPScore; s < gs.PScore; s++)
+                        if (s >= 0 && s < _playerScoreCircles.Length)
+                            TriggerScorePulse(_playerScoreCircles[s]);
             }
             if (_enemyScoreCircles != null)
             {
@@ -1588,8 +1593,11 @@ namespace FWTCG.UI
                     else
                         _enemyScoreCircles[i].color = GameColors.ScoreCircleInactive;
                 }
-                if (eScoreUp && gs.EScore > 0 && gs.EScore - 1 < _enemyScoreCircles.Length)
-                    TriggerScorePulse(_enemyScoreCircles[gs.EScore - 1]);
+                // Pulse every circle that lit up this tick.
+                if (eScoreUp)
+                    for (int s = prevEScore; s < gs.EScore; s++)
+                        if (s >= 0 && s < _enemyScoreCircles.Length)
+                            TriggerScorePulse(_enemyScoreCircles[s]);
             }
         }
 
