@@ -116,7 +116,7 @@ namespace FWTCG.UI
                 var sb = new StringBuilder();
                 sb.Append($"费用: {cd.Cost}");
                 if (cd.RuneCost > 0)
-                    sb.Append($"  符能: {cd.RuneCost} {RuneTypeName(cd.RuneType)}");
+                    sb.Append($"  符能: {cd.RuneCost} {cd.RuneType.ToChinese()}");
                 if (cd.IsSpell)
                     sb.Append("  [法术]");
                 else if (cd.IsEquipment)
@@ -145,9 +145,12 @@ namespace FWTCG.UI
             if (_effectText != null)
                 _effectText.text = string.IsNullOrEmpty(cd.Description) ? "" : cd.Description;
 
-            // Runtime state
+            // Runtime state (rich text: green=buff, gold=equip, red=debuff)
             if (_stateText != null)
+            {
+                _stateText.supportRichText = true;
                 _stateText.text = BuildStateText(unit);
+            }
         }
 
         /// <summary>Show detail for a non-unit item (battlefield, legend, etc).</summary>
@@ -194,31 +197,50 @@ namespace FWTCG.UI
             return sb.ToString();
         }
 
+        // hex constants for the three badge colors
+        private const string C_BUFF  = "#4ade80"; // green  — buff
+        private const string C_EQUIP = "#c8aa6e"; // gold   — equipment
+        private const string C_DEBUF = "#f87171"; // red    — debuff
+
         private string BuildStateText(UnitInstance unit)
         {
             var sb = new StringBuilder();
-            if (unit.Exhausted) sb.AppendLine("状态: 休眠");
-            if (unit.Stunned) sb.AppendLine("状态: 眩晕");
-            if (unit.BuffTokens > 0) sb.AppendLine($"增益指示物: +{unit.BuffTokens}/+{unit.BuffTokens}");
-            if (unit.TempAtkBonus != 0) sb.AppendLine($"临时战力加成: +{unit.TempAtkBonus}");
+
+            // ── Green: buff ───────────────────────────────────────────────────
+            if (unit.HasBuff)
+            {
+                sb.AppendLine($"<color={C_BUFF}><b>▲ 强化</b></color>");
+                foreach (var line in unit.BuildBuffSummary().Split('\n'))
+                    if (!string.IsNullOrWhiteSpace(line))
+                        sb.AppendLine($"<color={C_BUFF}>  {line.Trim()}</color>");
+            }
+
+            // ── Gold: equipment ───────────────────────────────────────────────
+            if (unit.AttachedEquipment != null)
+            {
+                sb.AppendLine($"<color={C_EQUIP}><b>▲ 装备</b></color>");
+                foreach (var line in unit.BuildEquipSummary().Split('\n'))
+                    if (!string.IsNullOrWhiteSpace(line))
+                        sb.AppendLine($"<color={C_EQUIP}>  {line.Trim()}</color>");
+            }
+
+            // ── Red: debuff ───────────────────────────────────────────────────
+            if (unit.HasDebuff)
+            {
+                sb.AppendLine($"<color={C_DEBUF}><b>▼ 削弱</b></color>");
+                foreach (var line in unit.BuildDebuffSummary().Split('\n'))
+                    if (!string.IsNullOrWhiteSpace(line))
+                        sb.AppendLine($"<color={C_DEBUF}>  {line.Trim()}</color>");
+            }
+
+            // ── Plain state flags ─────────────────────────────────────────────
+            if (unit.Exhausted)      sb.AppendLine("状态: 休眠");
             if (unit.HasSpellShield) sb.AppendLine("状态: 法盾 (激活)");
-            if (unit.HasStrongAtk) sb.AppendLine("状态: 强攻");
-            if (unit.HasGuard) sb.AppendLine("状态: 坚守");
-            return sb.ToString();
+            if (unit.HasStrongAtk)   sb.AppendLine("状态: 强攻");
+            if (unit.HasGuard)       sb.AppendLine("状态: 坚守");
+
+            return sb.ToString().TrimEnd();
         }
 
-        private string RuneTypeName(RuneType rt)
-        {
-            switch (rt)
-            {
-                case RuneType.Blazing:  return "炽烈";
-                case RuneType.Radiant:  return "灵光";
-                case RuneType.Verdant:  return "翠意";
-                case RuneType.Crushing: return "摧破";
-                case RuneType.Chaos:    return "混沌";
-                case RuneType.Order:    return "秩序";
-                default: return rt.ToString();
-            }
-        }
     }
 }

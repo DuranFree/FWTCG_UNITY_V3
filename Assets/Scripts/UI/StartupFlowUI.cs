@@ -159,6 +159,8 @@ namespace FWTCG.UI
             }
             if (_coinFlipOkButton != null)
                 _coinFlipOkButton.interactable = false;
+            // Hide coin image: sprite isn't loaded yet — prevents white+? flash during fade-in
+            if (_coinCircleImage != null) _coinCircleImage.color = Color.clear;
 
             // ── Show panel ────────────────────────────────────────────────────
             if (_coinFlipPanel != null) _coinFlipPanel.SetActive(true);
@@ -216,6 +218,25 @@ namespace FWTCG.UI
         {
             if (_coinCircleImage == null) { yield return new WaitForSeconds(0.6f); yield break; }
 
+            // Load coin face sprites; fall back to color-only if not found
+            var spriteFirst  = Resources.Load<Sprite>("CardArt/xianshou"); // 先手面
+            var spriteSecond = Resources.Load<Sprite>("CardArt/houshou");  // 后手面
+            bool hasSprites  = spriteFirst != null && spriteSecond != null;
+
+            if (hasSprites)
+            {
+                _coinCircleImage.sprite         = spriteFirst;
+                _coinCircleImage.color          = Color.white;
+                _coinCircleImage.preserveAspect = true;
+                if (_coinFlipText != null) _coinFlipText.text = ""; // sprite already conveys face
+            }
+            else
+            {
+                // No sprites: show gold circle background with "?" text
+                _coinCircleImage.sprite = null;
+                _coinCircleImage.color  = new Color(0.78f, 0.67f, 0.43f, 1f); // Gold
+            }
+
             static Color Gold()   => new Color(0.78f, 0.67f, 0.43f, 1f);
             static Color Bronze() => new Color(0.55f, 0.40f, 0.20f, 1f);
 
@@ -231,14 +252,20 @@ namespace FWTCG.UI
                 // Midpoint: swap face
                 if (isLast)
                 {
-                    _coinCircleImage.color = Gold();
+                    if (hasSprites)
+                        _coinCircleImage.sprite = isPlayerFirst ? spriteFirst : spriteSecond;
+                    else
+                        _coinCircleImage.color = Gold();
                     if (_coinFlipText != null)
-                        _coinFlipText.text = isPlayerFirst ? "先" : "后";
+                        _coinFlipText.text = hasSprites ? "" : (isPlayerFirst ? "先" : "后");
                 }
                 else
                 {
-                    _coinCircleImage.color = (i % 2 == 0) ? Bronze() : Gold();
-                    if (_coinFlipText != null) _coinFlipText.text = "?";
+                    if (hasSprites)
+                        _coinCircleImage.sprite = (i % 2 == 0) ? spriteSecond : spriteFirst;
+                    else
+                        _coinCircleImage.color = (i % 2 == 0) ? Bronze() : Gold();
+                    if (_coinFlipText != null && !hasSprites) _coinFlipText.text = "?";
                 }
 
                 // Unfold

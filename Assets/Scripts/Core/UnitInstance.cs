@@ -77,6 +77,25 @@ namespace FWTCG.Core
         /// <summary>Unit this equipment is attached to (null if this is not equipment or unattached).</summary>
         public UnitInstance AttachedTo { get; set; }
 
+        // ── Cost / rune modifiers (set by card effects, persist until removed) ─
+        /// <summary>Flat modifier applied to mana cost. Negative = cost reduction.</summary>
+        public int CostModifier { get; set; }
+
+        /// <summary>Flat modifier applied to rune (sch) cost. Negative = cost reduction.</summary>
+        public int RuneCostModifier { get; set; }
+
+        /// <summary>Override rune type requirement. Null = use CardData.RuneType.</summary>
+        public Data.RuneType? RuneTypeOverride { get; set; }
+
+        /// <summary>Effective mana cost after modifiers.</summary>
+        public int EffectiveCost => Mathf.Max(0, CardData.Cost + CostModifier);
+
+        /// <summary>Effective rune cost after modifiers.</summary>
+        public int EffectiveRuneCost => Mathf.Max(0, CardData.RuneCost + RuneCostModifier);
+
+        /// <summary>Effective rune type (overridden or base).</summary>
+        public Data.RuneType EffectiveRuneType => RuneTypeOverride ?? CardData.RuneType;
+
         /// <summary>"player" or "enemy"</summary>
         public string Owner { get; private set; }
 

@@ -158,7 +158,6 @@ namespace FWTCG
         private List<UnitInstance> _selectedHandUnits = new List<UnitInstance>(); // multi-select for batch hand drag
         private UnitInstance _targetingSpell;     // non-null = awaiting target click for spell
         private bool _aiReactionPending;          // DEV-15: true while AI reaction resolves
-        private bool _suppressSpellShowcase;      // DEV-22: true when group showcase handles display
         private bool _bfClickInFlight;            // DEV-17: true while OnBattlefieldClicked awaits post-combat delay
         private bool? _pendingDragHasteDecision;  // DEV-22: pre-answered Haste choice from drag flow prompt
 
@@ -191,6 +190,14 @@ namespace FWTCG
         /// <summary>Returns the current multi-select list for the player hand.</summary>
         public List<UnitInstance> GetSelectedHandUnits() => _selectedHandUnits;
 
+        /// <summary>Clears all hand and base selections and refreshes the UI.</summary>
+        public void ClearAllSelections()
+        {
+            _selectedHandUnits.Clear();
+            _selectedBaseUnits.Clear();
+            RefreshUI();
+        }
+
         /// <summary>
         /// DEV-22: Drag-to-base — equivalent to clicking a hand card.
         /// Handles both unit cards (plays to base) and spell cards (enters targeting mode).
@@ -209,7 +216,6 @@ namespace FWTCG
         {
             if (!IsPlayerActionPhase()) return;
             if (units == null || units.Count == 0) return;
-            _selectedHandUnits.Clear();
             foreach (var u in units)
             {
                 if (_gs != null && _gs.PHand.Contains(u) && !u.CardData.IsSpell)
@@ -236,30 +242,26 @@ namespace FWTCG
         {
             if (!IsPlayerActionPhase()) return;
             if (spells == null || spells.Count == 0) return;
-            _selectedHandUnits.Clear();
             _ = PlaySpellGroupAsync(spells);
         }
 
         private async System.Threading.Tasks.Task PlaySpellGroupAsync(List<UnitInstance> spells)
         {
-            // Filter to valid hand spells only
+            // Filter to valid hand spells only, preserving selection order
             var valid = new List<UnitInstance>();
             foreach (var s in spells)
                 if (_gs != null && _gs.PHand.Contains(s) && s.CardData.IsSpell) valid.Add(s);
             if (valid.Count == 0) return;
 
-            // Show all cards together in group showcase before casting
-            if (_spellShowcase != null)
-                await _spellShowcase.ShowGroupAsync(valid, GameRules.OWNER_PLAYER);
-
-            // Cast each spell (individual showcases suppressed since group already played)
-            _suppressSpellShowcase = true;
+            // Cast each spell using the normal single-spell flow:
+            //   - SpellTargetType.None  → auto-resolve (random/AoE), no popup
+            //   - SpellTargetType != None → show target selection popup
             foreach (var spell in valid)
             {
-                if (_gs != null && _gs.PHand.Contains(spell))
+                if (_gs == null || _gs.GameOver) break;
+                if (_gs.PHand.Contains(spell))
                     await PlayHandCardWithRuneConfirmAsync(spell);
             }
-            _suppressSpellShowcase = false;
         }
 
         /// <summary>
@@ -585,6 +587,13 @@ namespace FWTCG
                 }
                 else
                 {
+                    // Spell cards: only one at a time — shake + hint if another spell already selected
+                    if (unit.CardData.IsSpell && _selectedHandUnits.Exists(u => u.CardData.IsSpell))
+                    {
+                        OnCardPlayFailed?.Invoke(unit);
+                        FireHintToast("一次只能打出一张法术牌");
+                        return;
+                    }
                     _selectedHandUnits.Add(unit);
                     TurnManager.BroadcastMessage_Static($"[选择] {unit.UnitName}（已选{_selectedHandUnits.Count}张）— 拖拽出牌");
                 }
@@ -609,6 +618,12 @@ namespace FWTCG
                     if (unit.Exhausted)
                     {
                         TurnManager.BroadcastMessage_Static($"[提示] {unit.UnitName} 已休眠，无法移动");
+                    }
+                    else if (unit.CardData.IsEquipment && _selectedBaseUnits.Exists(u => u.CardData.IsEquipment))
+                    {
+                        // Equipment single-select restriction: only one equipment can be activated at a time
+                        OnCardPlayFailed?.Invoke(unit);
+                        FireHintToast("一次只能使用一张装备牌");
                     }
                     else
                     {
@@ -702,7 +717,10 @@ namespace FWTCG
                 {
                     if (!u.Exhausted && _gs.PBase.Contains(u))
                     {
-                        _combatSys.MoveUnit(u, "base", bfId, GameRules.OWNER_PLAYER, _gs);
+                        if (u.CardData.IsEquipment)
+                            await ActivateEquipmentAsync(u);
+                        else
+                            _combatSys.MoveUnit(u, "base", bfId, GameRules.OWNER_PLAYER, _gs);
                     }
                 }
 
@@ -841,7 +859,7 @@ namespace FWTCG
                 _gs.PRuneDeck.Add(rune);
                 _gs.AddSch(GameRules.OWNER_PLAYER, rune.RuneType, 1);
                 TurnManager.BroadcastMessage_Static(
-                    $"[回收] 符文 {rune.RuneType} 回收，获得 1 点{rune.RuneType}符能");
+                    $"[回收] 符文 {rune.RuneType.ToChinese()} 回收，获得 1 点{rune.RuneType.ToChinese()}符能");
                 UI.GameEventBus.FireRuneRecycleFloat(GameRules.OWNER_PLAYER); // DEV-18b
             }
             else
@@ -855,7 +873,7 @@ namespace FWTCG
                 rune.Tapped = true;
                 _gs.PMana += 1;
                 TurnManager.BroadcastMessage_Static(
-                    $"[横置] 符文 {rune.RuneType} 横置，法力 → {_gs.PMana}");
+                    $"[横置] 符文 {rune.RuneType.ToChinese()} 横置，法力 → {_gs.PMana}");
                 UI.GameEventBus.FireRuneTapFloat(GameRules.OWNER_PLAYER); // DEV-18b
             }
 
@@ -982,7 +1000,7 @@ namespace FWTCG
                 ShowPlayError(
                     $"[提示] 资源不足：需要法力{unit.CardData.Cost}（当前{haveMana}）" +
                     (unit.CardData.RuneCost > 0
-                        ? $"，需要符能{unit.CardData.RuneCost} {unit.CardData.RuneType}（当前{haveSch}）"
+                        ? $"，需要符能{unit.CardData.RuneCost} {unit.CardData.RuneType.ToColoredText()}（当前{haveSch}）"
                         : ""),
                     unit);
                 return;
@@ -1034,6 +1052,8 @@ namespace FWTCG
             if (_gs.Turn != GameRules.OWNER_PLAYER || _gs.Phase != GameRules.PHASE_ACTION) return;
             if (!_gs.PHand.Contains(unit)) return;
 
+            // Remove from selection only when the card is actually being played (not on drag start or cancel)
+            _selectedHandUnits.Remove(unit);
             TryPlayCard(unit);
         }
 
@@ -1051,7 +1071,7 @@ namespace FWTCG
                 _gs.AddSch(owner, r.RuneType, 1);
                 runes.RemoveAt(idx);
                 _gs.GetRuneDeck(owner).Add(r); // H-1: return rune to deck, not lost
-                TurnManager.BroadcastMessage_Static($"[符文] 回收 {r.RuneType} 符文，获得1点符能");
+                TurnManager.BroadcastMessage_Static($"[符文] 回收 {r.RuneType.ToChinese()} 符文，获得1点符能");
             }
 
             // Tap indices (after recycle, indices may have shifted — but tap list is from original state
@@ -1077,7 +1097,7 @@ namespace FWTCG
                 if (adjustedIdx < 0 || adjustedIdx >= runes.Count) continue;
                 runes[adjustedIdx].Tapped = true;
                 _gs.AddMana(owner, 1);
-                TurnManager.BroadcastMessage_Static($"[符文] 横置 {runes[adjustedIdx].RuneType} 符文，获得1点法力");
+                TurnManager.BroadcastMessage_Static($"[符文] 横置 {runes[adjustedIdx].RuneType.ToChinese()} 符文，获得1点法力");
             }
         }
 
@@ -1087,7 +1107,7 @@ namespace FWTCG
             if (unit.CardData.IsSpell)
                 _ = TryPlaySpellAsync(unit);
             else if (unit.CardData.IsEquipment)
-                TryPlayEquipment(unit);
+                TryDeployEquipmentToBase(unit);
             else
                 _ = TryPlayUnitAsync(unit);
         }
@@ -1107,7 +1127,7 @@ namespace FWTCG
                 int haveSch = _gs.GetSch(GameRules.OWNER_PLAYER, unit.CardData.RuneType);
                 if (haveSch < unit.CardData.RuneCost)
                 {
-                    ShowPlayError($"[提示] 符能不足：需要 {unit.CardData.RuneCost} {unit.CardData.RuneType}，当前 {haveSch}", unit);
+                    ShowPlayError($"[提示] 符能不足：需要 {unit.CardData.RuneCost} {unit.CardData.RuneType.ToColoredText()}，当前 {haveSch}", unit);
                     _selectedUnit = null;
                     return;
                 }
@@ -1136,7 +1156,7 @@ namespace FWTCG
                         {
                             useHaste = await AskPromptUI.Instance.WaitForConfirm(
                                 "急速",
-                                $"额外支付 [1] 法力 + [1{unit.CardData.RuneType}] 符能，让 {unit.UnitName} 以活跃状态进场？",
+                                $"额外支付 [1] 法力 + [1{unit.CardData.RuneType.ToColoredText()}] 符能，让 {unit.UnitName} 以活跃状态进场？",
                                 "使用急速",
                                 "休眠进场");
                         }
@@ -1183,7 +1203,7 @@ namespace FWTCG
                 _gs.SpendSch(GameRules.OWNER_PLAYER, unit.CardData.RuneType, 1);
                 unit.Exhausted = false;
                 TurnManager.BroadcastMessage_Static(
-                    $"[急速] {unit.UnitName} 支付额外1法力+1{unit.CardData.RuneType}符能，以活跃状态进场");
+                    $"[急速] {unit.UnitName} 支付额外1法力+1{unit.CardData.RuneType.ToChinese()}符能，以活跃状态进场");
                 UI.GameEventBus.FireUnitFloatText(unit, "急速！", UI.GameColors.BuffColor);
             }
             else
@@ -1226,7 +1246,7 @@ namespace FWTCG
                 int haveSch = _gs.GetSch(GameRules.OWNER_PLAYER, hero.CardData.RuneType);
                 if (haveSch < hero.CardData.RuneCost)
                 {
-                    ShowPlayError($"[提示] 符能不足：需要 {hero.CardData.RuneCost} {hero.CardData.RuneType}，当前 {haveSch}", hero);
+                    ShowPlayError($"[提示] 符能不足：需要 {hero.CardData.RuneCost} {hero.CardData.RuneType.ToColoredText()}，当前 {haveSch}", hero);
                     return;
                 }
             }
@@ -1252,7 +1272,7 @@ namespace FWTCG
                         {
                             useHaste = await AskPromptUI.Instance.WaitForConfirm(
                                 "急速",
-                                $"额外支付 [1] 法力 + [1{hero.CardData.RuneType}] 符能，让 {hero.UnitName} 以活跃状态进场？",
+                                $"额外支付 [1] 法力 + [1{hero.CardData.RuneType.ToColoredText()}] 符能，让 {hero.UnitName} 以活跃状态进场？",
                                 "使用急速",
                                 "休眠进场");
                         }
@@ -1296,7 +1316,7 @@ namespace FWTCG
                 _gs.SpendSch(GameRules.OWNER_PLAYER, hero.CardData.RuneType, 1);
                 hero.Exhausted = false;
                 TurnManager.BroadcastMessage_Static(
-                    $"[急速] {hero.UnitName} 支付额外1法力+1{hero.CardData.RuneType}符能，以活跃状态进场");
+                    $"[急速] {hero.UnitName} 支付额外1法力+1{hero.CardData.RuneType.ToChinese()}符能，以活跃状态进场");
                 UI.GameEventBus.FireUnitFloatText(hero, "急速！", UI.GameColors.BuffColor);
             }
             else
@@ -1319,67 +1339,125 @@ namespace FWTCG
             RefreshUI();
         }
 
-        private void TryPlayEquipment(UnitInstance equip)
+        /// <summary>
+        /// Phase 1: play equipment card from hand to base (pays mana/rune, card stays on base ready to activate).
+        /// </summary>
+        private void TryDeployEquipmentToBase(UnitInstance equip)
         {
             if (equip.CardData.Cost > _gs.PMana)
             {
                 ShowPlayError($"[提示] 法力不足：需要 {equip.CardData.Cost}，当前 {_gs.PMana}", equip);
                 return;
             }
-
-            // Check schematic cost
             if (equip.CardData.RuneCost > 0)
             {
                 int haveSch = _gs.GetSch(GameRules.OWNER_PLAYER, equip.CardData.RuneType);
                 if (haveSch < equip.CardData.RuneCost)
                 {
-                    ShowPlayError($"[提示] 符能不足：需要 {equip.CardData.RuneCost} {equip.CardData.RuneType}，当前 {haveSch}", equip);
+                    ShowPlayError($"[提示] 符能不足：需要 {equip.CardData.RuneCost} {equip.CardData.RuneType.ToColoredText()}，当前 {haveSch}", equip);
                     return;
                 }
             }
 
-            // Find best target for auto-attach: strongest non-equipped friendly unit
-            UnitInstance target = null;
-            int bestAtk = -1;
-            foreach (var u in _gs.PBase)
+            _gs.PHand.Remove(equip);
+            _gs.PBase.Add(equip);
+            _gs.PMana -= equip.CardData.Cost;
+            if (equip.CardData.RuneCost > 0)
+                _gs.SpendSch(GameRules.OWNER_PLAYER, equip.CardData.RuneType, equip.CardData.RuneCost);
+            // Standby keyword = enters hibernating (face-down reactive); otherwise enters active
+            equip.Exhausted = equip.CardData.HasKeyword(CardKeyword.Standby);
+            _gs.CardsPlayedThisTurn++;
+            FireCardPlayed(equip, GameRules.OWNER_PLAYER);
+            TurnManager.BroadcastMessage_Static(
+                $"[装备] {equip.UnitName} 部署到基地（费用{equip.CardData.Cost}），剩余法力 {_gs.PMana}");
+            RefreshUI();
+        }
+
+        /// <summary>
+        /// Phase 2: activate equipment from base — player selects a friendly unit via popup to attach to.
+        /// Cancelling leaves the equipment in base for a future attempt (no refund, cost was paid on deploy).
+        /// </summary>
+        private async System.Threading.Tasks.Task ActivateEquipmentAsync(UnitInstance equip)
+        {
+            // Check activation rune cost (EquipRuneCost, separate from deploy mana cost)
+            if (equip.CardData.EquipRuneCost > 0)
             {
-                if (u.AttachedEquipment == null && !u.CardData.IsSpell && !u.CardData.IsEquipment && u.CurrentAtk > bestAtk)
+                int haveSch = _gs.GetSch(GameRules.OWNER_PLAYER, equip.CardData.EquipRuneType);
+                if (haveSch < equip.CardData.EquipRuneCost)
                 {
-                    target = u;
-                    bestAtk = u.CurrentAtk;
+                    ShowPlayError(
+                        $"[提示] 符能不足：附着需要 {equip.CardData.EquipRuneCost} {equip.CardData.EquipRuneType.ToColoredText()}，当前 {haveSch}",
+                        equip);
+                    return;
                 }
             }
-            for (int i = 0; i < GameRules.BATTLEFIELD_COUNT; i++)
+
+            // Refresh UI first so CardViews are up to date, THEN hide the equipment card
+            RefreshUI();
+            UnityEngine.Vector2 baseCanvasPos = _ui != null
+                ? _ui.HideEquipCardInBase(equip)
+                : UnityEngine.Vector2.zero;
+
+            // Let player choose target via popup — only non-equipment, non-spell friendly units
+            UnitInstance target = null;
+            if (_spellTargetPopup != null)
             {
-                foreach (var u in _gs.BF[i].PlayerUnits)
+                target = await _spellTargetPopup.ShowAsync(
+                    SpellTargetType.FriendlyUnit, _gs,
+                    u => !u.CardData.IsEquipment && !u.CardData.IsSpell && u.AttachedEquipment == null);
+            }
+
+            // Get mouse canvas position for fly-from point
+            UnityEngine.Vector2 mouseCanvasPos = baseCanvasPos;
+            if (_ui != null)
+            {
+                var canvas = _ui.GetComponent<UnityEngine.Canvas>() ??
+                             _ui.GetComponentInParent<UnityEngine.Canvas>();
+                if (canvas != null)
                 {
-                    if (u.AttachedEquipment == null && u.CurrentAtk > bestAtk)
-                    {
-                        target = u;
-                        bestAtk = u.CurrentAtk;
-                    }
+                    UnityEngine.RectTransformUtility.ScreenPointToLocalPointInRectangle(
+                        canvas.GetComponent<UnityEngine.RectTransform>(),
+                        UnityEngine.Input.mousePosition,
+                        canvas.renderMode == UnityEngine.RenderMode.ScreenSpaceOverlay ? null : canvas.worldCamera,
+                        out mouseCanvasPos);
                 }
             }
 
             if (target == null)
             {
-                TurnManager.BroadcastMessage_Static("[提示] 没有可附着的己方单位");
+                // Cancel: fly ghost back to base position, then restore card
+                TurnManager.BroadcastMessage_Static($"[装备] 取消附着 {equip.UnitName}，装备留在基地");
+                var tcs = new System.Threading.Tasks.TaskCompletionSource<bool>();
+                _ui?.AnimateEquipFlyToBase(mouseCanvasPos, baseCanvasPos, () =>
+                {
+                    _ui?.RestoreEquipCardInBase(equip);
+                    tcs.TrySetResult(true);
+                });
+                if (_ui != null) await tcs.Task;
+                RefreshUI();
                 return;
             }
 
-            // Pay costs
-            _gs.PHand.Remove(equip);
-            _gs.PMana -= equip.CardData.Cost;
-            if (equip.CardData.RuneCost > 0)
-                _gs.SpendSch(GameRules.OWNER_PLAYER, equip.CardData.RuneType, equip.CardData.RuneCost);
-            _gs.CardsPlayedThisTurn++;
-            FireCardPlayed(equip, GameRules.OWNER_PLAYER);
+            // Validate game state hasn't changed while popup was open
+            if (_gs == null || _gs.GameOver) return;
+            if (!_gs.PBase.Contains(equip)) return;
+            if (equip.CardData.EquipRuneCost > 0 &&
+                _gs.GetSch(GameRules.OWNER_PLAYER, equip.CardData.EquipRuneType) < equip.CardData.EquipRuneCost)
+            {
+                ShowPlayError("[提示] 资源状态已变更，操作已取消", equip);
+                _ui?.RestoreEquipCardInBase(equip);
+                return;
+            }
 
-            // Attach equipment
+            // Pay activation rune cost
+            if (equip.CardData.EquipRuneCost > 0)
+                _gs.SpendSch(GameRules.OWNER_PLAYER, equip.CardData.EquipRuneType, equip.CardData.EquipRuneCost);
+
+            // Remove from base and attach (game state update first)
+            _gs.PBase.Remove(equip);
             target.AttachedEquipment = equip;
             equip.AttachedTo = target;
 
-            // Apply equipment ATK bonus
             int bonus = equip.CardData.EquipAtkBonus;
             if (bonus > 0)
             {
@@ -1388,11 +1466,17 @@ namespace FWTCG
             }
 
             TurnManager.BroadcastMessage_Static(
-                $"[装备] {equip.UnitName} 附着到 {target.UnitName}（+{bonus}战力），剩余法力 {_gs.PMana}");
-
-            // Trigger entry effects
+                $"[装备] {equip.UnitName} 附着到 {target.UnitName}（+{bonus}战力）");
             _entryEffects?.OnUnitEntered(equip, GameRules.OWNER_PLAYER, _gs);
 
+            // Fly ghost to target unit, then refresh UI
+            var tcs2 = new System.Threading.Tasks.TaskCompletionSource<bool>();
+            _ui?.AnimateEquipFlyToUnit(mouseCanvasPos, target, () =>
+            {
+                UI.GameEventBus.FireUnitFloatText(target, $"附着：{equip.UnitName}", UI.GameColors.BuffColor);
+                tcs2.TrySetResult(true);
+            });
+            if (_ui != null) await tcs2.Task;
             RefreshUI();
         }
 
@@ -1532,8 +1616,7 @@ namespace FWTCG
             }
             else if (!_gs.GameOver)
             {
-                // DEV-16: show spell showcase before resolving (suppressed when group showcase already played)
-                if (_spellShowcase != null && !_suppressSpellShowcase)
+                if (_spellShowcase != null)
                     await _spellShowcase.ShowAsync(spell, GameRules.OWNER_PLAYER);
 
                 if (!_gs.GameOver)
@@ -2028,11 +2111,19 @@ namespace FWTCG
 
             switch (idx)
             {
-                // ── Unit float texts ─────────────────────────────────────────
-                case 0: foreach (var u in units) UI.GameEventBus.FireUnitAtkBuff(u,  2); break;
-                case 1: foreach (var u in units) UI.GameEventBus.FireUnitAtkBuff(u, -1); break;
-                case 2: foreach (var u in units) UI.GameEventBus.FireUnitAtkBuff(u,  3); break;
-                case 3: foreach (var u in units) UI.GameEventBus.FireUnitAtkBuff(u, -2); break;
+                // ── Unit stat changes + float texts ───────────────────────────
+                case 0:
+                    foreach (var u in units) { u.TempAtkBonus += 2;  UI.GameEventBus.FireUnitAtkBuff(u,  2); }
+                    RefreshUI(); break;
+                case 1:
+                    foreach (var u in units) { u.TempAtkBonus -= 1;  UI.GameEventBus.FireUnitAtkBuff(u, -1); }
+                    RefreshUI(); break;
+                case 2:
+                    foreach (var u in units) { u.TempAtkBonus += 3;  UI.GameEventBus.FireUnitAtkBuff(u,  3); }
+                    RefreshUI(); break;
+                case 3:
+                    foreach (var u in units) { u.TempAtkBonus -= 2;  UI.GameEventBus.FireUnitAtkBuff(u, -2); }
+                    RefreshUI(); break;
                 case 4: foreach (var u in units) UI.GameEventBus.FireUnitFloatText(u, "摸1张牌", UnityEngine.Color.cyan); break;
                 case 5: foreach (var u in units) UI.GameEventBus.FireUnitFloatText(u, "符能+1", UI.GameColors.SchColor); break;
                 case 6: foreach (var u in units) UI.GameEventBus.FireUnitFloatText(u, "击倒", UnityEngine.Color.gray); break;

@@ -52,6 +52,14 @@ namespace FWTCG.UI
         private Coroutine _death;
         private CardGlow _cardGlow;
 
+        // ── Stat glow: breathing background images when values are modified ──
+        private Image     _atkGlowImg;
+        private Image     _costGlowImg;
+        private Image     _schGlowImg;
+        private Coroutine _atkBreath;
+        private Coroutine _costBreath;
+        private Coroutine _schBreath;
+
         // ── Status badges (▲ buff / ▲ equip / ▼ debuff) — DEV-25 ────────────
         private GameObject _buffBadge;
         private GameObject _equipBadge;
@@ -138,8 +146,11 @@ namespace FWTCG.UI
         {
             if (_clickButton != null)
                 _clickButton.onClick.RemoveListener(HandleClick);
-            if (_stunPulse    != null) StopCoroutine(_stunPulse);
-            if (_liftFloat    != null) StopCoroutine(_liftFloat);
+            if (_stunPulse  != null) StopCoroutine(_stunPulse);
+            if (_atkBreath  != null) StopCoroutine(_atkBreath);
+            if (_costBreath != null) StopCoroutine(_costBreath);
+            if (_schBreath  != null) StopCoroutine(_schBreath);
+            if (_liftFloat  != null) StopCoroutine(_liftFloat);
             if (_returnToRest != null) StopCoroutine(_returnToRest);
             // Stop all badge scale coroutines
             foreach (var co in _badgeScaleCos.Values)
@@ -225,19 +236,34 @@ namespace FWTCG.UI
                 _nameText.text = _unit.UnitName;
 
             if (_costText != null)
-                _costText.text = _unit.CardData.Cost.ToString();
+            {
+                _costText.text = _unit.EffectiveCost.ToString();
+                RefreshStatGlow(ref _costBreath, ref _costGlowImg,
+                    (RectTransform)_costText.transform,
+                    _unit.CostModifier != 0);
+            }
 
             if (_atkText != null)
             {
                 if (_unit.CardData.IsSpell)
                 {
-                    _atkText.text = "法";
+                    _atkText.text  = "法";
+                    _atkText.color = Color.white;
+                    StopStatGlow(ref _atkBreath, _atkGlowImg);
                 }
                 else
                 {
-                    _atkText.text = $"{_unit.CurrentAtk}";
-                    if (_unit.CurrentHp != _unit.CurrentAtk)
-                        _atkText.text = $"{_unit.CurrentHp}/{_unit.CurrentAtk}";
+                    // Effective ATK = CurrentAtk (includes equipment/buffs) + TempAtkBonus
+                    int effAtk = _unit.CurrentAtk + _unit.TempAtkBonus;
+                    _atkText.text = _unit.CurrentHp != _unit.CurrentAtk
+                        ? $"{_unit.CurrentHp}/{effAtk}"
+                        : $"{effAtk}";
+
+                    // Glow when any modifier is active
+                    bool modified = _unit.HasBuff || _unit.HasDebuff
+                                 || _unit.AttachedEquipment != null
+                                 || _unit.TempAtkBonus != 0;
+                    RefreshAtkGlow(modified);
                 }
             }
 
@@ -308,30 +334,36 @@ namespace FWTCG.UI
             // Status badges: ▲ buff (left-bottom) and ▼ debuff (right-bottom)
             RefreshStatusBadges();
 
-            // Schematic (rune) cost display
+            // Schematic (rune) cost display — uses Effective values for runtime changes
             if (_schCostText != null && _schCostBg != null)
             {
-                int schCost = _unit.CardData.RuneCost;
+                int schCost           = _unit.EffectiveRuneCost;
+                Data.RuneType schType = _unit.EffectiveRuneType;
                 if (schCost > 0)
                 {
                     _schCostText.gameObject.SetActive(true);
                     _schCostBg.gameObject.SetActive(true);
                     string rtShort = "";
-                    switch (_unit.CardData.RuneType)
+                    switch (schType)
                     {
-                        case Data.RuneType.Blazing: rtShort = "炽"; break;
-                        case Data.RuneType.Radiant: rtShort = "灵"; break;
-                        case Data.RuneType.Verdant: rtShort = "翠"; break;
+                        case Data.RuneType.Blazing:  rtShort = "炽"; break;
+                        case Data.RuneType.Radiant:  rtShort = "灵"; break;
+                        case Data.RuneType.Verdant:  rtShort = "翠"; break;
                         case Data.RuneType.Crushing: rtShort = "摧"; break;
-                        default: rtShort = "符"; break;
+                        default:                     rtShort = "符"; break;
                     }
                     _schCostText.text = $"{rtShort}×{schCost}";
-                    _schCostBg.color = GameColors.GetRuneColor(_unit.CardData.RuneType);
+                    _schCostBg.color  = GameColors.GetRuneColor(schType);
+
+                    bool schModified = _unit.RuneCostModifier != 0 || _unit.RuneTypeOverride.HasValue;
+                    RefreshStatGlow(ref _schBreath, ref _schGlowImg,
+                        (RectTransform)_schCostBg.transform, schModified);
                 }
                 else
                 {
                     _schCostText.gameObject.SetActive(false);
                     _schCostBg.gameObject.SetActive(false);
+                    StopStatGlow(ref _schBreath, _schGlowImg);
                 }
             }
         }
@@ -442,6 +474,75 @@ namespace FWTCG.UI
                 _onClick(_unit);
         }
 
+        // ── ATK glow helpers ─────────────────────────────────────────────────
+
+        // ── Shared stat-glow helpers ─────────────────────────────────────────
+
+        /// <summary>Start or stop a white breathing glow behind target. Lazily creates Image.</summary>
+        private void RefreshStatGlow(ref Coroutine co, ref Image glowImg,
+                                     RectTransform target, bool modified)
+        {
+            if (modified)
+            {
+                if (glowImg == null) glowImg = CreateGlowImgBehind(target);
+                if (co == null)
+                {
+                    var captured = glowImg;
+                    co = StartCoroutine(BreathGlowRoutine(() => captured));
+                }
+            }
+            else
+            {
+                StopStatGlow(ref co, glowImg);
+            }
+        }
+
+        private void StopStatGlow(ref Coroutine co, Image glowImg)
+        {
+            if (co != null) { StopCoroutine(co); co = null; }
+            if (glowImg != null) glowImg.color = new Color(1f, 1f, 1f, 0f);
+        }
+
+        private Image CreateGlowImgBehind(RectTransform target)
+        {
+            if (target == null) return null;
+            var go   = new GameObject("StatGlow");
+            var glRT = go.AddComponent<RectTransform>();
+            glRT.SetParent(target.parent, false);
+            glRT.anchorMin        = target.anchorMin;
+            glRT.anchorMax        = target.anchorMax;
+            glRT.pivot            = target.pivot;
+            glRT.anchoredPosition = target.anchoredPosition;
+            glRT.sizeDelta        = target.sizeDelta + new Vector2(6f, 4f);
+            go.AddComponent<LayoutElement>().ignoreLayout = true;
+            go.transform.SetSiblingIndex(target.GetSiblingIndex());
+            var img = go.AddComponent<Image>();
+            img.color         = new Color(1f, 1f, 1f, 0f);
+            img.raycastTarget = false;
+            return img;
+        }
+
+        private IEnumerator BreathGlowRoutine(System.Func<Image> getImg)
+        {
+            float t = 0f;
+            while (true)
+            {
+                t += Time.deltaTime * 1.4f;
+                float alpha = Mathf.Lerp(0.08f, 0.45f, (Mathf.Sin(t) + 1f) * 0.5f);
+                var img = getImg();
+                if (img != null) img.color = new Color(1f, 1f, 1f, alpha);
+                yield return null;
+            }
+        }
+
+        private void RefreshAtkGlow(bool modified)
+        {
+            if (_atkText == null) return;
+            _atkText.color = Color.white;
+            RefreshStatGlow(ref _atkBreath, ref _atkGlowImg,
+                (RectTransform)_atkText.transform, modified);
+        }
+
         private IEnumerator StunPulseRoutine()
         {
             float t = 0f;
@@ -543,7 +644,7 @@ namespace FWTCG.UI
             if (_unit.AttachedEquipment != null)
             {
                 if (_equipBadge == null)
-                    _equipBadge = CreateStatusBadge("▲", GameColors.GoldLight,
+                    _equipBadge = CreateStatusBadge("▲", GameColors.Gold,
                         new Vector2(0f, 0f), () => ShowStatusTooltip(BadgeTip.Equip));
                 _equipBadge.SetActive(true);
             }
@@ -579,23 +680,21 @@ namespace FWTCG.UI
                     ?? Resources.GetBuiltinResource<Font>("Arial.ttf");
 
             // ── Container — narrow strip above the card top edge ─────────────
-            // IMPORTANT: SetParent to a RectTransform auto-creates a child RectTransform.
-            // Use (RectTransform)xxx.transform to get it — do NOT call AddComponent again.
-            // Set anchor/pivot BEFORE size/position to avoid Unity recalculating offsets.
+            // new GameObject() only has Transform; must AddComponent<RectTransform>
+            // BEFORE SetParent so the cast is valid. Set anchor/pivot before size/position.
             var container = new GameObject("BadgeContainer_" + symbol);
-            container.transform.SetParent(transform, false);
-            var cRT = (RectTransform)container.transform;
+            var cRT = container.AddComponent<RectTransform>();
+            cRT.SetParent(transform, false);
             cRT.anchorMin        = new Vector2(0.5f, 1f);  // anchor: card top-center
             cRT.anchorMax        = new Vector2(0.5f, 1f);
             cRT.pivot            = new Vector2(0.5f, 0f);  // pivot: badge bottom → hangs above card
             cRT.sizeDelta        = new Vector2(20f, 16f);
             cRT.anchoredPosition = new Vector2(pos.x, 2f); // 2px gap above card top
 
+            // ── Escape parent LayoutGroup ────────────────────────────────────
+            container.AddComponent<UnityEngine.UI.LayoutElement>().ignoreLayout = true;
+
             // ── Canvas override: force badge to render above all sibling panels ─
-            // Badges positioned outside card rect are occluded by sibling panels
-            // (e.g. PlayerHandZone) that render later in the hierarchy.
-            // Adding an override Canvas with high sortingOrder ensures the badge
-            // always renders on top regardless of hierarchy order.
             var badgeCanvas = container.AddComponent<UnityEngine.Canvas>();
             badgeCanvas.overrideSorting = true;
             badgeCanvas.sortingOrder    = 100;
@@ -603,8 +702,8 @@ namespace FWTCG.UI
 
             // ── Glow layer (soft halo, renders before body) ────────────────────
             var glow   = new GameObject("Glow");
-            glow.transform.SetParent(container.transform, false);
-            var glowRT = (RectTransform)glow.transform;
+            var glowRT = glow.AddComponent<RectTransform>();
+            glowRT.SetParent(container.transform, false);
             glowRT.anchorMin        = new Vector2(0.5f, 0.5f);
             glowRT.anchorMax        = new Vector2(0.5f, 0.5f);
             glowRT.pivot            = new Vector2(0.5f, 0.5f);
@@ -614,14 +713,11 @@ namespace FWTCG.UI
             Color gc    = badgeColor; gc.a = 0.20f;
             glowImg.color         = gc;
             glowImg.raycastTarget = false;
-            var glowShadow = glow.AddComponent<Shadow>();
-            glowShadow.effectColor    = new Color(0f, 0f, 0f, 0.45f);
-            glowShadow.effectDistance = new Vector2(0f, -4f);
 
             // ── Body — dark glass base ─────────────────────────────────────────
             var body   = new GameObject("Body");
-            body.transform.SetParent(container.transform, false);
-            var bodyRT = (RectTransform)body.transform;
+            var bodyRT = body.AddComponent<RectTransform>();
+            bodyRT.SetParent(container.transform, false);
             bodyRT.anchorMin        = Vector2.zero;
             bodyRT.anchorMax        = Vector2.one;
             bodyRT.pivot            = new Vector2(0.5f, 0.5f);
@@ -630,17 +726,11 @@ namespace FWTCG.UI
             var bodyImg = body.AddComponent<Image>();
             bodyImg.color         = new Color(0.04f, 0.06f, 0.14f, 0.90f);
             bodyImg.raycastTarget = false;
-            var bodyShadow = body.AddComponent<Shadow>();
-            bodyShadow.effectColor    = new Color(0f, 0f, 0f, 0.85f);
-            bodyShadow.effectDistance = new Vector2(2f, -3f);
-            var bodyOutline = body.AddComponent<Outline>();
-            bodyOutline.effectColor    = new Color(badgeColor.r, badgeColor.g, badgeColor.b, 0.70f);
-            bodyOutline.effectDistance = new Vector2(1f, -1f);
 
             // ── Symbol text ────────────────────────────────────────────────────
             var symGO  = new GameObject("Symbol");
-            symGO.transform.SetParent(body.transform, false);
-            var symRT  = (RectTransform)symGO.transform;
+            var symRT  = symGO.AddComponent<RectTransform>();
+            symRT.SetParent(body.transform, false);
             symRT.anchorMin        = Vector2.zero;
             symRT.anchorMax        = Vector2.one;
             symRT.pivot            = new Vector2(0.5f, 0.5f);
@@ -653,9 +743,6 @@ namespace FWTCG.UI
             symTxt.alignment      = TextAnchor.MiddleCenter;
             symTxt.font           = font;
             symTxt.raycastTarget  = false;
-            var symShadow         = symGO.AddComponent<Shadow>();
-            symShadow.effectColor    = new Color(0f, 0f, 0f, 0.90f);
-            symShadow.effectDistance = new Vector2(1f, -1f);
 
             // ── Event trigger: right-click + hover scale ───────────────────────
             var trig = container.AddComponent<UnityEngine.EventSystems.EventTrigger>();
@@ -773,7 +860,7 @@ namespace FWTCG.UI
                     AddTooltipRow(go.transform, "▲ 强化", _unit.BuildBuffSummary(), GameColors.PlayerGreen);
                     break;
                 case BadgeTip.Equip:
-                    AddTooltipRow(go.transform, "▲ 装备", _unit.BuildEquipSummary(), GameColors.GoldLight);
+                    AddTooltipRow(go.transform, "▲ 装备", _unit.BuildEquipSummary(), GameColors.Gold);
                     break;
                 case BadgeTip.Debuff:
                     AddTooltipRow(go.transform, "▼ 削弱", _unit.BuildDebuffSummary(), GameColors.EnemyRed);
