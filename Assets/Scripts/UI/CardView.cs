@@ -579,58 +579,63 @@ namespace FWTCG.UI
                     ?? Resources.GetBuiltinResource<Font>("Arial.ttf");
 
             // ── Container — narrow strip above the card top edge ─────────────
-            // Anchored to card TOP-CENTER (1.0 Y), pivot BOTTOM (0.0 Y) so the badge
-            // hangs upward from the card's top edge — renders above sibling panels.
+            // IMPORTANT: SetParent to a RectTransform auto-creates a child RectTransform.
+            // Use (RectTransform)xxx.transform to get it — do NOT call AddComponent again.
+            // Set anchor/pivot BEFORE size/position to avoid Unity recalculating offsets.
             var container = new GameObject("BadgeContainer_" + symbol);
             container.transform.SetParent(transform, false);
-            var cRT             = container.AddComponent<RectTransform>();
-            cRT.sizeDelta       = new Vector2(20f, 16f);   // narrow pill badge
-            cRT.anchorMin       = new Vector2(0.5f, 1f);
-            cRT.anchorMax       = new Vector2(0.5f, 1f);
-            cRT.pivot           = new Vector2(0.5f, 0f);   // bottom pivot → badge sits above card
+            var cRT = (RectTransform)container.transform;
+            cRT.anchorMin        = new Vector2(0.5f, 1f);  // anchor: card top-center
+            cRT.anchorMax        = new Vector2(0.5f, 1f);
+            cRT.pivot            = new Vector2(0.5f, 0f);  // pivot: badge bottom → hangs above card
+            cRT.sizeDelta        = new Vector2(20f, 16f);
             cRT.anchoredPosition = new Vector2(pos.x, 2f); // 2px gap above card top
 
             // ── Glow layer (soft halo, renders before body) ────────────────────
-            var glow    = new GameObject("Glow");
+            var glow   = new GameObject("Glow");
             glow.transform.SetParent(container.transform, false);
-            var glowRT  = glow.AddComponent<RectTransform>();
-            glowRT.anchorMin = glowRT.anchorMax = new Vector2(0.5f, 0.5f);
-            glowRT.pivot     = new Vector2(0.5f, 0.5f);
-            glowRT.sizeDelta = new Vector2(22f, 18f);      // just slightly bigger than body (no cross-badge bleed)
-            var glowImg       = glow.AddComponent<Image>();
-            Color gc          = badgeColor; gc.a = 0.20f;
-            glowImg.color     = gc;
+            var glowRT = (RectTransform)glow.transform;
+            glowRT.anchorMin        = new Vector2(0.5f, 0.5f);
+            glowRT.anchorMax        = new Vector2(0.5f, 0.5f);
+            glowRT.pivot            = new Vector2(0.5f, 0.5f);
+            glowRT.sizeDelta        = new Vector2(22f, 18f);
+            glowRT.anchoredPosition = Vector2.zero;
+            var glowImg = glow.AddComponent<Image>();
+            Color gc    = badgeColor; gc.a = 0.20f;
+            glowImg.color         = gc;
             glowImg.raycastTarget = false;
-            var glowShadow    = glow.AddComponent<Shadow>();
+            var glowShadow = glow.AddComponent<Shadow>();
             glowShadow.effectColor    = new Color(0f, 0f, 0f, 0.45f);
             glowShadow.effectDistance = new Vector2(0f, -4f);
 
             // ── Body — dark glass base ─────────────────────────────────────────
-            var body    = new GameObject("Body");
+            var body   = new GameObject("Body");
             body.transform.SetParent(container.transform, false);
-            var bodyRT  = body.AddComponent<RectTransform>();
-            bodyRT.anchorMin = Vector2.zero;
-            bodyRT.anchorMax = Vector2.one;
-            bodyRT.offsetMin = bodyRT.offsetMax = Vector2.zero;
+            var bodyRT = (RectTransform)body.transform;
+            bodyRT.anchorMin        = Vector2.zero;
+            bodyRT.anchorMax        = Vector2.one;
+            bodyRT.pivot            = new Vector2(0.5f, 0.5f);
+            bodyRT.sizeDelta        = Vector2.zero;
+            bodyRT.anchoredPosition = Vector2.zero;
             var bodyImg = body.AddComponent<Image>();
-            bodyImg.color = new Color(0.04f, 0.06f, 0.14f, 0.90f);
+            bodyImg.color         = new Color(0.04f, 0.06f, 0.14f, 0.90f);
             bodyImg.raycastTarget = false;
-            // Drop shadow for floating depth
-            var bodyShadow    = body.AddComponent<Shadow>();
+            var bodyShadow = body.AddComponent<Shadow>();
             bodyShadow.effectColor    = new Color(0f, 0f, 0f, 0.85f);
             bodyShadow.effectDistance = new Vector2(2f, -3f);
-            // Colored outline (badge color at 70%)
-            var bodyOutline   = body.AddComponent<Outline>();
+            var bodyOutline = body.AddComponent<Outline>();
             bodyOutline.effectColor    = new Color(badgeColor.r, badgeColor.g, badgeColor.b, 0.70f);
             bodyOutline.effectDistance = new Vector2(1f, -1f);
 
             // ── Symbol text ────────────────────────────────────────────────────
             var symGO  = new GameObject("Symbol");
             symGO.transform.SetParent(body.transform, false);
-            var symRT  = symGO.AddComponent<RectTransform>();
-            symRT.anchorMin = Vector2.zero;
-            symRT.anchorMax = Vector2.one;
-            symRT.offsetMin = symRT.offsetMax = Vector2.zero;
+            var symRT  = (RectTransform)symGO.transform;
+            symRT.anchorMin        = Vector2.zero;
+            symRT.anchorMax        = Vector2.one;
+            symRT.pivot            = new Vector2(0.5f, 0.5f);
+            symRT.sizeDelta        = Vector2.zero;
+            symRT.anchoredPosition = Vector2.zero;
             var symTxt = symGO.AddComponent<Text>();
             symTxt.text           = symbol;
             symTxt.fontSize       = 11;
