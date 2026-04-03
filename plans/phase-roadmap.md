@@ -37,6 +37,14 @@
 | Phase | 可玩内容 | 核心交付 |
 |-------|---------|---------|
 | DEV-30 | 视觉 + 功能收尾（最后功能Phase） | 见下 |
+| VFX-1 | Shader & 工具类导入 | ShaderDissolve / ShaderHolo / Grayscale / FXTool / AnimMatFX |
+| VFX-2 | FX 粒子预制体 & 材质 | 11张FX sprite + 15个FX材质 + 15个FX prefab |
+| VFX-3 | 卡牌死亡溶解效果 | Dissolve 动画替换 DeathRoutine |
+| VFX-4 | VFXResolver 自动映射 | 50张卡技能 → FX 自动匹配 + 游戏事件集成 |
+| VFX-5 | 音频框架升级 | AudioTool 通道制替换 AudioManager |
+| VFX-6 | 掷硬币 2D 翻转动画 | CoinFlipFX（scaleX 翻转 + 粒子爆发） |
+| VFX-7 | UI 视觉迁移（9项） | 边框/法力图标/胜负屏/拖拽旋转/回合脉冲/卡背/背景等 |
+| VFX-8 | 投射物系统（可选） | Projectile.cs + 飞行动画 |
 | DEV-31 | Tech-Debt Cleanup | 清理 tech-debt.md 中所有未解决项 |
 | DEV-32 | 架构优化 | Final Architecture Review |
 
@@ -754,7 +762,7 @@
 
 ---
 
-## 剩余 Phase 总览（DEV-15 ~ DEV-27）
+## 剩余 Phase 总览（DEV-15 ~ VFX-8）
 
 | Phase | 核心内容 | 类型 |
 |-------|---------|------|
@@ -770,13 +778,20 @@
 | DEV-23 | 字体系统+视觉细节打磨 | 视觉 |
 | DEV-24 | 开始流程+过渡动画+标题界面 | 视觉 |
 | DEV-25 | 音频资源接入+玻璃态UI | 功能+视觉 |
-| DEV-26 | Tech-Debt Cleanup | 稳定性 |
 | DEV-25b | 规则对齐补丁（Swift关键词+急速付费+注释修正）| 修正 |
 | DEV-26 | Tech-Debt Cleanup | 稳定性 |
 | DEV-27 | Architecture Improvement（4态状态机+结算链+待命+迅捷/反应时机）| 架构 |
 | DEV-28 | 卡牌交互视觉补全（悬停/选中/目标高亮/战斗特效/死亡动画）| 视觉 |
+| VFX-1 | Shader & 工具类导入（ShaderDissolve/Holo/Grayscale/FXTool/AnimMatFX）| 资产迁移 |
+| VFX-2 | FX 粒子预制体 & 材质（11 sprite + 15 mat + 15 prefab）| 资产迁移 |
+| VFX-3 | 卡牌死亡溶解效果集成 | 视觉 |
+| VFX-4 | VFXResolver 自动映射 + 游戏事件集成（50张卡）| 视觉+功能 |
+| VFX-5 | 音频框架升级（通道制 AudioTool）| 架构 |
+| VFX-6 | 掷硬币 2D 翻转动画 | 视觉 |
+| VFX-7 | UI 视觉迁移（边框/图标条/胜负屏/旋转/脉冲/卡背/背景/警告/警告Banner）| 视觉 |
+| VFX-8 | 投射物系统（可选）| 视觉 |
 
-*最后更新：2026-04-03（DEV-28 新增：卡牌交互视觉补全）*
+*最后更新：2026-04-04（VFX-1 ~ VFX-8 新增：TCG Engine 美术资产迁移）*
 
 ---
 
@@ -794,3 +809,209 @@
 | 卡牌选中轨道光环（selected-arcane-orbit：小光点绕卡片旋转 6s）| 视觉 |
 | 战斗触发特效（单位冲向对方 0.25s 飞行 + 碰撞闪光）| 视觉 |
 | 死亡飞行动画（阵亡卡飞向弃牌堆 0.4s + 缩小淡出）| 视觉 |
+
+---
+
+## VFX-1 — Shader & 工具类导入
+
+**来源：** TCG Engine → FWTCG 美术迁移
+**前置条件：** DEV-28 完成
+**可玩 demo：** 编译通过，新 Shader 可在材质面板选择，FXTool 静态方法可调用
+
+| 资产/文件 | 来源路径 | 目标路径 | 说明 |
+|-----------|---------|---------|------|
+| ShaderDissolve.shadergraph | TCG Engine/Materials/Shader/ | Assets/Shaders/ | 卡牌溶解死亡效果（最高优先） |
+| ShaderHolo.shadergraph | TCG Engine/Materials/Shader/ | Assets/Shaders/ | 传奇/稀有卡全息光效 |
+| Grayscale.shader | TCG Engine/Materials/Shader/ | Assets/Shaders/ | 卡牌禁用/耗尽灰度效果 |
+| KillDissolveFX.mat | TCG Engine/Materials/ | Assets/Materials/ | Dissolve 专用材质 |
+| GrayscaleUI.mat | TCG Engine/Materials/ | Assets/Materials/ | Grayscale UI 材质 |
+| FXTool.cs | TCG Engine/Scripts/FX/ | Assets/Scripts/Tools/ | 统一 FX 生成（DoFX/DoSnapFX/DoProjectileFX）适配 FWTCG 命名空间 |
+| AnimMatFX.cs | TCG Engine/Scripts/FX/ | Assets/Scripts/Tools/ | 材质属性插值（Dissolve 动画驱动需要） |
+
+**验证：** URP 14.0.11 下 ShaderGraph 编译无报错，Grayscale.shader 可挂 UI Image
+
+---
+
+## VFX-2 — FX 粒子预制体 & 材质
+
+**前置条件：** VFX-1 完成（Shader 编译通过）
+**可玩 demo：** 在 Scene 拖入 HitFX prefab 可见粒子爆发效果
+
+| 类型 | 内容 | 目标路径 |
+|------|------|---------|
+| FX Sprite（11张）| slash/ray/leaf/splash/electric/smoke/shield/flame/hit/orbit/glow | Assets/Sprites/FX/ |
+| FX 材质（15个）| 火焰/闪电/烟雾/斩击/光线/水花/叶片/命中/护盾/中毒/沉默/无敌/召唤/死亡/生成 | Assets/Materials/FX/ |
+| FX Prefab 优先（8个）| HitFX / Flame / ElectricFX / WaterFX / Leaf / Shield / Destroy / Spawn | Assets/Prefabs/FX/ |
+| FX Prefab 次要（7个）| Poisoned / Silenced / Immune / RootFX / Shell / Phoenix / PotionFX | Assets/Prefabs/FX/ |
+
+**注意：** 导入后逐个检查 prefab 材质引用，Screen Space Canvas 需要用 World Space 粒子覆盖层
+
+---
+
+## VFX-3 — 卡牌死亡溶解效果
+
+**前置条件：** VFX-2 完成（Destroy prefab 已导入，AnimMatFX 可用）
+**可玩 demo：** 单位阵亡时播放溶解动画，原 DeathRoutine 缩放淡出作为 fallback
+
+| 功能 | 类别 |
+|------|------|
+| CardView.DeathRoutine 改为 Dissolve 动画（动态克隆 KillDissolveFX 材质） | 视觉 |
+| AnimMatFX 驱动 `noise_fade` 属性 0→1（约 0.6s） | 视觉 |
+| 溶解完成后正确销毁 GameObject | 逻辑 |
+| 原缩放+淡出作为 fallback（材质缺失时）| 稳定性 |
+| 单元测试：Dissolve 完成后 CardView 已从场景移除 | 测试 |
+
+---
+
+## VFX-4 — VFXResolver 自动映射 + 游戏事件集成
+
+**前置条件：** VFX-2 完成（FX prefab 全部可用）
+**可玩 demo：** 打出任意法术/单位牌时自动触发对应元素特效，无需手动配置
+
+### 4a. VFXResolver 核心
+
+新建 `Assets/Scripts/VFX/VFXResolver.cs`：
+
+| 功能 | 说明 |
+|------|------|
+| RuneType → 基础 FX 映射 | Blazing→Flame, Radiant→RayGlow, Verdant→Leaf, Crushing→HitFX, Chaos→Spawn(紫), Order→WaterFX |
+| EffectMechanic → 叠加 FX 映射 | damage→HitFX, buff→PotionFX, debuff→Poisoned, draw→Spawn, stun→ElectricFX, negate→Shield, protect→Phoenix |
+| `Resolve(CardData) → List<FXConfig>` | 分析 effectId + runeType，返回完整 FX 配置列表 |
+| `FXConfig { prefab, position, delay, repeatCount, tint }` | 支持多段/多目标/延迟播放 |
+| 50张卡的 effectId 映射表（硬编码 Dictionary）| 基于卡牌技能描述分析自动对应 |
+
+### 4b. 关键 effectId 映射示例
+
+| effectId | FX 组合 | 备注 |
+|----------|---------|------|
+| hex_ray | Flame + HitFX | 单体炎射 |
+| akasi_storm | HitFX ×6（0.3s 间隔）| 连续爆炸 |
+| furnace_blast | Flame ×3（扇形）| 回响三爆 |
+| slam | ElectricFX | 眩晕电击 |
+| wind_wall | Shield（大型）| 否决护盾 |
+| guardian_angel | Phoenix + Shield | 死亡保护 |
+| time_warp | Spawn（紫色特殊）| 额外回合 |
+| 无技能基础单位 | RuneType 基础 FX | 入场即可 |
+
+### 4c. 游戏事件集成
+
+| 接入点 | 触发 FX |
+|--------|--------|
+| SpellVFX.OnCardPlayed | VFXResolver.Resolve(card) → FXTool.DoFX() |
+| SpellVFX.OnUnitDied | HitFX + Destroy prefab |
+| CardView 护盾/壁垒关键词 | Shield prefab 常驻（OnEnable 挂载）|
+| GameUI 抽牌事件 | Spawn 星光 FX |
+
+---
+
+## VFX-5 — 音频框架升级
+
+**前置条件：** VFX-1 完成
+**可玩 demo：** 框架升级后原有音效槽位兼容，通道制管理生效（音频文件仍需用户另行提供）
+
+| 功能 | 类别 |
+|------|------|
+| AudioManager 重写为 AudioTool 通道制（10+ 通道：ui/card_spawn/attack/death/spell/ambient...）| 架构 |
+| 优先级系统（高优先级打断低优先级）| 功能 |
+| 淡入淡出支持（FadeIn/FadeOut 协程）| 功能 |
+| 保持现有接口兼容（原 9 个 SFX 字段不破坏）| 兼容 |
+| ButtonAudio 组件移植（按钮自动附加点击音效）| 功能 |
+| 测试：通道独立播放、优先级打断、接口兼容 | 测试 |
+
+**注意：** 实际音频文件（.wav/.mp3/.ogg）两个工程都没有，需用户单独提供音效包
+
+---
+
+## VFX-6 — 掷硬币 2D 翻转动画
+
+**前置条件：** VFX-1 完成
+**可玩 demo：** 开局掷硬币时播放硬币翻转动画，结果定格 + 文字淡入
+**解决技术债：** StartupFlowUI 掷硬币无动画（DEV-2 遗留）
+
+| 功能 | 类别 |
+|------|------|
+| 新建 CoinFlipFX.cs（scaleX: 1→0→-1→0→1 循环，约 1.5s）| 视觉 |
+| scaleX 过零点时切换正/反面 sprite | 视觉 |
+| 结束时定格结果面 + 金色粒子爆发 | 视觉 |
+| 时间控制逻辑复用 DiceRollFX.cs（roll_duration + 结果延迟）| 逻辑 |
+| StartupFlowUI 掷硬币流程接入 CoinFlipFX | 集成 |
+| 音效触发点预留（start_audio / end_audio）| 扩展 |
+| 测试：动画完成后正确返回先手结果 | 测试 |
+
+**硬币贴图：** 使用现有 coin sprite（正/反），或请用户提供
+
+---
+
+## VFX-7 — UI 视觉迁移（9项）
+
+**前置条件：** VFX-1 完成，VFX-2 中 Shield/Phoenix prefab 可用
+**可玩 demo：** 卡牌有金/银边框、法力显示为图标条、胜负有光效、手牌拖拽有旋转
+
+### 7a. 卡牌金/银边框 sprite
+- frame_gold.png / frame_silver.png → Assets/Sprites/UI/
+- CardView 新增 frameOverlay Image 层（卡图之上、CardGlow 之下）
+- 按稀有度/类型选择边框
+
+### 7b. 法力/符能离散图标条
+- mana_full.png / mana_empty.png → Assets/Sprites/UI/
+- 新建 IconBar.cs（N 个 icon，已用亮起/未用暗淡）
+- GameUI 符能显示从纯文字改为图标行
+
+### 7c. 胜利/失败屏增强
+- 胜利：光效 + "胜利" 大字 + 粒子爆发；失败：灰色调 + "失败"
+- 奖励数字滚动动画（MoveTowards 递增）
+
+### 7d. End Turn 专用按钮 sprite
+- button_endturn.png → Assets/Sprites/UI/
+- 替换 EndTurn 按钮 sprite，交互逻辑不变
+
+### 7e. 手牌拖拽 ±10° 旋转
+- CardDragHandler 拖拽时根据 deltaX 方向施加 ±10° Z 轴旋转
+- Lerp 过渡（rotate_speed = 4f），释放恢复 0°
+
+### 7f. 回合超时脉冲动画
+- 倒计时 < 10s 时触发 Animator "pulse" trigger
+- 文字颜色白→红 + 大小脉冲
+
+### 7g. 多卡背切换功能框架
+- 新建 CardBackManager.cs（CardBackVariant 枚举，GetCardBack/SetPlayerCardBack）
+- 贴图来源：`E:\claudeCode\FWTCG_V3d_V9\tempPic\cards\card_back\`
+- 持久化到 PlayerPrefs，后续直接添加 sprite 即可扩展
+
+### 7h. EventBanner 警告模式变体
+- EventBanner 新增 `ShowWarning(string text)` 方法
+- 红色背景 + 白色文字 + scale 从 0→1 弹入（EaseOutBack）
+- 1.5s 后 alpha 淡出，带 AudioManager.PlaySFX 触发点
+- 用途："不是你的回合" / "符能不足" / "无效目标" 等
+
+### 7i. 菜单背景替换
+- bg_menu.png → Assets/Sprites/UI/
+- Background Image sprite 从 HexGrid shader 材质改为 bg_menu 静态图
+- HexGrid.shader 文件保留不删除（其他地方可能复用）
+- ParticleManager 背景粒子层叠加在 bg_menu 之上
+
+| 测试 | 内容 |
+|------|------|
+| CardBackManager 切换 → PlayerPrefs 持久化验证 | 功能 |
+| EventBanner.ShowWarning 触发 → alpha 1→0 完成 | 视觉逻辑 |
+| IconBar 更新 → icon 数量与法力值一致 | 功能 |
+
+---
+
+## VFX-8 — 投射物系统（可选）
+
+**前置条件：** VFX-4 完成（VFXResolver 可用，FXTool 集成完毕）
+**注意：** 此 Phase 为可选，不影响核心游戏体验，可根据排期决定是否执行
+
+| 功能 | 类别 |
+|------|------|
+| 移植 Projectile.cs（速度/轨迹/到达回调）| 功能 |
+| FXTool 扩展 DoProjectileFX（起点/终点/prefab/onArrived）| 功能 |
+| 法术选目标后播放投射物飞行（0.3-0.5s 抛物弧线）| 视觉 |
+| 投射物到达目标时触发 HitFX | 视觉 |
+| FlameProjectile prefab 适配（World Space 飞行）| 视觉 |
+| 测试：投射物到达触发 HitFX，onArrived 回调不丢失 | 测试 |
+
+---
+
+*VFX 系列最后更新：2026-04-04（VFX-1 ~ VFX-8 新增：TCG Engine 美术资产迁移）*

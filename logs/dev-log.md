@@ -2,6 +2,36 @@
 
 ---
 
+## VFX-1：Shader & 工具类导入 — 2026-04-04
+
+**Status**: ✅ Completed
+**Tests**: 编译 0 错误 0 警告 🟢
+
+### 实现内容
+
+**Shader 资产迁移（来自 TCG Engine URP 14.0.12）**：
+- `ShaderDissolve.shadergraph` → Assets/Shaders/（含 .meta，GUID 保留）
+- `ShaderHolo.shadergraph` → Assets/Shaders/（含 .meta）
+- `Grayscale.shader` → Assets/Shaders/（含 .meta）
+
+**材质迁移**：
+- `KillDissolveFX.mat` → Assets/Materials/（引用 ShaderDissolve，GUID 完整）
+- `GrayscaleUI.mat` → Assets/Materials/（引用 Grayscale.shader）
+
+**工具类脚本（FWTCG.FX 命名空间）**：
+- `AnimMatFX.cs`：材质属性插值驱动，修复 4 个 HIGH（GetFloat(null) 崩溃、HasProperty 守卫、最终值精度、stale 状态）
+- `SnapFX.cs`：FX 附着 Transform 追踪组件
+- `FXTool.cs`：静态 DoFX / DoSnapFX 工厂（移除 TcgEngine GameBoard 依赖，暴露 duration 参数，LOW null 守卫）
+
+**Codex 审查**：4 HIGH 全部修复（GetFloat null 崩溃、HasProperty 守卫、动画最终帧精度、DoSnapFX duration 锁定）；3 MEDIUM 已修复或记入 tech-debt；2 LOW 修复。
+
+**Decisions made**：
+- FXTool 改为 `static class`（原版继承 MonoBehaviour 但只用静态方法，纯静态更合理）
+- ShaderGraph .meta 一并复制保留 GUID，确保材质引用正确
+- DoProjectileFX 留空（VFX-8 实现）
+
+---
+
 ## DEV-32：架构优化 — 2026-04-03
 
 **Status**: ✅ Completed

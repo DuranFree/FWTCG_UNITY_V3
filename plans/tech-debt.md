@@ -75,3 +75,4 @@
 - [ ] 架构摩擦点 A4：反应窗口 static TaskCompletionSource 难以单元测试 — 详见 docs/architecture.md §六 — Phase DEV-32
 - [ ] 架构摩擦点 A5：TurnStateMachine + TurnManager + GameManager 三层状态管理并存 — 详见 docs/architecture.md §六 — Phase DEV-32
 - [ ] 架构摩擦点 A6：入场/死亡触发链通过直接调用编排，非统一事件总线 — 详见 docs/architecture.md §六 — Phase DEV-32
+- [ ] AnimMatFX.AnimMatActionType 枚举目前仅有 None/Float，扩展 Color/Vector/Int 时需更新 Update 分支 — Phase VFX-1（MEDIUM，VFX-3 实现溶解时处理）
