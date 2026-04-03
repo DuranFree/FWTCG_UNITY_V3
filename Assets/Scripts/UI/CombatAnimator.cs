@@ -37,6 +37,9 @@ namespace FWTCG.UI
         private Coroutine _sw1Routine;
         private Coroutine _sw2Routine;
 
+        // DEV-29: track active fly ghosts so they can be cleaned up in OnDestroy
+        private readonly List<GameObject> _activeGhosts = new List<GameObject>();
+
         // DEV-28: flight animation constants
         private const float FLY_DURATION  = 0.20f;  // fly toward enemy
         private const float BACK_DURATION = 0.15f;  // snap back
@@ -52,6 +55,15 @@ namespace FWTCG.UI
         {
             CombatSystem.OnCombatResult    -= OnCombatResult;
             CombatSystem.OnCombatWillStart -= OnCombatWillStart;
+            // DEV-29: destroy any fly ghosts that are mid-animation when the component is torn down
+            foreach (var ghost in _activeGhosts)
+            {
+                if (ghost == null) continue;
+                // Use DestroyImmediate in EditMode (e.g. tests); Destroy at runtime
+                if (Application.isPlaying) Destroy(ghost);
+                else DestroyImmediate(ghost);
+            }
+            _activeGhosts.Clear();
         }
 
         private void Start()
@@ -100,6 +112,7 @@ namespace FWTCG.UI
 
             // Create ghost overlay so we don't disturb the real card's layout
             var host = new GameObject("CombatFlyGhost");
+            _activeGhosts.Add(host); // DEV-29: track for OnDestroy cleanup
             host.transform.SetParent(canvas.transform, false);
             var ghostRT = host.AddComponent<RectTransform>();
             ghostRT.sizeDelta  = rt.rect.size;
@@ -154,6 +167,7 @@ namespace FWTCG.UI
                 yield return null;
             }
 
+            _activeGhosts.Remove(host); // DEV-29: remove from tracking before destroy
             Destroy(host);
         }
 

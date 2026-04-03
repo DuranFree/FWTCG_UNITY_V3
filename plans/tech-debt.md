@@ -49,9 +49,12 @@
 - [ ] SceneryUI.DividerOrbLoop 基准位置只采样一次，分辨率变化时振荡中心偏移；游戏内无动态分辨率切换，实际风险极低 — Phase DEV-23（Codex Medium，已 DEV-26 缓解：仅缓存 baseY）
 - [ ] GlassPanelFX Shader.Find 运行时查找 — 构建时若 "FWTCG/GlassPanel" 未加入 Always Included Shaders 会在打包后失效；修复：Project Settings → Graphics → Always Included Shaders 添加该 shader — Phase DEV-25（Codex M-2）
 - [ ] ShowStatusTooltip AutoDismissTooltip 只监听鼠标按下，键盘/游戏手柄操作无法关闭 tooltip — 低优先级，当前目标平台为 PC — Phase DEV-25（Low）
-- [ ] ShowTargetHighlights 遍历含 _playerHandContainer，但 SpellTargetPopup 不接受手牌单位；手牌单位可能被错误标绿但无法被选中 — Phase DEV-28（Codex Medium）
-- [ ] CardView.Setup 复用时 HeroAura 不清除 — 若 _heroAuraPulse 正在运行且视图被重新绑定到非英雄单位，光环将残留；Refresh() 销毁重建缓解，但池化场景下会复现 — Phase DEV-28（Codex Medium）
-- [ ] SpellTargetPopup / ActivateEquipmentAsync 无 try/finally 保护 — await ShowAsync() 期间若 Popup 被销毁，目标高亮永久残留（ClearTargetHighlights 不会被调用）— Phase DEV-28（Codex Medium）
-- [ ] CombatFlyGhost 在 CombatAnimator 销毁时成为孤儿 — FlyAndReturnRoutine 局部创建 ghost，OnDestroy 未追踪飞行中 ghost；场景切换期间销毁可能遗留 UI 残影 — Phase DEV-28（Codex Medium）
-- [ ] _enterAnimPlayed 不重置 — CardView 池化复用时，绑定到新单位后入场动画跳过；当前 Refresh() 销毁重建无影响，池化架构下需重置 — Phase DEV-28（Codex Low）
+- ✅ ShowTargetHighlights 遍历含 _playerHandContainer — 已移除，手牌容器不参与目标高亮 — Phase DEV-28→DEV-29
+- ✅ CardView.Setup 复用时 HeroAura 不清除 — 已修复：ClearHeroAura() + _enterAnimPlayed 重置 — Phase DEV-28→DEV-29
+- ✅ SpellTargetPopup / ActivateEquipmentAsync 无 try/finally 保护 — 已修复：GameManager 两处 await 均加 try/finally — Phase DEV-28→DEV-29
+- ✅ CombatFlyGhost 在 CombatAnimator 销毁时成为孤儿 — 已修复：_activeGhosts List + OnDestroy 遍历销毁 — Phase DEV-28→DEV-29
+- ✅ _enterAnimPlayed 不重置 — 已修复：Setup isNewUnit 时重置为 false — Phase DEV-28→DEV-29
+- [ ] CombatAnimator.OnDestroy Remove-then-Destroy 顺序缺注释 — 顺序正确但维护者难理解为何 Remove 先于 Destroy；建议补注释说明单线程协程安全原因 — Phase DEV-29（Codex Low）
+- [ ] ClearHeroAura 双重销毁风险 — 若外部代码绕过 ClearHeroAura 直接销毁 _heroAura 子对象，下次调用仍会通过 Unity fake-null 检测并再次调用 Destroy；当前无此路径，但脆弱 — Phase DEV-29（Codex Low）
+- [ ] ClearTargetHighlights GetComponent 每帧每子节点调用 — 与 ShowTargetHighlights 显式 null 检查写法不一致；性能可接受，风格不统一 — Phase DEV-29（Codex Low）
 - [ ] CreateOverlayImage sizeDelta 参数被忽略 — StartHeroAura 传入 (8,8) 期望光晕扩展超出卡牌，但实现中未使用该值，光晕与卡牌等大 — Phase DEV-28（Codex Low）

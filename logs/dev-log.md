@@ -2,6 +2,51 @@
 
 ---
 
+## DEV-29：死亡飞行 + 卡背样式 + DEV-28 技术债修复 — 2026-04-03
+
+**Status**: ✅ Completed
+**Tests**: 506/506 🟢（MCP EditMode 全绿，新增 17 个测试）
+
+### 实现内容
+
+**T1 — ShowTargetHighlights 移除手牌容器（GameUI.cs）**：
+- `ShowTargetHighlights()` 和 `ClearTargetHighlights()` 的容器数组中移除 `_playerHandContainer`，防止手牌卡被高亮为可选目标
+
+**T2 — CardView HeroAura 清除（CardView.cs）**：
+- 新增 `ClearHeroAura()`：停止 `_heroAuraPulse` 协程 + 销毁 `_heroAura` GO（运行时用 Destroy，EditMode 用 DestroyImmediate）
+- `Setup()` 中 `isNewUnit` 时调用 `ClearHeroAura()` 并重置 `_enterAnimPlayed = false`
+
+**T3 — try/finally 保护高亮清理（GameManager.cs）**：
+- 法术目标选择和装备目标选择路径均用 try/finally 包裹，确保 `ClearTargetHighlights()` 总被调用
+
+**T4 — CombatFlyGhost 追踪（CombatAnimator.cs）**：
+- 新增 `_activeGhosts` List，`FlyAndReturnRoutine` 创建 ghost 后入队，完成后移除
+- `OnDestroy` 遍历销毁残留 ghost（运行时 Destroy，EditMode DestroyImmediate）
+
+**F1 — 死亡飞行动画（CardView.cs + GameUI.cs）**：
+- `DeathRoutine` 改为两阶段：Phase A (0.3s) 缩小到 60% + 红色闪烁；Phase B (0.5s) 创建 ghost，沿贝塞尔弧线飞向弃牌堆，scale 0.6→0.15 + alpha 渐出
+- `_deathGhost` 字段追踪飞行 ghost，`OnDestroy` 安全清理
+- `capturedSize` 在 `SetActive(false)` 前缓存，防止 layout 重建后 rect.size 归零
+- `GameUI.OnUnitDiedHandler` 计算弃牌堆 canvas-local 坐标传入 `PlayDeathAnimation`；合并两处 `GetRootCanvas()` 调用消除重复
+
+**F2 — 卡牌背面几何纹样（CardView.cs）**：
+- 新增 `_cardBackOverlay` 字段 + `EnsureCardBackOverlay()`：懒创建，四边各 3px 边框条（Image）+ 中央 28×28px 菱形（45° 旋转，GameColors.CardBack 浅色），全部 raycastTarget=false
+- `RefreshFaceDown(true)` 激活 overlay；`RefreshFaceDown(false)` 隐藏（不销毁，可复用）
+
+**DEV29Tests.cs（新建）**：
+- 17 个 EditMode 测试，覆盖 T1-T4 和 F1-F2 全部修复
+- 修复 DEV28VisualTests.cs 预存编译错误（`gs.InitGame` → `new GameState()`）
+
+### 代码审查
+- Claude 自身审查：发现2 High（ghost泄漏 + size归零），已全部修复
+- 🔍 Codex adversarial-review：High×2（已修复）+ Medium×2（已修复）+ Low×4（记入 tech-debt）
+
+### 场景验证
+- ✅ CombatAnimator._bf1Panel/bf2Panel 连线正确
+- ✅ GameUI._playerDiscardCountText/_enemyDiscardCountText 连线正确（死亡飞行目标）
+
+---
+
 ## DEV-28：卡牌交互视觉补全 — 2026-04-03
 
 **Status**: ✅ Completed

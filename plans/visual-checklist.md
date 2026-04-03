@@ -42,8 +42,8 @@
 
 ## 四、卡牌视觉
 
-- [ ] 卡牌 Prefab 基础外观（边框/背景/图片层/文字层）
-- [ ] 悬停放大 + 发光效果（DOTween scale + 发光边框 — DEV-9 scale 动画）
+- ✅ 卡牌 Prefab 基础外观（边框/背景/图片层/文字层）— DEV-9（SceneBuilder.CreateCardPrefab）
+- ✅ 悬停放大 + 发光效果（CardHoverScale.cs 1.08x scale + CardGlow.cs 发光边框）— DEV-9
 - ❌ 悬停上浮效果 — OUT OF SCOPE：选中时上浮已足够，无需独立悬停上浮
 - ✅ 3D 倾斜效果（鼠标跟随，18° 最大，CardTilt.cs）— DEV-8
 - ✅ 全息光泽 Shine（鼠标位置驱动的径向渐变，CardShine.shader）— DEV-8
@@ -52,14 +52,14 @@
 - ✅ 手牌卡片入场动画（hand-card-enter 0.42s，Y -30px 飞入 + scale 0.82→1 + alpha 0→1，EaseOutQuad）— DEV-28
 - [ ] 可出牌卡粒子特效（playable-particle 3s，上方闪烁光点）
 - ✅ 卡牌选中轨道光环（selected-arcane-orbit 6s，10px 金色光点半径 60px 旋转）— DEV-28
-- [ ] 死亡飞行动画（playDeathFly，阵亡卡飞向弃牌堆消散）
+- ✅ 死亡飞行动画（Phase A 红闪缩小 0.3s + Phase B ghost 贝塞尔弧线飞向弃牌堆 0.5s，CardView.DeathRoutine）— DEV-29
 - ✅ 费用不足变暗（整体压暗 ×0.6，CardView.SetCostInsufficient）— DEV-8
 - ✅ 休眠状态（灰化 + CardExhausted 颜色）— DEV-8
 - ✅ 眩晕状态（红色脉冲叠加层，StunPulseRoutine 协程）— DEV-8
 - ✅ 增益指示物（+1/+1 金色图标，右上角叠加）— DEV-8
 - ✅ Buff 状态徽章（▲绿色，卡面底部，右键查看详情）— DEV-22
 - ✅ Debuff 状态徽章（▼红色，卡面底部，右键查看详情）— DEV-22
-- [ ] 卡牌背面样式
+- ✅ 卡牌背面样式（几何纹样覆层：四边边框条 + 中央45°菱形，CardView.EnsureCardBackOverlay）— DEV-29
 - ✅ 英雄光环（hero-card-aura 4s 缓慢脉冲，金色 alpha 0.25↔0.60，英雄卡专属）— DEV-28
 
 ---
@@ -163,8 +163,8 @@
 
 ## 十三、日志面板视觉
 
-- [ ] 日志折叠/展开按钮动画（">" ↔ "<" 旋转过渡）
-- [ ] 日志折叠联动棋盘居中（折叠时主区域自动扩展居中，展开时靠左）
+- ✅ 日志折叠/展开按钮动画（">" ↔ "<" 切换，0.3s 协程过渡）— DEV-10（GameUI.AnimateLogToggle）
+- ✅ 日志折叠联动棋盘居中（折叠时 boardWrapperOuter 自动扩展，offsetMax.x 动画）— DEV-10（GameUI.AnimateLogToggle）
 - ✅ 日志条目进入闪烁（log-entry-flash 0.8s，金色→白色，GameUI.LogEntryFlashRoutine）— DEV-24
 
 ---
@@ -181,7 +181,7 @@
 
 - ✅ 传奇升级视觉（金色闪烁4次协程，FlashLegendText，0.15s × 4 脉冲）— DEV-15
 - ✅ 法术施放展示面板（SpellShowcaseUI：底部飞入+停留+上飞，卡名/效果/归属/卡图）— DEV-16
-- [ ] 中央 SVG 旋转装饰（spin-slow 20s 顺时针 + spin-reverse 12s 逆时针）
+- ✅ 中央 SVG 旋转装饰（SpinOuter 20s CW / SpinInner 12s CCW，SceneryUI.cs）— DEV-23
 
 ---
 

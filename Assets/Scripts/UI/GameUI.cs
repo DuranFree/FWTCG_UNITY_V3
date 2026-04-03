@@ -376,23 +376,48 @@ namespace FWTCG.UI
         private void OnUnitDiedHandler(FWTCG.Core.UnitInstance unit)
         {
             var cv = FindCardView(unit);
-            cv?.PlayDeathAnimation();
+
+            // DEV-29: compute discard pile canvas-local position for death flight animation
+            Canvas rootCanvas = GetRootCanvas();
+            if (cv != null && rootCanvas != null)
+            {
+                Text discardText = unit.Owner == FWTCG.Core.GameRules.OWNER_PLAYER
+                    ? _playerDiscardCountText : _enemyDiscardCountText;
+                Vector2? flyTarget = null;
+                if (discardText != null)
+                {
+                    var discardRT = discardText.GetComponent<RectTransform>();
+                    if (discardRT != null)
+                    {
+                        var corners = new Vector3[4];
+                        discardRT.GetWorldCorners(corners);
+                        Vector2 screenCenter = new Vector2(
+                            (corners[0].x + corners[2].x) * 0.5f,
+                            (corners[0].y + corners[2].y) * 0.5f);
+                        RectTransformUtility.ScreenPointToLocalPointInRectangle(
+                            rootCanvas.GetComponent<RectTransform>(), screenCenter,
+                            rootCanvas.worldCamera, out Vector2 localPos);
+                        flyTarget = localPos;
+                    }
+                }
+                cv.PlayDeathAnimation(flyTarget, rootCanvas);
+            }
+            else
+            {
+                cv?.PlayDeathAnimation(null, null);
+            }
 
             // DEV-21: fire canvas position so SpellVFX can spawn death explosion
-            if (cv != null)
+            if (cv != null && rootCanvas != null)
             {
-                Canvas rootCanvas = GetRootCanvas();
-                if (rootCanvas != null)
+                var cvRT = cv.GetComponent<RectTransform>();
+                if (cvRT != null)
                 {
-                    var cvRT = cv.GetComponent<RectTransform>();
-                    if (cvRT != null)
-                    {
-                        Vector2 screenPt = RectTransformUtility.WorldToScreenPoint(rootCanvas.worldCamera, cvRT.position);
-                        RectTransformUtility.ScreenPointToLocalPointInRectangle(
-                            rootCanvas.GetComponent<RectTransform>(), screenPt,
-                            rootCanvas.worldCamera, out Vector2 localPos);
-                        GameEventBus.FireUnitDiedAtPos(unit, localPos);
-                    }
+                    Vector2 screenPt = RectTransformUtility.WorldToScreenPoint(rootCanvas.worldCamera, cvRT.position);
+                    RectTransformUtility.ScreenPointToLocalPointInRectangle(
+                        rootCanvas.GetComponent<RectTransform>(), screenPt,
+                        rootCanvas.worldCamera, out Vector2 localPos);
+                    GameEventBus.FireUnitDiedAtPos(unit, localPos);
                 }
             }
         }
@@ -427,9 +452,10 @@ namespace FWTCG.UI
         /// </summary>
         public void ShowTargetHighlights(System.Func<FWTCG.Core.UnitInstance, bool> filter)
         {
+            // DEV-29: exclude _playerHandContainer — hand cards are never valid spell/equipment targets
             var containers = new Transform[]
             {
-                _playerHandContainer, _playerBaseContainer, _enemyBaseContainer,
+                _playerBaseContainer, _enemyBaseContainer,
                 _bf1PlayerContainer, _bf1EnemyContainer,
                 _bf2PlayerContainer, _bf2EnemyContainer,
             };
@@ -447,9 +473,10 @@ namespace FWTCG.UI
 
         public void ClearTargetHighlights()
         {
+            // DEV-29: matches ShowTargetHighlights — exclude hand container
             var containers = new Transform[]
             {
-                _playerHandContainer, _playerBaseContainer, _enemyBaseContainer,
+                _playerBaseContainer, _enemyBaseContainer,
                 _bf1PlayerContainer, _bf1EnemyContainer,
                 _bf2PlayerContainer, _bf2EnemyContainer,
             };

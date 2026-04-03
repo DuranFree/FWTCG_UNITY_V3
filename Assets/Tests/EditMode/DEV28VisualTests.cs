@@ -34,12 +34,7 @@ namespace FWTCG.Tests
 
         private GameState MakeGS()
         {
-            var gs = new GameState();
-            gs.InitGame(
-                new List<CardData>(), new List<CardData>(),
-                new List<CardData>(), new List<CardData>(),
-                GameRules.OWNER_PLAYER);
-            return gs;
+            return new GameState();
         }
 
         // ── Ephemeral discard ─────────────────────────────────────────────────
@@ -170,7 +165,10 @@ namespace FWTCG.Tests
             List<UnitInstance> capturedDefenders = null;
 
             System.Action<int, List<UnitInstance>, List<UnitInstance>> handler =
-                (bfIdx, atk, def) => { capturedAttackers = atk; capturedDefenders = def; };
+                (bfIdx, atk, def) => {
+                    capturedAttackers = new List<UnitInstance>(atk); // snapshot — lists may be cleared after combat
+                    capturedDefenders = new List<UnitInstance>(def);
+                };
 
             CombatSystem.OnCombatWillStart += handler;
             try

@@ -50,6 +50,7 @@ namespace FWTCG.UI
         private Coroutine _shake;
         private Coroutine _flash;
         private Coroutine _death;
+        private GameObject _deathGhost; // DEV-29: tracked so OnDestroy can clean up mid-flight ghost
         private CardGlow _cardGlow;
 
         // ── Stat glow: breathing background images when values are modified ──
@@ -97,6 +98,9 @@ namespace FWTCG.UI
 
         // ── DEV-28: Hand enter animation ─────────────────────────────────────
         private bool _enterAnimPlayed;
+
+        // ── DEV-29: Card back overlay (geometric pattern) ────────────────────
+        private GameObject _cardBackOverlay;
 
         private void Awake()
         {
@@ -165,6 +169,7 @@ namespace FWTCG.UI
             if (_shake       != null) StopCoroutine(_shake);   // DEV-26
             if (_flash       != null) StopCoroutine(_flash);   // DEV-26
             if (_death       != null) StopCoroutine(_death);   // DEV-26
+            if (_deathGhost  != null) { Destroy(_deathGhost); _deathGhost = null; } // DEV-29
             if (_atkBreath   != null) StopCoroutine(_atkBreath);
             if (_costBreath  != null) StopCoroutine(_costBreath);
             if (_schBreath   != null) StopCoroutine(_schBreath);
@@ -195,6 +200,14 @@ namespace FWTCG.UI
             _onHoverEnter = onHoverEnter;
             _onHoverExit  = onHoverExit;
             _costInsufficient = false;
+
+            // DEV-29: when reusing this CardView for a new unit, clear hero aura and
+            // reset enter-animation flag so the new unit gets a fresh start
+            if (isNewUnit)
+            {
+                ClearHeroAura();
+                _enterAnimPlayed = false;
+            }
 
             Refresh();
 
@@ -259,6 +272,84 @@ namespace FWTCG.UI
             if (_clickButton != null) _clickButton.interactable = !hide;
             if (_stunnedOverlay != null) _stunnedOverlay.gameObject.SetActive(false);
             if (_buffTokenIcon != null) _buffTokenIcon.SetActive(false);
+
+            // DEV-29: show/hide geometric card-back overlay
+            if (hide)
+                EnsureCardBackOverlay();
+            else if (_cardBackOverlay != null)
+                _cardBackOverlay.SetActive(false);
+        }
+
+        // DEV-29: lazy-create card back geometric overlay (4-strip border + center diamond)
+        private void EnsureCardBackOverlay()
+        {
+            if (_cardBackOverlay != null)
+            {
+                _cardBackOverlay.SetActive(true);
+                return;
+            }
+
+            _cardBackOverlay = new GameObject("CardBackOverlay");
+            _cardBackOverlay.transform.SetParent(transform, false);
+            _cardBackOverlay.transform.SetAsLastSibling();
+
+            // Subtle highlight color: slightly lighter than CardFaceDown
+            Color faceDown = GameColors.CardFaceDown;
+            Color patternColor = new Color(
+                Mathf.Min(1f, faceDown.r + 0.14f),
+                Mathf.Min(1f, faceDown.g + 0.17f),
+                Mathf.Min(1f, faceDown.b + 0.22f),
+                0.85f);
+
+            const float borderW = 2.5f; // border strip thickness in pixels
+            const float inset    = 4f;   // inset from card edge
+
+            // 4 border strips anchored to each edge (full-width/height stretch within card)
+            // Top strip: anchored to top edge, spans full width (inset from sides)
+            AddCardBackStrip(_cardBackOverlay.transform, "BackTop",
+                anchorMin: new Vector2(0f, 1f), anchorMax: new Vector2(1f, 1f),
+                offsetMin: new Vector2(inset, -(inset + borderW)), offsetMax: new Vector2(-inset, -inset), patternColor);
+            // Bottom strip
+            AddCardBackStrip(_cardBackOverlay.transform, "BackBottom",
+                anchorMin: new Vector2(0f, 0f), anchorMax: new Vector2(1f, 0f),
+                offsetMin: new Vector2(inset, inset), offsetMax: new Vector2(-inset, inset + borderW), patternColor);
+            // Left strip: anchored to left edge, spans full height (inset from top/bottom)
+            AddCardBackStrip(_cardBackOverlay.transform, "BackLeft",
+                anchorMin: new Vector2(0f, 0f), anchorMax: new Vector2(0f, 1f),
+                offsetMin: new Vector2(inset, inset), offsetMax: new Vector2(inset + borderW, -inset), patternColor);
+            // Right strip
+            AddCardBackStrip(_cardBackOverlay.transform, "BackRight",
+                anchorMin: new Vector2(1f, 0f), anchorMax: new Vector2(1f, 1f),
+                offsetMin: new Vector2(-(inset + borderW), inset), offsetMax: new Vector2(-inset, -inset), patternColor);
+
+            // Center diamond (45° rotated square)
+            var diamondGO = new GameObject("BackDiamond");
+            diamondGO.transform.SetParent(_cardBackOverlay.transform, false);
+            var diamondRT = diamondGO.AddComponent<RectTransform>();
+            diamondRT.anchorMin = diamondRT.anchorMax = new Vector2(0.5f, 0.5f);
+            diamondRT.pivot = new Vector2(0.5f, 0.5f);
+            diamondRT.sizeDelta = new Vector2(28f, 28f);
+            diamondRT.anchoredPosition = Vector2.zero;
+            diamondGO.transform.localRotation = Quaternion.Euler(0f, 0f, 45f);
+            var diamondImg = diamondGO.AddComponent<Image>();
+            diamondImg.color = new Color(patternColor.r, patternColor.g, patternColor.b, 0.60f);
+            diamondImg.raycastTarget = false;
+        }
+
+        private static void AddCardBackStrip(Transform parent, string name,
+            Vector2 anchorMin, Vector2 anchorMax,
+            Vector2 offsetMin, Vector2 offsetMax, Color color)
+        {
+            var go = new GameObject(name);
+            go.transform.SetParent(parent, false);
+            var rt = go.AddComponent<RectTransform>();
+            rt.anchorMin = anchorMin;
+            rt.anchorMax = anchorMax;
+            rt.offsetMin = offsetMin;
+            rt.offsetMax = offsetMax;
+            var img = go.AddComponent<Image>();
+            img.color = color;
+            img.raycastTarget = false;
         }
 
         public void Refresh()
@@ -652,10 +743,10 @@ namespace FWTCG.UI
         /// removed from game state. RefreshUI will destroy this GameObject shortly after.
         /// DEV-17.
         /// </summary>
-        public void PlayDeathAnimation()
+        public void PlayDeathAnimation(Vector2? flyTarget = null, Canvas canvas = null)
         {
             if (_death != null) return;
-            _death = StartCoroutine(DeathRoutine());
+            _death = StartCoroutine(DeathRoutine(flyTarget, canvas));
         }
 
         // ── Status badge logic (DEV-25) ───────────────────────────────────────
@@ -1039,6 +1130,19 @@ namespace FWTCG.UI
 
         // ── DEV-28: Hero aura ────────────────────────────────────────────────
 
+        // DEV-29: stop and destroy hero aura when CardView is reused for a non-hero unit
+        private void ClearHeroAura()
+        {
+            if (_heroAuraPulse != null) { StopCoroutine(_heroAuraPulse); _heroAuraPulse = null; }
+            if (_heroAura != null)
+            {
+                // Use DestroyImmediate in EditMode (e.g. tests); Destroy at runtime
+                if (Application.isPlaying) Destroy(_heroAura.gameObject);
+                else DestroyImmediate(_heroAura.gameObject);
+                _heroAura = null;
+            }
+        }
+
         private void StartHeroAura()
         {
             if (_heroAura == null)
@@ -1114,38 +1218,137 @@ namespace FWTCG.UI
             return img;
         }
 
-        private IEnumerator DeathRoutine()
+        // DEV-29: two-phase death:
+        //   Phase A — quick shrink to 60% in place (0.3s, impact feel)
+        //   Phase B — ghost flies to discard pile along bezier arc (0.5s)
+        //   If no flyTarget, falls back to the original shrink-to-zero animation.
+        private IEnumerator DeathRoutine(Vector2? flyTarget = null, Canvas canvas = null)
         {
-            const float duration = 0.45f;
-            float elapsed = 0f;
             Vector3 startScale = transform.localScale;
 
-            var images = GetComponentsInChildren<Image>(true);
-            var texts  = GetComponentsInChildren<Text>(true);
-            Color[] imgColors = new Color[images.Length];
-            Color[] txtColors = new Color[texts.Length];
-            for (int i = 0; i < images.Length; i++) imgColors[i] = images[i].color;
-            for (int i = 0; i < texts.Length;  i++) txtColors[i] = texts[i].color;
-
-            while (elapsed < duration)
+            if (flyTarget.HasValue && canvas != null)
             {
-                elapsed += Time.deltaTime;
-                float t = elapsed / duration;
-                // Accelerate scale down (quadratic)
-                float scale = Mathf.Lerp(1f, 0f, t * t);
-                transform.localScale = startScale * scale;
+                // ── Phase A: shrink to 60%, add red tint ─────────────────────
+                const float phaseA = 0.30f;
+                float elapsed = 0f;
+                var images = GetComponentsInChildren<Image>(true);
+                var texts  = GetComponentsInChildren<Text>(true);
+                while (elapsed < phaseA)
+                {
+                    elapsed += Time.deltaTime;
+                    float t = elapsed / phaseA;
+                    float ease = t * (2f - t); // EaseOutQuad
+                    transform.localScale = startScale * Mathf.Lerp(1f, 0.6f, ease);
+                    // slight red tint flash
+                    float tint = Mathf.Sin(t * Mathf.PI) * 0.35f;
+                    foreach (var img in images)
+                    {
+                        var c = img.color; c.r = Mathf.Min(1f, c.r + tint); img.color = c;
+                    }
+                    yield return null;
+                }
 
-                float alpha = 1f - t;
-                for (int i = 0; i < images.Length; i++)
+                // ── Phase B: ghost flies to discard pile ─────────────────────
+                const float phaseB = 0.50f;
+                var rt = (RectTransform)transform;
+                var canvasRT = canvas.GetComponent<RectTransform>();
+
+                // Compute origin in canvas-local coords
+                var corners = new Vector3[4];
+                rt.GetWorldCorners(corners);
+                Vector2 screenCenter = new Vector2(
+                    (corners[0].x + corners[2].x) * 0.5f,
+                    (corners[0].y + corners[2].y) * 0.5f);
+                RectTransformUtility.ScreenPointToLocalPointInRectangle(
+                    canvasRT, screenCenter, canvas.worldCamera, out Vector2 origin);
+
+                Vector2 dest = flyTarget.Value;
+                // Bezier control point: midpoint raised by 60px for arc
+                Vector2 ctrl = (origin + dest) * 0.5f + new Vector2(0f, 60f);
+
+                // Create ghost — capture size before SetActive(false) so layout doesn't reset
+                Vector2 capturedSize = rt.rect.size;
+                var ghost = new GameObject("DeathFlyGhost");
+                _deathGhost = ghost; // DEV-29: track for OnDestroy cleanup
+                ghost.transform.SetParent(canvas.transform, false);
+                var ghostRT = ghost.AddComponent<RectTransform>();
+                ghostRT.sizeDelta = capturedSize * 0.6f; // matches Phase A end scale
+                ghostRT.anchorMin = ghostRT.anchorMax = new Vector2(0.5f, 0.5f);
+                ghostRT.pivot = new Vector2(0.5f, 0.5f);
+                ghostRT.anchoredPosition = origin;
+                ghost.transform.SetAsLastSibling();
+
+                var srcImg = rt.GetComponent<Image>();
+                if (srcImg != null)
                 {
-                    var c = imgColors[i]; c.a *= alpha; images[i].color = c;
+                    var ghostImg = ghost.AddComponent<Image>();
+                    ghostImg.sprite = srcImg.sprite;
+                    ghostImg.color  = srcImg.color;
+                    ghostImg.raycastTarget = false;
                 }
-                for (int i = 0; i < texts.Length; i++)
+                var cg = ghost.AddComponent<CanvasGroup>();
+                cg.blocksRaycasts = false;
+                cg.interactable   = false;
+
+                // Hide the real card immediately
+                gameObject.SetActive(false);
+
+                elapsed = 0f;
+                while (elapsed < phaseB)
                 {
-                    var c = txtColors[i]; c.a *= alpha; texts[i].color = c;
+                    elapsed += Time.deltaTime;
+                    float t = Mathf.Clamp01(elapsed / phaseB);
+                    float ease = t * (2f - t); // EaseOutQuad
+
+                    // Quadratic bezier
+                    float u = 1f - ease;
+                    Vector2 pos = u * u * origin + 2f * u * ease * ctrl + ease * ease * dest;
+                    ghostRT.anchoredPosition = pos;
+
+                    // Scale down (use capturedSize — rt may be inactive and return zero)
+                    float s = Mathf.Lerp(0.6f, 0.15f, ease);
+                    ghostRT.sizeDelta = capturedSize * s;
+
+                    // Fade out during last 40%
+                    cg.alpha = t < 0.6f ? 1f : Mathf.Lerp(1f, 0f, (t - 0.6f) / 0.4f);
+
+                    yield return null;
                 }
-                yield return null;
+
+                _deathGhost = null;
+                if (ghost != null) Destroy(ghost);
             }
+            else
+            {
+                // ── Fallback: original shrink-to-zero ────────────────────────
+                const float duration = 0.45f;
+                float elapsed = 0f;
+                var images = GetComponentsInChildren<Image>(true);
+                var texts  = GetComponentsInChildren<Text>(true);
+                Color[] imgColors = new Color[images.Length];
+                Color[] txtColors = new Color[texts.Length];
+                for (int i = 0; i < images.Length; i++) imgColors[i] = images[i].color;
+                for (int i = 0; i < texts.Length;  i++) txtColors[i] = texts[i].color;
+
+                while (elapsed < duration)
+                {
+                    elapsed += Time.deltaTime;
+                    float t = elapsed / duration;
+                    float scale = Mathf.Lerp(1f, 0f, t * t);
+                    transform.localScale = startScale * scale;
+                    float alpha = 1f - t;
+                    for (int i = 0; i < images.Length; i++)
+                    {
+                        var c = imgColors[i]; c.a *= alpha; images[i].color = c;
+                    }
+                    for (int i = 0; i < texts.Length; i++)
+                    {
+                        var c = txtColors[i]; c.a *= alpha; texts[i].color = c;
+                    }
+                    yield return null;
+                }
+            }
+
             _death = null;
         }
     }

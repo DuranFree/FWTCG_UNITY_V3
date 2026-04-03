@@ -173,8 +173,8 @@
 - ✅ 信息条 UI（双方各一条：名字/法力/符文/牌堆）— DEV-9
 
 ### 卡牌显示
-- [ ] 卡牌 Prefab（正面：图片/名称/费用/战力/关键词/文字）
-- [ ] 卡牌背面 Prefab
+- ✅ 卡牌 Prefab（正面：图片/名称/费用/战力/关键词/文字）— DEV-9（SceneBuilder.CreateCardPrefab）
+- ✅ 卡牌背面 Prefab（几何纹样覆层：边框条 + 菱形，CardView.EnsureCardBackOverlay）— DEV-29
 - ✅ 传奇卡特殊显示（卡图+技能描述+等级标记，不显示atk/hp）— DEV-10
 - [ ] 装备卡显示（附着在单位上）
 - ✅ 卡牌状态视觉（休眠变暗 / 眩晕标记 / 增益指示物标记）— DEV-8
@@ -196,7 +196,7 @@
 - ✅ 单位点击选中 / 取消选中 — DEV-1（OnUnitClicked 多选/单选切换）
 - ✅ 战场点击目标（OnBattlefieldClicked 批量移动）— DEV-1
 - ✅ 确认移动按钮（直接点击BF区域触发移动，无需额外确认）— DEV-1
-- [ ] 战斗动画（单位冲向目标，伤害数字飘出）
+- ✅ 战斗动画（单位冲向目标 CombatAnimator.FlyAndReturnRoutine，伤害数字飘出 DamagePopup）— DEV-28/DEV-17
 - ✅ 战斗结算框 UI（CombatResultPanel：双方战力对比 + VS + 结果显示 + 3s自动关闭）— DEV-10
 - ✅ 待命区域 UI（bf-1-standby / bf-2-standby，配合 zhonya 待命关键词）— DEV-18
 
@@ -276,7 +276,7 @@
 ## 八、粒子特效（particles.js → VFX）
 
 - ✅ 伤害数字飘出（受击时显示伤害值，DamagePopup 红色浮字 0.85s）— DEV-17
-- ✅ 单位阵亡特效（DeathRoutine 缩小+淡出 0.45s，CardView.PlayDeathAnimation）— DEV-17
+- ✅ 单位阵亡特效（Phase A: 缩小+红闪 0.3s → Phase B: 贝塞尔弧线飞向弃牌堆 0.5s，CardView.DeathRoutine）— DEV-17/DEV-29
 - ✅ 全局事件反馈系统（GameEventBus + FloatText 池化飘字 + EventBanner 小横幅队列）— DEV-18b
 - ✅ 飘字：单位战力 buff/debuff / 符文横置+法力 / 符文回收+符能 / 得分+N分 — DEV-18b
 - ✅ 小横幅：绝念/入场效果/据守分/征服分/传奇技能/进化/燃尽/时间扭曲 — DEV-18b
