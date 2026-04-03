@@ -2155,7 +2155,8 @@ namespace FWTCG.Editor
                 bgGO.transform.SetParent(go.transform, false);
                 bgGO.transform.localRotation = Quaternion.Euler(0f, 0f, 45f);
                 var le = bgGO.AddComponent<LayoutElement>(); le.ignoreLayout = true;
-                var rt = bgGO.AddComponent<RectTransform>();
+                // LayoutElement [RequireComponent(RectTransform)] auto-adds RT — use GetComponent
+                var rt = bgGO.GetComponent<RectTransform>();
                 rt.anchorMin = new Vector2(0.5f, 0.5f); rt.anchorMax = new Vector2(0.5f, 0.5f);
                 rt.pivot = new Vector2(0.5f, 0.5f); rt.sizeDelta = new Vector2(1500f, 1500f);
                 var img = bgGO.AddComponent<Image>();
@@ -2167,7 +2168,7 @@ namespace FWTCG.Editor
                 var hexGO = new GameObject("HexBreathOverlay");
                 hexGO.transform.SetParent(go.transform, false);
                 var le = hexGO.AddComponent<LayoutElement>(); le.ignoreLayout = true;
-                var rt = hexGO.AddComponent<RectTransform>();
+                var rt = hexGO.GetComponent<RectTransform>();
                 rt.anchorMin = Vector2.zero; rt.anchorMax = Vector2.one;
                 rt.offsetMin = Vector2.zero; rt.offsetMax = Vector2.zero;
                 var img = hexGO.AddComponent<Image>();
@@ -2179,7 +2180,7 @@ namespace FWTCG.Editor
                 var beamGO = new GameObject("TitleBeam");
                 beamGO.transform.SetParent(go.transform, false);
                 var le = beamGO.AddComponent<LayoutElement>(); le.ignoreLayout = true;
-                var rt = beamGO.AddComponent<RectTransform>();
+                var rt = beamGO.GetComponent<RectTransform>();
                 rt.anchorMin = new Vector2(0f, 0.5f); rt.anchorMax = new Vector2(1f, 0.5f);
                 rt.pivot = new Vector2(0.5f, 0.5f); rt.sizeDelta = new Vector2(0f, 60f);
                 var img = beamGO.AddComponent<Image>();
