@@ -47,14 +47,14 @@ namespace FWTCG.UI
         private void OnEnable()
         {
             BattlefieldSystem.OnBattlefieldLog += Enqueue;
-            GameManager.OnHintToast            += Enqueue;
+            GameEventBus.OnHintToast           += Enqueue; // DEV-27: migrated from GameManager
             GameEventBus.OnClearBanners        += ClearAll;
         }
 
         private void OnDisable()
         {
             BattlefieldSystem.OnBattlefieldLog -= Enqueue;
-            GameManager.OnHintToast            -= Enqueue;
+            GameEventBus.OnHintToast           -= Enqueue;
             GameEventBus.OnClearBanners        -= ClearAll;
         }
 

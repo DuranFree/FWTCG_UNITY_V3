@@ -2,6 +2,57 @@
 
 ---
 
+## DEV-27：Architecture Improvement — 2026-04-03
+
+**Status**: ✅ Completed
+**Tests**: 489/489 🟢（MCP EditMode 全绿，新增 22 个测试）
+
+### 实现内容（P1 + P2，跳过 P3 GameManager 拆分）
+
+**TurnStateMachine.cs（新建）**：
+- 4态静态类：Normal_ClosedLoop / Normal_OpenLoop / SpellDuel_OpenLoop / SpellDuel_ClosedLoop
+- TransitionTo（重复态无操作）、OnStateChanged 事件、IsPlayerActionPhase / IsSpellDuelOpen 便利查询
+- CanPlaySpell(CardData)：Rule 718 实现（Normal 普通法术 / SpellDuel Reactive+Swift）
+- Reset()：InitGame 调用，防止静态字段跨场景污染
+
+**TurnManager.cs（修改）**：
+- DoAction() 玩家行动阶段前后加 Normal_OpenLoop / Normal_ClosedLoop 转换
+
+**GameManager.cs（修改）**：
+- InitGame() 加 TurnStateMachine.Reset()（High 修复）
+- CastPlayerSpellWithReactionAsync / BeginPlayerReactionWindow 加 SpellDuel_OpenLoop 转换
+- AiTryReact + 玩家反应窗口两处 Reactive 筛选加 Swift（Rule 718 DEV-27 TODO）
+- 移除5个 static 事件声明，改为转发方法到 GameEventBus（向后兼容）
+
+**CombatSystem.cs（修改）**：
+- 绝念结算改为多轮循环（maxChainDepth=8），每轮调用 OnUnitsDied 后检测新阵亡
+- 新增 FindNewlyDead 私有辅助方法
+
+**GameEventBus.cs（修改）**：
+- 新增5个迁移事件：OnCardPlayFailed / OnUnitDamaged / OnUnitDied / OnCardPlayed / OnHintToast
+- 各自配套 Fire* 静态方法
+
+**GameUI.cs（修改）**：
+- 新增 singleton Instance 属性（CardDragHandler 使用）
+- OnDestroy 清除 Instance（防止跨场景悬空引用）
+- 事件订阅迁移：GameManager.* → GameEventBus.*
+
+**SpellVFX.cs / ToastUI.cs（修改）**：事件订阅迁移
+
+**DEV18CombatVisualTests.cs（修改）**：OnCardPlayed 测试改用 GameEventBus
+
+**DEV27ArchitectureTests.cs（新建）**：22 个测试覆盖 TurnStateMachine 全态转换、Rule 718、GameEventBus 5事件、CombatSystem 绝念链
+
+### 技术决策
+- P3（GameManager 拆分）跳过：用户确认，收益不足以抵消改动风险
+- Unity asset 导入缺 .meta 导致 TurnStateMachine 首次编译不可见，Assets/Refresh 解决
+- TurnStateMachine.Reset() 由 InitGame() 调用而非 Awake()，确保每局游戏重置
+
+### 技术债（新增）
+- 无新增（已有 Medium 项未变化）
+
+---
+
 ## DEV-26：Tech-Debt Cleanup — 2026-04-03
 
 **Status**: ✅ Completed

@@ -4,6 +4,7 @@ using UnityEngine;
 using FWTCG.Core;
 using FWTCG.Data;
 using FWTCG.Systems;
+using FWTCG.UI;
 
 namespace FWTCG.Tests
 {
@@ -222,9 +223,9 @@ namespace FWTCG.Tests
             int callCount = 0;
             System.Action<UnitInstance, string> handler = (u, o) => callCount++;
 
-            GameManager.OnCardPlayed += handler;
+            GameEventBus.OnCardPlayed += handler;
             GameManager.FireCardPlayed(null, GameRules.OWNER_PLAYER);
-            GameManager.OnCardPlayed -= handler;
+            GameEventBus.OnCardPlayed -= handler;
 
             Assert.AreEqual(1, callCount, "Handler called once while subscribed");
 

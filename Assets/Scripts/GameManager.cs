@@ -23,27 +23,14 @@ namespace FWTCG
         // ── Singleton ─────────────────────────────────────────────────────────
         public static GameManager Instance { get; private set; }
 
-        // ── Static events ─────────────────────────────────────────────────────
-        /// <summary>Fired when a card play fails — subscribers show a floating hint toast.</summary>
-        public static event System.Action<string> OnHintToast;
-        /// <summary>Fired with the UnitInstance that failed to play — subscribers shake the CardView.</summary>
-        public static event System.Action<UnitInstance> OnCardPlayFailed;
-        /// <summary>Fired whenever any unit takes damage: (unit, amount, sourceName). Used for red flash + shake + toast.</summary>
-        public static event System.Action<UnitInstance, int, string> OnUnitDamaged;
-
+        // ── Static event forwarders (DEV-27: events now live in GameEventBus) ──
         /// <summary>Allows non-GameManager code to send a hint toast.</summary>
-        public static void FireHintToast(string msg) => OnHintToast?.Invoke(msg);
+        public static void FireHintToast(string msg) => UI.GameEventBus.FireHintToast(msg);
         /// <summary>Allows any system (spell, combat, reactive) to fire damage feedback.</summary>
         public static void FireUnitDamaged(UnitInstance unit, int damage, string source = "")
-            => OnUnitDamaged?.Invoke(unit, damage, source);
-
-        /// <summary>Fired just BEFORE a unit is removed from game state (HP reached 0). Used for death animation. DEV-17.</summary>
-        public static event System.Action<UnitInstance> OnUnitDied;
-        public static void FireUnitDied(UnitInstance unit) => OnUnitDied?.Invoke(unit);
-
-        /// <summary>Fired when a card is successfully played by any player. Used for board flash effect. DEV-18.</summary>
-        public static event System.Action<UnitInstance, string> OnCardPlayed;
-        public static void FireCardPlayed(UnitInstance unit, string owner) => OnCardPlayed?.Invoke(unit, owner);
+            => UI.GameEventBus.FireUnitDamaged(unit, damage, source);
+        public static void FireUnitDied(UnitInstance unit) => UI.GameEventBus.FireUnitDied(unit);
+        public static void FireCardPlayed(UnitInstance unit, string owner) => UI.GameEventBus.FireCardPlayed(unit, owner);
 
         // ── Card data (assign in Inspector) ──────────────────────────────────
         [SerializeField] private CardData[] _kaisaDeck;   // 5 cards
@@ -431,6 +418,7 @@ namespace FWTCG
 
         private void InitGame()
         {
+            TurnStateMachine.Reset(); // DEV-27: reset static state on game init (survives scene reload)
             GameState.ResetUidCounter();
             _gs = new GameState();
 
@@ -590,7 +578,7 @@ namespace FWTCG
                     // Spell cards: only one at a time — shake + hint if another spell already selected
                     if (unit.CardData.IsSpell && _selectedHandUnits.Exists(u => u.CardData.IsSpell))
                     {
-                        OnCardPlayFailed?.Invoke(unit);
+                        UI.GameEventBus.FireCardPlayFailed(unit);
                         FireHintToast("一次只能打出一张法术牌");
                         return;
                     }
@@ -622,7 +610,7 @@ namespace FWTCG
                     else if (unit.CardData.IsEquipment && _selectedBaseUnits.Exists(u => u.CardData.IsEquipment))
                     {
                         // Equipment single-select restriction: only one equipment can be activated at a time
-                        OnCardPlayFailed?.Invoke(unit);
+                        UI.GameEventBus.FireCardPlayFailed(unit);
                         FireHintToast("一次只能使用一张装备牌");
                     }
                     else
@@ -944,8 +932,8 @@ namespace FWTCG
         {
             TurnManager.BroadcastMessage_Static(msg);
             string hint = msg.StartsWith("[提示] ") ? msg.Substring(5) : msg;
-            OnHintToast?.Invoke(hint);
-            if (card != null) OnCardPlayFailed?.Invoke(card);
+            UI.GameEventBus.FireHintToast(hint);
+            if (card != null) UI.GameEventBus.FireCardPlayFailed(card);
         }
 
         /// <summary>
@@ -1605,7 +1593,7 @@ namespace FWTCG
                     : spell.CardData.SpellTargetType == SpellTargetType.FriendlyUnit ? "己方" : "任意";
                 string prompt = $"请点击一个{typeLabel}单位作为目标";
                 TurnManager.BroadcastMessage_Static($"[法术] {spell.UnitName} — {prompt}（结束回合可取消）");
-                OnHintToast?.Invoke(prompt); // toast so player notices
+                UI.GameEventBus.FireHintToast(prompt); // toast so player notices
                 RefreshUI();
                 return;
             }
@@ -1656,7 +1644,11 @@ namespace FWTCG
             await Task.Delay(GameRules.AI_ACTION_DELAY_MS);
             if (_gs.GameOver) { _aiReactionPending = false; return; }
 
+            // DEV-27: enter SpellDuel_OpenLoop so Swift cards become legal (Rule 718)
+            TurnStateMachine.TransitionTo(TurnStateMachine.State.SpellDuel_OpenLoop);
             bool negated = AiTryReact(spell);
+            // DEV-27: return to player action phase after AI reaction resolves
+            TurnStateMachine.TransitionTo(TurnStateMachine.State.Normal_OpenLoop);
 
             if (negated)
             {
@@ -1693,13 +1685,14 @@ namespace FWTCG
         {
             if (_reactiveSys == null) return false;
 
-            // Collect AI's affordable reactive cards
-            // DEV-27 TODO: Also include CardKeyword.Swift here once 4-state turn model is implemented (Rule 718)
+            // Collect AI's affordable reactive + swift cards.
+            // DEV-27: TurnStateMachine is in SpellDuel_OpenLoop here, so both Reactive and Swift
+            // are legal responses (Rule 718).
             var reactives = new System.Collections.Generic.List<UnitInstance>();
             foreach (var c in _gs.EHand)
             {
                 if (c.CardData.IsSpell &&
-                    c.CardData.HasKeyword(CardKeyword.Reactive) &&
+                    (c.CardData.HasKeyword(CardKeyword.Reactive) || c.CardData.HasKeyword(CardKeyword.Swift)) &&
                     c.CardData.Cost <= _gs.EMana)
                 {
                     reactives.Add(c);
@@ -1975,12 +1968,13 @@ namespace FWTCG
             // Clear any lingering event banners before opening the reaction window
             UI.GameEventBus.FireClearBanners();
 
-            // Collect affordable reactive spells from player hand (including via rune auto-consume)
-            // DEV-27 TODO: Also include CardKeyword.Swift here once 4-state turn model is implemented (Rule 718)
+            // Collect affordable reactive + swift spells from player hand (including via rune auto-consume).
+            // DEV-27: TurnStateMachine transitions to SpellDuel_OpenLoop here, making Swift legal (Rule 718).
             var reactives = new List<UnitInstance>();
             foreach (var c in _gs.PHand)
             {
-                if (c.CardData.IsSpell && c.CardData.HasKeyword(CardKeyword.Reactive))
+                if (c.CardData.IsSpell &&
+                    (c.CardData.HasKeyword(CardKeyword.Reactive) || c.CardData.HasKeyword(CardKeyword.Swift)))
                 {
                     var affordPlan = RuneAutoConsume.Compute(c, _gs, GameRules.OWNER_PLAYER);
                     if (affordPlan.CanAfford)
@@ -1998,6 +1992,8 @@ namespace FWTCG
             // ── 反应窗口触发：冻结 AI 后续行动，直到反应牌结算完毕 ────────────
             _reactionWindowActive = true;
             _reactionTcs = new TaskCompletionSource<bool>();
+            // DEV-27: enter SpellDuel_OpenLoop so Swift cards are legal (Rule 718)
+            TurnStateMachine.TransitionTo(TurnStateMachine.State.SpellDuel_OpenLoop);
             TurnManager.ShowBanner_Static("⚡ 反应窗口触发！");
             TurnManager.BroadcastMessage_Static(
                 $"[反应] 反应窗口开启，双方行动暂停（{reactives.Count}张可用，当前法力：{_gs.PMana}）");
@@ -2066,6 +2062,8 @@ namespace FWTCG
             _reactionWindowActive = false;
             _reactionTcs?.TrySetResult(true);
             _reactionTcs = null;
+            // DEV-27: return to Normal_OpenLoop (still player action phase)
+            TurnStateMachine.TransitionTo(TurnStateMachine.State.Normal_OpenLoop);
         }
 
         // ── Legend skill button ───────────────────────────────────────────────

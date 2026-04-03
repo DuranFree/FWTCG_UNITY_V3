@@ -40,7 +40,7 @@
 - [ ] RuneAutoConsume.Compute 与 OnRuneClicked 符文可回收规则不一致 — Compute 跳过已横置符文，但 OnRuneClicked recycle 路径现已同步禁止，DEV-20 H-2 已修复互斥；更深层需统一符文状态机 — Phase DEV-20（Codex Medium）
 - [ ] ReactiveWindowUI 无 OnDisable 回退 — OnDestroy 已 TrySetCanceled，但 panel.SetActive(false) 后 _tcs 仍可能悬空；低风险（当前只通过 HidePanel/SkipReaction 关闭）— Phase DEV-20（Codex Medium）
 - [ ] SpellVFX.BurstParticles/LegendFlame 协程被中断时粒子 GO 泄漏 — OnDestroy 已加子节点批量 Destroy 兜底，低风险（SpellVFX 生命周期与场景同步）— Phase DEV-21（Codex Medium，DEV-26 部分缓解）
-- [ ] Swift 关键词仅数据/UI层，法术对决实际判断仍只看 Reactive — 完整实现需 DEV-27 4状态回合状态机（Rule 718），两处 spell-duel 筛选已加 DEV-27 TODO 注释 — Phase DEV-25b（Codex High → 设计已知，延迟到 DEV-27）
+- ✅ Swift 关键词仅数据/UI层，法术对决实际判断仍只看 Reactive — DEV-27 已实现：TurnStateMachine CanPlaySpell Rule 718，AiTryReact + 玩家反应窗口两处筛选加 Swift — Phase DEV-25b→DEV-27
 - [ ] TryPlayUnitAsync 缺少 Haste prompt 的行为测试 — 仅有枚举计数测试，缺 Haste confirm/cancel/资源不足/状态变更后回退流程测试 — Phase DEV-25b（Codex Low）
 - [ ] CardDragHandler: PortalVFX.EnsureBuilt fallback 用 FindObjectOfType<Canvas>，应改 GetComponentInParent — Phase DEV-22（Codex Medium）
 - [ ] CardDragHandler: HandleDrop 未在 drop 时重验证游戏状态（GameManager 回调内部已验证，深度防御待补）— Phase DEV-22（Codex Medium）

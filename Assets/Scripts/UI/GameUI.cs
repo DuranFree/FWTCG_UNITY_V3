@@ -22,6 +22,9 @@ namespace FWTCG.UI
     /// </summary>
     public class GameUI : MonoBehaviour
     {
+        // ── Singleton (DEV-27: needed by CardDragHandler.FindCardViewInScene) ──
+        public static GameUI Instance { get; private set; }
+
         // ── Score / header ────────────────────────────────────────────────────
         [SerializeField] private Text _playerScoreText;
         [SerializeField] private Text _enemyScoreText;
@@ -224,6 +227,7 @@ namespace FWTCG.UI
 
         private void Awake()
         {
+            Instance = this; // DEV-27: singleton ref for CardDragHandler.FindCardViewInScene
             if (_gameOverPanel != null) _gameOverPanel.SetActive(false);
             if (_bannerPanel != null) _bannerPanel.SetActive(false);
             if (_endTurnButton != null) _endTurnButton.onClick.AddListener(HandleEndTurn);
@@ -255,8 +259,8 @@ namespace FWTCG.UI
 
             FWTCG.Systems.TurnManager.OnBannerRequest += ShowBanner;
             FWTCG.Systems.LegendSystem.OnLegendEvolved += OnLegendEvolved; // DEV-15
-            GameManager.OnCardPlayFailed += ShakeHandCard;
-            GameManager.OnCardPlayed += OnCardPlayedHandler; // DEV-18
+            GameEventBus.OnCardPlayFailed += ShakeHandCard;   // DEV-27: migrated from GameManager
+            GameEventBus.OnCardPlayed     += OnCardPlayedHandler; // DEV-27: migrated from GameManager
             // DEV-18b: event feedback bus
             GameEventBus.OnUnitFloatText += OnUnitFloatTextHandler;
             GameEventBus.OnZoneFloatText  += OnZoneFloatTextHandler;
@@ -268,14 +272,14 @@ namespace FWTCG.UI
         // DEV-26: OnUnitDamaged/OnUnitDied drive animations — only subscribe when component is enabled
         private void OnEnable()
         {
-            GameManager.OnUnitDamaged += OnSpellUnitDamaged;
-            GameManager.OnUnitDied    += OnUnitDiedHandler;
+            GameEventBus.OnUnitDamaged += OnSpellUnitDamaged;  // DEV-27: migrated from GameManager
+            GameEventBus.OnUnitDied    += OnUnitDiedHandler;   // DEV-27: migrated from GameManager
         }
 
         private void OnDisable()
         {
-            GameManager.OnUnitDamaged -= OnSpellUnitDamaged;
-            GameManager.OnUnitDied    -= OnUnitDiedHandler;
+            GameEventBus.OnUnitDamaged -= OnSpellUnitDamaged;
+            GameEventBus.OnUnitDied    -= OnUnitDiedHandler;
         }
 
         private void OnDestroy()
@@ -287,8 +291,8 @@ namespace FWTCG.UI
             if (_restartButton != null) _restartButton.onClick.RemoveAllListeners();
             FWTCG.Systems.TurnManager.OnBannerRequest -= ShowBanner;
             FWTCG.Systems.LegendSystem.OnLegendEvolved -= OnLegendEvolved; // DEV-15
-            GameManager.OnCardPlayFailed -= ShakeHandCard;
-            GameManager.OnCardPlayed -= OnCardPlayedHandler; // DEV-18
+            GameEventBus.OnCardPlayFailed -= ShakeHandCard;
+            GameEventBus.OnCardPlayed     -= OnCardPlayedHandler;
             // DEV-18b
             GameEventBus.OnUnitFloatText -= OnUnitFloatTextHandler;
             GameEventBus.OnZoneFloatText  -= OnZoneFloatTextHandler;
@@ -305,6 +309,8 @@ namespace FWTCG.UI
             var cb = _pendingEquipOnDone;
             _pendingEquipOnDone = null;
             cb?.Invoke();
+            // DEV-27: clear singleton ref on destroy (prevent stale ref after scene reload)
+            if (Instance == this) Instance = null;
         }
 
         // ── Card shake on play failure ────────────────────────────────────────

@@ -218,10 +218,33 @@ namespace FWTCG.Systems
             RemoveDeadUnits(deadDefenders, bf, defender, gs);
             RemoveDeadUnits(deadAttackers, bf, attacker, gs);
 
-            if (_deathwish != null)
+            // DEV-27 #11: Multi-round resolution chain.
+            // Deathwish effects may deal damage causing further deaths; loop until no new deaths.
+            // Max 8 rounds to prevent infinite loops from pathological card interactions.
+            const int maxChainDepth = 8;
+            var allDead = new List<UnitInstance>(deadDefenders.Count + deadAttackers.Count);
+            allDead.AddRange(deadDefenders);
+            allDead.AddRange(deadAttackers);
+
+            for (int chainDepth = 0; chainDepth < maxChainDepth && allDead.Count > 0; chainDepth++)
             {
-                _deathwish.OnUnitsDied(deadDefenders, bfId, gs);
-                _deathwish.OnUnitsDied(deadAttackers, bfId, gs);
+                if (_deathwish == null) break;
+                _deathwish.OnUnitsDied(allDead, bfId, gs);
+
+                // Check for new deaths caused by deathwish effects this chain step
+                var newDeadDefenders = FindNewlyDead(GetBFUnits(defender, bf), gs);
+                var newDeadAttackers = FindNewlyDead(GetBFUnits(attacker, bf), gs);
+
+                if (newDeadDefenders.Count == 0 && newDeadAttackers.Count == 0) break;
+
+                RemoveDeadUnits(newDeadDefenders, bf, defender, gs);
+                RemoveDeadUnits(newDeadAttackers, bf, attacker, gs);
+
+                allDead = new List<UnitInstance>(newDeadDefenders.Count + newDeadAttackers.Count);
+                allDead.AddRange(newDeadDefenders);
+                allDead.AddRange(newDeadAttackers);
+
+                if (gs.GameOver) break;
             }
 
             // Determine outcome
@@ -467,6 +490,22 @@ namespace FWTCG.Systems
                         break;
                 }
             }
+        }
+
+        /// <summary>
+        /// DEV-27 #11: Scans a set of units and returns those with CurrentHp &lt;= 0
+        /// that are still present on the battlefield (not yet removed).
+        /// Used to detect new casualties caused by Deathwish chain effects.
+        /// </summary>
+        private List<UnitInstance> FindNewlyDead(IEnumerable<UnitInstance> candidates, GameState gs)
+        {
+            var result = new List<UnitInstance>();
+            foreach (var u in candidates)
+            {
+                if (u.CurrentHp <= 0)
+                    result.Add(u);
+            }
+            return result;
         }
 
         private void Log(string msg)

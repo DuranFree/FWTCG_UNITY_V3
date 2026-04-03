@@ -86,6 +86,29 @@ namespace FWTCG.UI
         /// </summary>
         public static void FireSetBannerDelay(float seconds) => OnSetBannerDelay?.Invoke(seconds);
 
+        // ── Game-manager game events (DEV-27: migrated from GameManager static events) ──
+
+        /// <summary>Fired when a card play fails. Subscribers shake the failing CardView.</summary>
+        public static event Action<UnitInstance> OnCardPlayFailed;
+        public static void FireCardPlayFailed(UnitInstance unit) => OnCardPlayFailed?.Invoke(unit);
+
+        /// <summary>Fired when a unit takes damage: (unit, amount, sourceName). Used for red flash + shake.</summary>
+        public static event Action<UnitInstance, int, string> OnUnitDamaged;
+        public static void FireUnitDamaged(UnitInstance unit, int damage, string source = "")
+            => OnUnitDamaged?.Invoke(unit, damage, source);
+
+        /// <summary>Fired just BEFORE a unit is removed from game state (HP = 0). Used for death animation.</summary>
+        public static event Action<UnitInstance> OnUnitDied;
+        public static void FireUnitDied(UnitInstance unit) => OnUnitDied?.Invoke(unit);
+
+        /// <summary>Fired when a card is successfully played by any player. Used for board flash.</summary>
+        public static event Action<UnitInstance, string> OnCardPlayed;
+        public static void FireCardPlayed(UnitInstance unit, string owner) => OnCardPlayed?.Invoke(unit, owner);
+
+        /// <summary>Fired to show a hint toast in the UI. Any system may call FireHintToast.</summary>
+        public static event Action<string> OnHintToast;
+        public static void FireHintToast(string msg) => OnHintToast?.Invoke(msg);
+
         // ── Unit death position event (DEV-21) ────────────────────────────────
         /// <summary>
         /// Fired by GameUI when a unit dies, carrying the unit's canvas-local position.

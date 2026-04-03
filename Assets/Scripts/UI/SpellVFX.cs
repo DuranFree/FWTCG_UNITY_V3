@@ -26,14 +26,14 @@ namespace FWTCG.UI
 
         private void Awake()
         {
-            GameManager.OnCardPlayed              += OnCardPlayed;
+            GameEventBus.OnCardPlayed              += OnCardPlayed; // DEV-27: migrated from GameManager
             GameEventBus.OnUnitDiedAtPos          += OnUnitDiedAtPos;
             LegendSystem.OnLegendEvolved          += OnLegendEvolved;
         }
 
         private void OnDestroy()
         {
-            GameManager.OnCardPlayed              -= OnCardPlayed;
+            GameEventBus.OnCardPlayed              -= OnCardPlayed;
             GameEventBus.OnUnitDiedAtPos          -= OnUnitDiedAtPos;
             LegendSystem.OnLegendEvolved          -= OnLegendEvolved;
 

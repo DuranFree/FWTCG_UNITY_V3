@@ -51,7 +51,7 @@
 - ✅ 对决自动触发（移动造成争夺→即时战斗，替代手动按钮）— DEV-1 规则修正
 - ✅ 反应牌处理（AI法术触发玩家反应窗口，单轮响应）— DEV-4
 - ✅ 迅捷关键词定义（CardKeyword.Swift，法术标记从 Haste→Swift）— DEV-25b
-- [ ] 迅捷时机限制（需要法术对决状态机）— DEV-27
+- ✅ 迅捷时机限制（TurnStateMachine 4态 + Rule 718 CanPlaySpell + SpellDuel_OpenLoop 转换）— DEV-27
 - ✅ 反应窗口（ReactiveWindowUI，TaskCompletionSource 异步等待玩家选择）— DEV-4
 - ✅ 反应按钮符文感知（CanAffordWithAutoTap 过滤：符文可补足时也计为可用；选牌后弹出符文确认）— DEV-20
 - ✅ 对决结束 → 战斗结算（TriggerCombat + 回合结束兜底 ResolveAllBattlefields）— DEV-1

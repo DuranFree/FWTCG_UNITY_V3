@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 using UnityEngine;
+using FWTCG;
 using FWTCG.AI;
 using FWTCG.Core;
 using FWTCG.UI;
@@ -299,6 +300,8 @@ namespace FWTCG.Systems
 
             if (who == GameRules.OWNER_PLAYER)
             {
+                // DEV-27: enter player action open state
+                TurnStateMachine.TransitionTo(TurnStateMachine.State.Normal_OpenLoop);
                 Broadcast("[行动] 玩家回合 — 请操作（横置符文、打出单位、移动单位，完成后点击「结束回合」）");
 
                 // Wait for player to click "End Turn" button
@@ -308,9 +311,14 @@ namespace FWTCG.Systems
                     await Task.Delay(100);
                     if (gs.GameOver) return;
                 }
+
+                // DEV-27: player action phase ended
+                TurnStateMachine.TransitionTo(TurnStateMachine.State.Normal_ClosedLoop);
             }
             else
             {
+                // DEV-27: AI turn — no player input
+                TurnStateMachine.TransitionTo(TurnStateMachine.State.Normal_ClosedLoop);
                 Broadcast("[行动] AI 回合思考中…");
                 await _ai.TakeAction(gs, this, _combatSys, _scoreMgr, _entryEffects,
                                      _spellSys, _reactiveSys, _reactiveWindow,
