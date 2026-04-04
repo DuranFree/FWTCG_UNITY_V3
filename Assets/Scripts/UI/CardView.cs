@@ -126,8 +126,8 @@ namespace FWTCG.UI
         private GameObject _shieldFX;        // persistent Shield/Barrier FX
         private GameObject _shadowImage;     // offset shadow Image below card
         private bool       _idleFXSpawned;
-        private bool       _hasDamageYellow; // tracks ATK text yellow tint state
-        private int        _lastKnownHp = -1; // to detect damage for yellow flash
+        private bool       _hasDamageYellow; // unused, kept for test compat
+        private int        _lastKnownHp = -1; // unused, kept for test compat
 
         private void Awake()
         {
@@ -433,20 +433,6 @@ namespace FWTCG.UI
                         ? $"{_unit.CurrentHp}/{effAtk}"
                         : $"{effAtk}";
 
-                    // VFX-4: HP/ATK text turns yellow when unit took damage
-                    int curHp = _unit.CurrentHp;
-                    if (_lastKnownHp >= 0 && curHp < _lastKnownHp)
-                    {
-                        _atkText.color = Color.yellow;
-                        _hasDamageYellow = true;
-                    }
-                    else if (_hasDamageYellow && curHp >= _unit.CardData.Atk)
-                    {
-                        _atkText.color = Color.white;
-                        _hasDamageYellow = false;
-                    }
-                    _lastKnownHp = curHp;
-
                     // Glow when any modifier is active
                     bool modified = _unit.HasBuff || _unit.HasDebuff
                                  || _unit.AttachedEquipment != null
@@ -738,9 +724,7 @@ namespace FWTCG.UI
         private void RefreshAtkGlow(bool modified)
         {
             if (_atkText == null) return;
-            // VFX-4: preserve damage-yellow tint; only reset to white if not in yellow state
-            if (!_hasDamageYellow)
-                _atkText.color = Color.white;
+            _atkText.color = Color.white;
             RefreshStatGlow(ref _atkBreath, ref _atkGlowImg,
                 (RectTransform)_atkText.transform, modified);
         }
@@ -1670,11 +1654,11 @@ namespace FWTCG.UI
 
             var rt = go.AddComponent<RectTransform>();
             rt.anchorMin = Vector2.zero; rt.anchorMax = Vector2.one;
-            rt.offsetMin = new Vector2(3f, -5f); // offset down-right for shadow
-            rt.offsetMax = new Vector2(5f, -3f);
+            rt.offsetMin = new Vector2(4f, -8f); // offset down-right for shadow
+            rt.offsetMax = new Vector2(8f, -4f);
 
             var img = go.AddComponent<Image>();
-            img.color = new Color(0f, 0f, 0f, 0.35f);
+            img.color = new Color(0.02f, 0.04f, 0.08f, 0.55f); // dark navy, more visible on hex bg
             img.raycastTarget = false;
 
             _shadowImage = go;
@@ -1695,9 +1679,9 @@ namespace FWTCG.UI
             while (elapsed < fadeDur)
             {
                 elapsed += Time.deltaTime;
-                float a = Mathf.Lerp(0f, 0.35f, elapsed / fadeDur);
+                float a = Mathf.Lerp(0f, 0.55f, elapsed / fadeDur);
                 if (shadowImg != null)
-                    shadowImg.color = new Color(0f, 0f, 0f, a);
+                    shadowImg.color = new Color(0.02f, 0.04f, 0.08f, a);
                 yield return null;
             }
         }
@@ -1744,8 +1728,6 @@ namespace FWTCG.UI
             _idleFXSpawned = false;
             if (_shadowImage != null) { SafeDestroy(_shadowImage); _shadowImage = null; }
             transform.localRotation = Quaternion.identity;
-            _hasDamageYellow = false;
-            _lastKnownHp = -1;
         }
     }
 }

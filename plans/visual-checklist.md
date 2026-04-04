@@ -228,7 +228,7 @@
 - [ ] 传奇/特殊卡专属死亡粒子（death_fx override）— VFX-4（推迟：需 CardData 新增字段）
 - [x] 战场卡片阴影层（偏移半透明 Image，0.4s 延迟淡入 0.3s）— VFX-4
 - [x] 战场卡随机微倾斜（±1° Z 轴随机旋转，ClearBattlefieldVisuals 归零）— VFX-4
-- [x] HP/ATK 数值受击变黄（_lastKnownHp 追踪，HP 下降→黄色，恢复→白色）— VFX-4
+- ❌ HP/ATK 数值受击变黄 — 用户确认不需要（游戏无 HP 概念）— VFX-4 REMOVED
 
 ### VFX-6 — 掷硬币翻转动画
 - [ ] 硬币 scaleX 翻转动画（约 1.5s，正反面切换）— VFX-6
