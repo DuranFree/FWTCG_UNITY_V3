@@ -2832,36 +2832,6 @@ namespace FWTCG.Editor
             artRT.offsetMin = new Vector2(2f, 2f);
             artRT.offsetMax = new Vector2(-2f, -2f);
 
-            // ── VFX-7a: Frame overlay (gold/silver border, above art) ──
-            var frameGO = new GameObject("FrameOverlay");
-            frameGO.transform.SetParent(root.transform, false);
-            var frameImg = frameGO.AddComponent<Image>();
-            frameImg.color = Color.white;
-            frameImg.raycastTarget = false;
-            frameImg.preserveAspect = false;
-            frameImg.enabled = false; // enabled at runtime by CardView.Refresh
-            var frameRT = frameGO.GetComponent<RectTransform>();
-            frameRT.anchorMin = Vector2.zero;
-            frameRT.anchorMax = Vector2.one;
-            frameRT.offsetMin = Vector2.zero;
-            frameRT.offsetMax = Vector2.zero;
-
-            // ── VFX-7k: Glow overlay (ally green / enemy red, sprite-based) ──
-            var glowGO = new GameObject("GlowOverlay");
-            glowGO.transform.SetParent(root.transform, false);
-            var glowImg = glowGO.AddComponent<Image>();
-            var glowSpr = AssetDatabase.LoadAssetAtPath<Sprite>("Assets/Sprites/FX/card_glow.png");
-            if (glowSpr != null) glowImg.sprite = glowSpr;
-            glowImg.color = new Color(1f, 1f, 1f, 0f); // starts invisible
-            glowImg.raycastTarget = false;
-            glowImg.type = Image.Type.Sliced;
-            glowImg.enabled = false;
-            var glowRT = glowGO.GetComponent<RectTransform>();
-            glowRT.anchorMin = Vector2.zero;
-            glowRT.anchorMax = Vector2.one;
-            glowRT.offsetMin = new Vector2(-6f, -6f); // extend beyond card edges for glow
-            glowRT.offsetMax = new Vector2(6f, 6f);
-
             // ── Bottom half overlay (gradient fade from transparent to dark) ──
             var bottomOverlay = new GameObject("BottomOverlay");
             bottomOverlay.transform.SetParent(root.transform, false);
@@ -3054,11 +3024,43 @@ namespace FWTCG.Editor
             so.FindProperty("_schCostText").objectReferenceValue    = schText;
             so.FindProperty("_schCostBg").objectReferenceValue      = schBgImg;
             so.FindProperty("_exhaustedOverlay").objectReferenceValue = exhaustedImg;
-            so.FindProperty("_frameOverlay").objectReferenceValue  = frameImg;    // VFX-7a
-            so.FindProperty("_glowOverlay").objectReferenceValue   = glowImg;     // VFX-7k
             // VFX-3: wire dissolve death material (null-safe — material may not exist yet)
             var killDissolveMat = AssetDatabase.LoadAssetAtPath<Material>("Assets/Materials/KillDissolveFX.mat");
             so.FindProperty("_killDissolveMat").objectReferenceValue = killDissolveMat;
+
+            // ── VFX-7k: Glow overlay — second-to-last (covers text/black area, under frame) ──
+            var glowGO = new GameObject("GlowOverlay");
+            glowGO.transform.SetParent(root.transform, false);
+            var glowImg = glowGO.AddComponent<Image>();
+            var glowSpr = AssetDatabase.LoadAssetAtPath<Sprite>("Assets/Sprites/FX/card_glow.png");
+            if (glowSpr != null) glowImg.sprite = glowSpr;
+            glowImg.color = new Color(1f, 1f, 1f, 0f); // starts invisible
+            glowImg.raycastTarget = false;
+            glowImg.type = Image.Type.Sliced;
+            glowImg.enabled = false;
+            var glowRT = glowGO.GetComponent<RectTransform>();
+            glowRT.anchorMin = Vector2.zero;
+            glowRT.anchorMax = Vector2.one;
+            glowRT.offsetMin = new Vector2(-6f, -6f);
+            glowRT.offsetMax = new Vector2(6f, 6f);
+
+            // ── VFX-7a: Frame overlay — LAST child = topmost layer (covers glow) ──
+            var frameGO = new GameObject("FrameOverlay");
+            frameGO.transform.SetParent(root.transform, false);
+            frameGO.transform.SetAsLastSibling();
+            var frameImg = frameGO.AddComponent<Image>();
+            frameImg.color = Color.white;
+            frameImg.raycastTarget = false;
+            frameImg.preserveAspect = false;
+            frameImg.enabled = false; // enabled at runtime by CardView.Refresh
+            var frameRT = frameGO.GetComponent<RectTransform>();
+            frameRT.anchorMin = Vector2.zero;
+            frameRT.anchorMax = Vector2.one;
+            frameRT.offsetMin = Vector2.zero;
+            frameRT.offsetMax = Vector2.zero;
+
+            so.FindProperty("_glowOverlay").objectReferenceValue   = glowImg;     // VFX-7k
+            so.FindProperty("_frameOverlay").objectReferenceValue  = frameImg;    // VFX-7a
             so.ApplyModifiedPropertiesWithoutUndo();
 
             // Save as prefab
