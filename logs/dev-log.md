@@ -2,6 +2,36 @@
 
 ---
 
+## VFX-2：FX 粒子预制体 & 材质 — 2026-04-04
+
+**Status**: ✅ Completed
+**Tests**: 550/550 EditMode 全绿 🟢
+
+### 实现内容
+
+**FX Sprites（32 张）**：
+- 全部从 TCG Engine `TcgEngine/Sprites/FX/` 迁移到 `Assets/Sprites/FX/`
+- 含 .meta 文件（GUID 保留），材质引用自动解析
+
+**FX 材质（27 个）**：
+- 全部从 `TcgEngine/Materials/FX/` 迁移到 `Assets/Materials/FX/`
+- shader 引用：URP `ParticlesUnlit.shader`（GUID `0406db5a`）和 `Lit.shader`（GUID `933532a4`），均在项目 URP 14.0.12 中存在
+
+**FX Prefabs — 优先（14 个）**：
+- HitFX / Flame / ElectricFX / WaterFX / Leaf / Shield / Destroy / DestroyUI
+- Spawn / SpawnFire / SpawnForest / SpawnWater / Phoenix / RayGlow
+
+**FX Prefabs — 次要（9 个）**：
+- Poisoned / Silenced / Immune / RootFX / Shell / PotionFX / DamageFX / CastFX / Zzz
+
+**Decisions made**：
+- 所有资产带 .meta 一并复制，GUID 完整保留，prefab → material → sprite 引用链自动生效
+- 未修改任何 .cs 文件，零代码变更
+
+**Technical debt**: 无新增
+
+---
+
 ## VFX-1：Shader & 工具类导入 — 2026-04-04
 
 **Status**: ✅ Completed

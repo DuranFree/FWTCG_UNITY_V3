@@ -344,3 +344,66 @@
 - ✅ 异步交互锁（prompting 标记）→ async/await + TaskCompletionSource 实现 — DEV-4
 - ✅ 反应窗口系统（reactionWindowOpen 冻结 AI 行动）— ReactiveWindowUI + WaitIfReactionActive（DEV-4）
 - [ ] 符文操作待确认队列（pendingRunes，需维持中间状态）
+
+---
+
+## 十一、VFX 资产迁移功能（TCG Engine → FWTCG，VFX-1 ~ VFX-8）
+
+### VFX-1 — Shader & 工具类
+- [ ] ShaderDissolve.shadergraph 导入并在 URP 14.0.11 编译通过 — VFX-1
+- [ ] ShaderHolo.shadergraph 导入并编译通过 — VFX-1
+- [ ] Grayscale.shader 导入并可挂 UI Image — VFX-1
+- [ ] KillDissolveFX.mat / GrayscaleUI.mat 导入 — VFX-1
+- [ ] FXTool.cs 移植（DoFX/DoSnapFX/DoProjectileFX，适配 FWTCG 命名空间）— VFX-1
+- [ ] AnimMatFX.cs 移植（材质属性插值，Dissolve 动画驱动）— VFX-1
+
+### VFX-2 — FX 粒子预制体 & 材质
+- [x] 32 张 FX Sprite 导入（Assets/Sprites/FX/）— VFX-2
+- [x] 27 个 FX 材质导入（Assets/Materials/FX/）— VFX-2
+- [x] 优先 14 个 FX Prefab 导入并材质引用完整（HitFX/Flame/ElectricFX/WaterFX/Leaf/Shield/Destroy/DestroyUI/Spawn/SpawnFire/SpawnForest/SpawnWater/Phoenix/RayGlow）— VFX-2
+- [x] 次要 9 个 FX Prefab 导入（Poisoned/Silenced/Immune/RootFX/Shell/PotionFX/DamageFX/CastFX/Zzz）— VFX-2
+
+### VFX-3 — 卡牌死亡溶解效果
+- [ ] CardView.DeathRoutine 集成 Dissolve 动画（动态克隆 KillDissolveFX 材质）— VFX-3
+- [ ] AnimMatFX 驱动 noise_fade 0→1（约 0.6s）— VFX-3
+- [ ] 溶解完成后正确销毁 GameObject — VFX-3
+- [ ] 材质缺失时退回原缩放+淡出 fallback — VFX-3
+
+### VFX-4 — VFXResolver 自动映射
+- [ ] VFXResolver.cs 创建（RuneType × EffectMechanic → FX 映射，50张卡）— VFX-4
+- [ ] FXConfig 数据结构（prefab/position/delay/repeatCount/tint）— VFX-4
+- [ ] SpellVFX.OnCardPlayed 接入 VFXResolver — VFX-4
+- [ ] SpellVFX.OnUnitDied 触发 HitFX + Destroy prefab — VFX-4
+- [ ] 护盾/壁垒关键词 → Shield prefab 常驻（CardView OnEnable）— VFX-4
+- [ ] 抽牌事件 → Spawn 星光 FX — VFX-4
+
+### VFX-5 — 音频框架升级
+- [ ] AudioManager 重写为 AudioTool 通道制（10+ 通道）— VFX-5
+- [ ] 优先级系统（高优先级打断低优先级）— VFX-5
+- [ ] 淡入淡出支持（FadeIn/FadeOut 协程）— VFX-5
+- [ ] 原有 9 个 SFX 字段接口保持兼容 — VFX-5
+- [ ] ButtonAudio 组件移植（按钮自动附加点击音效）— VFX-5
+
+### VFX-6 — 掷硬币 2D 翻转动画
+- [ ] CoinFlipFX.cs（scaleX 1→0→-1 循环，约 1.5s）— VFX-6
+- [ ] scaleX 过零点时切换正/反面 sprite — VFX-6
+- [ ] 结束定格结果面 + 金色粒子爆发 — VFX-6
+- [ ] StartupFlowUI 接入 CoinFlipFX 替换纯文字显示 — VFX-6
+
+### VFX-7 — UI 视觉迁移
+- [ ] 卡牌金/银边框 sprite（frame_gold.png / frame_silver.png）+ CardView frameOverlay 层 — VFX-7a
+- [ ] IconBar.cs（法力/符能离散图标条，N icon 亮起/暗淡）— VFX-7b
+- [ ] GameUI 符能显示改为 IconBar 图标行 — VFX-7b
+- [ ] 胜利/失败屏增强（光效 + 粒子爆发 + 奖励数字滚动）— VFX-7c
+- [ ] End Turn 按钮替换 sprite（button_endturn.png）— VFX-7d
+- [ ] CardDragHandler 拖拽 ±10° Z 轴旋转（Lerp rotate_speed=4f）— VFX-7e
+- [ ] 回合倒计时 <10s 脉冲动画（文字白→红 + 大小脉冲）— VFX-7f
+- [ ] CardBackManager.cs（卡背切换框架，PlayerPrefs 持久化）— VFX-7g
+- [ ] EventBanner.ShowWarning()（红底白字 + scale 0→1 弹入 EaseOutBack + 1.5s 淡出）— VFX-7h
+- [ ] 菜单背景替换（bg_menu.png 替换 HexGrid shader 背景）— VFX-7i
+
+### VFX-8 — 投射物系统（可选）
+- [ ] Projectile.cs 移植（速度/轨迹/到达回调）— VFX-8
+- [ ] FXTool.DoProjectileFX 扩展（起点/终点/prefab/onArrived）— VFX-8
+- [ ] 法术选目标后投射物飞行（0.3-0.5s 抛物弧线）— VFX-8
+- [ ] 投射物到达触发 HitFX — VFX-8

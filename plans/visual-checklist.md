@@ -195,3 +195,48 @@
 - ✅ 中央分隔线能量球（DividerOrb 18px，3.5s 正弦振荡）— DEV-23（同三节）
 - ✅ 角落宝石脉冲（CornerGem 4s alpha 脉冲）— DEV-23（同三节）
 - ✅ 中心符文旋转（SigilOuter/Inner 双层旋转）— DEV-23（同三节）
+
+---
+
+## 十六、VFX 资产迁移视觉（TCG Engine → FWTCG，VFX-1 ~ VFX-8）
+
+### VFX-1 — Shader 导入
+- [ ] ShaderDissolve（溶解死亡效果，noise_fade 0→1 驱动）— VFX-1
+- [ ] ShaderHolo（传奇/稀有卡全息光效）— VFX-1
+- [ ] Grayscale（卡牌禁用/耗尽灰度态）— VFX-1
+
+### VFX-2 — FX 粒子预制体
+- [x] HitFX（命中爆炸粒子）— VFX-2
+- [x] Flame（火焰粒子效果）— VFX-2
+- [x] ElectricFX（闪电/眩晕粒子）— VFX-2
+- [x] WaterFX（水元素粒子）— VFX-2
+- [x] Leaf（植物/叶片粒子）— VFX-2
+- [x] Shield（护盾/壁垒粒子）— VFX-2
+- [x] Destroy/DestroyUI（死亡爆炸粒子）— VFX-2
+- [x] Spawn/SpawnFire/SpawnForest/SpawnWater（召唤粒子）— VFX-2
+- [x] Phoenix（凤凰死亡保护粒子）— VFX-2
+
+### VFX-3 — 卡牌死亡溶解
+- [ ] 单位阵亡时播放溶解动画（噪点溶解 0.6s，替代原缩放淡出）— VFX-3
+
+### VFX-4 — VFXResolver 自动映射视觉
+- [ ] 打出法术牌时自动触发对应元素 FX（RuneType 着色）— VFX-4
+- [ ] 护盾/壁垒关键词单位显示 Shield prefab 常驻光效 — VFX-4
+- [ ] 抽牌事件触发 Spawn 星光粒子 — VFX-4
+
+### VFX-6 — 掷硬币翻转动画
+- [ ] 硬币 scaleX 翻转动画（约 1.5s，正反面切换）— VFX-6
+- [ ] 落定后金色粒子爆发 — VFX-6
+
+### VFX-7 — UI 视觉迁移
+- [ ] 卡牌金色边框叠加层（frame_gold.png，传奇/高稀有度）— VFX-7a
+- [ ] 卡牌银色边框叠加层（frame_silver.png，普通稀有度）— VFX-7a
+- [ ] 法力/符能离散图标条（IconBar，图标亮/暗替代纯文字）— VFX-7b
+- [ ] 胜利屏光效 + 粒子爆发（win_glow + win_particles）— VFX-7c
+- [ ] 失败屏灰色调 — VFX-7c
+- [ ] 奖励数字滚动动画（MoveTowards 递增）— VFX-7c
+- [ ] End Turn 按钮专用 sprite（button_endturn.png）— VFX-7d
+- [ ] 手牌拖拽 ±10° 旋转（根据 deltaX 方向，Lerp 过渡）— VFX-7e
+- [ ] 回合倒计时 <10s 脉冲（文字白→红 + 大小脉冲）— VFX-7f
+- [ ] EventBanner 警告变体（红底白字 + EaseOutBack 弹入 + 1.5s 淡出）— VFX-7h
+- [ ] 菜单背景替换为 bg_menu.png（替代 HexGrid shader 背景）— VFX-7i
