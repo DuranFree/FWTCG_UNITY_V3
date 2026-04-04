@@ -128,16 +128,26 @@
   - 先调用 `save_scene` 清除当前 dirty 状态
   - 再查 memory 获取项目指定方式执行场景重建
   - memory 中无记录 → 询问用户"项目是否有场景重建方式"，用户回答后立即存入 memory，没有则跳过此步
+- **MCP 全量测试超时时，优先分批跑（比 batchmode 快很多）：**
+  - 按测试类/命名空间拆分多次 `run_tests(testFilter=...)`，每批控制在合理数量
+  - 分批全部通过 = 等价于全量全绿
+  - 分批也超时 → 再退回 batchmode
+- **MCP run_tests 超时后禁止立即重试：** 超时不代表测试失败，只是 MCP 等不到结果。TestRunner 可能仍在后台执行，立即重试会导致请求排队堆积。超时后必须：
+  1. 等待 30-60 秒，让 TestRunner 有时间跑完
+  2. 用 `get_console_logs` 查看控制台输出，判断测试是否已完成（看有无测试结果日志）
+  3. 已完成 → 根据日志判断结果，不需要重跑
+  4. 未完成且无新输出（确认卡死）→ 调用 `recompile_scripts` 重置 TestRunner 队列，确认编译通过后再发下一次测试请求
 - MCP run_tests 出错 / 超时 / 无响应时，**必须按以下顺序排查，不得直接杀编辑器**：
-  1. 等待 30 秒后重试 MCP（可能正在编译）
-  2. 仍无响应 → 再等待 30 秒后重试 MCP（最多等待 2 次共 1 分钟）
-  3. 仍无响应 → 调用 `save_scene` 探测状态：
+  1. 先尝试分批跑测试（见上条）
+  2. 等待 30 秒后重试 MCP（可能正在编译）
+  3. 仍无响应 → 再等待 30 秒后重试 MCP（最多等待 2 次共 1 分钟）
+  4. 仍无响应 → 调用 `save_scene` 探测状态：
      - `save_scene` 报 "play mode" 错误 → 立刻停止 Play Mode（`execute_menu_item("Edit/Play")`），再重试 run_tests
      - `save_scene` 成功 → 说明不在 Play Mode，等待编译完成后重试 MCP
-  4. 仍无响应 → 停止 Play Mode（如尚未停止）
-  5. 重试 MCP
-  6. 等待编译完成
-  7. 再次重试 MCP
+  5. 仍无响应 → 停止 Play Mode（如尚未停止）
+  6. 重试 MCP
+  7. 等待编译完成
+  8. 再次重试 MCP
   - 以上全部完成后仍然失败 / 卡死 → 强制关闭引擎，切换 batchmode / headless，告知用户：`⚠️ 已强制关闭 [引擎名]，正在后台启动测试...`
     - Windows：`cmd.exe //C "taskkill /F /IM 进程名.exe"`，不可直接调用 taskkill
     - 关闭后必须用进程列表确认进程已退出（`tasklist` / `ps`），验证失败则重试，不得假设成功
