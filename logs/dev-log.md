@@ -1697,3 +1697,35 @@
 - SpellShowcaseUI.cs 编译错误：CardData.Art 不存在 → 修正为 CardData.ArtSprite
 
 **Tests**: 312/312 EditMode 全绿（含 DEV16ShowcaseTests 15项）
+
+---
+
+## VFX-3：卡牌死亡溶解效果 — 2026-04-04
+
+**Status**: ✅ Completed
+
+**What was done**:
+- CardView.cs 新增 `_killDissolveMat`（SerializedField，SceneBuilder 连线）+ `_clonedDissolveMat` 运行时克隆追踪
+- `DeathRoutine` Phase A 提取为 `DissolveOrFallbackRoutine`（协程）：
+  - 有材质时：克隆 KillDissolveFX.mat → `_cardBg.material = cloned` → `AnimMatFX.SetFloat("noise_fade", 1f, 0.6s)` 驱动溶解 + 子元素同步 alpha 淡出
+  - 无材质时：原缩放+红色闪烁（0.3s）fallback
+  - 溶解/fallback 完成后 Phase B（ghost 贝塞尔弧线飞向弃牌堆）保持不变
+- 动画结束后 `Destroy(gameObject)` 清理卡牌 GO
+- `OnDestroy` 新增 `_cardBg.material = null` + `SafeDestroy(_clonedDissolveMat)` 防止协程中断时悬空引用（Codex HIGH-1 修复）
+- SceneBuilder.CreateCardPrefab() 连线 KillDissolveFX.mat → `_killDissolveMat`
+- VFX3DissolveTests.cs 新建（10 项测试：AnimMatFX API、材质属性、CardView 字段、fallback 安全）
+
+**Decisions made**:
+- dissolve 路径只对 `_cardBg` 应用着色器，其余子元素同步 alpha 淡出（非 CanvasGroup，避免遮挡着色器效果）
+- `dissolveDone` bool + 手动 while 循环代替 `WaitUntil`，配合 timeout 兜底防止协程永久挂起
+
+**Technical debt**:
+- MEDIUM: AnimMatFX.Create 复用组件存在竞态隐患（当前路径安全）
+- MEDIUM: fallback 路径红色叠加是累积而非从原始值插值（低帧率轻微视觉偏差）
+- LOW: dissolve 路径 Phase B ghost 大小仍为 0.6x（dissolve 不缩放卡牌，轻微不一致）
+
+**Problems encountered**:
+- `float elapsed` 变量提取后 Phase B 丢失声明 → 补加 `float elapsed = 0f`
+- 测试用 `SendMessage("Update")` 触发 Unity `ShouldRunBehaviour()` 断言 → 改为直接测试 API 调用
+
+**Tests**: 492/492 EditMode 全绿（含 VFX3DissolveTests 10项）

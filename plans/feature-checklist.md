@@ -364,10 +364,10 @@
 - [x] 次要 9 个 FX Prefab 导入（Poisoned/Silenced/Immune/RootFX/Shell/PotionFX/DamageFX/CastFX/Zzz）— VFX-2
 
 ### VFX-3 — 卡牌死亡溶解效果
-- [ ] CardView.DeathRoutine 集成 Dissolve 动画（动态克隆 KillDissolveFX 材质）— VFX-3
-- [ ] AnimMatFX 驱动 noise_fade 0→1（约 0.6s）— VFX-3
-- [ ] 溶解完成后正确销毁 GameObject — VFX-3
-- [ ] 材质缺失时退回原缩放+淡出 fallback — VFX-3
+- [x] CardView.DeathRoutine 集成 Dissolve 动画（动态克隆 KillDissolveFX 材质）— VFX-3
+- [x] AnimMatFX 驱动 noise_fade 0→1（约 0.6s）— VFX-3
+- [x] 溶解完成后正确销毁 GameObject — VFX-3
+- [x] 材质缺失时退回原缩放+淡出 fallback — VFX-3
 
 ### VFX-4 — VFXResolver 自动映射
 - [ ] VFXResolver.cs 创建（RuneType × EffectMechanic → FX 映射，50张卡）— VFX-4
@@ -376,6 +376,11 @@
 - [ ] SpellVFX.OnUnitDied 触发 HitFX + Destroy prefab — VFX-4
 - [ ] 护盾/壁垒关键词 → Shield prefab 常驻（CardView OnEnable）— VFX-4
 - [ ] 抽牌事件 → Spawn 星光 FX — VFX-4
+- [ ] Per-card idle_fx 常驻粒子（CardData 挂 idle_fx prefab，上场 1s 后实例化，VFXResolver 按 RuneType 自动映射）— VFX-4
+- [ ] Per-card spawn_fx / death_fx 覆盖（CardData 自定义入场/死亡粒子，覆盖默认 Dissolve，传奇卡专属特效）— VFX-4
+- [ ] 卡牌阴影层（Image 偏移 shadow，0.4s 延迟显示，模拟落地感）— VFX-4
+- [ ] 战场卡随机微旋转（上场时 Random.Range(-1f, 1f) 度 Z 轴旋转）— VFX-4
+- [ ] HP/ATK 受击数值变黄（damage > 0 时 Color.yellow，恢复后 Color.white）— VFX-4
 
 ### VFX-5 — 音频框架升级
 - [ ] AudioManager 重写为 AudioTool 通道制（10+ 通道）— VFX-5
@@ -401,6 +406,16 @@
 - [ ] CardBackManager.cs（卡背切换框架，PlayerPrefs 持久化）— VFX-7g
 - [ ] EventBanner.ShowWarning()（红底白字 + scale 0→1 弹入 EaseOutBack + 1.5s 淡出）— VFX-7h
 - [ ] 菜单背景替换（bg_menu.png 替换 HexGrid shader 背景）— VFX-7i
+- [ ] 战场 Slot 高亮平滑过渡（MoveTowards 2f，target_alpha 0↔1，消除瞬变）— VFX-7j
+- [ ] 卡牌双色发光叠加层（card_glow.png，glow_ally绿/glow_enemy红，MoveTowards 4f，悬停/选中时亮起）— VFX-7k
+- [ ] 手牌发光改为条件显示（IsFocus() || IsDrag() 时才 enabled，不再常驻）— VFX-7k
+- [ ] 装备卡 equipGlowImage 发光（同双色逻辑，focus主卡时关闭）— VFX-7l
+- [ ] 按钮 focusHighlight Image 子层（focus && interactable 时启用，CanvasGroup MoveTowards 5f）— VFX-7m
+- [ ] 战斗冲向动画替换为 3 阶段（飞出 0.3s + 停顿 0.1s + 回弹 0.3s）— VFX-7n
+- [ ] 状态效果粒子动态挂载（按 StatusType 生成/销毁 prefab，替换 StunPulseRoutine 等协程）— VFX-7o
+- [ ] MouseLineFX 瞄准连线（从卡牌出发的点链到鼠标，拖拽法术/选中单位时激活，颜色区分合法/非法目标）— VFX-7p
+- [ ] AimTargetFX 目标准星（拖拽 IsRequireTarget 卡时鼠标位置显示准星 prefab，松手时销毁）— VFX-7q
+- [ ] 手牌扇形排列（每张牌根据位置计算倾斜角度，最大 ±15°，摸牌/打牌时平滑重排）— VFX-7r
 
 ### VFX-8 — 投射物系统（可选）
 - [ ] Projectile.cs 移植（速度/轨迹/到达回调）— VFX-8

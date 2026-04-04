@@ -2980,6 +2980,9 @@ namespace FWTCG.Editor
             so.FindProperty("_schCostText").objectReferenceValue    = schText;
             so.FindProperty("_schCostBg").objectReferenceValue      = schBgImg;
             so.FindProperty("_exhaustedOverlay").objectReferenceValue = exhaustedImg;
+            // VFX-3: wire dissolve death material (null-safe — material may not exist yet)
+            var killDissolveMat = AssetDatabase.LoadAssetAtPath<Material>("Assets/Materials/KillDissolveFX.mat");
+            so.FindProperty("_killDissolveMat").objectReferenceValue = killDissolveMat;
             so.ApplyModifiedPropertiesWithoutUndo();
 
             // Save as prefab

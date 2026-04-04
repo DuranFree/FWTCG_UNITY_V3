@@ -996,6 +996,7 @@ MonoBehaviour:
   _schCostText: {fileID: 7562912139155774848}
   _schCostBg: {fileID: 4344699952845671619}
   _exhaustedOverlay: {fileID: 1329432453292686081}
+  _killDissolveMat: {fileID: 2100000, guid: 209a312c80670de4ca59892424609079, type: 2}
 --- !u!114 &6011916990046434340
 MonoBehaviour:
   m_ObjectHideFlags: 0

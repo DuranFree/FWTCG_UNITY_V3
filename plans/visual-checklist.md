@@ -217,12 +217,18 @@
 - [x] Phoenix（凤凰死亡保护粒子）— VFX-2
 
 ### VFX-3 — 卡牌死亡溶解
-- [ ] 单位阵亡时播放溶解动画（噪点溶解 0.6s，替代原缩放淡出）— VFX-3
+- [x] 单位阵亡时播放溶解动画（噪点溶解 0.6s，替代原缩放淡出）— VFX-3
 
 ### VFX-4 — VFXResolver 自动映射视觉
 - [ ] 打出法术牌时自动触发对应元素 FX（RuneType 着色）— VFX-4
 - [ ] 护盾/壁垒关键词单位显示 Shield prefab 常驻光效 — VFX-4
 - [ ] 抽牌事件触发 Spawn 星光粒子 — VFX-4
+- [ ] 战场单位常驻环境粒子（idle_fx，火牌有火焰飘动、冰牌有冰晶，上场 1s 后出现）— VFX-4
+- [ ] 传奇/特殊卡专属入场粒子（spawn_fx override，替代默认 Spawn FX）— VFX-4
+- [ ] 传奇/特殊卡专属死亡粒子（death_fx override，替代默认 Destroy FX）— VFX-4
+- [ ] 战场卡片阴影层（偏移半透明阴影，0.4s 延迟淡入，模拟落地感）— VFX-4
+- [ ] 战场卡随机微倾斜（每张卡 ±1° 内随机旋转，消除机器感）— VFX-4
+- [ ] HP/ATK 数值受击变黄（单位受伤时数值黄色，恢复后白色）— VFX-4
 
 ### VFX-6 — 掷硬币翻转动画
 - [ ] 硬币 scaleX 翻转动画（约 1.5s，正反面切换）— VFX-6
@@ -240,3 +246,13 @@
 - [ ] 回合倒计时 <10s 脉冲（文字白→红 + 大小脉冲）— VFX-7f
 - [ ] EventBanner 警告变体（红底白字 + EaseOutBack 弹入 + 1.5s 淡出）— VFX-7h
 - [ ] 菜单背景替换为 bg_menu.png（替代 HexGrid shader 背景）— VFX-7i
+- [ ] 战场 Slot / 目标区域高亮平滑淡入淡出（MoveTowards 2f，消除瞬变，参考 TCG Engine BSlot 模式）— VFX-7j
+- [ ] 卡牌己方绿色发光 / 敌方红色发光（card_glow sprite，悬停/选中时淡入，离开时淡出）— VFX-7k
+- [ ] 手牌发光仅在悬停/拖拽时显示（不再常驻）— VFX-7k
+- [ ] 装备卡发光叠加层（equip_glow，双色，focus主卡时隐藏）— VFX-7l
+- [ ] 按钮焦点高亮 Image 层（focus && interactable 时淡入，否则淡出）— VFX-7m
+- [ ] 战斗冲向动画 3 阶段（飞出冲击感 + 停顿 + 回弹，比原版 ghost overlay 更有力度）— VFX-7n
+- [ ] 状态粒子 FX（眩晕→ElectricFX / 法盾→Shield / 休眠→Zzz，状态结束时自动销毁）— VFX-7o
+- [ ] MouseLineFX 点链瞄准线（从卡牌出发到鼠标，点间距均匀，合法目标绿色/非法红色）— VFX-7p
+- [ ] AimTargetFX 准星光环（拖拽法术时鼠标位置显示准星，半透明脉冲动效）— VFX-7q
+- [ ] 手牌扇形展开（靠边的牌倾斜，形成自然扇形，摸牌/打牌后平滑重排）— VFX-7r

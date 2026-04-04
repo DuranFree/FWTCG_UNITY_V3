@@ -4,6 +4,7 @@ using UnityEngine;
 using UnityEngine.UI;
 using UnityEngine.EventSystems;
 using FWTCG.Core;
+using FWTCG.FX;
 
 namespace FWTCG.UI
 {
@@ -34,6 +35,10 @@ namespace FWTCG.UI
 
         // DEV-10: exhausted overlay (gray dimming)
         [SerializeField] private Image _exhaustedOverlay;
+
+        // VFX-3: dissolve death material (KillDissolveFX.mat, wired by SceneBuilder)
+        [SerializeField] private Material _killDissolveMat;
+        private Material _clonedDissolveMat; // per-instance clone, destroyed in OnDestroy
 
         private UnitInstance _unit;
 
@@ -196,6 +201,9 @@ namespace FWTCG.UI
             _badgeScaleCos.Clear();
             // H-3: destroy floating tooltip to prevent canvas leak when card is removed
             if (_statusTooltip != null) { Destroy(_statusTooltip); _statusTooltip = null; _currentStatusTip = null; }
+            // VFX-3: clear dissolve material reference before destroying clone (prevents dangling ref if coroutine was interrupted)
+            if (_cardBg != null) _cardBg.material = null;
+            if (_clonedDissolveMat != null) { SafeDestroy(_clonedDissolveMat); _clonedDissolveMat = null; }
             // DEV-30 V6: destroy cloned shine material
             if (_foilSweep != null) StopCoroutine(_foilSweep);
             if (_shineMat  != null) { SafeDestroy(_shineMat); _shineMat = null; }
@@ -1384,25 +1392,9 @@ namespace FWTCG.UI
 
             if (flyTarget.HasValue && canvas != null)
             {
-                // ── Phase A: shrink to 60%, add red tint ─────────────────────
-                const float phaseA = 0.30f;
-                float elapsed = 0f;
-                var images = GetComponentsInChildren<Image>(true);
-                var texts  = GetComponentsInChildren<Text>(true);
-                while (elapsed < phaseA)
-                {
-                    elapsed += Time.deltaTime;
-                    float t = elapsed / phaseA;
-                    float ease = t * (2f - t); // EaseOutQuad
-                    transform.localScale = startScale * Mathf.Lerp(1f, 0.6f, ease);
-                    // slight red tint flash
-                    float tint = Mathf.Sin(t * Mathf.PI) * 0.35f;
-                    foreach (var img in images)
-                    {
-                        var c = img.color; c.r = Mathf.Min(1f, c.r + tint); img.color = c;
-                    }
-                    yield return null;
-                }
+                // ── Phase A: dissolve (VFX-3) or shrink+tint fallback ────────
+                yield return StartCoroutine(DissolveOrFallbackRoutine(startScale));
+
 
                 // ── Phase B: ghost flies to discard pile ─────────────────────
                 const float phaseB = 0.50f;
@@ -1449,7 +1441,7 @@ namespace FWTCG.UI
                 // Hide the real card immediately
                 gameObject.SetActive(false);
 
-                elapsed = 0f;
+                float elapsed = 0f;
                 while (elapsed < phaseB)
                 {
                     elapsed += Time.deltaTime;
@@ -1476,8 +1468,74 @@ namespace FWTCG.UI
             }
             else
             {
-                // ── Fallback: original shrink-to-zero ────────────────────────
-                const float duration = 0.45f;
+                // ── No flyTarget: dissolve (VFX-3) or shrink-to-zero fallback ─
+                yield return StartCoroutine(DissolveOrFallbackRoutine(startScale));
+            }
+
+            _death = null;
+            // VFX-3: destroy card GO after animation completes
+            if (this != null && gameObject != null)
+                Destroy(gameObject);
+        }
+
+        // ── VFX-3: Dissolve phase (or shrink+fade fallback if material unavailable) ──
+        // Drives AnimMatFX noise_fade 0→1 on a cloned KillDissolveFX material assigned to
+        // _cardBg; simultaneously fades all child images/texts. Falls back to the original
+        // Phase-A shrink+red-tint (flyTarget path) or shrink+fade (no-flyTarget path).
+        private IEnumerator DissolveOrFallbackRoutine(Vector3 startScale)
+        {
+            bool useDissolve = _killDissolveMat != null && _cardBg != null;
+
+            if (useDissolve)
+            {
+                const float dissolveTime = 0.6f;
+                var cloned = Instantiate(_killDissolveMat);
+                _clonedDissolveMat = cloned;
+                cloned.SetFloat("noise_fade", 0f);
+                _cardBg.material = cloned;
+
+                // AnimMatFX drives noise_fade 0 → 1
+                bool dissolveDone = false;
+                var animFX = AnimMatFX.Create(gameObject, cloned);
+                animFX.SetFloat("noise_fade", 1f, dissolveTime);
+                animFX.Callback(0f, () => dissolveDone = true);
+
+                // Capture child element original colors for parallel fade
+                var images = GetComponentsInChildren<Image>(true);
+                var texts  = GetComponentsInChildren<Text>(true);
+                Color[] imgColors = new Color[images.Length];
+                Color[] txtColors = new Color[texts.Length];
+                for (int i = 0; i < images.Length; i++) imgColors[i] = images[i].color;
+                for (int i = 0; i < texts.Length;  i++) txtColors[i] = texts[i].color;
+
+                float elapsed = 0f;
+                const float timeout = dissolveTime + 0.25f; // safety
+                while (!dissolveDone && elapsed < timeout)
+                {
+                    elapsed += Time.deltaTime;
+                    float t = Mathf.Clamp01(elapsed / dissolveTime);
+                    float alpha = 1f - t;
+                    // Fade non-background elements (background dissolves via shader)
+                    for (int i = 0; i < images.Length; i++)
+                    {
+                        if (images[i] == _cardBg) continue;
+                        var c = imgColors[i]; c.a = imgColors[i].a * alpha; images[i].color = c;
+                    }
+                    for (int i = 0; i < texts.Length; i++)
+                    {
+                        var c = txtColors[i]; c.a = txtColors[i].a * alpha; texts[i].color = c;
+                    }
+                    yield return null;
+                }
+
+                // Cleanup cloned material
+                _cardBg.material = null;
+                if (_clonedDissolveMat != null) { SafeDestroy(_clonedDissolveMat); _clonedDissolveMat = null; }
+            }
+            else
+            {
+                // ── Fallback: shrink + red tint (0.3s) matching original Phase A ─
+                const float duration = 0.30f;
                 float elapsed = 0f;
                 var images = GetComponentsInChildren<Image>(true);
                 var texts  = GetComponentsInChildren<Text>(true);
@@ -1490,22 +1548,22 @@ namespace FWTCG.UI
                 {
                     elapsed += Time.deltaTime;
                     float t = elapsed / duration;
-                    float scale = Mathf.Lerp(1f, 0f, t * t);
-                    transform.localScale = startScale * scale;
-                    float alpha = 1f - t;
-                    for (int i = 0; i < images.Length; i++)
+                    float ease = t * (2f - t); // EaseOutQuad
+                    transform.localScale = startScale * Mathf.Lerp(1f, 0.6f, ease);
+                    float tint = Mathf.Sin(t * Mathf.PI) * 0.35f;
+                    foreach (var img in images)
                     {
-                        var c = imgColors[i]; c.a *= alpha; images[i].color = c;
+                        var c = img.color; c.r = Mathf.Min(1f, c.r + tint); img.color = c;
                     }
+                    // Fade texts during fallback
+                    float alpha = 1f - t;
                     for (int i = 0; i < texts.Length; i++)
                     {
-                        var c = txtColors[i]; c.a *= alpha; texts[i].color = c;
+                        var c = txtColors[i]; c.a = txtColors[i].a * alpha; texts[i].color = c;
                     }
                     yield return null;
                 }
             }
-
-            _death = null;
         }
     }
 }

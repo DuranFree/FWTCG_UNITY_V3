@@ -3,7 +3,7 @@
     "mcp-unity": {
       "command": "node",
       "args": [
-        "E:/claudeCode/unity/FWTCG_UNITY_V3/Library/PackageCache/com.gamelovers.mcp-unity@d50c83a273/Server~/build/index.js"
+        "E:/claudeCode/unity/FWTCG_UNITY_V3/Packages/com.gamelovers.mcp-unity/Server~/build/index.js"
       ]
     }
   }
