@@ -61,17 +61,48 @@ namespace FWTCG.UI
             if (!this) return;
             if (!isActiveAndEnabled || _vfxLayer == null) return;
 
+            // Resolve the card's canvas-local position for FX placement
+            Vector2 cardPos = ResolveCardCanvasPos(card, owner);
+
             // VFX-4: Spawn resolved FX prefabs
             if (card?.CardData != null)
             {
-                float y = (owner == GameRules.OWNER_PLAYER) ? -180f : 180f;
                 var configs = VFXResolver.Resolve(card.CardData);
-                StartCoroutine(SpawnResolvedFX(configs, new Vector3(0f, y, 0f)));
+                StartCoroutine(SpawnResolvedFX(configs, new Vector3(cardPos.x, cardPos.y, 0f)));
             }
 
             // Original radial burst (kept as ambient particle layer)
-            float burstY = (owner == GameRules.OWNER_PLAYER) ? -180f : 180f;
-            StartCoroutine(BurstParticles(new Vector2(0f, burstY), GetCardBurstColor(card), 12));
+            StartCoroutine(BurstParticles(cardPos, GetCardBurstColor(card), 12));
+        }
+
+        /// <summary>
+        /// VFX-6 fix: Get card's actual canvas-local position via GameUI.FindCardView.
+        /// Falls back to hardcoded ±180 if CardView not yet placed in UI.
+        /// </summary>
+        private Vector2 ResolveCardCanvasPos(UnitInstance card, string owner)
+        {
+            float fallbackY = (owner == GameRules.OWNER_PLAYER) ? -180f : 180f;
+            Vector2 fallback = new Vector2(0f, fallbackY);
+
+            if (GameUI.Instance == null || card == null) return fallback;
+
+            var cv = GameUI.Instance.FindCardView(card);
+            if (cv == null) return fallback;
+
+            var cvRT = cv.GetComponent<RectTransform>();
+            if (cvRT == null) return fallback;
+
+            // Convert world position to vfxLayer-local coordinates
+            var layerRT = _vfxLayer as RectTransform;
+            if (layerRT == null) layerRT = _vfxLayer.GetComponent<RectTransform>();
+            if (layerRT == null) return fallback;
+
+            Vector2 screenPt = RectTransformUtility.WorldToScreenPoint(null, cvRT.position);
+            if (RectTransformUtility.ScreenPointToLocalPointInRectangle(
+                    layerRT, screenPt, null, out Vector2 localPos))
+                return localPos;
+
+            return fallback;
         }
 
         private void OnUnitDiedAtPos(UnitInstance unit, Vector2 canvasPos)

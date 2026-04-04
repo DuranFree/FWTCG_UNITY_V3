@@ -389,11 +389,11 @@ namespace FWTCG.UI
             var parentRT = _coinFlipPanel.GetComponent<RectTransform>();
             if (parentRT == null) yield break;
 
-            // Convert coin center to panel-local position
-            Vector2 center = origin.anchoredPosition;
-            var coinParent = origin.parent as RectTransform;
-            if (coinParent != null && coinParent != parentRT)
-                center += coinParent.anchoredPosition;
+            // Convert coin world position to panel-local coordinates
+            // (anchoredPosition math breaks under VerticalLayoutGroup)
+            Vector2 screenPt = RectTransformUtility.WorldToScreenPoint(null, origin.position);
+            RectTransformUtility.ScreenPointToLocalPointInRectangle(
+                parentRT, screenPt, null, out Vector2 center);
 
             var rts    = new RectTransform[COIN_BURST_COUNT];
             var imgs   = new Image[COIN_BURST_COUNT];
