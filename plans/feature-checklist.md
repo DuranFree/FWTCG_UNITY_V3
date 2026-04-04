@@ -416,7 +416,7 @@
 - [x] 状态效果粒子动态挂载（按 StatusType 生成/销毁 prefab，替换 StunPulseRoutine 等协程）— VFX-7o
 - [x] MouseLineFX 瞄准连线（从卡牌出发的点链到鼠标，拖拽法术/选中单位时激活，颜色区分合法/非法目标）— VFX-7p
 - [x] AimTargetFX 目标准星（拖拽 IsRequireTarget 卡时鼠标位置显示准星 prefab，松手时销毁）— VFX-7q
-- [x] 手牌扇形排列（每张牌根据位置计算倾斜角度，最大 ±15°，摸牌/打牌时平滑重排）— VFX-7r
+- ❌ 手牌扇形排列 — 用户确认不需要，保留水平排列 — VFX-7r REMOVED
 
 ### VFX-8 — 投射物系统（可选）
 - [ ] Projectile.cs 移植（速度/轨迹/到达回调）— VFX-8

@@ -221,12 +221,6 @@ namespace FWTCG.Tests
             Assert.LessOrEqual(AimTargetFX.ALPHA_MAX, 1f);
         }
 
-        // ── 7r: Hand fan layout constants ───────────────────────────────────
-
-        [Test]
-        public void HandFan_MaxAngle_Is15Degrees()
-        {
-            Assert.AreEqual(15f, GameUI.FAN_MAX_ANGLE);
-        }
+        // ── 7r: Hand fan layout — removed (user decided to keep horizontal) ──
     }
 }

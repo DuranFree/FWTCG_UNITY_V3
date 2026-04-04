@@ -965,34 +965,11 @@ namespace FWTCG.UI
             // Player hand (with cost-insufficient dimming + hover callbacks)
             RefreshUnitList(_playerHandContainer, gs.PHand, true, _onUnitClicked, gs.PMana,
                             _onCardHoverEnter, _onCardHoverExit, playEnterAnim: true);
-            ArrangeHandFan(_playerHandContainer); // VFX-7r
             // Enemy hand (face-down — show count only)
             RefreshEnemyHand(_enemyHandContainer, gs.EHand.Count);
         }
 
-        // VFX-7r: fan layout — apply Z-rotation to hand cards
-        public const float FAN_MAX_ANGLE = 15f; // max tilt at edges
-        private void ArrangeHandFan(Transform handContainer)
-        {
-            int count = 0;
-            for (int i = 0; i < handContainer.childCount; i++)
-                if (handContainer.GetChild(i).gameObject.activeSelf) count++;
 
-            if (count <= 1) return; // single card stays upright
-
-            int idx = 0;
-            for (int i = 0; i < handContainer.childCount; i++)
-            {
-                var child = handContainer.GetChild(i);
-                if (!child.gameObject.activeSelf) continue;
-
-                // Normalized position: -1 (left) to +1 (right)
-                float t = count <= 1 ? 0f : (2f * idx / (count - 1) - 1f);
-                float angle = -t * FAN_MAX_ANGLE;
-                child.localRotation = Quaternion.Euler(0f, 0f, angle);
-                idx++;
-            }
-        }
 
         private void RefreshBases(GameState gs)
         {
