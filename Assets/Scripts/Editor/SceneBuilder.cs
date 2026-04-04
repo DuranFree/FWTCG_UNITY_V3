@@ -1198,8 +1198,28 @@ namespace FWTCG.Editor
             lgOutline.effectDistance = new Vector2(1f, -1f);
             go.AddComponent<FWTCG.UI.CardHoverScale>(); // hover zoom on legend zone
 
-            // Card-shaped area centered (same 80x120 as hand cards)
-            // -- LegendArt will be overlaid at runtime by RefreshLegendArt (ignoreLayout)
+            // VFX-7: click whole card to trigger skill (replaces SkillBtn)
+            skillBtn = go.AddComponent<Button>();
+            var btnColors = skillBtn.colors;
+            btnColors.normalColor = Color.white;
+            btnColors.highlightedColor = new Color(0.9f, 0.9f, 0.9f, 1f);
+            skillBtn.colors = btnColors;
+
+            // LegendArt will be overlaid at runtime by RefreshLegendArt (ignoreLayout)
+
+            // Bottom half dark overlay (same as regular cards)
+            var bottomOvl = new GameObject("BottomOverlay");
+            bottomOvl.transform.SetParent(go.transform, false);
+            var boImg = bottomOvl.AddComponent<Image>();
+            boImg.color = new Color(0f, 0f, 0f, 0.75f);
+            boImg.raycastTarget = false;
+            var boRT = bottomOvl.GetComponent<RectTransform>();
+            boRT.anchorMin = new Vector2(0f, 0f);
+            boRT.anchorMax = new Vector2(1f, 0.48f);
+            boRT.offsetMin = new Vector2(3f, 3f);
+            boRT.offsetMax = new Vector2(-3f, 0f);
+            var boLE = bottomOvl.AddComponent<LayoutElement>();
+            boLE.ignoreLayout = true;
 
             // Legend name text — top overlay
             var textGO = new GameObject(isPlayer ? "LegendText" : "EnemyLegendText");
@@ -1209,6 +1229,8 @@ namespace FWTCG.Editor
             textRT.anchorMax = new Vector2(1f, 0.95f);
             textRT.offsetMin = Vector2.zero;
             textRT.offsetMax = Vector2.zero;
+            var textLE = textGO.AddComponent<LayoutElement>();
+            textLE.ignoreLayout = true;
             legendText = textGO.AddComponent<Text>();
             legendText.text = isPlayer ? "卡莎" : "易大师";
             legendText.color = Color.white;
@@ -1217,65 +1239,48 @@ namespace FWTCG.Editor
             legendText.horizontalOverflow = HorizontalWrapMode.Wrap;
             legendText.verticalOverflow   = VerticalWrapMode.Overflow;
             if (_font != null) legendText.font = _font;
-            // Shadow for readability over art
             var textShadow = textGO.AddComponent<Shadow>();
             textShadow.effectColor = new Color(0f, 0f, 0f, 0.9f);
             textShadow.effectDistance = new Vector2(1f, -1f);
 
-            // Skill button (player only) — bottom overlay
-            skillBtn = null;
-            if (isPlayer)
-            {
-                var skillGO = new GameObject("SkillBtn");
-                skillGO.transform.SetParent(go.transform, false);
-                var skillRT = skillGO.AddComponent<RectTransform>();
-                skillRT.anchorMin = new Vector2(0.05f, 0.02f);
-                skillRT.anchorMax = new Vector2(0.95f, 0.18f);
-                skillRT.offsetMin = Vector2.zero;
-                skillRT.offsetMax = Vector2.zero;
-                var skillImg = skillGO.AddComponent<Image>();
-                skillImg.color = new Color(0.4f, 0.1f, 0.8f, 1f);
-                skillBtn = skillGO.AddComponent<Button>();
-                var skillGlowOutline = skillGO.AddComponent<UnityEngine.UI.Outline>();
-                skillGlowOutline.effectColor    = new Color(1f, 0.85f, 0.3f, 0f); // golden, starts invisible
-                skillGlowOutline.effectDistance = new Vector2(3f, -3f);
-                skillGO.AddComponent<FWTCG.UI.ButtonHoverGlow>();
-                var skillLabel = new GameObject("Label");
-                skillLabel.transform.SetParent(skillGO.transform, false);
-                var skillLabelRT = skillLabel.AddComponent<RectTransform>();
-                skillLabelRT.anchorMin = Vector2.zero;
-                skillLabelRT.anchorMax = Vector2.one;
-                skillLabelRT.offsetMin = Vector2.zero;
-                skillLabelRT.offsetMax = Vector2.zero;
-                var skillText = skillLabel.AddComponent<Text>();
-                skillText.text = "虚空感知";
-                skillText.color = Color.white;
-                skillText.fontSize = 10;
-                skillText.alignment = TextAnchor.MiddleCenter;
-                if (_font != null) skillText.font = _font;
-            }
-            else
-            {
-                // Enemy passive text — bottom overlay
-                var passiveGO = new GameObject("PassiveText");
-                passiveGO.transform.SetParent(go.transform, false);
-                var passiveRT = passiveGO.AddComponent<RectTransform>();
-                passiveRT.anchorMin = new Vector2(0f, 0.02f);
-                passiveRT.anchorMax = new Vector2(1f, 0.18f);
-                passiveRT.offsetMin = Vector2.zero;
-                passiveRT.offsetMax = Vector2.zero;
-                var passiveT = passiveGO.AddComponent<Text>();
-                passiveT.text = "[被动] 无极剑道";
-                passiveT.color = new Color(0.7f, 0.7f, 0.7f, 1f);
-                passiveT.fontSize = 9;
-                passiveT.alignment = TextAnchor.MiddleCenter;
-                passiveT.horizontalOverflow = HorizontalWrapMode.Wrap;
-                passiveT.verticalOverflow   = VerticalWrapMode.Overflow;
-                if (_font != null) passiveT.font = _font;
-                var passiveShadow = passiveGO.AddComponent<Shadow>();
-                passiveShadow.effectColor = new Color(0f, 0f, 0f, 0.9f);
-                passiveShadow.effectDistance = new Vector2(1f, -1f);
-            }
+            // Description text — bottom area (skill name + description)
+            var descGO = new GameObject("LegendDesc");
+            descGO.transform.SetParent(go.transform, false);
+            var descRT = descGO.AddComponent<RectTransform>();
+            descRT.anchorMin = new Vector2(0.05f, 0.03f);
+            descRT.anchorMax = new Vector2(0.95f, 0.45f);
+            descRT.offsetMin = Vector2.zero;
+            descRT.offsetMax = Vector2.zero;
+            var descLE = descGO.AddComponent<LayoutElement>();
+            descLE.ignoreLayout = true;
+            var descText = descGO.AddComponent<Text>();
+            descText.text = isPlayer ? "虚空感知" : "[被动] 无极剑道";
+            descText.color = new Color(0.9f, 0.85f, 0.7f, 1f);
+            descText.fontSize = 9;
+            descText.alignment = TextAnchor.MiddleCenter;
+            descText.horizontalOverflow = HorizontalWrapMode.Wrap;
+            descText.verticalOverflow   = VerticalWrapMode.Overflow;
+            if (_font != null) descText.font = _font;
+            var descShadow = descGO.AddComponent<Shadow>();
+            descShadow.effectColor = new Color(0f, 0f, 0f, 0.9f);
+            descShadow.effectDistance = new Vector2(1f, -1f);
+
+            // VFX-7k: glow overlay for hover highlight
+            var glowGO = new GameObject("LegendGlowOverlay");
+            glowGO.transform.SetParent(go.transform, false);
+            var glowRT = glowGO.AddComponent<RectTransform>();
+            glowRT.anchorMin = Vector2.zero;
+            glowRT.anchorMax = Vector2.one;
+            glowRT.offsetMin = new Vector2(-4f, -4f);
+            glowRT.offsetMax = new Vector2(4f, 4f);
+            var glowLE = glowGO.AddComponent<LayoutElement>();
+            glowLE.ignoreLayout = true;
+            var glowImg = glowGO.AddComponent<Image>();
+            var glowSpr = AssetDatabase.LoadAssetAtPath<Sprite>("Assets/Sprites/FX/card_glow.png");
+            if (glowSpr != null) glowImg.sprite = glowSpr;
+            glowImg.color = new Color(0.29f, 0.87f, 0.50f, 0f); // green, starts invisible
+            glowImg.raycastTarget = false;
+            glowImg.type = Image.Type.Sliced;
 
             return go;
         }

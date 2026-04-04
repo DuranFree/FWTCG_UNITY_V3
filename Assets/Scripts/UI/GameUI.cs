@@ -1153,41 +1153,91 @@ namespace FWTCG.UI
             RefreshLegendArt(_playerLegendContainer, gs.PLegend);
             RefreshLegendArt(_enemyLegendContainer, gs.ELegend);
 
+            // VFX-7: wire legend hover glow
+            WireLegendHoverGlow(_playerLegendContainer);
+            WireLegendHoverGlow(_enemyLegendContainer);
+
             // Wire right-click on legend containers for detail popup
             WireLegendRightClick(_playerLegendContainer, gs.PLegend);
             WireLegendRightClick(_enemyLegendContainer, gs.ELegend);
         }
 
+        // VFX-7: hover glow for legend cards
+        private readonly System.Collections.Generic.HashSet<int> _legendGlowWired = new();
+        private void WireLegendHoverGlow(Transform container)
+        {
+            if (container == null) return;
+            int id = container.GetInstanceID();
+            if (_legendGlowWired.Contains(id)) return;
+            var glowT = container.Find("LegendGlowOverlay");
+            if (glowT == null) return;
+            var glowImg = glowT.GetComponent<Image>();
+            if (glowImg == null) return;
+
+            _legendGlowWired.Add(id);
+            var et = container.GetComponent<UnityEngine.EventSystems.EventTrigger>();
+            if (et == null) et = container.gameObject.AddComponent<UnityEngine.EventSystems.EventTrigger>();
+
+            var enterEntry = new UnityEngine.EventSystems.EventTrigger.Entry();
+            enterEntry.eventID = UnityEngine.EventSystems.EventTriggerType.PointerEnter;
+            enterEntry.callback.AddListener((_) =>
+            {
+                if (glowImg != null)
+                    StartCoroutine(FadeLegendGlow(glowImg, 0.5f));
+            });
+            et.triggers.Add(enterEntry);
+
+            var exitEntry = new UnityEngine.EventSystems.EventTrigger.Entry();
+            exitEntry.eventID = UnityEngine.EventSystems.EventTriggerType.PointerExit;
+            exitEntry.callback.AddListener((_) =>
+            {
+                if (glowImg != null)
+                    StartCoroutine(FadeLegendGlow(glowImg, 0f));
+            });
+            et.triggers.Add(exitEntry);
+        }
+
+        private static IEnumerator FadeLegendGlow(Image img, float targetAlpha)
+        {
+            while (img != null)
+            {
+                var c = img.color;
+                float a = Mathf.MoveTowards(c.a, targetAlpha, 4f * Time.deltaTime);
+                img.color = new Color(c.r, c.g, c.b, a);
+                if (Mathf.Approximately(a, targetAlpha)) yield break;
+                yield return null;
+            }
+        }
+
+        private readonly System.Collections.Generic.HashSet<int> _legendRightClickWired = new();
         private void WireLegendRightClick(Transform container, LegendInstance legend)
         {
             if (container == null || legend == null || legend.DisplayData == null) return;
             if (_cardDetailPopup == null) return;
+            int id = container.GetInstanceID();
+            if (_legendRightClickWired.Contains(id)) return;
+            _legendRightClickWired.Add(id);
 
-            // Add or get EventTrigger
             var et = container.GetComponent<UnityEngine.EventSystems.EventTrigger>();
-            if (et == null)
-            {
-                et = container.gameObject.AddComponent<UnityEngine.EventSystems.EventTrigger>();
-                var entry = new UnityEngine.EventSystems.EventTrigger.Entry();
-                entry.eventID = UnityEngine.EventSystems.EventTriggerType.PointerClick;
-                entry.callback.AddListener((data) =>
-                {
-                    if (CardDragHandler.BlockPointerEvents) return;
-                    if (Input.GetMouseButton(0)) return;
-                    var pointerData = (UnityEngine.EventSystems.PointerEventData)data;
-                    if (pointerData.button == UnityEngine.EventSystems.PointerEventData.InputButton.Right)
-                    {
-                        // Create a temporary UnitInstance for display
-                        var tempUnit = new UnitInstance(0, legend.DisplayData, legend.Owner);
-                        _cardDetailPopup.Show(tempUnit);
-                    }
-                });
-                et.triggers.Add(entry);
+            if (et == null) et = container.gameObject.AddComponent<UnityEngine.EventSystems.EventTrigger>();
 
-                // Ensure the container is raycast-targetable
-                var img = container.GetComponent<Image>();
-                if (img != null) img.raycastTarget = true;
-            }
+            var entry = new UnityEngine.EventSystems.EventTrigger.Entry();
+            entry.eventID = UnityEngine.EventSystems.EventTriggerType.PointerClick;
+            entry.callback.AddListener((data) =>
+            {
+                if (CardDragHandler.BlockPointerEvents) return;
+                if (Input.GetMouseButton(0)) return;
+                var pointerData = (UnityEngine.EventSystems.PointerEventData)data;
+                if (pointerData.button == UnityEngine.EventSystems.PointerEventData.InputButton.Right)
+                {
+                    var tempUnit = new UnitInstance(0, legend.DisplayData, legend.Owner);
+                    _cardDetailPopup.Show(tempUnit);
+                }
+            });
+            et.triggers.Add(entry);
+
+            var img = container.GetComponent<Image>();
+            if (img != null) img.raycastTarget = true;
         }
 
         // ── Hero zone refresh (DEV-10) ──────────────────────────────────────
