@@ -2900,20 +2900,22 @@ namespace FWTCG.Editor
             var circleSpr = AssetDatabase.LoadAssetAtPath<Sprite>("Assets/Sprites/FX/Circle.png");
 
             // ── CostBadge — top-left circle (法力费用) ──
-            // Card is 76×110. Badge: 18×18px circle, inset 4px from top-left corner
             var costBadgeGO = new GameObject("CostBadge");
             costBadgeGO.transform.SetParent(root.transform, false);
             var costBadgeImg = costBadgeGO.AddComponent<Image>();
-            costBadgeImg.color = new Color(0.78f, 0.67f, 0.43f, 0.95f);
+            costBadgeImg.color = new Color(0.78f, 0.67f, 0.43f, 1f);
             costBadgeImg.raycastTarget = false;
             if (circleSpr != null) { costBadgeImg.sprite = circleSpr; costBadgeImg.type = Image.Type.Simple; }
             var costBadgeRT = costBadgeGO.GetComponent<RectTransform>();
-            costBadgeRT.anchorMin = costBadgeRT.anchorMax = new Vector2(0f, 1f); // top-left corner
+            costBadgeRT.anchorMin = costBadgeRT.anchorMax = new Vector2(0f, 1f);
             costBadgeRT.pivot = new Vector2(0f, 1f);
-            costBadgeRT.sizeDelta = new Vector2(18f, 18f);
-            costBadgeRT.anchoredPosition = new Vector2(4f, -4f); // inset from edge
+            costBadgeRT.sizeDelta = new Vector2(22f, 22f);
+            costBadgeRT.anchoredPosition = new Vector2(3f, -3f);
+            costBadgeGO.AddComponent<Shadow>().effectColor = new Color(0f, 0f, 0f, 0.7f);
+            costBadgeGO.GetComponent<Shadow>().effectDistance = new Vector2(2f, -2f);
+            costBadgeGO.AddComponent<Outline>().effectColor = new Color(0f, 0f, 0f, 0.5f);
 
-            var costText = CreateTMPText(costBadgeGO.transform, "CostText", "0", Color.white, 11, TextAnchor.MiddleCenter);
+            var costText = CreateTMPText(costBadgeGO.transform, "CostText", "0", Color.white, 12, TextAnchor.MiddleCenter);
             costText.fontStyle = FontStyle.Bold;
             costText.gameObject.AddComponent<Shadow>().effectColor = new Color(0f, 0f, 0f, 1f);
             var costRT = costText.GetComponent<RectTransform>();
@@ -2926,16 +2928,19 @@ namespace FWTCG.Editor
             var atkBadgeGO = new GameObject("AtkBadge");
             atkBadgeGO.transform.SetParent(root.transform, false);
             var atkBadgeImg = atkBadgeGO.AddComponent<Image>();
-            atkBadgeImg.color = new Color(0.85f, 0.35f, 0.15f, 0.95f);
+            atkBadgeImg.color = new Color(0.85f, 0.35f, 0.15f, 1f);
             atkBadgeImg.raycastTarget = false;
             if (circleSpr != null) { atkBadgeImg.sprite = circleSpr; atkBadgeImg.type = Image.Type.Simple; }
             var atkBadgeRT = atkBadgeGO.GetComponent<RectTransform>();
-            atkBadgeRT.anchorMin = atkBadgeRT.anchorMax = new Vector2(1f, 1f); // top-right corner
+            atkBadgeRT.anchorMin = atkBadgeRT.anchorMax = new Vector2(1f, 1f);
             atkBadgeRT.pivot = new Vector2(1f, 1f);
-            atkBadgeRT.sizeDelta = new Vector2(18f, 18f);
-            atkBadgeRT.anchoredPosition = new Vector2(-4f, -4f);
+            atkBadgeRT.sizeDelta = new Vector2(22f, 22f);
+            atkBadgeRT.anchoredPosition = new Vector2(-3f, -3f);
+            atkBadgeGO.AddComponent<Shadow>().effectColor = new Color(0f, 0f, 0f, 0.7f);
+            atkBadgeGO.GetComponent<Shadow>().effectDistance = new Vector2(2f, -2f);
+            atkBadgeGO.AddComponent<Outline>().effectColor = new Color(0f, 0f, 0f, 0.5f);
 
-            var atkText = CreateTMPText(atkBadgeGO.transform, "AtkText", "0", Color.white, 11, TextAnchor.MiddleCenter);
+            var atkText = CreateTMPText(atkBadgeGO.transform, "AtkText", "0", Color.white, 12, TextAnchor.MiddleCenter);
             atkText.fontStyle = FontStyle.Bold;
             atkText.gameObject.AddComponent<Shadow>().effectColor = new Color(0f, 0f, 0f, 1f);
             var atkRT = atkText.GetComponent<RectTransform>();
@@ -2948,14 +2953,17 @@ namespace FWTCG.Editor
             var schBgGO = new GameObject("SchCostBg");
             schBgGO.transform.SetParent(root.transform, false);
             var schBgImg = schBgGO.AddComponent<Image>();
-            schBgImg.color = new Color(1f, 0.55f, 0.1f, 0.8f);
+            schBgImg.color = new Color(1f, 0.55f, 0.1f, 1f);
             schBgImg.raycastTarget = false;
             if (circleSpr != null) { schBgImg.sprite = circleSpr; schBgImg.type = Image.Type.Simple; }
             var schBgRT = schBgGO.GetComponent<RectTransform>();
-            schBgRT.anchorMin = schBgRT.anchorMax = new Vector2(0f, 1f); // top-left
+            schBgRT.anchorMin = schBgRT.anchorMax = new Vector2(0f, 1f);
             schBgRT.pivot = new Vector2(0f, 1f);
-            schBgRT.sizeDelta = new Vector2(18f, 18f);
-            schBgRT.anchoredPosition = new Vector2(4f, -24f); // below cost badge (4+18+2=24)
+            schBgRT.sizeDelta = new Vector2(22f, 22f);
+            schBgRT.anchoredPosition = new Vector2(3f, -27f); // below cost badge (3+22+2=27)
+            schBgGO.AddComponent<Shadow>().effectColor = new Color(0f, 0f, 0f, 0.7f);
+            schBgGO.GetComponent<Shadow>().effectDistance = new Vector2(2f, -2f);
+            schBgGO.AddComponent<Outline>().effectColor = new Color(0f, 0f, 0f, 0.5f);
             schBgGO.SetActive(false);
 
             var schText = CreateTMPText(schBgGO.transform, "SchCostText", "炽×1", Color.white, 7, TextAnchor.MiddleCenter);
