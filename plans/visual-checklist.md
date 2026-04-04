@@ -231,8 +231,8 @@
 - ❌ HP/ATK 数值受击变黄 — 用户确认不需要（游戏无 HP 概念）— VFX-4 REMOVED
 
 ### VFX-6 — 掷硬币翻转动画
-- [ ] 硬币 scaleX 翻转动画（约 1.5s，正反面切换）— VFX-6
-- [ ] 落定后金色粒子爆发 — VFX-6
+- [x] 硬币 scaleX 翻转动画（约 1.5s，正反面切换）— DEV-24 已实现（CoinSpinRoutine）
+- [x] 落定后金色粒子爆发（20粒金色径向爆发 0.6s，CoinBurstParticles）— VFX-6
 
 ### VFX-7 — UI 视觉迁移
 - [ ] 卡牌金色边框叠加层（frame_gold.png，传奇/高稀有度）— VFX-7a

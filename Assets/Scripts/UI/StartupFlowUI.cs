@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Threading.Tasks;
 using UnityEngine;
 using UnityEngine.UI;
+using FWTCG.Audio;
 using FWTCG.Core;
 
 namespace FWTCG.UI
@@ -25,6 +26,10 @@ namespace FWTCG.UI
         [SerializeField] private Text _coinResultText;        // DEV-24: result + battlefield (fades in)
         [SerializeField] private Image _scanLightImage;       // DEV-24: horizontal scan sweep
 
+        // ── VFX-6: coin flip audio hooks ──────────────────────────────────
+        [SerializeField] private AudioClip _coinFlipStartClip;   // played when flip begins
+        [SerializeField] private AudioClip _coinFlipLandClip;    // played when coin lands
+
         // ── Mulligan panel ────────────────────────────────────────────────────
         [SerializeField] private GameObject _mulliganPanel;
         [SerializeField] private Text _mulliganTitleText;
@@ -45,6 +50,12 @@ namespace FWTCG.UI
         public const float RESULT_FADE_IN = 0.4f;   // result text fade duration
         public const float SCAN_PERIOD    = 8f;     // scan light full sweep period
 
+        // VFX-6: coin land burst constants
+        public const int   COIN_BURST_COUNT    = 20;    // particle count
+        public const float COIN_BURST_DURATION = 0.6f;  // burst animation duration
+        public const float COIN_BURST_RADIUS   = 130f;  // max radial distance
+        public const float COIN_BURST_SIZE     = 8f;    // starting particle size
+
         private List<UnitInstance> _mulliganHand;
         private List<UnitInstance> _selectedForSwap = new List<UnitInstance>();
         private List<CardView> _mulliganCardViews   = new List<CardView>();
@@ -61,6 +72,9 @@ namespace FWTCG.UI
         // Active TCS references — resolved in OnDestroy to prevent TCS leaks
         private TaskCompletionSource<bool> _activeCoinTcs;
         private TaskCompletionSource<bool> _activeMulliganTcs;
+
+        // VFX-6: burst particle tracking for interrupt cleanup
+        private readonly List<GameObject> _burstParticles = new List<GameObject>();
 
         private void Awake()
         {
@@ -93,6 +107,10 @@ namespace FWTCG.UI
         {
             // Stop background loops
             if (_scanLightRoutine != null) StopCoroutine(_scanLightRoutine);
+            // VFX-6: destroy any lingering burst particles
+            foreach (var p in _burstParticles)
+                if (p != null) Destroy(p);
+            _burstParticles.Clear();
             // Resolve any pending TCS so callers don't hang if this component is destroyed mid-flow
             _activeCoinTcs?.TrySetResult(true);
             _activeMulliganTcs?.TrySetResult(true);
@@ -214,6 +232,12 @@ namespace FWTCG.UI
             // ── Coin flip animation ───────────────────────────────────────────
             yield return CoinSpinRoutine(isPlayerFirst);
 
+            // ── VFX-6: gold burst + land audio ───────────────────────────────
+            if (AudioTool.Instance != null && _coinFlipLandClip != null)
+                AudioTool.Instance.PlayOneShot(AudioTool.CH_UI, _coinFlipLandClip);
+            if (_coinCircleImage != null)
+                StartCoroutine(CoinBurstParticles(_coinCircleImage.rectTransform));
+
             // ── Fade in result text ───────────────────────────────────────────
             string result = $"{(isPlayerFirst ? "玩家先手！" : "AI先手！")}\n\n战场：{bf0}  /  {bf1}";
             if (_coinResultText != null)
@@ -261,6 +285,10 @@ namespace FWTCG.UI
         private IEnumerator CoinSpinRoutine(bool isPlayerFirst)
         {
             if (_coinCircleImage == null) { yield return new WaitForSeconds(0.6f); yield break; }
+
+            // VFX-6: start audio
+            if (AudioTool.Instance != null && _coinFlipStartClip != null)
+                AudioTool.Instance.PlayOneShot(AudioTool.CH_UI, _coinFlipStartClip);
 
             // Load coin face sprites; fall back to color-only if not found
             var spriteFirst  = Resources.Load<Sprite>("CardArt/xianshou"); // 先手面
@@ -348,6 +376,90 @@ namespace FWTCG.UI
             }
             if (_coinCircleImage != null)
                 _coinCircleImage.rectTransform.localScale = new Vector3(to, 1f, 1f);
+        }
+
+        /// <summary>
+        /// VFX-6: Gold particle burst from coin center on landing.
+        /// 20 particles radiate outward with ease-out-quad, fading and shrinking.
+        /// </summary>
+        private IEnumerator CoinBurstParticles(RectTransform origin)
+        {
+            if (origin == null || _coinFlipPanel == null) yield break;
+
+            var parentRT = _coinFlipPanel.GetComponent<RectTransform>();
+            if (parentRT == null) yield break;
+
+            // Convert coin center to panel-local position
+            Vector2 center = origin.anchoredPosition;
+            var coinParent = origin.parent as RectTransform;
+            if (coinParent != null && coinParent != parentRT)
+                center += coinParent.anchoredPosition;
+
+            var rts    = new RectTransform[COIN_BURST_COUNT];
+            var imgs   = new Image[COIN_BURST_COUNT];
+            var angles = new float[COIN_BURST_COUNT];
+
+            for (int i = 0; i < COIN_BURST_COUNT; i++)
+            {
+                var go = new GameObject($"CoinBurstP{i}", typeof(RectTransform), typeof(Image));
+                var rt = go.GetComponent<RectTransform>();
+                rt.SetParent(parentRT, false);
+                rt.sizeDelta        = new Vector2(COIN_BURST_SIZE, COIN_BURST_SIZE);
+                rt.anchoredPosition = center;
+
+                // Exclude from VerticalLayoutGroup
+                var le = go.AddComponent<LayoutElement>();
+                le.ignoreLayout = true;
+
+                var img  = go.GetComponent<Image>();
+                img.color = GameColors.Gold;
+                img.raycastTarget = false;
+
+                rts[i]  = rt;
+                imgs[i] = img;
+                angles[i] = i / (float)COIN_BURST_COUNT * Mathf.PI * 2f;
+
+                _burstParticles.Add(go); // track for interrupt cleanup
+            }
+
+            float elapsed = 0f;
+            while (elapsed < COIN_BURST_DURATION)
+            {
+                elapsed += Time.deltaTime;
+                float t = Mathf.Clamp01(elapsed / COIN_BURST_DURATION);
+                float easeOut = 1f - (1f - t) * (1f - t); // ease-out-quad
+
+                float radius = easeOut * COIN_BURST_RADIUS;
+                float size   = Mathf.Lerp(COIN_BURST_SIZE, 2f, t);
+                float alpha  = 1f - t;
+
+                for (int i = 0; i < COIN_BURST_COUNT; i++)
+                {
+                    if (rts[i] == null) continue;
+                    float x = center.x + Mathf.Cos(angles[i]) * radius;
+                    float y = center.y + Mathf.Sin(angles[i]) * radius;
+                    rts[i].anchoredPosition = new Vector2(x, y);
+                    rts[i].sizeDelta        = new Vector2(size, size);
+
+                    if (imgs[i] != null)
+                    {
+                        var c = imgs[i].color;
+                        c.a = alpha;
+                        imgs[i].color = c;
+                    }
+                }
+                yield return null;
+            }
+
+            // Cleanup
+            for (int i = 0; i < COIN_BURST_COUNT; i++)
+            {
+                if (rts[i] != null)
+                {
+                    _burstParticles.Remove(rts[i].gameObject);
+                    Destroy(rts[i].gameObject);
+                }
+            }
         }
 
         private IEnumerator FadeTextIn(Text text, float duration)

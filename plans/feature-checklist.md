@@ -390,10 +390,11 @@
 - [x] ButtonAudio 组件移植（按钮自动附加点击音效）— VFX-5
 
 ### VFX-6 — 掷硬币 2D 翻转动画
-- [ ] CoinFlipFX.cs（scaleX 1→0→-1 循环，约 1.5s）— VFX-6
-- [ ] scaleX 过零点时切换正/反面 sprite — VFX-6
-- [ ] 结束定格结果面 + 金色粒子爆发 — VFX-6
-- [ ] StartupFlowUI 接入 CoinFlipFX 替换纯文字显示 — VFX-6
+- [x] CoinFlipFX.cs（scaleX 1→0→-1 循环，约 1.5s）— DEV-24 已内联在 CoinSpinRoutine
+- [x] scaleX 过零点时切换正/反面 sprite — DEV-24
+- [x] 结束定格结果面 + 金色粒子爆发 — VFX-6（CoinBurstParticles 20粒金色径向爆发）
+- [x] StartupFlowUI 接入 CoinFlipFX 替换纯文字显示 — DEV-24
+- [x] 音效触发点预留（start_audio / end_audio）— VFX-6
 
 ### VFX-7 — UI 视觉迁移
 - [ ] 卡牌金/银边框 sprite（frame_gold.png / frame_silver.png）+ CardView frameOverlay 层 — VFX-7a

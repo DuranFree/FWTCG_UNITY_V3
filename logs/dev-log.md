@@ -2,6 +2,37 @@
 
 ---
 
+## VFX-6：掷硬币金色粒子爆发 + 音效触发点 — 2026-04-04
+
+**Status**: ✅ Completed
+**Tests**: 706/706 EditMode 全绿 🟢
+
+### 实现内容
+
+**StartupFlowUI.cs（编辑）**：
+- CoinBurstParticles 协程：硬币落定后 20 个金色粒子径向爆发，0.6s ease-out-quad
+- 粒子参数：大小 8→2px，半径 0→130px，alpha 渐出
+- LayoutElement.ignoreLayout 防止 VerticalLayoutGroup 干扰
+- _burstParticles 追踪列表 + OnDestroy 清理（防中断泄漏）
+- 音效触发点：_coinFlipStartClip（翻转开始）+ _coinFlipLandClip（落定），AudioTool CH_UI
+- 两个 AudioClip 字段默认 null，用户提供音效后赋值即可
+
+**SceneBuilder.cs（编辑）**：
+- 音效字段注释占位（值为 null，待音效资产提供）
+
+**测试（9 个新测试）**：
+- VFX6CoinFlipTests：爆发常量、总时间、音效字段序列化、null 安全、DEV-24 常量不变
+
+**Codex 审查**：1 HIGH 已修复（粒子中断泄漏）、3 MEDIUM 已修复/确认（LayoutGroup / 音效 null 设计预期 / Image 缓存）
+
+**Decisions made**：
+- 不新建 CoinFlipFX.cs 独立组件：DEV-24 已将动画内联在 CoinSpinRoutine，仅使用一次，提取属过度工程
+- 翻转动画（scaleX 翻转 + 正反面切换 + 弹跳）已由 DEV-24 完成，VFX-6 仅增量实现粒子爆发 + 音效
+
+**Technical debt**: 无新增
+
+---
+
 ## VFX-5：音频框架升级（通道制 AudioTool）— 2026-04-04
 
 **Status**: ✅ Completed

@@ -3634,6 +3634,9 @@ namespace FWTCG.Editor
             startupSO.FindProperty("_coinCircleImage").objectReferenceValue       = coinCircleImage;
             startupSO.FindProperty("_coinResultText").objectReferenceValue        = coinResultText;
             startupSO.FindProperty("_scanLightImage").objectReferenceValue        = scanLightImage;
+            // VFX-6: audio clips left null — assign when audio assets are provided
+            // startupSO.FindProperty("_coinFlipStartClip").objectReferenceValue = ...;
+            // startupSO.FindProperty("_coinFlipLandClip").objectReferenceValue  = ...;
             startupSO.FindProperty("_mulliganPanel").objectReferenceValue         = mulliganPanel;
             startupSO.FindProperty("_mulliganTitleText").objectReferenceValue     = mulliganTitleText;
             startupSO.FindProperty("_mulliganCardContainer").objectReferenceValue = mulliganCardContainer;
