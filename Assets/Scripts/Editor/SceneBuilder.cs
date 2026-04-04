@@ -418,11 +418,9 @@ namespace FWTCG.Editor
             if (pLegendZone != null) AddZoneBorder(pLegendZone, borderColor);
             if (eLegendZone != null) AddZoneBorder(eLegendZone, borderColor);
 
-            // ── DEV-23: Legend glow overlays (on legend zones, not hero containers) ──
+            // ── VFX-7: Legend glow overlays removed (gold frame replaces breathing glow) ──
             Image _playerLegendGlow = null;
             Image _enemyLegendGlow  = null;
-            if (pLegendZone != null) _playerLegendGlow = CreateLegendGlowOverlay(pLegendZone);
-            if (eLegendZone != null) _enemyLegendGlow  = CreateLegendGlowOverlay(eLegendZone);
 
             _scenery.spinOuter        = _spinOuter;
             _scenery.spinInner        = _spinInner;
@@ -1211,22 +1209,22 @@ namespace FWTCG.Editor
             var bottomOvl = new GameObject("BottomOverlay");
             bottomOvl.transform.SetParent(go.transform, false);
             var boImg = bottomOvl.AddComponent<Image>();
-            boImg.color = new Color(0f, 0f, 0f, 0.75f);
+            boImg.color = new Color(0f, 0f, 0f, 0.78f);
             boImg.raycastTarget = false;
             var boRT = bottomOvl.GetComponent<RectTransform>();
             boRT.anchorMin = new Vector2(0f, 0f);
-            boRT.anchorMax = new Vector2(1f, 0.48f);
+            boRT.anchorMax = new Vector2(1f, 0.50f);
             boRT.offsetMin = new Vector2(3f, 3f);
             boRT.offsetMax = new Vector2(-3f, 0f);
             var boLE = bottomOvl.AddComponent<LayoutElement>();
             boLE.ignoreLayout = true;
 
-            // Legend name text — top overlay
+            // Legend name text — INSIDE bottom overlay (top portion of black area)
             var textGO = new GameObject(isPlayer ? "LegendText" : "EnemyLegendText");
             textGO.transform.SetParent(go.transform, false);
             var textRT = textGO.AddComponent<RectTransform>();
-            textRT.anchorMin = new Vector2(0f, 0.78f);
-            textRT.anchorMax = new Vector2(1f, 0.95f);
+            textRT.anchorMin = new Vector2(0.05f, 0.35f);
+            textRT.anchorMax = new Vector2(0.95f, 0.50f);
             textRT.offsetMin = Vector2.zero;
             textRT.offsetMax = Vector2.zero;
             var textLE = textGO.AddComponent<LayoutElement>();
@@ -1235,20 +1233,20 @@ namespace FWTCG.Editor
             legendText.text = isPlayer ? "卡莎" : "易大师";
             legendText.color = Color.white;
             legendText.fontSize = 10;
+            legendText.fontStyle = FontStyle.Bold;
             legendText.alignment = TextAnchor.MiddleCenter;
             legendText.horizontalOverflow = HorizontalWrapMode.Wrap;
             legendText.verticalOverflow   = VerticalWrapMode.Overflow;
             if (_font != null) legendText.font = _font;
-            var textShadow = textGO.AddComponent<Shadow>();
-            textShadow.effectColor = new Color(0f, 0f, 0f, 0.9f);
-            textShadow.effectDistance = new Vector2(1f, -1f);
+            textGO.AddComponent<Shadow>().effectColor = new Color(0f, 0f, 0f, 1f);
+            textGO.AddComponent<Outline>().effectColor = new Color(0f, 0f, 0f, 0.7f);
 
-            // Description text — bottom area (filled at runtime by RefreshLegendArt)
+            // Description text — INSIDE bottom overlay (below name)
             var descGO = new GameObject("LegendDesc");
             descGO.transform.SetParent(go.transform, false);
             var descRT = descGO.AddComponent<RectTransform>();
-            descRT.anchorMin = new Vector2(0.04f, 0.02f);
-            descRT.anchorMax = new Vector2(0.96f, 0.46f);
+            descRT.anchorMin = new Vector2(0.05f, 0.03f);
+            descRT.anchorMax = new Vector2(0.95f, 0.35f);
             descRT.offsetMin = Vector2.zero;
             descRT.offsetMax = Vector2.zero;
             var descLE = descGO.AddComponent<LayoutElement>();
@@ -1256,17 +1254,13 @@ namespace FWTCG.Editor
             var descText = descGO.AddComponent<Text>();
             descText.text = ""; // filled at runtime
             descText.color = Color.white;
-            descText.fontSize = 8;
+            descText.fontSize = 7;
             descText.alignment = TextAnchor.UpperCenter;
             descText.horizontalOverflow = HorizontalWrapMode.Wrap;
             descText.verticalOverflow   = VerticalWrapMode.Truncate;
             if (_font != null) descText.font = _font;
-            var descShadow = descGO.AddComponent<Shadow>();
-            descShadow.effectColor = new Color(0f, 0f, 0f, 1f);
-            descShadow.effectDistance = new Vector2(1f, -1f);
-            var descOutline = descGO.AddComponent<Outline>();
-            descOutline.effectColor = new Color(0f, 0f, 0f, 0.7f);
-            descOutline.effectDistance = new Vector2(1f, -1f);
+            descGO.AddComponent<Shadow>().effectColor = new Color(0f, 0f, 0f, 1f);
+            descGO.AddComponent<Outline>().effectColor = new Color(0f, 0f, 0f, 0.7f);
 
             // VFX-7k: glow overlay for hover highlight
             var glowGO = new GameObject("LegendGlowOverlay");
