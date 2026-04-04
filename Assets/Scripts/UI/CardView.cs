@@ -318,9 +318,9 @@ namespace FWTCG.UI
             if (_clickButton != null)
                 _clickButton.interactable = onClick != null;
 
-            // DEV-28: Hero aura — start pulse for hero cards
-            if (isNewUnit && unit != null && unit.CardData != null && unit.CardData.IsHero)
-                StartHeroAura();
+            // DEV-28: Hero aura — disabled per VFX-7 (frame border replaces aura)
+            // if (isNewUnit && unit != null && unit.CardData != null && unit.CardData.IsHero)
+            //     StartHeroAura();
 
             // Enter animation — only for hand cards (playEnterAnim=true).
             // Base/BF cards appear immediately to avoid position/scale animation

@@ -2869,8 +2869,8 @@ namespace FWTCG.Editor
             var bottomRT = bottomOverlay.GetComponent<RectTransform>();
             bottomRT.anchorMin = new Vector2(0f, 0f);
             bottomRT.anchorMax = new Vector2(1f, 0.48f);
-            bottomRT.offsetMin = Vector2.zero;
-            bottomRT.offsetMax = Vector2.zero;
+            bottomRT.offsetMin = new Vector2(3f, 3f);   // VFX-7a: inset to not cover frame border
+            bottomRT.offsetMax = new Vector2(-3f, 0f);
 
             // ── CardName — bottom half, centered ──
             var cardName = CreateTMPText(root.transform, "CardName", "卡名", Color.white, 10, TextAnchor.MiddleCenter);
