@@ -924,7 +924,7 @@ namespace FWTCG.UI
         {
             // Player hand (with cost-insufficient dimming + hover callbacks)
             RefreshUnitList(_playerHandContainer, gs.PHand, true, _onUnitClicked, gs.PMana,
-                            _onCardHoverEnter, _onCardHoverExit);
+                            _onCardHoverEnter, _onCardHoverExit, playEnterAnim: true);
             // Enemy hand (face-down — show count only)
             RefreshEnemyHand(_enemyHandContainer, gs.EHand.Count);
         }
@@ -933,6 +933,10 @@ namespace FWTCG.UI
         {
             RefreshUnitList(_playerBaseContainer, gs.PBase, true, _onUnitClicked);
             RefreshUnitList(_enemyBaseContainer, gs.EBase, false, _onUnitClicked);
+
+            // VFX-4: Apply battlefield visuals (shadow, micro-rotation) to base cards too
+            ApplyBFVisuals(_playerBaseContainer);
+            ApplyBFVisuals(_enemyBaseContainer);
         }
 
         private void RefreshBattlefields(GameState gs)
@@ -1264,7 +1268,8 @@ namespace FWTCG.UI
                                      bool isPlayer, Action<UnitInstance> onClick,
                                      int currentMana = -1,
                                      Action<UnitInstance> onHoverEnter = null,
-                                     Action<UnitInstance> onHoverExit  = null)
+                                     Action<UnitInstance> onHoverExit  = null,
+                                     bool playEnterAnim = false)
         {
             if (container == null) return;
             if (units == null) units = new List<UnitInstance>();
@@ -1295,7 +1300,8 @@ namespace FWTCG.UI
                     // must be restored or the new card appears transparent (white).
                     var cg = cv.GetComponent<UnityEngine.CanvasGroup>();
                     if (cg != null) cg.alpha = 1f;
-                    cv.Setup(u, isPlayer, onClick, _onCardRightClicked, onHoverEnter, onHoverExit);
+                    cv.Setup(u, isPlayer, onClick, _onCardRightClicked, onHoverEnter, onHoverExit,
+                             playEnterAnim: playEnterAnim);
                     // Always reset first, then highlight only if in selection list
                     cv.SetSelected(false);
                     if (_selectedBaseUnits != null && _selectedBaseUnits.Contains(u))

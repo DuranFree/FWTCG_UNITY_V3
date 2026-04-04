@@ -126,8 +126,7 @@ namespace FWTCG.UI
         private GameObject _shieldFX;        // persistent Shield/Barrier FX
         private GameObject _shadowImage;     // offset shadow Image below card
         private bool       _idleFXSpawned;
-        private bool       _hasDamageYellow; // unused, kept for test compat
-        private int        _lastKnownHp = -1; // unused, kept for test compat
+        private bool       _bfVisualsApplied; // guard: only apply rotation/shadow once per placement
 
         private void Awake()
         {
@@ -239,7 +238,8 @@ namespace FWTCG.UI
                           Action<UnitInstance> onRightClick  = null,
                           Action<UnitInstance> onHoverEnter  = null,
                           Action<UnitInstance> onHoverExit   = null,
-                          bool isDiscardView = false)
+                          bool isDiscardView = false,
+                          bool playEnterAnim = false)
         {
             bool isNewUnit = _unit != unit;
             _unit = unit;
@@ -268,10 +268,10 @@ namespace FWTCG.UI
             if (isNewUnit && unit != null && unit.CardData != null && unit.CardData.IsHero)
                 StartHeroAura();
 
-            // DEV-28: Hand enter animation — play once per new card assignment
-            // Guard: coroutine can't start on an inactive GO (e.g. card inside hidden panel)
-            // _enterAnimPlayed is set inside the coroutine to allow retry if GO is deactivated mid-frame.
-            if (isNewUnit && !_enterAnimPlayed && gameObject.activeInHierarchy)
+            // Enter animation — only for hand cards (playEnterAnim=true).
+            // Base/BF cards appear immediately to avoid position/scale animation
+            // fighting with HLG layout and causing delayed visibility.
+            if (playEnterAnim && isNewUnit && !_enterAnimPlayed && gameObject.activeInHierarchy)
                 _enterAnimCoroutine = StartCoroutine(EnterAnimRoutine());
         }
 
@@ -1240,9 +1240,7 @@ namespace FWTCG.UI
                 StopCoroutine(_enterAnimCoroutine);
                 _enterAnimCoroutine = null;
             }
-            // Restore visual state so the card is not stuck at alpha=0 / shrunk scale
-            var cg = GetComponent<CanvasGroup>();
-            if (cg != null) cg.alpha = 1f;
+            // Restore scale (EnterAnimRoutine no longer touches alpha)
             transform.localScale = Vector3.one;
             _enterAnimPlayed = true; // prevent re-start
 
@@ -1261,11 +1259,12 @@ namespace FWTCG.UI
 
             const float duration = 0.42f;
             var rt  = (RectTransform)transform;
-            var cg  = GetComponent<CanvasGroup>() ?? gameObject.AddComponent<CanvasGroup>();
 
-            // Fix: set initial visual state BEFORE yielding to avoid a one-frame flash
-            // where the card appears at its final alpha/scale before the animation begins.
-            cg.alpha             = 0f;
+            // IMPORTANT: Do NOT touch CanvasGroup.alpha here.
+            // Alpha is managed exclusively by RefreshUnitList (sets 1) and DropAnimHost
+            // (sets 0 during fly animation, then 1). Touching alpha in this coroutine
+            // caused race conditions where cards got stuck invisible (alpha=0).
+            // Only animate scale + position for the enter effect.
             transform.localScale = Vector3.one * 0.82f;
 
             // DEV-30 fix: wait one frame for LayoutGroup to calculate correct position
@@ -1275,13 +1274,8 @@ namespace FWTCG.UI
             yield return null;
             if (this == null || !gameObject.activeInHierarchy)
             {
-                // GO was deactivated this frame — restore visual state so card is not
-                // stuck invisible when it becomes active again.
                 if (this != null)
-                {
-                    cg.alpha = 1f;
                     transform.localScale = Vector3.one;
-                }
                 _enterAnimPlayed = false;
                 yield break;
             }
@@ -1300,12 +1294,10 @@ namespace FWTCG.UI
                 float ease = t * (2f - t); // EaseOutQuad
                 rt.anchoredPosition = Vector2.Lerp(startPos, endPos, ease);
                 transform.localScale = Vector3.Lerp(startScale, endScale, ease);
-                cg.alpha = ease;
                 yield return null;
             }
             rt.anchoredPosition = endPos;
             transform.localScale = endScale;
-            cg.alpha = 1f;
             _enterAnimCoroutine = null;
 
             // DEV-30 V6: trigger foil sweep after card enters
@@ -1630,18 +1622,23 @@ namespace FWTCG.UI
         {
             if (_unit?.CardData == null) return;
 
-            // Micro-rotation (±1° Z axis for natural feel)
-            float angle = UnityEngine.Random.Range(-1f, 1f);
-            transform.localRotation = Quaternion.Euler(0f, 0f, angle);
+            // One-time setup (rotation + shadow) — only on first call per placement
+            if (!_bfVisualsApplied)
+            {
+                _bfVisualsApplied = true;
 
-            // Shadow layer (offset Image below card)
-            CreateShadow();
+                // Micro-rotation (±3° Z axis for natural feel)
+                float angle = UnityEngine.Random.Range(-3f, 3f);
+                transform.localRotation = Quaternion.Euler(0f, 0f, angle);
 
-            // Idle FX (persistent rune-type particle, delayed 1s)
+                // Shadow layer (offset Image below card)
+                CreateShadow();
+            }
+
+            // These may change over time, refresh each call
             if (!_idleFXSpawned && gameObject.activeInHierarchy)
                 StartCoroutine(SpawnIdleFXDelayed());
 
-            // Shield/Barrier persistent FX
             RefreshShieldFX();
         }
 
@@ -1654,11 +1651,11 @@ namespace FWTCG.UI
 
             var rt = go.AddComponent<RectTransform>();
             rt.anchorMin = Vector2.zero; rt.anchorMax = Vector2.one;
-            rt.offsetMin = new Vector2(4f, -8f); // offset down-right for shadow
-            rt.offsetMax = new Vector2(8f, -4f);
+            rt.offsetMin = new Vector2(3f, -5f); // offset down-right for shadow
+            rt.offsetMax = new Vector2(5f, -3f);
 
             var img = go.AddComponent<Image>();
-            img.color = new Color(0.02f, 0.04f, 0.08f, 0.55f); // dark navy, more visible on hex bg
+            img.color = new Color(0.02f, 0.04f, 0.08f, 0.45f);
             img.raycastTarget = false;
 
             _shadowImage = go;
@@ -1679,7 +1676,7 @@ namespace FWTCG.UI
             while (elapsed < fadeDur)
             {
                 elapsed += Time.deltaTime;
-                float a = Mathf.Lerp(0f, 0.55f, elapsed / fadeDur);
+                float a = Mathf.Lerp(0f, 0.45f, elapsed / fadeDur);
                 if (shadowImg != null)
                     shadowImg.color = new Color(0.02f, 0.04f, 0.08f, a);
                 yield return null;
@@ -1726,6 +1723,7 @@ namespace FWTCG.UI
             if (_idleFX != null) { SafeDestroy(_idleFX); _idleFX = null; }
             if (_shieldFX != null) { SafeDestroy(_shieldFX); _shieldFX = null; }
             _idleFXSpawned = false;
+            _bfVisualsApplied = false;
             if (_shadowImage != null) { SafeDestroy(_shadowImage); _shadowImage = null; }
             transform.localRotation = Quaternion.identity;
         }

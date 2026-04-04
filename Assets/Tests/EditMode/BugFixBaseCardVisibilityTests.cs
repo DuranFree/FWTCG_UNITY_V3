@@ -24,19 +24,18 @@ namespace FWTCG.Tests
         }
 
         [Test]
-        public void CardView_CancelEnterAnim_RestoresAlphaAndScale()
+        public void CardView_CancelEnterAnim_RestoresScale()
         {
             var go = new GameObject("TestCancelEnterAnim");
-            var cg = go.AddComponent<CanvasGroup>();
+            go.AddComponent<CanvasGroup>();
             var cv = go.AddComponent<FWTCG.UI.CardView>();
 
-            // Simulate mid-animation state: alpha=0, scale=0.82
-            cg.alpha = 0f;
+            // Simulate mid-animation state: scale=0.82
+            // (EnterAnimRoutine no longer touches alpha — only scale + position)
             go.transform.localScale = Vector3.one * 0.82f;
 
             cv.CancelEnterAnim();
 
-            Assert.AreEqual(1f, cg.alpha, 0.001f, "CancelEnterAnim must restore alpha to 1");
             Assert.AreEqual(Vector3.one, go.transform.localScale, "CancelEnterAnim must restore scale to 1");
 
             Object.DestroyImmediate(go);

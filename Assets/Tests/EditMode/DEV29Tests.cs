@@ -159,13 +159,12 @@ namespace FWTCG.Tests
                 BindingFlags.Instance | BindingFlags.NonPublic);
             enterAnimField?.SetValue(cv, true); // simulate it was played
 
-            // Setup with unitB (isNewUnit = true) → should reset _enterAnimPlayed
+            // Setup with unitB (isNewUnit = true) → should reset _enterAnimPlayed to false
+            // Note: playEnterAnim defaults to false, so the coroutine does NOT start.
+            // We verify the flag is correctly reset for a new unit assignment.
             cv.Setup(unitB, true, null);
-            bool entered = (bool)(enterAnimField?.GetValue(cv) ?? false);
-            // After reset to false and then StartCoroutine(EnterAnimRoutine), it becomes true again
-            // But in EditMode coroutines don't actually run, so it stays true (set in Setup)
-            // What we CAN verify: the flag is set to true exactly once for the new unit
-            Assert.IsTrue(entered, "_enterAnimPlayed should be true after Setup triggers entry anim");
+            bool entered = (bool)(enterAnimField?.GetValue(cv) ?? true);
+            Assert.IsFalse(entered, "_enterAnimPlayed should be reset to false on new unit (no anim by default)");
 
             Object.DestroyImmediate(cv.gameObject);
         }

@@ -764,10 +764,26 @@ namespace FWTCG.UI
         /// </summary>
         private sealed class DropAnimHost : MonoBehaviour
         {
+            // Safety net: all CanvasGroups whose alpha we set to 0.
+            // OnDestroy guarantees they are restored to 1 even if the
+            // coroutine is interrupted, the host is destroyed early,
+            // or any other unexpected interruption occurs.
+            private readonly List<CanvasGroup> _managedCGs = new List<CanvasGroup>();
+
             public void Run(DragSource dragSource, UnitInstance mainUnit,
                             List<UnitInstance> clusterUnits, List<Vector2> fromPositions)
             {
                 StartCoroutine(AnimRoutine(dragSource, mainUnit, clusterUnits, fromPositions));
+            }
+
+            private void OnDestroy()
+            {
+                // SAFETY NET: restore alpha=1 for any cards we hid.
+                // This fires no matter how the host is destroyed (normal cleanup,
+                // scene change, coroutine interruption, etc.)
+                foreach (var cg in _managedCGs)
+                    if (cg != null) cg.alpha = 1f;
+                _managedCGs.Clear();
             }
 
             private IEnumerator AnimRoutine(DragSource dragSource, UnitInstance mainUnit,
@@ -806,8 +822,8 @@ namespace FWTCG.UI
                 if (mainUnit != null) allUnits.Add(mainUnit);
                 allUnits.AddRange(clusterUnits);
 
-                var items       = new List<(CanvasGroup cardCG, RectTransform overlayRT, Vector2 from, Vector2 to)>();
-                var overlayObjs = new List<GameObject>();
+                var overlayItems = new List<(RectTransform overlayRT, Vector2 from, Vector2 to)>();
+                var overlayObjs  = new List<GameObject>();
 
                 for (int i = 0; i < allUnits.Count; i++)
                 {
@@ -853,34 +869,41 @@ namespace FWTCG.UI
                     overlay.transform.SetAsLastSibling();
                     overlayObjs.Add(overlay);
 
-                    // Cancel any running EnterAnimRoutine before taking over alpha management
-                    // to prevent the two coroutines from racing over cg.alpha (Bug fix: 2nd/3rd
-                    // card placed to base stays invisible when EnterAnim and DropAnim conflict).
+                    // Cancel EnterAnimRoutine to prevent scale/position animation conflict.
                     cv.CancelEnterAnim();
+
+                    // Hide the real card while the overlay flies in.
+                    // OnDestroy safety net guarantees alpha is restored even if
+                    // this coroutine is interrupted for any reason.
                     var cardCG = cv.GetComponent<CanvasGroup>() ?? cv.gameObject.AddComponent<CanvasGroup>();
                     cardCG.alpha = 0f;
-                    items.Add((cardCG, oRT, fromPos, finalPos));
+                    _managedCGs.Add(cardCG);
+
+                    overlayItems.Add((oRT, fromPos, finalPos));
                 }
 
-                if (items.Count > 0)
+                if (overlayItems.Count > 0)
                 {
-                    float totalDuration = phase1Dur + phase2Dur + (items.Count - 1) * stagger;
+                    float totalDuration = phase1Dur + phase2Dur + (overlayItems.Count - 1) * stagger;
                     float elapsed       = 0f;
                     while (elapsed < totalDuration)
                     {
                         elapsed += Time.deltaTime;
-                        for (int i = 0; i < items.Count; i++)
+                        for (int i = 0; i < overlayItems.Count; i++)
                         {
-                            Vector2 hover = items[i].to + new Vector2(0f, hoverHeight);
-                            AnimateDropCard(items[i].overlayRT, items[i].from, hover, items[i].to,
+                            Vector2 hover = overlayItems[i].to + new Vector2(0f, hoverHeight);
+                            AnimateDropCard(overlayItems[i].overlayRT, overlayItems[i].from, hover, overlayItems[i].to,
                                             phase1Dur, phase2Dur, elapsed, i * stagger);
                         }
                         yield return null;
                     }
                 }
 
-                foreach (var (cardCG, _, _, _) in items)
-                    cardCG.alpha = 1f;
+                // Restore alpha + cleanup (also done in OnDestroy as safety net)
+                foreach (var cg in _managedCGs)
+                    if (cg != null) cg.alpha = 1f;
+                _managedCGs.Clear();
+
                 foreach (var obj in overlayObjs)
                     if (obj != null) Destroy(obj);
 
