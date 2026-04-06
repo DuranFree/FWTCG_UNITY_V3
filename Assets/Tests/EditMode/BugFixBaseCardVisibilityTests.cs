@@ -42,14 +42,15 @@ namespace FWTCG.Tests
         }
 
         [Test]
-        public void CardView_HasEnterAnimCoroutineField()
+        public void CardView_HasEnterAnimSeqField()
         {
+            // DOT-7: _enterAnimCoroutine → _enterAnimSeq (Sequence)
             var field = typeof(FWTCG.UI.CardView).GetField(
-                "_enterAnimCoroutine",
+                "_enterAnimSeq",
                 BindingFlags.NonPublic | BindingFlags.Instance);
 
-            Assert.IsNotNull(field, "CardView must track _enterAnimCoroutine for cancellation");
-            Assert.AreEqual(typeof(Coroutine), field.FieldType);
+            Assert.IsNotNull(field, "CardView must track _enterAnimSeq for cancellation");
+            Assert.AreEqual(typeof(DG.Tweening.Sequence), field.FieldType);
         }
 
         // ── Bug 2: Hero hover & confirm flow ──

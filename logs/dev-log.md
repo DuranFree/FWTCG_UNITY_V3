@@ -2,6 +2,65 @@
 
 ---
 
+## DOT-7：CardView.cs DOTween 替换 + AnimMatFX 清理 — 2026-04-06
+
+**Status**: ✅ Completed
+**Tests**: 1080 EditMode 编译通过，1077 FWTCG+MCP 测试中 1077 绿 🟢（3 个预存失败非 DOT-7 引入），新增 55 个测试
+
+### 实现内容
+
+**CardView.cs**：17 个协程方法替换为 DOTween，完全消除动画相关的 IEnumerator 依赖（保留 5 个流程控制协程：PlayableSparkRoutine/EnterAnimSetup/DeathRoutine/DissolveOrFallbackRoutine/SpawnIdleFXDelayed/AutoDismissTooltip）：
+
+**LiftFloatRoutine**（per-frame Sin 驱动悬浮）→ DOVirtual.Float sine loop SetLoops(-1, Restart)；_liftFloat Coroutine → Tween
+
+**ReturnToRestRoutine**（手写 ease-out-quad 返回）→ DOVirtual.Float SetEase(OutQuad)；_returnToRest Coroutine → Tween
+
+**BreathGlowRoutine**（per-frame Sin 驱动 stat glow alpha）→ CreateBreathGlowTween DOVirtual.Float sine loop；_atkBreath/_costBreath/_schBreath Coroutine → Tween；常量提取 BREATH_GLOW_MIN/MAX/SPEED
+
+**StunPulseRoutine**（per-frame 2Hz Sin 驱动 stun overlay）→ CreateStunPulseTween DOVirtual.Float sine loop；_stunPulse Coroutine → Tween；常量 STUN_PULSE_SPEED/MIN/MAX
+
+**FlashRedRoutine**（red → original 0.35s Lerp）→ DOColor + SetDelay(0.12s)；_flash Coroutine → Tween；常量 FLASH_RED_HOLD/FLASH_RED_FADE
+
+**ShakeRoutine**（手写 offsets 数组）→ TweenHelper.ShakeUI；_shake Coroutine → Tween；常量 SHAKE_STRENGTH/DURATION/VIBRATO
+
+**BadgeScaleRoutine**（手写 Lerp scale）→ DOScale SetEase(Linear)；_badgeScaleCos Dictionary<GO,Coroutine> → _badgeScaleTweens Dictionary<GO,Tween>
+
+**TargetFadeOutRoutine**（MoveTowards alpha fade）→ DOVirtual.Float；_targetFadeOut Coroutine → Tween
+
+**TargetPulseRoutine**（两阶段 fade-in + sine pulse）→ StartTargetPulse DOVirtual.Float sine loop + envelope；_targetPulse Coroutine → Tween；常量 TARGET_PULSE_PERIOD/MIN/MAX
+
+**OrbitRoutine**（per-frame 角度递增圆形运动）→ DOVirtual.Float angle loop SetLoops(-1, Restart)；_orbitRoutine → _orbitTween Tween；常量 ORBIT_RADIUS/ORBIT_PERIOD
+
+**HeroAuraPulseRoutine**（per-frame Sin 驱动 aura alpha）→ DOVirtual.Float sine loop；_heroAuraPulse Coroutine → Tween；常量 HERO_AURA_PERIOD/MIN/MAX
+
+**EnterAnimRoutine**（yield return null + 手写 EaseOutQuad）→ EnterAnimSetup 协程壳（保留 1 帧等待 + ForceUpdateCanvases）+ DOTween Sequence（DOAnchorPos + DOScale OutQuad）；_enterAnimCoroutine → _enterAnimSetup + _enterAnimSeq；常量 ENTER_ANIM_DURATION/START_SCALE/Y_OFFSET
+
+**FoilSweepRoutine**（per-frame 驱动 ShineX/ShineY material）→ StartFoilSweep DOVirtual.Float；_foilSweep Coroutine → Tween；常量 FOIL_SWEEP_DURATION
+
+**AnimateSparkDot**（per-frame 手写 alpha+position）→ void 方法，DOVirtual.Float + SetTarget(dot) + OnComplete Destroy；常量 SPARK_INTERVAL/DURATION/FLOAT_DIST/PEAK_ALPHA
+
+**FadeShadowIn**（WaitForSeconds + per-frame Lerp）→ DOColor + SetDelay（额外发现）
+
+**DeathRoutine**（保留协程壳）：Phase B ghost fly 改为 DOTween Sequence（DOVirtual.Float 驱动贝塞尔弧线+缩放+淡出）；_death Coroutine → _deathSeq Sequence；常量 DEATH_PHASE_A_DISSOLVE/FALLBACK/PHASE_B/GHOST_START_SCALE/GHOST_END_SCALE
+
+**DissolveOrFallbackRoutine**（保留协程壳）：文本淡出改 DOVirtual.Float 并行；fallback 路径 shrink+tint 改 DOVirtual.Float
+
+**OnDestroy**：DOTween.Kill(gameObject) 兜底 + 14 个 KillSafe 逐个处理所有 tween 字段
+
+**AnimMatFX.cs 删除**：已无代码引用，安全删除
+
+**DOT2ReplacementTests.cs（更新）**：AnimMatFX type reference → string-based check（适配文件删除）
+
+**BugFixBaseCardVisibilityTests.cs（更新）**：_enterAnimCoroutine → _enterAnimSeq (Sequence)
+
+**DEV29Tests.cs（更新）**：_death field check 适配 _deathSeq
+
+**DOT7ReplacementTests.cs（新建，55 测试）**：覆盖 14 个旧协程方法移除验证、15 个旧 Coroutine 字段→Tween/Sequence 验证、7 个新方法存在验证、12 个常量验证、AnimMatFX 类型不存在、Coroutine 字段全扫描、FlashRed/Shake null-safety、TweenHelper null-safety 回归、badge scale tweens 字典类型
+
+**Technical debt**: AnimMatFX.cs 已删除（DOT-2 标记的技术债）
+
+---
+
 ## DOT-6：GameUI.cs DOTween 替换 — 2026-04-06
 
 **Status**: ✅ Completed

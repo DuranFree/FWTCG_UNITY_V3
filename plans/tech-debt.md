@@ -80,4 +80,4 @@
 - [ ] CardView.DissolveOrFallbackRoutine fallback 路径红色叠加是累积累加而非从原始值插值，低帧率下轻微视觉偏差 — VFX-3（MEDIUM）
 - [ ] VFX-3 dissolve 路径 Phase B ghost 大小固定 0.6x（dissolve 不缩放卡牌，ghost 与实际卡牌尺寸轻微不一致）— VFX-3（LOW）
 - ✅ AudioTool.FadeRoutine 被外部 StopAllCoroutines 打断时 ch.FadeRoutine 引用不清空 — DOT-3 已解决：改用 DOTween FadeTween，CancelFade 直接 Kill，不受 StopAllCoroutines 影响 — VFX-5→DOT-3
-- [ ] AnimMatFX.cs 文件仍存在但已无代码引用 — 待 DOT-7 收尾时确认安全后删除 — DOT-2（LOW）
+- ✅ AnimMatFX.cs 文件已删除 — DOT-7 确认无引用后安全删除 — DOT-2→DOT-7

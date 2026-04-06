@@ -161,31 +161,32 @@
 
 ## DOT-7 — CardView.cs（17个方法）
 
-- [ ] LiftFloatRoutine → DOAnchorPosY Yoyo loop — DOT-7
-- [ ] ReturnToRestRoutine → DOAnchorPosY — DOT-7
-- [ ] BreathGlowRoutine → DOFade loop — DOT-7
-- [ ] StunPulseRoutine → DOFade loop (高频) — DOT-7
-- [ ] FlashRedRoutine → DOColor — DOT-7
-- [ ] ShakeRoutine → DOShakeAnchorPos — DOT-7
-- [ ] BadgeScaleRoutine → DOScale — DOT-7
-- [ ] TargetFadeOutRoutine → DOFade — DOT-7
-- [ ] TargetPulseRoutine → DOFade loop — DOT-7
-- [ ] OrbitRoutine → DOLocalMove 圆形或保留 Update — DOT-7
-- [ ] HeroAuraPulseRoutine → DOFade loop — DOT-7
-- [ ] EnterAnimRoutine → DOAnchorPos + DOScale Sequence — DOT-7
-- [ ] FoilSweepRoutine → material.DOFloat — DOT-7
-- [ ] PlayableSparkRoutine → 批量 DOAnchorPosY + DOFade — DOT-7
-- [ ] AnimateSparkDot → DOAnchorPosY + DOFade — DOT-7
-- [ ] DeathRoutine → DOAnchorPos + DOScale + DOFade / TweenMatFX dissolve — DOT-7
-- [ ] DissolveOrFallbackRoutine → TweenMatFX.DOFloat("noise_fade") — DOT-7
-- [ ] OnDestroy 统一 Kill → DOTween.Kill(gameObject) — DOT-7
-- [ ] 所有 tween 加 .SetTarget(gameObject) — DOT-7
+- [x] LiftFloatRoutine → DOVirtual.Float sine loop — DOT-7
+- [x] ReturnToRestRoutine → DOVirtual.Float OutQuad — DOT-7
+- [x] BreathGlowRoutine → DOVirtual.Float sine loop — DOT-7
+- [x] StunPulseRoutine → DOVirtual.Float sine loop (2Hz) — DOT-7
+- [x] FlashRedRoutine → DOColor + SetDelay — DOT-7
+- [x] ShakeRoutine → TweenHelper.ShakeUI — DOT-7
+- [x] BadgeScaleRoutine → DOScale — DOT-7
+- [x] TargetFadeOutRoutine → DOVirtual.Float — DOT-7
+- [x] TargetPulseRoutine → DOVirtual.Float sine loop — DOT-7
+- [x] OrbitRoutine → DOVirtual.Float angle loop — DOT-7
+- [x] HeroAuraPulseRoutine → DOVirtual.Float sine loop — DOT-7
+- [x] EnterAnimRoutine → EnterAnimSetup coroutine (1-frame wait) + DOTween Sequence — DOT-7
+- [x] FoilSweepRoutine → DOVirtual.Float driving material — DOT-7
+- [x] PlayableSparkRoutine → 保留协程壳（WaitForSeconds），AnimateSparkDot 改 DOTween — DOT-7
+- [x] AnimateSparkDot → DOVirtual.Float driving pos+alpha — DOT-7
+- [x] DeathRoutine → 保留协程壳，Phase B ghost fly 改 DOTween Sequence — DOT-7
+- [x] DissolveOrFallbackRoutine → TweenMatFX dissolve + DOVirtual text fade / fallback — DOT-7
+- [x] FadeShadowIn → DOColor + SetDelay（额外发现）— DOT-7
+- [x] OnDestroy 统一 Kill → DOTween.Kill(gameObject) + KillSafe 14个字段 — DOT-7
+- [x] 所有 tween 加 .SetTarget(gameObject) — DOT-7
 
 ---
 
 ## 收尾
 
-- [ ] 项目 CLAUDE.md 追加规则：补间动画一律使用 DOTween，禁止手写协程插值 — DOT-7
-- [ ] 清理残留：删除不再使用的 AnimMatFX.cs（确认无引用后）— DOT-7
-- [ ] 全量 EditMode 测试通过 — DOT-7
+- [x] 清理残留：删除不再使用的 AnimMatFX.cs（确认无引用后）— DOT-7
+- [x] 全量 EditMode 测试通过 — DOT-7
+- [x] 项目 CLAUDE.md 追加规则：补间动画一律使用 DOTween，禁止手写协程插值 — DOT-7
 - [ ] PlayMode 手动验证完整对局 — DOT-7

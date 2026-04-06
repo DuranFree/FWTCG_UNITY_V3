@@ -252,12 +252,12 @@ namespace FWTCG.Tests
         [Test]
         public void CardView_DissolveRoutine_NoAnimMatFXReference()
         {
-            // Verify CardView no longer has a direct field dependency on AnimMatFX
+            // DOT-7: AnimMatFX.cs deleted; verify no CardView field type name contains "AnimMatFX"
             var fields = typeof(FWTCG.UI.CardView).GetFields(
                 BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.Public);
             foreach (var field in fields)
             {
-                Assert.AreNotEqual(typeof(FWTCG.FX.AnimMatFX), field.FieldType,
+                Assert.IsFalse(field.FieldType.Name.Contains("AnimMatFX"),
                     $"CardView.{field.Name} still references AnimMatFX — should use TweenMatFX");
             }
         }

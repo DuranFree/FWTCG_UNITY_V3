@@ -59,10 +59,10 @@ namespace FWTCG.UI
         private bool _selected;
         private bool _faceDown;
         private bool _costInsufficient;
-        private Coroutine _stunPulse;
-        private Coroutine _shake;
-        private Coroutine _flash;
-        private Coroutine _death;
+        private Tween _stunPulse;
+        private Tween _shake;
+        private Tween _flash;
+        private Sequence _deathSeq;
         private GameObject _deathGhost; // DEV-29: tracked so OnDestroy can clean up mid-flight ghost
         private CardGlow _cardGlow;
 
@@ -70,9 +70,9 @@ namespace FWTCG.UI
         private Image     _atkGlowImg;
         private Image     _costGlowImg;
         private Image     _schGlowImg;
-        private Coroutine _atkBreath;
-        private Coroutine _costBreath;
-        private Coroutine _schBreath;
+        private Tween _atkBreath;
+        private Tween _costBreath;
+        private Tween _schBreath;
 
         // ── Status badges (▲ buff / ▲ equip / ▼ debuff) — DEV-25 ────────────
         private GameObject _buffBadge;
@@ -81,16 +81,16 @@ namespace FWTCG.UI
         private GameObject _statusTooltip;   // one-at-a-time tooltip panel
         private BadgeTip? _currentStatusTip; // tracks which badge opened the tooltip
 
-        // Scale coroutines per badge (Dictionary avoids ref-in-lambda issues)
-        private readonly System.Collections.Generic.Dictionary<GameObject, Coroutine>
-            _badgeScaleCos = new System.Collections.Generic.Dictionary<GameObject, Coroutine>();
+        // Scale tweens per badge (Dictionary avoids ref-in-lambda issues)
+        private readonly System.Collections.Generic.Dictionary<GameObject, Tween>
+            _badgeScaleTweens = new System.Collections.Generic.Dictionary<GameObject, Tween>();
 
         private enum BadgeTip { Buff, Equip, Debuff }
 
         // ── Selection lift + float animation ────────────────────────────────
         private bool      _isLifted;
-        private Coroutine _liftFloat;
-        private Coroutine _returnToRest;            // smooth de-select return animation
+        private Tween     _liftFloat;
+        private Tween     _returnToRest;            // smooth de-select return animation
         private float     _restAnchoredY;           // Y before lifting
         private const float LiftOffset       = 12f;   // px raised when selected
         private const float FloatAmplitude   = 4f;    // px peak of float wave
@@ -99,19 +99,21 @@ namespace FWTCG.UI
 
         // ── DEV-28: Target highlight ─────────────────────────────────────────
         private Image     _targetBorder;
-        private Coroutine _targetPulse;
+        private Tween     _targetPulse;
+        private Tween     _targetFadeOut;
 
         // ── DEV-28: Selected orbit light ─────────────────────────────────────
         private GameObject _orbitDot;
-        private Coroutine  _orbitRoutine;
+        private Tween      _orbitTween;
 
         // ── DEV-28: Hero aura ────────────────────────────────────────────────
         private Image     _heroAura;
-        private Coroutine _heroAuraPulse;
+        private Tween     _heroAuraPulse;
 
         // ── DEV-28: Hand enter animation ─────────────────────────────────────
         private bool _enterAnimPlayed;
-        private Coroutine _enterAnimCoroutine;
+        private Sequence _enterAnimSeq;
+        private Coroutine _enterAnimSetup; // one-frame setup coroutine before DOTween anim
 
         // ── DEV-29: Card back overlay (geometric pattern) ────────────────────
         private GameObject _cardBackOverlay;
@@ -120,10 +122,10 @@ namespace FWTCG.UI
         // ── DEV-30: Foil Sweep (V6) ──────────────────────────────────────────
         private Image     _shineOverlay;  // lazy-created full-size overlay with CardShine shader
         private Material  _shineMat;      // per-card clone destroyed in OnDestroy
-        private Coroutine _foilSweep;
+        private Tween     _foilSweep;
 
         // ── DEV-30: Playable Spark (V7) ──────────────────────────────────────
-        private Coroutine _playableSpark;
+        private Coroutine _playableSpark; // kept: periodic spawning loop (WaitForSeconds)
         private bool      _lastPlayable;
         private readonly System.Collections.Generic.List<GameObject> _sparkDots =
             new System.Collections.Generic.List<GameObject>();
@@ -206,31 +208,48 @@ namespace FWTCG.UI
 
         private void OnDestroy()
         {
+            // DOT-7: kill all tweens targeting this GameObject (catches any SetTarget(gameObject))
+            DOTween.Kill(gameObject);
+
             if (_clickButton != null)
                 _clickButton.onClick.RemoveListener(HandleClick);
-            if (_enterAnimCoroutine != null) StopCoroutine(_enterAnimCoroutine);
-            _enterAnimCoroutine = null;
-            if (_stunPulse   != null) StopCoroutine(_stunPulse);
-            if (_shake       != null) StopCoroutine(_shake);   // DEV-26
-            if (_flash       != null) StopCoroutine(_flash);   // DEV-26
-            if (_death       != null) StopCoroutine(_death);   // DEV-26
-            if (_deathGhost  != null) { Destroy(_deathGhost); _deathGhost = null; } // DEV-29
-            if (_atkBreath   != null) StopCoroutine(_atkBreath);
-            if (_costBreath  != null) StopCoroutine(_costBreath);
-            if (_schBreath   != null) StopCoroutine(_schBreath);
-            if (_liftFloat    != null) StopCoroutine(_liftFloat);
-            if (_returnToRest != null) StopCoroutine(_returnToRest);
-            if (_targetPulse  != null) StopCoroutine(_targetPulse);
-            if (_orbitRoutine != null) StopCoroutine(_orbitRoutine);
-            if (_heroAuraPulse != null) StopCoroutine(_heroAuraPulse);
+
+            // DOT-7: KillSafe each tracked tween field
+            TweenHelper.KillSafe(ref _stunPulse);
+            TweenHelper.KillSafe(ref _shake);
+            TweenHelper.KillSafe(ref _flash);
+            TweenHelper.KillSafe(ref _atkBreath);
+            TweenHelper.KillSafe(ref _costBreath);
+            TweenHelper.KillSafe(ref _schBreath);
+            TweenHelper.KillSafe(ref _liftFloat);
+            TweenHelper.KillSafe(ref _returnToRest);
+            TweenHelper.KillSafe(ref _targetPulse);
+            TweenHelper.KillSafe(ref _targetFadeOut);
+            TweenHelper.KillSafe(ref _orbitTween);
+            TweenHelper.KillSafe(ref _heroAuraPulse);
+            TweenHelper.KillSafe(ref _foilSweep);
+            {
+                Sequence s = _enterAnimSeq; TweenHelper.KillSafe(ref s); _enterAnimSeq = null;
+            }
+            {
+                Sequence s = _deathSeq; TweenHelper.KillSafe(ref s); _deathSeq = null;
+            }
+            if (_enterAnimSetup != null) { StopCoroutine(_enterAnimSetup); _enterAnimSetup = null; }
+
+            // Badge scale tweens
+            foreach (var tw in _badgeScaleTweens.Values)
+            {
+                Tween t = tw;
+                TweenHelper.KillSafe(ref t);
+            }
+            _badgeScaleTweens.Clear();
+
+            // DEV-29: cleanup death ghost
+            if (_deathGhost  != null) { Destroy(_deathGhost); _deathGhost = null; }
             if (_orbitDot != null) Destroy(_orbitDot);
-            // Stop all badge scale coroutines
-            foreach (var co in _badgeScaleCos.Values)
-                if (co != null) StopCoroutine(co);
-            _badgeScaleCos.Clear();
             // H-3: destroy floating tooltip to prevent canvas leak when card is removed
             if (_statusTooltip != null) { Destroy(_statusTooltip); _statusTooltip = null; _currentStatusTip = null; }
-            // VFX-3: clear dissolve material on all images before destroying clone (prevents dangling ref if coroutine was interrupted)
+            // VFX-3: clear dissolve material on all images before destroying clone
             if (_clonedDissolveMat != null)
             {
                 foreach (var img in GetComponentsInChildren<Image>(true))
@@ -239,7 +258,6 @@ namespace FWTCG.UI
                 _clonedDissolveMat = null;
             }
             // DEV-30 V6: destroy cloned shine material
-            if (_foilSweep != null) StopCoroutine(_foilSweep);
             if (_shineMat  != null) { SafeDestroy(_shineMat); _shineMat = null; }
             // DEV-30 V7: stop sparks and destroy dot GOs
             if (_playableSpark != null) StopCoroutine(_playableSpark);
@@ -327,7 +345,7 @@ namespace FWTCG.UI
             // Base/BF cards appear immediately to avoid position/scale animation
             // fighting with HLG layout and causing delayed visibility.
             if (playEnterAnim && isNewUnit && !_enterAnimPlayed && gameObject.activeInHierarchy)
-                _enterAnimCoroutine = StartCoroutine(EnterAnimRoutine());
+                _enterAnimSetup = StartCoroutine(EnterAnimSetup());
         }
 
         public void OnPointerEnter(PointerEventData eventData)
@@ -590,13 +608,10 @@ namespace FWTCG.UI
             {
                 bool stunned = _unit.Stunned;
                 _stunnedOverlay.gameObject.SetActive(stunned);
-                if (stunned && _stunPulse == null)
-                    _stunPulse = StartCoroutine(StunPulseRoutine());
-                else if (!stunned && _stunPulse != null)
-                {
-                    StopCoroutine(_stunPulse);
-                    _stunPulse = null;
-                }
+                if (stunned && (_stunPulse == null || !_stunPulse.IsActive()))
+                    _stunPulse = CreateStunPulseTween();
+                else if (!stunned)
+                    TweenHelper.KillSafe(ref _stunPulse);
                 // VFX-7o: mount/unmount ElectricFX for stun
                 if (stunned && _stunFX == null)
                 {
@@ -752,13 +767,13 @@ namespace FWTCG.UI
             {
                 // If a return animation was in-progress, the card hasn't reached rest yet —
                 // _restAnchoredY is still the correct original rest Y, so don't overwrite it.
-                bool wasReturning = _returnToRest != null;
-                if (_returnToRest != null) { StopCoroutine(_returnToRest); _returnToRest = null; }
+                bool wasReturning = _returnToRest != null && _returnToRest.IsActive();
+                TweenHelper.KillSafe(ref _returnToRest);
                 _isLifted = true;
                 if (!wasReturning)
                     _restAnchoredY = rt.anchoredPosition.y;  // only save rest Y when truly at rest
-                if (_liftFloat != null) StopCoroutine(_liftFloat);
-                _liftFloat = StartCoroutine(LiftFloatRoutine());
+                TweenHelper.KillSafe(ref _liftFloat);
+                StartLiftFloat();
                 // DEV-28: start orbit light
                 StartOrbit();
                 ShowGlow(); // VFX-7k
@@ -766,10 +781,10 @@ namespace FWTCG.UI
             else
             {
                 _isLifted = false;
-                if (_liftFloat != null) { StopCoroutine(_liftFloat); _liftFloat = null; }
+                TweenHelper.KillSafe(ref _liftFloat);
                 // Animate back to rest position instead of snapping
-                if (_returnToRest != null) StopCoroutine(_returnToRest);
-                _returnToRest = StartCoroutine(ReturnToRestRoutine(rt.anchoredPosition.y));
+                TweenHelper.KillSafe(ref _returnToRest);
+                StartReturnToRest(rt.anchoredPosition.y);
                 // DEV-28: stop orbit light
                 StopOrbit();
                 HideGlow(); // VFX-7k
@@ -782,7 +797,7 @@ namespace FWTCG.UI
         /// </summary>
         public void SuspendLift()
         {
-            if (_liftFloat != null) { StopCoroutine(_liftFloat); _liftFloat = null; }
+            TweenHelper.KillSafe(ref _liftFloat);
         }
 
         /// <summary>
@@ -790,44 +805,34 @@ namespace FWTCG.UI
         /// </summary>
         public void ResumeLift()
         {
-            if (_selected && _isLifted && _liftFloat == null)
-                _liftFloat = StartCoroutine(LiftFloatRoutine());
+            if (_selected && _isLifted && (_liftFloat == null || !_liftFloat.IsActive()))
+                StartLiftFloat();
         }
 
-        private IEnumerator LiftFloatRoutine()
+        /// <summary>DOT-7: DOVirtual.Float sine loop driving anchoredPosition.y.</summary>
+        private void StartLiftFloat()
         {
             var rt = (RectTransform)transform;
-            float t = 0f;
-            while (_isLifted)
+            _liftFloat = DOVirtual.Float(0f, FloatPeriod, FloatPeriod, v =>
             {
-                float floatY = Mathf.Sin(t * Mathf.PI * 2f / FloatPeriod) * FloatAmplitude;
+                if (rt == null) return;
+                float floatY = Mathf.Sin(v * Mathf.PI * 2f / FloatPeriod) * FloatAmplitude;
                 rt.anchoredPosition = new Vector2(rt.anchoredPosition.x,
                                                   _restAnchoredY + LiftOffset + floatY);
-                t += Time.deltaTime;
-                yield return null;
-            }
+            }).SetEase(Ease.Linear).SetLoops(-1, LoopType.Restart).SetTarget(gameObject);
         }
 
-        /// <summary>
-        /// Smoothly returns the card from its current lifted Y back to _restAnchoredY.
-        /// Called when the card is deselected (e.g. turn ends) so it eases down visually.
-        /// </summary>
-        private IEnumerator ReturnToRestRoutine(float startY)
+        /// <summary>DOT-7: DOAnchorPosY smooth return to rest with OutQuad ease.</summary>
+        private void StartReturnToRest(float startY)
         {
             var rt = (RectTransform)transform;
-            float elapsed = 0f;
-            while (elapsed < ReturnDuration)
+            rt.anchoredPosition = new Vector2(rt.anchoredPosition.x, startY);
+            _returnToRest = DOVirtual.Float(startY, _restAnchoredY, ReturnDuration, v =>
             {
-                elapsed += Time.deltaTime;
-                float t     = Mathf.Clamp01(elapsed / ReturnDuration);
-                float eased = t * (2f - t);   // ease-out quad — fast start, soft landing
-                rt.anchoredPosition = new Vector2(
-                    rt.anchoredPosition.x,
-                    Mathf.Lerp(startY, _restAnchoredY, eased));
-                yield return null;
-            }
-            rt.anchoredPosition = new Vector2(rt.anchoredPosition.x, _restAnchoredY);
-            _returnToRest = null;
+                if (rt != null)
+                    rt.anchoredPosition = new Vector2(rt.anchoredPosition.x, v);
+            }).SetEase(Ease.OutQuad).SetTarget(gameObject)
+              .OnComplete(() => _returnToRest = null);
         }
 
         private void HandleClick()
@@ -842,27 +847,27 @@ namespace FWTCG.UI
         // ── Shared stat-glow helpers ─────────────────────────────────────────
 
         /// <summary>Start or stop a white breathing glow behind target. Lazily creates Image.</summary>
-        private void RefreshStatGlow(ref Coroutine co, ref Image glowImg,
+        private void RefreshStatGlow(ref Tween tw, ref Image glowImg,
                                      RectTransform target, bool modified)
         {
             if (modified)
             {
                 if (glowImg == null) glowImg = CreateGlowImgBehind(target);
-                if (co == null)
+                if (tw == null || !tw.IsActive())
                 {
                     var captured = glowImg;
-                    co = StartCoroutine(BreathGlowRoutine(() => captured));
+                    tw = CreateBreathGlowTween(captured);
                 }
             }
             else
             {
-                StopStatGlow(ref co, glowImg);
+                StopStatGlow(ref tw, glowImg);
             }
         }
 
-        private void StopStatGlow(ref Coroutine co, Image glowImg)
+        private void StopStatGlow(ref Tween tw, Image glowImg)
         {
-            if (co != null) { StopCoroutine(co); co = null; }
+            TweenHelper.KillSafe(ref tw);
             if (glowImg != null) glowImg.color = new Color(1f, 1f, 1f, 0f);
         }
 
@@ -885,17 +890,22 @@ namespace FWTCG.UI
             return img;
         }
 
-        private IEnumerator BreathGlowRoutine(System.Func<Image> getImg)
+        // DOT-7: sine-driven alpha breath on stat glow image
+        public const float BREATH_GLOW_MIN = 0.08f;
+        public const float BREATH_GLOW_MAX = 0.45f;
+        public const float BREATH_GLOW_SPEED = 1.4f;
+
+        private Tween CreateBreathGlowTween(Image img)
         {
-            float t = 0f;
-            while (true)
+            if (img == null) return null;
+            // Full sine cycle = 2π / BREATH_GLOW_SPEED ≈ 4.49s
+            float period = Mathf.PI * 2f / BREATH_GLOW_SPEED;
+            return DOVirtual.Float(0f, Mathf.PI * 2f, period, v =>
             {
-                t += Time.deltaTime * 1.4f;
-                float alpha = Mathf.Lerp(0.08f, 0.45f, (Mathf.Sin(t) + 1f) * 0.5f);
-                var img = getImg();
-                if (img != null) img.color = new Color(1f, 1f, 1f, alpha);
-                yield return null;
-            }
+                if (img == null) return;
+                float alpha = Mathf.Lerp(BREATH_GLOW_MIN, BREATH_GLOW_MAX, (Mathf.Sin(v) + 1f) * 0.5f);
+                img.color = new Color(1f, 1f, 1f, alpha);
+            }).SetEase(Ease.Linear).SetLoops(-1, LoopType.Restart).SetTarget(gameObject);
         }
 
         private void RefreshAtkGlow(bool modified)
@@ -906,71 +916,64 @@ namespace FWTCG.UI
                 (RectTransform)_atkText.transform, modified);
         }
 
-        private IEnumerator StunPulseRoutine()
+        // DOT-7: stun overlay alpha pulse (2 Hz sine loop)
+        public const float STUN_PULSE_SPEED = 2f;
+        public const float STUN_PULSE_MIN = 0.15f;
+        public const float STUN_PULSE_MAX = 0.45f;
+
+        private Tween CreateStunPulseTween()
         {
-            float t = 0f;
-            while (true)
+            if (_stunnedOverlay == null) return null;
+            float period = Mathf.PI * 2f / STUN_PULSE_SPEED;
+            return DOVirtual.Float(0f, Mathf.PI * 2f, period, v =>
             {
-                t += Time.deltaTime * 2f; // 2 Hz pulse
-                float alpha = Mathf.Lerp(0.15f, 0.45f, (Mathf.Sin(t) + 1f) * 0.5f);
-                if (_stunnedOverlay != null)
-                {
-                    var c = GameColors.StunnedOverlay;
-                    c.a = alpha;
-                    _stunnedOverlay.color = c;
-                }
-                yield return null;
-            }
+                if (_stunnedOverlay == null) return;
+                float alpha = Mathf.Lerp(STUN_PULSE_MIN, STUN_PULSE_MAX, (Mathf.Sin(v) + 1f) * 0.5f);
+                var c = GameColors.StunnedOverlay;
+                c.a = alpha;
+                _stunnedOverlay.color = c;
+            }).SetEase(Ease.Linear).SetLoops(-1, LoopType.Restart).SetTarget(gameObject);
         }
+
+        // DOT-7: flash red constants
+        public const float FLASH_RED_HOLD = 0.12f;
+        public const float FLASH_RED_FADE = 0.35f;
 
         /// <summary>Brief red flash: instant red, fade back over 0.35s.</summary>
         public void FlashRed()
         {
-            if (_flash != null) StopCoroutine(_flash);
-            _flash = StartCoroutine(FlashRedRoutine());
-        }
-
-        private IEnumerator FlashRedRoutine()
-        {
-            if (_cardBg == null) yield break;
+            TweenHelper.KillSafe(ref _flash);
+            if (_cardBg == null) return;
             Color original = _cardBg.color;
             Color red = new Color(1f, 0.15f, 0.15f, original.a);
             _cardBg.color = red;
-            yield return new WaitForSeconds(0.12f);
-            float t = 0f;
-            while (t < 0.35f)
-            {
-                _cardBg.color = Color.Lerp(red, original, t / 0.35f);
-                t += Time.deltaTime;
-                yield return null;
-            }
-            _cardBg.color = original;
-            _flash = null;
+            _flash = _cardBg.DOColor(original, FLASH_RED_FADE)
+                .SetDelay(FLASH_RED_HOLD)
+                .SetEase(Ease.Linear)
+                .SetTarget(gameObject)
+                .OnComplete(() => _flash = null);
         }
 
-        /// <summary>Left-right shake: 4 oscillations of ±10px over ~0.3s.</summary>
+        // DOT-7: shake constants
+        public const float SHAKE_STRENGTH = 10f;
+        public const float SHAKE_DURATION = 0.28f;
+        public const int   SHAKE_VIBRATO = 7;
+
+        /// <summary>Left-right shake: DOShakeAnchorPos ~0.28s.</summary>
         public void Shake()
         {
-            if (_shake != null) StopCoroutine(_shake);
-            _shake = StartCoroutine(ShakeRoutine());
+            TweenHelper.KillSafe(ref _shake);
+            _shake = TweenHelper.ShakeUI((RectTransform)transform, SHAKE_STRENGTH, SHAKE_DURATION, SHAKE_VIBRATO);
+            if (_shake != null)
+                _shake.OnComplete(() => _shake = null);
         }
 
-        private IEnumerator ShakeRoutine()
-        {
-            var rt = GetComponent<RectTransform>();
-            if (rt == null) yield break;
-
-            Vector2 origin = rt.anchoredPosition;
-            float[] offsets = { 10f, -10f, 8f, -8f, 5f, -5f, 0f };
-            float step = 0.04f;
-            foreach (float dx in offsets)
-            {
-                rt.anchoredPosition = new Vector2(origin.x + dx, origin.y);
-                yield return new WaitForSeconds(step);
-            }
-            rt.anchoredPosition = origin;
-            _shake = null;
-        }
+        // DOT-7: death animation constants
+        public const float DEATH_PHASE_A_DISSOLVE = 0.6f;
+        public const float DEATH_PHASE_A_FALLBACK = 0.30f;
+        public const float DEATH_PHASE_B = 0.50f;
+        public const float DEATH_GHOST_START_SCALE = 0.6f;
+        public const float DEATH_GHOST_END_SCALE = 0.15f;
 
         /// <summary>
         /// Shrink + fade death animation over 0.45s. Called just before the unit is
@@ -979,8 +982,8 @@ namespace FWTCG.UI
         /// </summary>
         public void PlayDeathAnimation(Vector2? flyTarget = null, Canvas canvas = null)
         {
-            if (_death != null) return;
-            _death = StartCoroutine(DeathRoutine(flyTarget, canvas));
+            if (_deathSeq != null && _deathSeq.IsActive()) return;
+            StartCoroutine(DeathRoutine(flyTarget, canvas));
         }
 
         // ── Status badge logic (DEV-25) ───────────────────────────────────────
@@ -1149,24 +1152,13 @@ namespace FWTCG.UI
         private void ScaleBadge(GameObject badge, float target, float duration)
         {
             if (badge == null) return;
-            if (_badgeScaleCos.TryGetValue(badge, out var old) && old != null)
-                StopCoroutine(old);
-            _badgeScaleCos[badge] = StartCoroutine(BadgeScaleRoutine(badge.transform, target, duration));
-        }
-
-        private IEnumerator BadgeScaleRoutine(Transform t, float target, float duration)
-        {
-            if (t == null) yield break;
-            float start   = t.localScale.x;
-            float elapsed = 0f;
-            while (elapsed < duration)
+            if (_badgeScaleTweens.TryGetValue(badge, out var old))
             {
-                elapsed += Time.deltaTime;
-                float s = Mathf.Lerp(start, target, elapsed / duration);
-                if (t != null) t.localScale = Vector3.one * s;
-                yield return null;
+                Tween t = old;
+                TweenHelper.KillSafe(ref t);
             }
-            if (t != null) t.localScale = Vector3.one * target;
+            _badgeScaleTweens[badge] = badge.transform.DOScale(Vector3.one * target, duration)
+                .SetEase(Ease.Linear).SetTarget(badge);
         }
 
         private void ShowStatusTooltip(BadgeTip tip)
@@ -1293,6 +1285,11 @@ namespace FWTCG.UI
         private float _targetAlpha;
         private float _targetAlphaGoal;
 
+        // DOT-7: target pulse constants
+        public const float TARGET_PULSE_PERIOD = 1.2f;
+        public const float TARGET_PULSE_MIN = 0.3f;
+        public const float TARGET_PULSE_MAX = 0.85f;
+
         public void SetTargeted(bool targeted)
         {
             _targetAlphaGoal = targeted ? 1f : 0f;
@@ -1301,63 +1298,56 @@ namespace FWTCG.UI
                 if (_targetBorder == null)
                     _targetBorder = CreateOverlayImage("TargetBorder",
                         new Color(0.29f, 0.87f, 0.50f, 0f), sizeDelta: Vector2.zero, asOutline: true);
-                if (_targetPulse != null) StopCoroutine(_targetPulse);
-                _targetPulse = StartCoroutine(TargetPulseRoutine());
+                TweenHelper.KillSafe(ref _targetPulse);
+                TweenHelper.KillSafe(ref _targetFadeOut);
+                StartTargetPulse();
             }
             else
             {
-                // Don't stop pulse immediately — let it fade out
-                if (_targetPulse != null) { StopCoroutine(_targetPulse); _targetPulse = null; }
-                if (_targetFadeOut != null) StopCoroutine(_targetFadeOut);
-                _targetFadeOut = StartCoroutine(TargetFadeOutRoutine());
+                TweenHelper.KillSafe(ref _targetPulse);
+                TweenHelper.KillSafe(ref _targetFadeOut);
+                StartTargetFadeOut();
             }
         }
 
-        private Coroutine _targetFadeOut;
-
-        private IEnumerator TargetFadeOutRoutine()
+        private void StartTargetFadeOut()
         {
-            while (_targetAlpha > 0.01f && _targetBorder != null)
+            if (_targetBorder == null) return;
+            float fadeTime = _targetAlpha / TARGET_FADE_SPEED;
+            _targetFadeOut = DOVirtual.Float(_targetAlpha, 0f, fadeTime, v =>
             {
-                _targetAlpha = Mathf.MoveTowards(_targetAlpha, 0f, TARGET_FADE_SPEED * Time.deltaTime);
-                var c = _targetBorder.color;
-                _targetBorder.color = new Color(c.r, c.g, c.b, _targetAlpha);
-                yield return null;
-            }
-            if (_targetBorder != null)
-                _targetBorder.color = new Color(0.29f, 0.87f, 0.50f, 0f);
-            _targetAlpha = 0f;
-            _targetFadeOut = null;
+                _targetAlpha = v;
+                if (_targetBorder != null)
+                {
+                    var c = _targetBorder.color;
+                    _targetBorder.color = new Color(c.r, c.g, c.b, v);
+                }
+            }).SetEase(Ease.Linear).SetTarget(gameObject)
+              .OnComplete(() => { _targetAlpha = 0f; _targetFadeOut = null; });
         }
 
-        private IEnumerator TargetPulseRoutine()
+        private void StartTargetPulse()
         {
-            const float period = 1.2f;
-            float t = 0f;
+            if (_targetBorder == null) return;
             var baseCol = new Color(0.29f, 0.87f, 0.50f, 1f);
-            // VFX-7j: smooth fade-in
-            while (_targetAlpha < 0.99f && _targetBorder != null)
+            // Two-phase: fade-in envelope + steady pulse (combined in one tween)
+            _targetPulse = DOVirtual.Float(0f, TARGET_PULSE_PERIOD, TARGET_PULSE_PERIOD, v =>
             {
-                _targetAlpha = Mathf.MoveTowards(_targetAlpha, 1f, TARGET_FADE_SPEED * Time.deltaTime);
-                float pulseA = (Mathf.Sin(t * Mathf.PI * 2f / period) + 1f) * 0.5f;
-                float alpha = Mathf.Lerp(0.3f, 0.85f, pulseA) * _targetAlpha;
+                if (_targetBorder == null) return;
+                // Envelope: ramp _targetAlpha to 1 over ~0.5s then hold
+                if (_targetAlpha < 1f)
+                    _targetAlpha = Mathf.MoveTowards(_targetAlpha, 1f, TARGET_FADE_SPEED * Time.deltaTime);
+                float pulseA = (Mathf.Sin(v * Mathf.PI * 2f / TARGET_PULSE_PERIOD) + 1f) * 0.5f;
+                float alpha = Mathf.Lerp(TARGET_PULSE_MIN, TARGET_PULSE_MAX, pulseA) * _targetAlpha;
                 _targetBorder.color = new Color(baseCol.r, baseCol.g, baseCol.b, alpha);
-                t += Time.deltaTime;
-                yield return null;
-            }
-            _targetAlpha = 1f;
-            // Normal pulse
-            while (_targetBorder != null)
-            {
-                float alpha = (Mathf.Sin(t * Mathf.PI * 2f / period) + 1f) * 0.5f;
-                alpha = Mathf.Lerp(0.3f, 0.85f, alpha);
-                _targetBorder.color = new Color(baseCol.r, baseCol.g, baseCol.b, alpha);
-                t += Time.deltaTime;
-                yield return null;
-            }
+            }).SetEase(Ease.Linear).SetLoops(-1, LoopType.Restart).SetTarget(gameObject);
         }
 
         // ── DEV-28: Selected orbit light ─────────────────────────────────────
+
+        // DOT-7: orbit constants
+        public const float ORBIT_RADIUS = 60f;
+        public const float ORBIT_PERIOD = 6f;
 
         private void StartOrbit()
         {
@@ -1375,40 +1365,33 @@ namespace FWTCG.UI
                 _orbitDot.transform.SetAsLastSibling();
             }
             _orbitDot.SetActive(true);
-            if (_orbitRoutine != null) StopCoroutine(_orbitRoutine);
-            _orbitRoutine = StartCoroutine(OrbitRoutine());
+            TweenHelper.KillSafe(ref _orbitTween);
+            var dotRT = _orbitDot.GetComponent<RectTransform>();
+            _orbitTween = DOVirtual.Float(0f, 360f, ORBIT_PERIOD, v =>
+            {
+                if (dotRT == null) return;
+                float rad = v * Mathf.Deg2Rad;
+                dotRT.anchoredPosition = new Vector2(Mathf.Cos(rad) * ORBIT_RADIUS, Mathf.Sin(rad) * ORBIT_RADIUS);
+            }).SetEase(Ease.Linear).SetLoops(-1, LoopType.Restart).SetTarget(gameObject);
         }
 
         private void StopOrbit()
         {
-            if (_orbitRoutine != null) { StopCoroutine(_orbitRoutine); _orbitRoutine = null; }
+            TweenHelper.KillSafe(ref _orbitTween);
             if (_orbitDot != null) _orbitDot.SetActive(false);
-        }
-
-        private IEnumerator OrbitRoutine()
-        {
-            const float radius   = 60f;
-            const float period   = 6f;   // seconds per full revolution
-            float angle = 0f;
-            var dotRT = _orbitDot != null ? _orbitDot.GetComponent<RectTransform>() : null;
-            while (_orbitDot != null && _orbitDot.activeSelf)
-            {
-                if (dotRT != null)
-                {
-                    float rad = angle * Mathf.Deg2Rad;
-                    dotRT.anchoredPosition = new Vector2(Mathf.Cos(rad) * radius, Mathf.Sin(rad) * radius);
-                }
-                angle = (angle + 360f / period * Time.deltaTime) % 360f;
-                yield return null;
-            }
         }
 
         // ── DEV-28: Hero aura ────────────────────────────────────────────────
 
+        // DOT-7: hero aura pulse constants
+        public const float HERO_AURA_PERIOD = 4f;
+        public const float HERO_AURA_MIN = 0.25f;
+        public const float HERO_AURA_MAX = 0.60f;
+
         // DEV-29: stop and destroy hero aura when CardView is reused for a non-hero unit
         private void ClearHeroAura()
         {
-            if (_heroAuraPulse != null) { StopCoroutine(_heroAuraPulse); _heroAuraPulse = null; }
+            TweenHelper.KillSafe(ref _heroAuraPulse);
             if (_heroAura != null)
             {
                 // Use DestroyImmediate in EditMode (e.g. tests); Destroy at runtime
@@ -1423,25 +1406,21 @@ namespace FWTCG.UI
             if (_heroAura == null)
                 _heroAura = CreateOverlayImage("HeroAura",
                     new Color(1f, 0.85f, 0.2f, 0f), sizeDelta: new Vector2(8f, 8f), asOutline: false);
-            if (_heroAuraPulse != null) StopCoroutine(_heroAuraPulse);
-            _heroAuraPulse = StartCoroutine(HeroAuraPulseRoutine());
-        }
-
-        private IEnumerator HeroAuraPulseRoutine()
-        {
-            const float period = 4f;
-            float t = 0f;
-            while (_heroAura != null)
+            TweenHelper.KillSafe(ref _heroAuraPulse);
+            _heroAuraPulse = DOVirtual.Float(0f, Mathf.PI * 2f, HERO_AURA_PERIOD, v =>
             {
-                float alpha = (Mathf.Sin(t * Mathf.PI * 2f / period) + 1f) * 0.5f;
-                alpha = Mathf.Lerp(0.25f, 0.60f, alpha);
+                if (_heroAura == null) return;
+                float alpha = Mathf.Lerp(HERO_AURA_MIN, HERO_AURA_MAX, (Mathf.Sin(v) + 1f) * 0.5f);
                 _heroAura.color = new Color(1f, 0.85f, 0.2f, alpha);
-                t += Time.deltaTime;
-                yield return null;
-            }
+            }).SetEase(Ease.Linear).SetLoops(-1, LoopType.Restart).SetTarget(gameObject);
         }
 
         // ── DEV-28: Hand enter animation ─────────────────────────────────────
+
+        // DOT-7: enter animation constants
+        public const float ENTER_ANIM_DURATION = 0.42f;
+        public const float ENTER_ANIM_START_SCALE = 0.82f;
+        public const float ENTER_ANIM_Y_OFFSET = -30f;
 
         /// <summary>
         /// Stops the enter animation if running and restores alpha/scale to final values.
@@ -1449,16 +1428,15 @@ namespace FWTCG.UI
         /// </summary>
         public void CancelEnterAnim()
         {
-            if (_enterAnimCoroutine != null)
+            if (_enterAnimSetup != null) { StopCoroutine(_enterAnimSetup); _enterAnimSetup = null; }
             {
-                StopCoroutine(_enterAnimCoroutine);
-                _enterAnimCoroutine = null;
+                Sequence s = _enterAnimSeq; TweenHelper.KillSafe(ref s); _enterAnimSeq = null;
             }
             // Restore scale (EnterAnimRoutine no longer touches alpha)
             transform.localScale = Vector3.one;
             _enterAnimPlayed = true; // prevent re-start
 
-            // Force parent HLG to recalculate — EnterAnimRoutine manually sets
+            // Force parent HLG to recalculate — the animation manually sets
             // anchoredPosition (Y-30 offset), so if cancelled mid-animation the
             // card is stuck below its correct layout position.
             var rt = transform as RectTransform;
@@ -1466,25 +1444,18 @@ namespace FWTCG.UI
                 UnityEngine.UI.LayoutRebuilder.ForceRebuildLayoutImmediate(rt.parent as RectTransform);
         }
 
-        private IEnumerator EnterAnimRoutine()
+        /// <summary>DOT-7: one-frame setup coroutine, then DOTween Sequence for the animation.</summary>
+        private IEnumerator EnterAnimSetup()
         {
             // Mark in-progress to prevent duplicate starts; reset below if we exit early.
             _enterAnimPlayed = true;
 
-            const float duration = 0.42f;
             var rt  = (RectTransform)transform;
 
             // IMPORTANT: Do NOT touch CanvasGroup.alpha here.
-            // Alpha is managed exclusively by RefreshUnitList (sets 1) and DropAnimHost
-            // (sets 0 during fly animation, then 1). Touching alpha in this coroutine
-            // caused race conditions where cards got stuck invisible (alpha=0).
-            // Only animate scale + position for the enter effect.
-            transform.localScale = Vector3.one * 0.82f;
+            transform.localScale = Vector3.one * ENTER_ANIM_START_SCALE;
 
             // DEV-30 fix: wait one frame for LayoutGroup to calculate correct position
-            // before reading anchoredPosition; otherwise the prefab default (0,0) is
-            // captured and the animation fights the layout system, making cards appear
-            // in wrong positions.
             yield return null;
             if (this == null || !gameObject.activeInHierarchy)
             {
@@ -1495,29 +1466,23 @@ namespace FWTCG.UI
             }
             Canvas.ForceUpdateCanvases();
 
-            Vector2 startPos = rt.anchoredPosition + new Vector2(0f, -30f);
+            Vector2 startPos = rt.anchoredPosition + new Vector2(0f, ENTER_ANIM_Y_OFFSET);
             Vector2 endPos   = rt.anchoredPosition;
-            Vector3 startScale = Vector3.one * 0.82f;
-            Vector3 endScale   = Vector3.one;
 
-            float elapsed = 0f;
-            while (elapsed < duration)
-            {
-                elapsed += Time.deltaTime;
-                float t = Mathf.Clamp01(elapsed / duration);
-                float ease = t * (2f - t); // EaseOutQuad
-                rt.anchoredPosition = Vector2.Lerp(startPos, endPos, ease);
-                transform.localScale = Vector3.Lerp(startScale, endScale, ease);
-                yield return null;
-            }
-            rt.anchoredPosition = endPos;
-            transform.localScale = endScale;
-            _enterAnimCoroutine = null;
-
-            // DEV-30 V6: trigger foil sweep after card enters
-            EnsureShineOverlay();
-            if (_shineMat != null)
-                _foilSweep = StartCoroutine(FoilSweepRoutine());
+            rt.anchoredPosition = startPos;
+            _enterAnimSeq = DOTween.Sequence()
+                .Append(rt.DOAnchorPos(endPos, ENTER_ANIM_DURATION).SetEase(Ease.OutQuad))
+                .Join(transform.DOScale(Vector3.one, ENTER_ANIM_DURATION).SetEase(Ease.OutQuad))
+                .SetTarget(gameObject)
+                .OnComplete(() =>
+                {
+                    _enterAnimSeq = null;
+                    _enterAnimSetup = null;
+                    // DEV-30 V6: trigger foil sweep after card enters
+                    EnsureShineOverlay();
+                    if (_shineMat != null)
+                        StartFoilSweep();
+                });
         }
 
         // ── DEV-30 V6: Foil Sweep ────────────────────────────────────────────
@@ -1549,26 +1514,35 @@ namespace FWTCG.UI
             _shineMat.SetFloat("_ShineIntensity", 0f);
         }
 
+        // DOT-7: foil sweep constants
+        public const float FOIL_SWEEP_DURATION = 0.8f;
+
         /// <summary>V6: 0.8s diagonal foil sweep — animates ShineX/Y from bottom-left to top-right.</summary>
-        private IEnumerator FoilSweepRoutine()
+        private void StartFoilSweep()
         {
-            if (_shineMat == null) yield break;
-            const float dur = 0.8f;
-            float elapsed = 0f;
+            if (_shineMat == null) return;
+            TweenHelper.KillSafe(ref _foilSweep);
             _shineMat.SetFloat("_ShineIntensity", 0.7f);
-            while (elapsed < dur)
+            _foilSweep = DOVirtual.Float(0f, 1f, FOIL_SWEEP_DURATION, t =>
             {
-                elapsed += Time.deltaTime;
-                float t = Mathf.Clamp01(elapsed / dur);
+                if (_shineMat == null) return;
                 _shineMat.SetFloat("_ShineX", Mathf.Lerp(-0.3f, 1.3f, t));
                 _shineMat.SetFloat("_ShineY", Mathf.Lerp(1.3f, -0.3f, t));
-                yield return null;
-            }
-            _shineMat.SetFloat("_ShineIntensity", 0f);
-            _foilSweep = null;
+            }).SetEase(Ease.Linear).SetTarget(gameObject)
+              .OnComplete(() =>
+              {
+                  if (_shineMat != null) _shineMat.SetFloat("_ShineIntensity", 0f);
+                  _foilSweep = null;
+              });
         }
 
         // ── DEV-30 V7: Playable Spark ────────────────────────────────────────
+
+        // DOT-7: spark constants
+        public const float SPARK_INTERVAL = 0.6f;
+        public const float SPARK_DURATION = 0.5f;
+        public const float SPARK_FLOAT_DIST = 18f;
+        public const float SPARK_PEAK_ALPHA = 0.85f;
 
         /// <summary>V7: spawns small white dots above card while it is playable (every 0.6s, 0.5s lifetime).</summary>
         private IEnumerator PlayableSparkRoutine()
@@ -1592,33 +1566,29 @@ namespace FWTCG.UI
                 img.raycastTarget = false;
                 _sparkDots.Add(dot);
 
-                // Animate: fade in/out + float up
-                StartCoroutine(AnimateSparkDot(dot, img, drt));
+                // DOT-7: animate with DOTween Sequence
+                AnimateSparkDot(dot, img, drt);
 
-                yield return new WaitForSeconds(0.6f);
+                yield return new WaitForSeconds(SPARK_INTERVAL);
             }
         }
 
-        private IEnumerator AnimateSparkDot(GameObject dot, Image img, RectTransform drt)
+        /// <summary>DOT-7: DOVirtual.Float drives position + alpha, OnComplete destroys dot.</summary>
+        private void AnimateSparkDot(GameObject dot, Image img, RectTransform drt)
         {
-            if (dot == null) yield break;
-            const float dur = 0.5f;
+            if (dot == null) return;
             Vector2 startPos = drt.anchoredPosition;
-            float elapsed = 0f;
-            while (elapsed < dur && dot != null)
+            DOVirtual.Float(0f, 1f, SPARK_DURATION, t =>
             {
-                elapsed += Time.deltaTime;
-                float t = elapsed / dur;
-                float alpha = t < 0.4f ? t / 0.4f : 1f - (t - 0.4f) / 0.6f; // up then down
-                if (img != null) img.color = new Color(1f, 1f, 1f, alpha * 0.85f);
-                if (drt != null) drt.anchoredPosition = startPos + new Vector2(0f, t * 18f);
-                yield return null;
-            }
-            if (dot != null)
-            {
-                _sparkDots.Remove(dot);
-                Destroy(dot);
-            }
+                if (drt == null) return;
+                float alpha = t < 0.4f ? t / 0.4f : 1f - (t - 0.4f) / 0.6f;
+                if (img != null) img.color = new Color(1f, 1f, 1f, alpha * SPARK_PEAK_ALPHA);
+                drt.anchoredPosition = startPos + new Vector2(0f, t * SPARK_FLOAT_DIST);
+            }).SetEase(Ease.Linear).SetTarget(dot)
+              .OnComplete(() =>
+              {
+                  if (dot != null) { _sparkDots.Remove(dot); Destroy(dot); }
+              });
         }
 
         // ── DEV-28: Overlay image helper ─────────────────────────────────────
@@ -1646,25 +1616,22 @@ namespace FWTCG.UI
         }
 
         // DEV-29: two-phase death:
-        //   Phase A — quick shrink to 60% in place (0.3s, impact feel)
-        //   Phase B — ghost flies to discard pile along bezier arc (0.5s)
+        //   Phase A — dissolve or shrink+tint fallback
+        //   Phase B — ghost flies to discard pile along bezier arc
         //   If no flyTarget, falls back to the original shrink-to-zero animation.
         private IEnumerator DeathRoutine(Vector2? flyTarget = null, Canvas canvas = null)
         {
             Vector3 startScale = transform.localScale;
 
+            // Phase A: dissolve or fallback (still coroutine due to TweenMatFX await)
+            yield return StartCoroutine(DissolveOrFallbackRoutine(startScale));
+
             if (flyTarget.HasValue && canvas != null)
             {
-                // ── Phase A: dissolve (VFX-3) or shrink+tint fallback ────────
-                yield return StartCoroutine(DissolveOrFallbackRoutine(startScale));
-
-
-                // ── Phase B: ghost flies to discard pile ─────────────────────
-                const float phaseB = 0.50f;
+                // ── Phase B: ghost flies to discard pile (DOTween) ───────────
                 var rt = (RectTransform)transform;
                 var canvasRT = canvas.GetComponent<RectTransform>();
 
-                // Compute origin in canvas-local coords
                 var corners = new Vector3[4];
                 rt.GetWorldCorners(corners);
                 Vector2 screenCenter = new Vector2(
@@ -1674,16 +1641,14 @@ namespace FWTCG.UI
                     canvasRT, screenCenter, canvas.worldCamera, out Vector2 origin);
 
                 Vector2 dest = flyTarget.Value;
-                // Bezier control point: midpoint raised by 60px for arc
                 Vector2 ctrl = (origin + dest) * 0.5f + new Vector2(0f, 60f);
 
-                // Create ghost — capture size before SetActive(false) so layout doesn't reset
                 Vector2 capturedSize = rt.rect.size;
                 var ghost = new GameObject("DeathFlyGhost");
-                _deathGhost = ghost; // DEV-29: track for OnDestroy cleanup
+                _deathGhost = ghost;
                 ghost.transform.SetParent(canvas.transform, false);
                 var ghostRT = ghost.AddComponent<RectTransform>();
-                ghostRT.sizeDelta = capturedSize * 0.6f; // matches Phase A end scale
+                ghostRT.sizeDelta = capturedSize * DEATH_GHOST_START_SCALE;
                 ghostRT.anchorMin = ghostRT.anchorMax = new Vector2(0.5f, 0.5f);
                 ghostRT.pivot = new Vector2(0.5f, 0.5f);
                 ghostRT.anchoredPosition = origin;
@@ -1701,42 +1666,32 @@ namespace FWTCG.UI
                 cg.blocksRaycasts = false;
                 cg.interactable   = false;
 
-                // Hide the real card immediately
                 gameObject.SetActive(false);
 
-                float elapsed = 0f;
-                while (elapsed < phaseB)
-                {
-                    elapsed += Time.deltaTime;
-                    float t = Mathf.Clamp01(elapsed / phaseB);
-                    float ease = t * (2f - t); // EaseOutQuad
+                // DOT-7: DOVirtual.Float drives bezier + scale + fade
+                bool phaseBDone = false;
+                _deathSeq = DOTween.Sequence()
+                    .Append(DOVirtual.Float(0f, 1f, DEATH_PHASE_B, t =>
+                    {
+                        if (ghostRT == null) return;
+                        float ease = t * (2f - t); // OutQuad
+                        float u = 1f - ease;
+                        Vector2 pos = u * u * origin + 2f * u * ease * ctrl + ease * ease * dest;
+                        ghostRT.anchoredPosition = pos;
+                        float s = Mathf.Lerp(DEATH_GHOST_START_SCALE, DEATH_GHOST_END_SCALE, ease);
+                        ghostRT.sizeDelta = capturedSize * s;
+                        cg.alpha = t < 0.6f ? 1f : Mathf.Lerp(1f, 0f, (t - 0.6f) / 0.4f);
+                    }).SetEase(Ease.Linear))
+                    .SetTarget(ghost)
+                    .OnComplete(() => phaseBDone = true);
 
-                    // Quadratic bezier
-                    float u = 1f - ease;
-                    Vector2 pos = u * u * origin + 2f * u * ease * ctrl + ease * ease * dest;
-                    ghostRT.anchoredPosition = pos;
-
-                    // Scale down (use capturedSize — rt may be inactive and return zero)
-                    float s = Mathf.Lerp(0.6f, 0.15f, ease);
-                    ghostRT.sizeDelta = capturedSize * s;
-
-                    // Fade out during last 40%
-                    cg.alpha = t < 0.6f ? 1f : Mathf.Lerp(1f, 0f, (t - 0.6f) / 0.4f);
-
-                    yield return null;
-                }
+                while (!phaseBDone) yield return null;
 
                 _deathGhost = null;
                 if (ghost != null) Destroy(ghost);
             }
-            else
-            {
-                // ── No flyTarget: dissolve (VFX-3) or shrink-to-zero fallback ─
-                yield return StartCoroutine(DissolveOrFallbackRoutine(startScale));
-            }
 
-            _death = null;
-            // VFX-3: destroy card GO after animation completes
+            _deathSeq = null;
             if (this != null && gameObject != null)
                 Destroy(gameObject);
         }
@@ -1751,52 +1706,50 @@ namespace FWTCG.UI
 
             if (useDissolve)
             {
-                const float dissolveTime = 0.6f;
                 var cloned = Instantiate(_killDissolveMat);
                 _clonedDissolveMat = cloned;
                 cloned.SetFloat("noise_fade", 0f);
 
-                // Apply shared clone to ALL Image children so every layer dissolves in sync
                 var images = GetComponentsInChildren<Image>(true);
                 foreach (var img in images) img.material = cloned;
 
                 // TweenMatFX drives noise_fade 0 → 1
                 bool dissolveDone = false;
-                var dissolveSeq = TweenMatFX.DissolveSequence(cloned, dissolveTime,
+                var dissolveSeq = TweenMatFX.DissolveSequence(cloned, DEATH_PHASE_A_DISSOLVE,
                     () => dissolveDone = true);
 
-                // Texts still fade independently (Text doesn't support ShaderGraph materials)
+                // DOT-7: text fade via DOVirtual.Float parallel to dissolve
                 var texts  = GetComponentsInChildren<Text>(true);
                 Color[] txtColors = new Color[texts.Length];
                 for (int i = 0; i < texts.Length; i++) txtColors[i] = texts[i].color;
 
+                var textFade = DOVirtual.Float(1f, 0f, DEATH_PHASE_A_DISSOLVE, alpha =>
+                {
+                    for (int i = 0; i < texts.Length; i++)
+                    {
+                        if (texts[i] == null) continue;
+                        var c = txtColors[i]; c.a = txtColors[i].a * alpha; texts[i].color = c;
+                    }
+                }).SetEase(Ease.Linear).SetTarget(gameObject);
+
+                float timeout = DEATH_PHASE_A_DISSOLVE + 0.25f;
                 float elapsed = 0f;
-                const float timeout = dissolveTime + 0.25f; // safety
                 while (!dissolveDone && elapsed < timeout)
                 {
                     elapsed += Time.deltaTime;
-                    float t = Mathf.Clamp01(elapsed / dissolveTime);
-                    float alpha = 1f - t;
-                    for (int i = 0; i < texts.Length; i++)
-                    {
-                        var c = txtColors[i]; c.a = txtColors[i].a * alpha; texts[i].color = c;
-                    }
                     yield return null;
                 }
 
-                // Kill dissolve tween if still alive
                 if (dissolveSeq != null && dissolveSeq.IsActive()) dissolveSeq.Kill();
+                if (textFade != null && textFade.IsActive()) textFade.Kill();
 
-                // Cleanup: restore default material on all images
                 foreach (var img in images)
                     if (img != null) img.material = null;
                 if (_clonedDissolveMat != null) { SafeDestroy(_clonedDissolveMat); _clonedDissolveMat = null; }
             }
             else
             {
-                // ── Fallback: shrink + red tint (0.3s) matching original Phase A ─
-                const float duration = 0.30f;
-                float elapsed = 0f;
+                // ── Fallback: shrink + red tint (0.3s) via DOVirtual.Float ─
                 var images = GetComponentsInChildren<Image>(true);
                 var texts  = GetComponentsInChildren<Text>(true);
                 Color[] imgColors = new Color[images.Length];
@@ -1804,25 +1757,28 @@ namespace FWTCG.UI
                 for (int i = 0; i < images.Length; i++) imgColors[i] = images[i].color;
                 for (int i = 0; i < texts.Length;  i++) txtColors[i] = texts[i].color;
 
-                while (elapsed < duration)
+                bool fallbackDone = false;
+                DOVirtual.Float(0f, 1f, DEATH_PHASE_A_FALLBACK, t =>
                 {
-                    elapsed += Time.deltaTime;
-                    float t = elapsed / duration;
-                    float ease = t * (2f - t); // EaseOutQuad
-                    transform.localScale = startScale * Mathf.Lerp(1f, 0.6f, ease);
+                    if (this == null) return;
+                    float ease = t * (2f - t); // OutQuad
+                    transform.localScale = startScale * Mathf.Lerp(1f, DEATH_GHOST_START_SCALE, ease);
                     float tint = Mathf.Sin(t * Mathf.PI) * 0.35f;
                     foreach (var img in images)
                     {
+                        if (img == null) continue;
                         var c = img.color; c.r = Mathf.Min(1f, c.r + tint); img.color = c;
                     }
-                    // Fade texts during fallback
                     float alpha = 1f - t;
                     for (int i = 0; i < texts.Length; i++)
                     {
+                        if (texts[i] == null) continue;
                         var c = txtColors[i]; c.a = txtColors[i].a * alpha; texts[i].color = c;
                     }
-                    yield return null;
-                }
+                }).SetEase(Ease.Linear).SetTarget(gameObject)
+                  .OnComplete(() => fallbackDone = true);
+
+                while (!fallbackDone) yield return null;
             }
         }
 
@@ -1876,26 +1832,12 @@ namespace FWTCG.UI
 
             _shadowImage = go;
 
-            // Fade in shadow after 0.4s delay
+            // DOT-7: fade in shadow after 0.4s delay via DOTween
             if (gameObject.activeInHierarchy)
-                StartCoroutine(FadeShadowIn(img));
-        }
-
-        private IEnumerator FadeShadowIn(Image shadowImg)
-        {
-            if (shadowImg == null) yield break;
-            shadowImg.color = new Color(0f, 0f, 0f, 0f);
-            yield return new WaitForSeconds(0.4f);
-
-            const float fadeDur = 0.3f;
-            float elapsed = 0f;
-            while (elapsed < fadeDur)
             {
-                elapsed += Time.deltaTime;
-                float a = Mathf.Lerp(0f, 0.45f, elapsed / fadeDur);
-                if (shadowImg != null)
-                    shadowImg.color = new Color(0.02f, 0.04f, 0.08f, a);
-                yield return null;
+                img.color = new Color(0f, 0f, 0f, 0f);
+                img.DOColor(new Color(0.02f, 0.04f, 0.08f, 0.45f), 0.3f)
+                   .SetDelay(0.4f).SetEase(Ease.Linear).SetTarget(gameObject);
             }
         }
 
