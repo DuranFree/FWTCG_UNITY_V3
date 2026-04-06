@@ -143,6 +143,9 @@ namespace FWTCG.Tests
         [Test] public void GameUI_HasSequenceField_crHideSeq()
         { Assert.IsNotNull(typeof(GameUI).GetField("_crHideSeq", PRIV), "_crHideSeq must exist"); }
 
+        [Test] public void GameUI_HasSequenceField_gameOverSeq()
+        { Assert.IsNotNull(typeof(GameUI).GetField("_gameOverSeq", PRIV), "_gameOverSeq must exist"); }
+
         // ═══════════════════════════════════════════════════════════════════════
         // Constants preserved / new constants exist
         // ═══════════════════════════════════════════════════════════════════════

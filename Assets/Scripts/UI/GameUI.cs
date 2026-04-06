@@ -186,6 +186,7 @@ namespace FWTCG.UI
 
         // Animated banner coroutine handle
         private Sequence _bannerAnimSeq;
+        private Sequence _gameOverSeq;
 
         // End-turn button persistent pulse
         private Tween _endTurnPulseTween;
@@ -283,6 +284,12 @@ namespace FWTCG.UI
         {
             GameEventBus.OnUnitDamaged -= OnSpellUnitDamaged;
             GameEventBus.OnUnitDied    -= OnUnitDiedHandler;
+            // Kill infinite-loop tweens on disable to prevent callbacks on disabled object
+            TweenHelper.KillSafe(ref _timerTween);
+            TweenHelper.KillSafe(ref _timerPulseTween);
+            TweenHelper.KillSafe(ref _runeHighlightPulseTween);
+            TweenHelper.KillSafe(ref _endTurnPulseTween);
+            _endTurnPulseActive = false;
         }
 
         private void OnDestroy()
@@ -298,6 +305,7 @@ namespace FWTCG.UI
             TweenHelper.KillSafe(ref _timerPulseTween);
             TweenHelper.KillSafe(ref _endTurnPulseTween);
             TweenHelper.KillSafe(ref _crHideSeq);
+            TweenHelper.KillSafe(ref _gameOverSeq);
             if (_endTurnButton != null) _endTurnButton.onClick.RemoveAllListeners();
             if (_bf1Button != null) _bf1Button.onClick.RemoveAllListeners();
             if (_bf2Button != null) _bf2Button.onClick.RemoveAllListeners();
@@ -773,6 +781,7 @@ namespace FWTCG.UI
             // DOVirtual.Float sine loop: 0→1→0 at ~1.75 Hz
             return DOVirtual.Float(0f, 1f, 1f, _ =>
             {
+                if (this == null) return; // guard: GameUI destroyed mid-tween
                 float pulse = (Mathf.Sin(Time.time * RUNE_PULSE_FREQ) + 1f) * 0.5f;
                 float alpha = Mathf.Lerp(0.25f, 1.0f, pulse);
                 if (_playerRuneContainer != null)
@@ -1644,6 +1653,7 @@ namespace FWTCG.UI
         // VFX-7c: enhanced win/lose screen
         private void CreateGameOverSequence(GameObject panel, bool isWin)
         {
+            TweenHelper.KillSafe(ref _gameOverSeq);
             var cg = panel.GetComponent<CanvasGroup>();
             if (cg == null) cg = panel.AddComponent<CanvasGroup>();
             cg.alpha = 0f;
@@ -1658,8 +1668,8 @@ namespace FWTCG.UI
             if (_gameOverText != null)
                 _gameOverText.color = isWin ? GameColors.Gold : new Color(0.6f, 0.6f, 0.65f, 1f);
 
-            var seq = DOTween.Sequence();
-            seq.Append(cg.DOFade(1f, GAMEOVER_FADE_DUR));
+            _gameOverSeq = DOTween.Sequence();
+            _gameOverSeq.Append(cg.DOFade(1f, GAMEOVER_FADE_DUR));
 
             // VFX-7c: victory text scale pop
             if (isWin && _gameOverText != null)
@@ -1668,11 +1678,11 @@ namespace FWTCG.UI
                 if (txtRT != null)
                 {
                     txtRT.localScale = Vector3.one * 0.5f;
-                    seq.Append(txtRT.DOScale(1.05f, GAMEOVER_WIN_SCALE_DUR).SetEase(Ease.OutQuad));
-                    seq.Append(txtRT.DOScale(1f, 0.1f));
+                    _gameOverSeq.Append(txtRT.DOScale(1.05f, GAMEOVER_WIN_SCALE_DUR).SetEase(Ease.OutQuad));
+                    _gameOverSeq.Append(txtRT.DOScale(1f, 0.1f));
                 }
             }
-            seq.SetTarget(gameObject);
+            _gameOverSeq.SetTarget(gameObject);
         }
 
         // ── Button handlers ───────────────────────────────────────────────────
@@ -2097,6 +2107,7 @@ namespace FWTCG.UI
             var tr = _timerText.transform;
             return DOVirtual.Float(0f, 1f, 1f, _ =>
             {
+                if (tr == null) return;
                 float s = 1f + (TIMER_PULSE_SCALE - 1f) *
                     ((Mathf.Sin(Time.time * TIMER_PULSE_FREQ * Mathf.PI * 2f) + 1f) * 0.5f);
                 tr.localScale = new Vector3(s, s, 1f);
@@ -2264,10 +2275,10 @@ namespace FWTCG.UI
             if (rt != null)
             {
                 DOTween.Kill(rt); // kill any previous pulse on this circle
-                rt.localScale = Vector3.one;
-                rt.DOScale(SCORE_PULSE_PEAK, SCORE_PULSE_HALF)
+                Vector3 orig = rt.localScale;
+                rt.DOScale(orig * SCORE_PULSE_PEAK, SCORE_PULSE_HALF)
                     .SetLoops(2, LoopType.Yoyo)
-                    .OnComplete(() => { if (rt != null) rt.localScale = Vector3.one; })
+                    .OnComplete(() => { if (rt != null) rt.localScale = orig; })
                     .SetTarget(rt);
             }
             SpawnScoreRing(circle);
@@ -2326,7 +2337,13 @@ namespace FWTCG.UI
                     var cg = _endTurnButton.GetComponent<CanvasGroup>();
                     if (cg == null) cg = _endTurnButton.gameObject.AddComponent<CanvasGroup>();
                     cg.alpha = 1f;
-                    _endTurnPulseTween = TweenHelper.PulseAlpha(cg, ENDTURN_PULSE_MIN_ALPHA, 1f, ENDTURN_PULSE_PERIOD);
+                    // Start from 1→0.6 (dim first), matching original coroutine behavior
+                    float halfPeriod = ENDTURN_PULSE_PERIOD * 0.5f;
+                    _endTurnPulseTween = DOTween.To(() => cg.alpha, x => cg.alpha = x,
+                        ENDTURN_PULSE_MIN_ALPHA, halfPeriod)
+                        .SetEase(Ease.InOutSine)
+                        .SetLoops(-1, LoopType.Yoyo)
+                        .SetTarget(cg);
                 }
             }
             else
