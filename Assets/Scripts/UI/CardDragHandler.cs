@@ -784,6 +784,9 @@ namespace FWTCG.UI
             // coroutine is interrupted, the host is destroyed early,
             // or any other unexpected interruption occurs.
             private readonly List<CanvasGroup> _managedCGs = new List<CanvasGroup>();
+            // DOT-4 Codex H-1: track overlay GOs + master sequence for OnDestroy cleanup
+            private readonly List<GameObject> _overlayObjs = new List<GameObject>();
+            private Sequence _masterSeq;
 
             public void Run(DragSource dragSource, UnitInstance mainUnit,
                             List<UnitInstance> clusterUnits, List<Vector2> fromPositions)
@@ -793,9 +796,13 @@ namespace FWTCG.UI
 
             private void OnDestroy()
             {
+                // DOT-4 Codex H-1: kill master sequence to prevent callbacks on dead objects
+                TweenHelper.KillSafe(ref _masterSeq);
+                // Destroy overlay GOs that may still exist mid-animation
+                foreach (var obj in _overlayObjs)
+                    if (obj != null) Destroy(obj);
+                _overlayObjs.Clear();
                 // SAFETY NET: restore alpha=1 for any cards we hid.
-                // This fires no matter how the host is destroyed (normal cleanup,
-                // scene change, coroutine interruption, etc.)
                 foreach (var cg in _managedCGs)
                     if (cg != null) cg.alpha = 1f;
                 _managedCGs.Clear();
@@ -898,9 +905,12 @@ namespace FWTCG.UI
                 }
 
                 // DOT-4: Drop landing animation via DOTween Sequences
+                // Store overlay refs for OnDestroy cleanup (Codex H-1)
+                _overlayObjs.AddRange(overlayObjs);
+
                 if (overlayItems.Count > 0)
                 {
-                    Sequence masterSeq = DOTween.Sequence();
+                    _masterSeq = DOTween.Sequence().SetTarget(this);
                     for (int i = 0; i < overlayItems.Count; i++)
                     {
                         var item = overlayItems[i];
@@ -923,12 +933,15 @@ namespace FWTCG.UI
                             .SetEase(Ease.InQuad)
                             .SetTarget(item.overlayRT));
 
-                        masterSeq.Insert(delay, cardSeq);
+                        _masterSeq.Insert(delay, cardSeq);
                     }
 
+                    // DOT-4 Codex H-2: OnKill also sets flag to prevent coroutine hang
                     bool tweenDone = false;
-                    masterSeq.OnComplete(() => tweenDone = true);
+                    _masterSeq.OnComplete(() => tweenDone = true);
+                    _masterSeq.OnKill(() => tweenDone = true);
                     while (!tweenDone) yield return null;
+                    _masterSeq = null;
                 }
 
                 // Restore alpha + cleanup (also done in OnDestroy as safety net)
@@ -938,6 +951,7 @@ namespace FWTCG.UI
 
                 foreach (var obj in overlayObjs)
                     if (obj != null) Destroy(obj);
+                _overlayObjs.Clear();
 
                 Destroy(gameObject); // clean up this temporary host
             }
