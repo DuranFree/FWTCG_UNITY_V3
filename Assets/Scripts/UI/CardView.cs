@@ -63,6 +63,7 @@ namespace FWTCG.UI
         private Tween _shake;
         private Tween _flash;
         private Sequence _deathSeq;
+        private bool _deathStarted;
         private GameObject _deathGhost; // DEV-29: tracked so OnDestroy can clean up mid-flight ghost
         private CardGlow _cardGlow;
 
@@ -228,12 +229,10 @@ namespace FWTCG.UI
             TweenHelper.KillSafe(ref _orbitTween);
             TweenHelper.KillSafe(ref _heroAuraPulse);
             TweenHelper.KillSafe(ref _foilSweep);
-            {
-                Sequence s = _enterAnimSeq; TweenHelper.KillSafe(ref s); _enterAnimSeq = null;
-            }
-            {
-                Sequence s = _deathSeq; TweenHelper.KillSafe(ref s); _deathSeq = null;
-            }
+            if (_enterAnimSeq != null && _enterAnimSeq.IsActive()) _enterAnimSeq.Kill();
+            _enterAnimSeq = null;
+            if (_deathSeq != null && _deathSeq.IsActive()) _deathSeq.Kill();
+            _deathSeq = null;
             if (_enterAnimSetup != null) { StopCoroutine(_enterAnimSetup); _enterAnimSetup = null; }
 
             // Badge scale tweens
@@ -982,7 +981,8 @@ namespace FWTCG.UI
         /// </summary>
         public void PlayDeathAnimation(Vector2? flyTarget = null, Canvas canvas = null)
         {
-            if (_deathSeq != null && _deathSeq.IsActive()) return;
+            if (_deathStarted) return;
+            _deathStarted = true;
             StartCoroutine(DeathRoutine(flyTarget, canvas));
         }
 
@@ -1152,13 +1152,10 @@ namespace FWTCG.UI
         private void ScaleBadge(GameObject badge, float target, float duration)
         {
             if (badge == null) return;
-            if (_badgeScaleTweens.TryGetValue(badge, out var old))
-            {
-                Tween t = old;
-                TweenHelper.KillSafe(ref t);
-            }
+            if (_badgeScaleTweens.TryGetValue(badge, out var old) && old != null && old.IsActive())
+                old.Kill();
             _badgeScaleTweens[badge] = badge.transform.DOScale(Vector3.one * target, duration)
-                .SetEase(Ease.Linear).SetTarget(badge);
+                .SetEase(Ease.Linear).SetTarget(gameObject);
         }
 
         private void ShowStatusTooltip(BadgeTip tip)
@@ -1313,7 +1310,7 @@ namespace FWTCG.UI
         private void StartTargetFadeOut()
         {
             if (_targetBorder == null) return;
-            float fadeTime = _targetAlpha / TARGET_FADE_SPEED;
+            float fadeTime = Mathf.Max(0.05f, _targetAlpha / TARGET_FADE_SPEED);
             _targetFadeOut = DOVirtual.Float(_targetAlpha, 0f, fadeTime, v =>
             {
                 _targetAlpha = v;
@@ -1429,9 +1426,8 @@ namespace FWTCG.UI
         public void CancelEnterAnim()
         {
             if (_enterAnimSetup != null) { StopCoroutine(_enterAnimSetup); _enterAnimSetup = null; }
-            {
-                Sequence s = _enterAnimSeq; TweenHelper.KillSafe(ref s); _enterAnimSeq = null;
-            }
+            if (_enterAnimSeq != null && _enterAnimSeq.IsActive()) _enterAnimSeq.Kill();
+            _enterAnimSeq = null;
             // Restore scale (EnterAnimRoutine no longer touches alpha)
             transform.localScale = Vector3.one;
             _enterAnimPlayed = true; // prevent re-start
