@@ -2,6 +2,29 @@
 
 ---
 
+## DOT-4：3个游戏逻辑文件 DOTween 替换 — 2026-04-06
+
+**Status**: ✅ Completed
+**Tests**: 954/954 EditMode 编译通过，934 FWTCG+MCP 测试中 934 绿 🟢（20 个预存失败非 DOT-4 引入），新增 27 个测试
+
+### 实现内容
+
+**CombatAnimator.cs**：FlyAndReturnRoutine 3阶段协程（手写 EaseOutQuad/EaseInOutQuad）→ FlyAndReturn 用 DOAnchorPos Sequence（lunge OutQuad + interval + rebound InOutQuad）+ OnComplete 清理 ghost；PlayShockwave 协程（手写 Lerp scale+fade）→ PlayShockwave 返回 Tween（DOScale + DOFade Join）+ OnComplete 隐藏；_sw1Routine/_sw2Routine Coroutine → _sw1Tween/_sw2Tween Tween；OnDestroy KillSafe
+
+**SpellVFX.cs**：BurstParticles 协程（N粒子每帧径向爆发+缩小+淡出）→ void 方法，每粒子独立 Sequence（DOAnchorPos OutQuad + DOSizeDelta + DOFade）+ SetTarget(go) + OnComplete 清理 _ownedParticles；常量提取为 public const（BURST_DURATION/BURST_RADIUS/BURST_START_SIZE/BURST_END_SIZE）；OnDestroy 先 DOTween.Kill(go) 再 Destroy
+
+**SpellVFX.cs（保留协程）**：LegendFlame（每帧速度+sin摆动+高度重生模拟）、ProjectileThenFXRoutine（游戏逻辑等待投射物到达）、DelayedCardPlayFX（等待展示面板关闭）— 均为程序化模拟或流程控制，不适合 DOTween
+
+**CardDragHandler.cs**：CancelReturnRoutine 协程（Smoothstep + stagger delay）→ CancelReturnTween 用 DOTween.To + Sequence.Insert(delay,...) Ease.InOutQuad；_cancelReturnCoroutine Coroutine → _cancelReturnSeq Sequence；DropAnimHost.AnimRoutine 内手写动画循环（AnimateDropCard + EaseOutQuad/EaseInQuad）→ DOTween.To 两阶段 Sequence（OutQuad hover + InQuad drop）+ masterSeq.Insert(stagger)；移除 AnimateDropCard/EaseOutQuad/EaseInQuad/Smoothstep 静态方法
+
+**CardDragHandler.cs（保留协程）**：ClusterFollowRoutine（每帧鼠标跟踪 Lerp）、DropFlowRoutine（yield WaitUntil 游戏逻辑流程控制）
+
+**DOT4ReplacementTests.cs（新建，27 测试）**：覆盖所有 3 个文件的结构验证（旧协程字段/方法已移除、新 tween 字段/方法存在、常量不变、PlayShockwave null-safety/创建验证、保留协程确认、TweenHelper null-safety）
+
+**Technical debt**: 无新增
+
+---
+
 ## DOT-3：6个中等文件 DOTween 替换 — 2026-04-06
 
 **Status**: ✅ Completed

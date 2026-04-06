@@ -1,5 +1,6 @@
 using System.Collections;
 using System.Collections.Generic;
+using DG.Tweening;
 using UnityEngine;
 using UnityEngine.UI;
 using FWTCG.Core;
@@ -33,9 +34,9 @@ namespace FWTCG.UI
         private Image _shockwave1;
         private Image _shockwave2;
 
-        // DEV-26: coroutine handles so concurrent results stop the previous animation
-        private Coroutine _sw1Routine;
-        private Coroutine _sw2Routine;
+        // DOT-4: tween handles (replaced DEV-26 coroutine handles)
+        private Tween _sw1Tween;
+        private Tween _sw2Tween;
 
         // DEV-29: track active fly ghosts so they can be cleaned up in OnDestroy
         private readonly List<GameObject> _activeGhosts = new List<GameObject>();
@@ -56,10 +57,13 @@ namespace FWTCG.UI
         {
             CombatSystem.OnCombatResult    -= OnCombatResult;
             CombatSystem.OnCombatWillStart -= OnCombatWillStart;
+            TweenHelper.KillSafe(ref _sw1Tween);
+            TweenHelper.KillSafe(ref _sw2Tween);
             // DEV-29: destroy any fly ghosts that are mid-animation when the component is torn down
             foreach (var ghost in _activeGhosts)
             {
                 if (ghost == null) continue;
+                DOTween.Kill(ghost); // DOT-4: kill any tweens targeting this ghost
                 // Use DestroyImmediate in EditMode (e.g. tests); Destroy at runtime
                 if (Application.isPlaying) Destroy(ghost);
                 else DestroyImmediate(ghost);
@@ -103,13 +107,14 @@ namespace FWTCG.UI
             {
                 var cv = GameUI.Instance?.FindCardView(units[i]);
                 if (cv == null) continue;
-                StartCoroutine(FlyAndReturnRoutine(cv.GetComponent<RectTransform>(), canvas, flyRight));
+                FlyAndReturn(cv.GetComponent<RectTransform>(), canvas, flyRight);
             }
         }
 
-        private IEnumerator FlyAndReturnRoutine(RectTransform rt, Canvas canvas, bool flyRight)
+        /// <summary>DOT-4: 3-phase flight animation using DOTween Sequence (replaced coroutine).</summary>
+        private void FlyAndReturn(RectTransform rt, Canvas canvas, bool flyRight)
         {
-            if (rt == null) yield break;
+            if (rt == null) return;
 
             // Create ghost overlay so we don't disturb the real card's layout
             var host = new GameObject("CombatFlyGhost");
@@ -145,41 +150,23 @@ namespace FWTCG.UI
             cg.blocksRaycasts = false;
             cg.interactable   = false;
 
-            // VFX-7n: 3-phase flight animation
+            // VFX-7n / DOT-4: 3-phase flight animation via DOTween Sequence
             float dir = flyRight ? 1f : -1f;
             Vector2 target = origin + new Vector2(dir * FLY_OFFSET, 0f);
 
-            // Phase 1: lunge toward enemy (EaseOutQuad)
-            float elapsed = 0f;
-            while (elapsed < FLY_DURATION)
-            {
-                elapsed += Time.deltaTime;
-                float t = Mathf.Clamp01(elapsed / FLY_DURATION);
-                float ease = t * (2f - t);
-                ghostRT.anchoredPosition = Vector2.Lerp(origin, target, ease);
-                yield return null;
-            }
-            ghostRT.anchoredPosition = target;
-
+            var seq = DOTween.Sequence().SetTarget(host);
+            // Phase 1: lunge toward enemy
+            seq.Append(ghostRT.DOAnchorPos(target, FLY_DURATION).SetEase(Ease.OutQuad));
             // Phase 2: impact hold
-            yield return new WaitForSeconds(PAUSE_DURATION);
-
-            // Phase 3: rebound (EaseInOutQuad)
-            elapsed = 0f;
-            while (elapsed < BACK_DURATION)
+            seq.AppendInterval(PAUSE_DURATION);
+            // Phase 3: rebound
+            seq.Append(ghostRT.DOAnchorPos(origin, BACK_DURATION).SetEase(Ease.InOutQuad));
+            // Cleanup
+            seq.OnComplete(() =>
             {
-                elapsed += Time.deltaTime;
-                float t = Mathf.Clamp01(elapsed / BACK_DURATION);
-                float ease = t < 0.5f ? 2f * t * t : 1f - Mathf.Pow(-2f * t + 2f, 2f) / 2f;
-                ghostRT.anchoredPosition = Vector2.Lerp(target, origin, ease);
-                yield return null;
-            }
-
-            // Remove BEFORE Destroy: Unity coroutines are single-threaded, so removing the
-            // reference first ensures OnDestroy won't encounter this ghost and double-Destroy it
-            // (Destroy only marks for end-of-frame, the reference stays non-null until then).
-            _activeGhosts.Remove(host);
-            Destroy(host);
+                _activeGhosts.Remove(host);
+                Destroy(host);
+            });
         }
 
         private void OnCombatResult(CombatSystem.CombatResult result)
@@ -187,49 +174,37 @@ namespace FWTCG.UI
             int bfIdx = result.BFIndex; // DEV-26: use explicit index instead of string parsing
             if (bfIdx == 0)
             {
-                // DEV-26: stop previous shockwave before starting a new one
-                if (_sw1Routine != null) StopCoroutine(_sw1Routine);
-                if (_shockwave1 != null) _sw1Routine = StartCoroutine(PlayShockwave(_shockwave1));
+                TweenHelper.KillSafe(ref _sw1Tween);
+                if (_shockwave1 != null) _sw1Tween = PlayShockwave(_shockwave1);
             }
             else
             {
-                if (_sw2Routine != null) StopCoroutine(_sw2Routine);
-                if (_shockwave2 != null) _sw2Routine = StartCoroutine(PlayShockwave(_shockwave2));
+                TweenHelper.KillSafe(ref _sw2Tween);
+                if (_shockwave2 != null) _sw2Tween = PlayShockwave(_shockwave2);
             }
         }
 
-        private IEnumerator PlayShockwave(Image img)
+        /// <summary>DOT-4: Shockwave scale+fade via DOTween Sequence (replaced coroutine).</summary>
+        private Tween PlayShockwave(Image img)
         {
-            if (img == null) yield break;
+            if (img == null) return null;
 
             RectTransform rt = img.rectTransform;
-            float elapsed = 0f;
-
-            // Start state
             rt.localScale = Vector3.zero;
             img.color = SHOCKWAVE_COLOR_GOLD;
             img.gameObject.SetActive(true);
 
-            while (elapsed < SHOCKWAVE_DURATION)
+            var seq = DOTween.Sequence().SetTarget(img);
+            seq.Append(rt.DOScale(SHOCKWAVE_END_SCALE, SHOCKWAVE_DURATION).SetEase(Ease.Linear));
+            seq.Join(img.DOFade(0f, SHOCKWAVE_DURATION).SetEase(Ease.Linear));
+            seq.OnComplete(() =>
             {
-                elapsed += Time.deltaTime;
-                float t = Mathf.Clamp01(elapsed / SHOCKWAVE_DURATION);
-
-                float scale = Mathf.Lerp(0f, SHOCKWAVE_END_SCALE, t);
-                rt.localScale = new Vector3(scale, scale, 1f);
-
-                // Fade out: start at full alpha, finish transparent
-                float alpha = Mathf.Lerp(0.80f, 0f, t);
-                img.color = new Color(SHOCKWAVE_COLOR_GOLD.r, SHOCKWAVE_COLOR_GOLD.g,
-                                      SHOCKWAVE_COLOR_GOLD.b, alpha);
-                yield return null;
-            }
-
-            img.gameObject.SetActive(false);
-            rt.localScale = Vector3.zero;
-            // Clear handle so we don't StopCoroutine a finished routine
-            if (img == _shockwave1) _sw1Routine = null;
-            else if (img == _shockwave2) _sw2Routine = null;
+                img.gameObject.SetActive(false);
+                rt.localScale = Vector3.zero;
+                if (img == _shockwave1) _sw1Tween = null;
+                else if (img == _shockwave2) _sw2Tween = null;
+            });
+            return seq;
         }
 
         private static Image CreateShockwave(RectTransform parent)

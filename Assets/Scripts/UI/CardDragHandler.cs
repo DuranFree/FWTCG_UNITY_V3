@@ -1,5 +1,6 @@
 using System.Collections;
 using System.Collections.Generic;
+using DG.Tweening;
 using UnityEngine;
 using UnityEngine.UI;
 using UnityEngine.EventSystems;
@@ -65,7 +66,7 @@ namespace FWTCG.UI
         private readonly List<CardView>   _clusterOrigViews   = new List<CardView>();
         private readonly List<Vector2>    _clusterGhostOrigins = new List<Vector2>(); // canvas-space spawn positions
         private Coroutine _clusterMoveCoroutine;
-        private Coroutine _cancelReturnCoroutine;
+        private Sequence  _cancelReturnSeq; // DOT-4: replaced coroutine
         private Vector2   _dragScreenPos; // updated in OnDrag
 
         private CanvasGroup _selfCanvasGroup;
@@ -112,7 +113,7 @@ namespace FWTCG.UI
             _isCancelling      = false;
             _dragPending       = false;
             BlockPointerEvents = false;
-            if (_cancelReturnCoroutine != null) StopCoroutine(_cancelReturnCoroutine);
+            TweenHelper.KillSafe(ref _cancelReturnSeq);
             RestoreCluster();
             if (_ghost != null) { Destroy(_ghost); _ghost = null; }
         }
@@ -278,8 +279,10 @@ namespace FWTCG.UI
                     _isCancelling = false;
                     _isDragging   = false;
                     _isCancelling = true;
-                    yield return CancelReturnRoutine();
-                    FinishDragCancel();
+                    CancelReturnTween();
+                    // Wait for cancel tween to finish
+                    while (_cancelReturnSeq != null && _cancelReturnSeq.IsActive())
+                        yield return null;
                     yield break;
                 }
 
@@ -376,75 +379,71 @@ namespace FWTCG.UI
         /// Begins cancel animation: stops follow coroutine, animates ghosts back to origins.
         /// Selection state is intentionally preserved (no deselect callbacks fired).
         /// </summary>
+        public const float CANCEL_RETURN_DURATION = 0.42f;
+        public const float CANCEL_STAGGER_DELAY  = 0.05f;
+
         private void StartCancelDrag()
         {
             if (_isCancelling) return;
             _isCancelling = true;
             _isDragging   = false; // stops ClusterFollowRoutine
 
-            _cancelReturnCoroutine = StartCoroutine(CancelReturnRoutine());
+            CancelReturnTween();
         }
 
-        private IEnumerator CancelReturnRoutine()
+        /// <summary>DOT-4: Cancel-return animation via DOTween Sequence (replaced coroutine).</summary>
+        private void CancelReturnTween()
         {
-            const float duration = 0.42f;
-            float elapsed = 0f;
+            TweenHelper.KillSafe(ref _cancelReturnSeq);
+            _cancelReturnSeq = DOTween.Sequence();
 
-            // Snapshot current positions at start of animation
-            Vector2 mainStart = _ghost != null
-                ? (Vector2)_ghost.GetComponent<RectTransform>().localPosition
-                : _dragOriginCanvasPos;
+            // Main ghost returns to origin
+            if (_ghost != null)
+            {
+                var gRT = _ghost.GetComponent<RectTransform>();
+                if (gRT != null)
+                {
+                    _cancelReturnSeq.Join(
+                        DOTween.To(
+                            () => (Vector2)gRT.localPosition,
+                            v => gRT.localPosition = new Vector3(v.x, v.y, 0f),
+                            _dragOriginCanvasPos, CANCEL_RETURN_DURATION)
+                        .SetEase(Ease.InOutQuad)
+                        .SetTarget(gRT));
+                }
+            }
 
-            int clusterCount = _clusterGhosts.Count;
-            var clusterStarts = new Vector2[clusterCount];
-            for (int i = 0; i < clusterCount; i++)
+            // Cluster ghosts with staggered delays
+            for (int i = 0; i < _clusterGhosts.Count; i++)
             {
                 var g = _clusterGhosts[i];
-                clusterStarts[i] = g != null
-                    ? (Vector2)g.GetComponent<RectTransform>().localPosition
-                    : (i < _clusterGhostOrigins.Count ? _clusterGhostOrigins[i] : mainStart);
+                if (g == null) continue;
+                var gRT = g.GetComponent<RectTransform>();
+                if (gRT == null) continue;
+
+                Vector2 origin = i < _clusterGhostOrigins.Count
+                    ? _clusterGhostOrigins[i] : _dragOriginCanvasPos;
+                float delay = (i + 1) * CANCEL_STAGGER_DELAY;
+
+                _cancelReturnSeq.Insert(delay,
+                    DOTween.To(
+                        () => (Vector2)gRT.localPosition,
+                        v => gRT.localPosition = new Vector3(v.x, v.y, 0f),
+                        origin, CANCEL_RETURN_DURATION)
+                    .SetEase(Ease.InOutQuad)
+                    .SetTarget(gRT));
             }
 
-            while (elapsed < duration + clusterCount * 0.05f)
+            _cancelReturnSeq.OnComplete(() =>
             {
-                elapsed += Time.deltaTime;
-
-                // Animate main ghost
-                if (_ghost != null)
-                {
-                    var gRT = _ghost.GetComponent<RectTransform>();
-                    if (gRT != null)
-                    {
-                        float t     = Mathf.Clamp01(elapsed / duration);
-                        float eased = Smoothstep(t);
-                        gRT.localPosition = Vector2.Lerp(mainStart, _dragOriginCanvasPos, eased);
-                    }
-                }
-
-                // Animate cluster ghosts with staggered delay
-                for (int i = 0; i < clusterCount; i++)
-                {
-                    var g = _clusterGhosts[i];
-                    if (g == null) continue;
-                    var gRT = g.GetComponent<RectTransform>();
-                    if (gRT == null) continue;
-
-                    float delay     = (i + 1) * 0.05f;
-                    float t         = Mathf.Clamp01((elapsed - delay) / duration);
-                    float eased     = Smoothstep(t);
-                    Vector2 origin  = i < _clusterGhostOrigins.Count ? _clusterGhostOrigins[i] : _dragOriginCanvasPos;
-                    gRT.localPosition = Vector2.Lerp(clusterStarts[i], origin, eased);
-                }
-
-                yield return null;
-            }
-
-            FinishDragCancel();
+                _cancelReturnSeq = null;
+                FinishDragCancel();
+            });
         }
 
         private void FinishDragCancel()
         {
-            _cancelReturnCoroutine = null;
+            _cancelReturnSeq = null;
             _isCancelling          = false;
 
             RemoveDragOriginOverlay();
@@ -898,21 +897,38 @@ namespace FWTCG.UI
                     overlayItems.Add((oRT, fromPos, finalPos));
                 }
 
+                // DOT-4: Drop landing animation via DOTween Sequences
                 if (overlayItems.Count > 0)
                 {
-                    float totalDuration = phase1Dur + phase2Dur + (overlayItems.Count - 1) * stagger;
-                    float elapsed       = 0f;
-                    while (elapsed < totalDuration)
+                    Sequence masterSeq = DOTween.Sequence();
+                    for (int i = 0; i < overlayItems.Count; i++)
                     {
-                        elapsed += Time.deltaTime;
-                        for (int i = 0; i < overlayItems.Count; i++)
-                        {
-                            Vector2 hover = overlayItems[i].to + new Vector2(0f, hoverHeight);
-                            AnimateDropCard(overlayItems[i].overlayRT, overlayItems[i].from, hover, overlayItems[i].to,
-                                            phase1Dur, phase2Dur, elapsed, i * stagger);
-                        }
-                        yield return null;
+                        var item = overlayItems[i];
+                        Vector2 hover = item.to + new Vector2(0f, hoverHeight);
+                        float delay = i * stagger;
+
+                        var cardSeq = DOTween.Sequence();
+                        // Phase 1: fly to hover
+                        cardSeq.Append(
+                            DOTween.To(() => (Vector2)item.overlayRT.localPosition,
+                                       v => item.overlayRT.localPosition = new Vector3(v.x, v.y, 0f),
+                                       hover, phase1Dur)
+                            .SetEase(Ease.OutQuad)
+                            .SetTarget(item.overlayRT));
+                        // Phase 2: drop to final
+                        cardSeq.Append(
+                            DOTween.To(() => (Vector2)item.overlayRT.localPosition,
+                                       v => item.overlayRT.localPosition = new Vector3(v.x, v.y, 0f),
+                                       item.to, phase2Dur)
+                            .SetEase(Ease.InQuad)
+                            .SetTarget(item.overlayRT));
+
+                        masterSeq.Insert(delay, cardSeq);
                     }
+
+                    bool tweenDone = false;
+                    masterSeq.OnComplete(() => tweenDone = true);
+                    while (!tweenDone) yield return null;
                 }
 
                 // Restore alpha + cleanup (also done in OnDestroy as safety net)
@@ -926,40 +942,6 @@ namespace FWTCG.UI
                 Destroy(gameObject); // clean up this temporary host
             }
         }
-
-        private static void AnimateDropCard(RectTransform gRT, Vector2 start,
-                                            Vector2 hover, Vector2 final,
-                                            float phase1Dur, float phase2Dur,
-                                            float elapsed, float delay)
-        {
-            if (gRT == null) return;
-            float t1 = elapsed - delay;
-            if (t1 <= 0f)
-            {
-                gRT.localPosition = start;
-            }
-            else if (t1 < phase1Dur)
-            {
-                // Phase 1: fly to hover — EaseOutQuad (decelerate on arrival)
-                float t = EaseOutQuad(Mathf.Clamp01(t1 / phase1Dur));
-                gRT.localPosition = Vector2.Lerp(start, hover, t);
-            }
-            else
-            {
-                // Phase 2: drop to final — EaseInQuad (accelerate like falling)
-                float t = EaseInQuad(Mathf.Clamp01((t1 - phase1Dur) / phase2Dur));
-                gRT.localPosition = Vector2.Lerp(hover, final, t);
-            }
-        }
-
-        /// <summary>Quadratic ease-out: fast start, decelerates at end.</summary>
-        private static float EaseOutQuad(float t) => t * (2f - t);
-
-        /// <summary>Quadratic ease-in: starts slow, accelerates (falling feel).</summary>
-        private static float EaseInQuad(float t) => t * t;
-
-        /// <summary>Smoothstep: ease-in/ease-out curve, t in [0,1].</summary>
-        private static float Smoothstep(float t) => t * t * (3f - 2f * t);
 
         // ── Canvas coordinate helper ─────────────────────────────────────────
 

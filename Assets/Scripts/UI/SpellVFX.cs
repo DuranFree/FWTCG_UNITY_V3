@@ -1,5 +1,6 @@
 using System.Collections;
 using System.Collections.Generic;
+using DG.Tweening;
 using UnityEngine;
 using UnityEngine.UI;
 using FWTCG.Core;
@@ -47,10 +48,13 @@ namespace FWTCG.UI
             LegendSystem.OnLegendEvolved          -= OnLegendEvolved;
             GameEventBus.OnConquestScored         -= OnConquestScored; // DEV-30 F1
 
-            // Destroy any particle GOs orphaned by coroutines interrupted mid-animation.
-            // Using explicit ownership list avoids destroying unrelated _vfxLayer children.
+            // DOT-4: kill DOTween sequences on owned particles before destroying them
             foreach (var go in _ownedParticles)
-                if (go != null) Destroy(go);
+            {
+                if (go == null) continue;
+                DOTween.Kill(go);
+                Destroy(go);
+            }
             _ownedParticles.Clear();
         }
 
@@ -130,7 +134,7 @@ namespace FWTCG.UI
             }
 
             // Original radial burst (kept as ambient particle layer)
-            StartCoroutine(BurstParticles(cardPos, GetCardBurstColor(card), 12));
+            BurstParticles(cardPos, GetCardBurstColor(card), 12);
         }
 
         /// <summary>
@@ -163,7 +167,7 @@ namespace FWTCG.UI
                 StartCoroutine(SpawnResolvedFX(impactConfigs, end));
 
             // Impact hit burst
-            StartCoroutine(BurstParticles((Vector2)end, Color.white, 8));
+            BurstParticles((Vector2)end, Color.white, 8);
         }
 
         /// <summary>
@@ -212,7 +216,7 @@ namespace FWTCG.UI
             }
 
             // Original death burst
-            StartCoroutine(BurstParticles(canvasPos, new Color(1f, 0.30f, 0.15f, 1f), 12));
+            BurstParticles(canvasPos, new Color(1f, 0.30f, 0.15f, 1f), 12);
         }
 
         private void OnLegendEvolved(string owner, int newLevel)
@@ -233,7 +237,7 @@ namespace FWTCG.UI
             Vector2 pos = GameUI.Instance != null
                 ? GameUI.Instance.GetZoneCanvasPos(zone)
                 : new Vector2(owner == GameRules.OWNER_PLAYER ? -400f : 400f, 0f);
-            StartCoroutine(BurstParticles(pos, GameColors.Gold, 20));
+            BurstParticles(pos, GameColors.Gold, 20);
         }
 
         // ═══════════════════════════════════════════════════════════════════════
@@ -293,11 +297,14 @@ namespace FWTCG.UI
         // Burst particles
         // ═══════════════════════════════════════════════════════════════════════
 
-        private IEnumerator BurstParticles(Vector2 origin, Color color, int count)
-        {
-            var rts  = new RectTransform[count];
-            var imgs = new Image[count];
+        /// <summary>DOT-4: Radial burst particles via DOTween (replaced coroutine).</summary>
+        public const float BURST_DURATION = 0.6f;
+        public const float BURST_RADIUS   = 110f;
+        public const float BURST_START_SIZE = 6f;
+        public const float BURST_END_SIZE   = 2f;
 
+        private void BurstParticles(Vector2 origin, Color color, int count)
+        {
             for (int i = 0; i < count; i++)
             {
                 var go = new GameObject($"BurstPt_{i}");
@@ -306,49 +313,28 @@ namespace FWTCG.UI
 
                 var rt = go.AddComponent<RectTransform>();
                 rt.anchoredPosition = origin;
-                rt.sizeDelta = new Vector2(6f, 6f);
+                rt.sizeDelta = new Vector2(BURST_START_SIZE, BURST_START_SIZE);
 
                 var img = go.AddComponent<Image>();
-                img.color = color;
+                img.color = new Color(color.r, color.g, color.b, 0.9f);
                 img.raycastTarget = false;
 
-                rts[i]  = rt;
-                imgs[i] = img;
-            }
+                float angle = (float)i / count * Mathf.PI * 2f;
+                Vector2 endPos = origin + new Vector2(
+                    Mathf.Cos(angle) * BURST_RADIUS,
+                    Mathf.Sin(angle) * BURST_RADIUS);
 
-            const float DURATION = 0.6f;
-            float elapsed = 0f;
-
-            while (elapsed < DURATION)
-            {
-                elapsed += Time.deltaTime;
-                float t     = Mathf.Clamp01(elapsed / DURATION);
-                float eased = 1f - (1f - t) * (1f - t); // ease-out quad
-
-                for (int i = 0; i < count; i++)
+                var seq = DOTween.Sequence().SetTarget(go);
+                seq.Append(rt.DOAnchorPos(endPos, BURST_DURATION).SetEase(Ease.OutQuad));
+                seq.Join(rt.DOSizeDelta(new Vector2(BURST_END_SIZE, BURST_END_SIZE), BURST_DURATION).SetEase(Ease.Linear));
+                seq.Join(img.DOFade(0f, BURST_DURATION).SetEase(Ease.Linear));
+                // capture for closure
+                var capturedGo = go;
+                seq.OnComplete(() =>
                 {
-                    float angle  = (float)i / count * Mathf.PI * 2f;
-                    float radius = Mathf.Lerp(0f, 110f, eased);
-                    rts[i].anchoredPosition = origin + new Vector2(
-                        Mathf.Cos(angle) * radius,
-                        Mathf.Sin(angle) * radius
-                    );
-
-                    float sz = Mathf.Lerp(6f, 2f, t);
-                    rts[i].sizeDelta = new Vector2(sz, sz);
-
-                    var c = imgs[i].color;
-                    c.a = (1f - t) * 0.9f;
-                    imgs[i].color = c;
-                }
-
-                yield return null;
-            }
-
-            for (int i = 0; i < count; i++)
-            {
-                _ownedParticles.Remove(rts[i].gameObject);
-                Destroy(rts[i].gameObject);
+                    _ownedParticles.Remove(capturedGo);
+                    Destroy(capturedGo);
+                });
             }
         }
 

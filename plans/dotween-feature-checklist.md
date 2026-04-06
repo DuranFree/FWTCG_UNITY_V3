@@ -91,20 +91,20 @@
 ## DOT-4 — 3个游戏逻辑文件替换
 
 ### CombatAnimator.cs
-- [ ] FlyAndReturnRoutine → Sequence 3段 DOAnchorPos — DOT-4
-- [ ] PlayShockwave → DOScale + DOFade — DOT-4
+- [x] FlyAndReturnRoutine → Sequence 3段 DOAnchorPos — DOT-4
+- [x] PlayShockwave → DOScale + DOFade — DOT-4
 
 ### SpellVFX.cs
-- [ ] BurstParticles → 批量 DOAnchorPos + DOFade — DOT-4
-- [ ] LegendFlame → 批量 DOAnchorPos + DOFade — DOT-4
-- [ ] ProjectileThenFXRoutine → Sequence — DOT-4
-- [ ] DelayedCardPlayFX → Sequence — DOT-4
+- [x] BurstParticles → 批量 DOAnchorPos + DOFade + DOSizeDelta — DOT-4
+- [x] LegendFlame — 保留协程（每帧速度+重生模拟不适合DOTween）— DOT-4 排除
+- [x] ProjectileThenFXRoutine — 保留协程壳（游戏逻辑等待流程）— DOT-4 排除
+- [x] DelayedCardPlayFX — 保留协程壳（游戏逻辑等待流程）— DOT-4 排除
 
 ### CardDragHandler.cs
-- [ ] CancelReturnRoutine → DOAnchorPos — DOT-4
-- [ ] ClusterFollowRoutine → DOAnchorPos with SetDelay — DOT-4
-- [ ] DropFlowRoutine → Sequence — DOT-4
-- [ ] DropAnimHost.AnimRoutine → Sequence 两阶段 — DOT-4
+- [x] CancelReturnRoutine → DOTween.To + Sequence stagger — DOT-4
+- [x] ClusterFollowRoutine — 保留（每帧鼠标跟踪不适合DOTween）— DOT-4 排除
+- [x] DropFlowRoutine — 保留协程壳（含 yield WaitUntil 游戏逻辑）— DOT-4 排除
+- [x] DropAnimHost.AnimRoutine → DOTween.To 两阶段 Sequence — DOT-4
 
 ---
 
