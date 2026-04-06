@@ -67,6 +67,8 @@ namespace FWTCG.UI
         private Tween _hexBreathTween;
         private Tween _titleBeamTween;
         private Tween _bgGradientTween;
+        private Tween _coinSpinSeq;       // H2: track coin spin for cleanup
+        private Tween _titleEntranceTween; // H3: track title entrance for cleanup
 
         // DEV-30 V1-V5: title overlay elements (found by name in Awake)
         private Image _hexBreathOverlay;
@@ -103,6 +105,8 @@ namespace FWTCG.UI
             TweenHelper.KillSafe(ref _hexBreathTween);
             TweenHelper.KillSafe(ref _titleBeamTween);
             TweenHelper.KillSafe(ref _bgGradientTween);
+            TweenHelper.KillSafe(ref _coinSpinSeq);
+            TweenHelper.KillSafe(ref _titleEntranceTween);
         }
 
         private void OnDestroy()
@@ -111,6 +115,8 @@ namespace FWTCG.UI
             TweenHelper.KillSafe(ref _hexBreathTween);
             TweenHelper.KillSafe(ref _titleBeamTween);
             TweenHelper.KillSafe(ref _bgGradientTween);
+            TweenHelper.KillSafe(ref _coinSpinSeq);
+            TweenHelper.KillSafe(ref _titleEntranceTween);
             // VFX-6: destroy any lingering burst particles
             foreach (var p in _burstParticles)
             {
@@ -226,14 +232,14 @@ namespace FWTCG.UI
 
             // ── DEV-30 V1-V5: start title animation tweens ──────────────────
             var coinTitle = _coinFlipPanel?.transform.Find("CoinTitle")?.GetComponent<Text>();
-            if (coinTitle != null) CreateTitleEntranceSequence(coinTitle); // fire-and-forget
+            if (coinTitle != null) _titleEntranceTween = CreateTitleEntranceSequence(coinTitle);
             if (_hexBreathOverlay  != null) _hexBreathTween  = CreateHexBreathTween();
             if (_titleBeam         != null) _titleBeamTween  = CreateTitleBeamTween();
             if (_bgGradientOverlay != null) _bgGradientTween = CreateBgGradientTween();
 
             // ── Coin flip animation ───────────────────────────────────────────
-            var spinSeq = CreateCoinSpinSequence(isPlayerFirst);
-            if (spinSeq != null) yield return spinSeq.WaitForCompletion();
+            _coinSpinSeq = CreateCoinSpinSequence(isPlayerFirst);
+            if (_coinSpinSeq != null) yield return _coinSpinSeq.WaitForCompletion();
 
             // ── VFX-6: gold burst + land audio ───────────────────────────────
             if (AudioTool.Instance != null && _coinFlipLandClip != null)

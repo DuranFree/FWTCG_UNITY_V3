@@ -245,6 +245,15 @@ namespace FWTCG.Tests
         }
 
         [Test]
+        public void SpellShowcaseUI_HasActiveTcsField()
+        {
+            // H1 fix: TCS tracked for OnDestroy resolution
+            var field = typeof(SpellShowcaseUI).GetField("_activeTcs",
+                BindingFlags.NonPublic | BindingFlags.Instance);
+            Assert.IsNotNull(field, "_activeTcs must exist to prevent TCS leak on destroy");
+        }
+
+        [Test]
         public void SpellShowcaseUI_NullSpellReturnsCompletedTask()
         {
             var go = new GameObject("TestShowcase");
@@ -355,6 +364,15 @@ namespace FWTCG.Tests
 
             var bg = typeof(StartupFlowUI).GetField("_bgGradientTween", flags);
             Assert.IsNotNull(bg, "_bgGradientTween must exist");
+
+            // H2/H3: coin spin + title entrance tracked for cleanup
+            var coinSpin = typeof(StartupFlowUI).GetField("_coinSpinSeq", flags);
+            Assert.IsNotNull(coinSpin, "_coinSpinSeq must exist for destroy cleanup");
+            Assert.AreEqual(typeof(Tween), coinSpin.FieldType);
+
+            var titleEntrance = typeof(StartupFlowUI).GetField("_titleEntranceTween", flags);
+            Assert.IsNotNull(titleEntrance, "_titleEntranceTween must exist for destroy cleanup");
+            Assert.AreEqual(typeof(Tween), titleEntrance.FieldType);
         }
 
         [Test]

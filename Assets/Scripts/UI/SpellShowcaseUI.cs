@@ -45,6 +45,8 @@ namespace FWTCG.UI
 
         // DOTween handle
         private Sequence _showSeq;
+        // Active TCS — resolved in OnDestroy to prevent hang if destroyed mid-animation
+        private TaskCompletionSource<bool> _activeTcs;
 
         // ── Unity lifecycle ────────────────────────────────────────────────────
 
@@ -68,6 +70,10 @@ namespace FWTCG.UI
         private void OnDestroy()
         {
             TweenHelper.KillSafe(ref _showSeq);
+            // Resolve pending TCS so awaiting callers don't hang
+            _activeTcs?.TrySetResult(true);
+            _activeTcs = null;
+            IsShowing = false;
             if (Instance == this) Instance = null;
         }
 
@@ -82,6 +88,7 @@ namespace FWTCG.UI
             if (spells.Count == 1) return ShowAsync(spells[0], owner);
 
             var tcs = new TaskCompletionSource<bool>();
+            _activeTcs = tcs;
             IsShowing = true;
             bool isPlayer = owner == GameRules.OWNER_PLAYER;
 
@@ -152,6 +159,7 @@ namespace FWTCG.UI
             if (spell == null) return Task.CompletedTask;
 
             var tcs = new TaskCompletionSource<bool>();
+            _activeTcs = tcs;
             IsShowing = true;
 
             // Populate content (sync)
