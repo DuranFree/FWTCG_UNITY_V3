@@ -81,3 +81,5 @@
 - [ ] VFX-3 dissolve 路径 Phase B ghost 大小固定 0.6x（dissolve 不缩放卡牌，ghost 与实际卡牌尺寸轻微不一致）— VFX-3（LOW）
 - ✅ AudioTool.FadeRoutine 被外部 StopAllCoroutines 打断时 ch.FadeRoutine 引用不清空 — DOT-3 已解决：改用 DOTween FadeTween，CancelFade 直接 Kill，不受 StopAllCoroutines 影响 — VFX-5→DOT-3
 - ✅ AnimMatFX.cs 文件已删除 — DOT-7 确认无引用后安全删除 — DOT-2→DOT-7
+- [ ] DissolveOrFallbackRoutine fallback path tween 未存入字段，SetTarget(gameObject) 兜底，低风险 — DOT-7（Codex MEDIUM）
+- [ ] CreateShadow shadow DOColor tween 未跟踪，ClearBattlefieldVisuals 时若 shadow 被销毁可能 MissingReferenceException — DOT-7（Codex LOW）
