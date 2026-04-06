@@ -102,22 +102,21 @@ namespace FWTCG.Tests
         // ── 3. GameUI log flash ───────────────────────────────────────────────
 
         [Test]
-        public void GameUI_LogEntryFlashRoutine_FieldExists()
+        public void GameUI_LogEntryFlash_ConstantsExist()
         {
-            // Verify the LogEntryFlashRoutine private method exists in GameUI
-            var method = typeof(GameUI)
-                .GetMethod("LogEntryFlashRoutine",
-                    System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
-            Assert.IsNotNull(method, "GameUI.LogEntryFlashRoutine should exist");
+            // DOT-6: LogEntryFlashRoutine replaced with DOTween DOColor
+            Assert.AreEqual(0.8f, GameUI.LOG_FLASH_DURATION, "LOG_FLASH_DURATION should be 0.8s");
+            Assert.AreEqual(new UnityEngine.Color(0.95f, 0.82f, 0.40f, 1f), GameUI.LOG_FLASH_GOLD);
         }
 
         [Test]
-        public void GameUI_FadeInPanelRoutine_FieldExists()
+        public void GameUI_GameOverSequence_Exists()
         {
+            // DOT-6: FadeInPanelRoutine removed, GameOverEnhancedRoutine → CreateGameOverSequence
             var method = typeof(GameUI)
-                .GetMethod("FadeInPanelRoutine",
+                .GetMethod("CreateGameOverSequence",
                     System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
-            Assert.IsNotNull(method, "GameUI.FadeInPanelRoutine should exist");
+            Assert.IsNotNull(method, "GameUI.CreateGameOverSequence should exist");
         }
 
         // ── 4. Coin animation geometry ────────────────────────────────────────

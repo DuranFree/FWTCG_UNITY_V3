@@ -2,6 +2,61 @@
 
 ---
 
+## DOT-6：GameUI.cs DOTween 替换 — 2026-04-06
+
+**Status**: ✅ Completed
+**Tests**: 1003/1003 EditMode 编译通过，1000 FWTCG+MCP 测试中 1000 绿 🟢（3 个预存失败非 DOT-6 引入），新增 53 个测试
+
+### 实现内容
+
+**GameUI.cs**：18 个协程方法全部替换为 DOTween，完全消除 IEnumerator/System.Collections 依赖：
+
+**BannerSlideRoutine**（fade-in + stay + fade-out）→ DOTween Sequence（DOFade in 0.2s + AppendInterval + DOFade out 0.2s）；_bannerAnimCoroutine → _bannerAnimSeq Sequence
+
+**FlashLegendText**（4次金色闪烁 for 循环）→ DOColor SetLoops(8, Yoyo) 自动完成 4 个完整闪烁周期
+
+**RuneHighlightPulseRoutine**（per-frame Sin 驱动符文边框颜色）→ DOVirtual.Float sine loop SetLoops(-1)，callback 内保留动态 HashSet 遍历逻辑；常量提取 RuneTapFill/RuneTapOutline/RuneRecFill/RuneRecOutline + RUNE_PULSE_FREQ
+
+**PhasePulseRoutine**（scale up/down 0.4s）→ DOScale Yoyo SetLoops(2)；常量 PHASE_PULSE_DURATION/PHASE_PULSE_PEAK
+
+**FadeLegendGlow**（static IEnumerator MoveTowards alpha）→ static void，DOTween.Kill(img) 防重叠 + DOFade；常量 LEGEND_GLOW_SPEED
+
+**LogEntryFlashRoutine**（gold→original 0.8s Lerp）→ DOColor SetEase(Linear)；常量 LOG_FLASH_GOLD/LOG_FLASH_DURATION
+
+**GameOverEnhancedRoutine**（fade-in + 胜利 scale pop）→ CreateGameOverSequence：DOFade + 条件 DOScale pop；常量 GAMEOVER_FADE_DUR/GAMEOVER_WIN_SCALE_DUR
+
+**FadeInPanelRoutine** → 删除（无代码引用）
+
+**BoardFlashRoutine**（金色/红色闪烁 0.85s）→ DOTween Sequence DOColor in + out；常量 BOARD_FLASH_HALF
+
+**AnimateLogToggle**（SmoothStep 驱动 offsetMax）→ DOVirtual.Float SetEase(InOutQuad)；常量 LOG_TOGGLE_DURATION
+
+**TimerCountdown**（WaitForSeconds 1s 循环）→ DOVirtual.Float Linear countdown，CeilToInt 每秒更新
+
+**TimerPulseRoutine**（per-frame Sin scale）→ DOVirtual.Float sine loop SetLoops(-1)；常量不变
+
+**ScorePulseRoutine**（scale up/down 1.8s）→ DOScale Yoyo SetLoops(2)；常量 SCORE_PULSE_HALF/SCORE_PULSE_PEAK
+
+**ScoreRingRoutine**（expanding ring + fade）→ DOTween Sequence（DOScale + DOFade + OnComplete Destroy）；常量 SCORE_RING_DURATION
+
+**EndTurnPulseRoutine**（alpha 1→0.6→1 2s 循环）→ TweenHelper.PulseAlpha(CanvasGroup)；常量 ENDTURN_PULSE_PERIOD/ENDTURN_PULSE_MIN_ALPHA
+
+**ReactRibbonRevealRoutine**（scaleX 0→1 + 1周期脉冲）→ DOTween Sequence（DOVirtual scale-X reveal + DOVirtual pulse）；常量 REACT_REVEAL_DUR/REACT_PULSE_DUR/REACT_PULSE_AMP
+
+**EquipFlyRoutine**（ghost card fly + fade）→ DOTween Sequence（DOAnchorPos InOutQuad + DOFade）SetUpdate(true) unscaled；常量 EQUIP_FLY_DURATION
+
+**ShowHideCombatResult**（fade-in + stay + fade-out）→ DOTween Sequence（DOFade in + AppendInterval + DOFade out）；常量 CR_FADE_IN/CR_STAY/CR_FADE_OUT
+
+**OnDestroy** 统一清理：DOTween.Kill(gameObject) 兜底 + 9 个 KillSafe 逐个处理所有 tween 字段
+
+**DEV24StartupTests.cs（更新 2 个测试）**：LogEntryFlashRoutine_FieldExists → LogEntryFlash_ConstantsExist；FadeInPanelRoutine_FieldExists �� GameOverSequence_Exists
+
+**DOT6ReplacementTests.cs（新建，53 测试）**：覆盖 18 个旧协程移除验证、9 个旧 Coroutine 字段移除、9 个新 Tween/Sequence 字段存在、14 个常量验证、4 个 DOTween 方法存在、IEnumerator 全扫描、TweenHelper null-safety 回归、FadeLegendGlow null-safety、Coroutine 字段类型全扫描
+
+**Technical debt**: 无新增
+
+---
+
 ## DOT-5：4个装饰文件 DOTween 替换 — 2026-04-06
 
 **Status**: ✅ Completed

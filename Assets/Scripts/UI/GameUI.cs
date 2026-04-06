@@ -1,6 +1,6 @@
 using System;
-using System.Collections;
 using System.Collections.Generic;
+using DG.Tweening;
 using UnityEngine;
 using UnityEngine.UI;
 using FWTCG.Core;
@@ -114,7 +114,7 @@ namespace FWTCG.UI
         [SerializeField] private RectTransform _playerHandZoneRT;
         [SerializeField] private RectTransform _enemyHandZoneRT;
         private bool _logCollapsed = true; // default collapsed
-        private Coroutine _logAnimCoroutine;
+        private Tween _logAnimTween;
 
         // ── Debug panel toggle (DEV-10) ──────────────────────────────────────
         [SerializeField] private GameObject _debugPanel;
@@ -134,8 +134,8 @@ namespace FWTCG.UI
         [SerializeField] private Image _timerFill;
         [SerializeField] private Text _timerText;
         [SerializeField] private GameObject _timerDisplay;
-        private Coroutine _timerCoroutine;
-        private Coroutine _timerPulseRoutine; // VFX-7f
+        private Tween _timerTween;
+        private Tween _timerPulseTween; // VFX-7f
         private int _timerSeconds;
         private Action _onTimerExpired;
 
@@ -165,7 +165,7 @@ namespace FWTCG.UI
         [SerializeField] private Image _boardFlashOverlay;
         [SerializeField] private Image _bf1CardArt;
         [SerializeField] private Image _bf2CardArt;
-        private Coroutine _boardFlashCoroutine;
+        private Tween _boardFlashTween;
 
         // ── DEV-18b: Event feedback ───────────────────────────────────────────
         // Zone anchor RTs used to position FloatText in score/rune areas.
@@ -182,13 +182,13 @@ namespace FWTCG.UI
 
         // Phase indicator pulse — detect phase change in RefreshRoundPhase
         private string _cachedPhase = null;
-        private Coroutine _phasePulseCoroutine;
+        private Tween _phasePulseTween;
 
         // Animated banner coroutine handle
-        private Coroutine _bannerAnimCoroutine;
+        private Sequence _bannerAnimSeq;
 
         // End-turn button persistent pulse
-        private Coroutine _endTurnPulseCoroutine;
+        private Tween _endTurnPulseTween;
         private bool      _endTurnPulseActive;
 
         // React button ribbon — previous interactable state to detect transitions
@@ -219,7 +219,7 @@ namespace FWTCG.UI
         // ── Rune highlight state (set by SetRuneHighlights) ───────────────────
         private System.Collections.Generic.HashSet<int> _runeHighlightTap     = new System.Collections.Generic.HashSet<int>();
         private System.Collections.Generic.HashSet<int> _runeHighlightRecycle = new System.Collections.Generic.HashSet<int>();
-        private Coroutine _runeHighlightPulseCoroutine;
+        private Tween _runeHighlightPulseTween;
         private System.Action _pendingEquipOnDone; // H-1: unblocks tcs2 if GameUI destroyed mid-animation
 
         // ── Message log state ─────────────────────────────────────────────────
@@ -287,7 +287,17 @@ namespace FWTCG.UI
 
         private void OnDestroy()
         {
-            if (_runeHighlightPulseCoroutine != null) StopCoroutine(_runeHighlightPulseCoroutine);
+            // Kill all DOTween tweens targeting this gameObject
+            DOTween.Kill(gameObject);
+            TweenHelper.KillSafe(ref _runeHighlightPulseTween);
+            TweenHelper.KillSafe(ref _bannerAnimSeq);
+            TweenHelper.KillSafe(ref _phasePulseTween);
+            TweenHelper.KillSafe(ref _boardFlashTween);
+            TweenHelper.KillSafe(ref _logAnimTween);
+            TweenHelper.KillSafe(ref _timerTween);
+            TweenHelper.KillSafe(ref _timerPulseTween);
+            TweenHelper.KillSafe(ref _endTurnPulseTween);
+            TweenHelper.KillSafe(ref _crHideSeq);
             if (_endTurnButton != null) _endTurnButton.onClick.RemoveAllListeners();
             if (_bf1Button != null) _bf1Button.onClick.RemoveAllListeners();
             if (_bf2Button != null) _bf2Button.onClick.RemoveAllListeners();
@@ -604,74 +614,39 @@ namespace FWTCG.UI
             Text legendText = owner == FWTCG.Core.GameRules.OWNER_PLAYER
                 ? _playerLegendText
                 : _enemyLegendText;
-            if (legendText != null)
-                StartCoroutine(FlashLegendText(legendText));
-        }
-
-        private IEnumerator FlashLegendText(Text text)
-        {
-            Color original = text.color;
-            Color flash    = new Color(1f, 0.85f, 0.1f); // bright gold
-            float duration = 0.15f;
-
-            for (int i = 0; i < 4; i++)
-            {
-                float t = 0f;
-                while (t < duration)
-                {
-                    text.color = Color.Lerp(original, flash, t / duration);
-                    t += Time.deltaTime;
-                    yield return null;
-                }
-                t = 0f;
-                while (t < duration)
-                {
-                    text.color = Color.Lerp(flash, original, t / duration);
-                    t += Time.deltaTime;
-                    yield return null;
-                }
-            }
-            text.color = original;
+            if (legendText == null) return;
+            // 4 cycles of gold flash, each cycle = 0.15s to gold + 0.15s back = 0.3s × 4 = 1.2s total
+            Color original = legendText.color;
+            Color flash    = new Color(1f, 0.85f, 0.1f);
+            legendText.DOColor(flash, 0.15f)
+                .SetLoops(8, LoopType.Yoyo) // 8 half-cycles = 4 full flash cycles
+                .OnComplete(() => { if (legendText != null) legendText.color = original; })
+                .SetTarget(gameObject);
         }
 
         public void ShowBanner(string text)
         {
             if (_bannerPanel == null) return;
             if (_bannerText != null) _bannerText.text = text;
-            if (_bannerAnimCoroutine != null) StopCoroutine(_bannerAnimCoroutine);
-            _bannerAnimCoroutine = StartCoroutine(BannerSlideRoutine());
-        }
+            TweenHelper.KillSafe(ref _bannerAnimSeq);
 
-        // DEV-19: fade-only turn banner (no position slide)
-        private IEnumerator BannerSlideRoutine()
-        {
             _bannerPanel.SetActive(true);
             var cg = _bannerPanel.GetComponent<CanvasGroup>();
             if (cg == null) cg = _bannerPanel.AddComponent<CanvasGroup>();
+            cg.alpha = 0f;
 
             const float IN_DUR = 0.2f;
-            float elapsed = 0f;
-            while (elapsed < IN_DUR)
-            {
-                cg.alpha = elapsed / IN_DUR;
-                elapsed += Time.deltaTime;
-                yield return null;
-            }
-            cg.alpha = 1f;
-
-            yield return new WaitForSeconds(BANNER_DURATION);
-
             const float OUT_DUR = 0.2f;
-            elapsed = 0f;
-            while (elapsed < OUT_DUR)
-            {
-                cg.alpha = 1f - elapsed / OUT_DUR;
-                elapsed += Time.deltaTime;
-                yield return null;
-            }
-            cg.alpha = 0f;
-            _bannerPanel.SetActive(false);
-            _bannerAnimCoroutine = null;
+            _bannerAnimSeq = DOTween.Sequence()
+                .Append(cg.DOFade(1f, IN_DUR))
+                .AppendInterval(BANNER_DURATION)
+                .Append(cg.DOFade(0f, OUT_DUR))
+                .OnComplete(() =>
+                {
+                    if (_bannerPanel != null) _bannerPanel.SetActive(false);
+                    _bannerAnimSeq = null;
+                })
+                .SetTarget(gameObject);
         }
 
         // ── Setup ─────────────────────────────────────────────────────────────
@@ -745,20 +720,15 @@ namespace FWTCG.UI
             if (tapIndices     != null) foreach (int i in tapIndices)     _runeHighlightTap.Add(i);
             if (recycleIndices != null) foreach (int i in recycleIndices) _runeHighlightRecycle.Add(i);
 
-            // Start breathing pulse coroutine
-            if (_runeHighlightPulseCoroutine != null) StopCoroutine(_runeHighlightPulseCoroutine);
+            TweenHelper.KillSafe(ref _runeHighlightPulseTween);
             if (_runeHighlightTap.Count > 0 || _runeHighlightRecycle.Count > 0)
-                _runeHighlightPulseCoroutine = StartCoroutine(RuneHighlightPulseRoutine());
+                _runeHighlightPulseTween = CreateRuneHighlightPulseTween();
         }
 
-        /// <summary>Clears all rune highlights and stops the pulse coroutine.</summary>
+        /// <summary>Clears all rune highlights and stops the pulse tween.</summary>
         public void ClearRuneHighlights()
         {
-            if (_runeHighlightPulseCoroutine != null)
-            {
-                StopCoroutine(_runeHighlightPulseCoroutine);
-                _runeHighlightPulseCoroutine = null;
-            }
+            TweenHelper.KillSafe(ref _runeHighlightPulseTween);
             // Reset border glow on highlighted runes immediately
             if (_playerRuneContainer != null)
             {
@@ -791,29 +761,28 @@ namespace FWTCG.UI
             }
         }
 
-        private IEnumerator RuneHighlightPulseRoutine()
+        // Blue = needs tap for mana  |  Red = needs recycle for sch
+        public static readonly Color RuneTapFill    = new Color(0.15f, 0.50f, 1.0f, 1f);
+        public static readonly Color RuneTapOutline = new Color(0.45f, 0.80f, 1.0f, 1f);
+        public static readonly Color RuneRecFill    = new Color(1.0f,  0.15f, 0.15f, 1f);
+        public static readonly Color RuneRecOutline = new Color(1.0f,  0.50f, 0.50f, 1f);
+        public const float RUNE_PULSE_FREQ = 3.5f; // rad/s multiplier (~1.75 Hz)
+
+        private Tween CreateRuneHighlightPulseTween()
         {
-            // Blue = needs tap for mana  |  Red = needs recycle for sch
-            // Alpha breathes 0.25 → 1.0 at ~1.75 Hz; solid RGB stays fixed for clarity
-            Color tapFill    = new Color(0.15f, 0.50f, 1.0f, 1f);
-            Color tapOutline = new Color(0.45f, 0.80f, 1.0f, 1f);
-            Color recFill    = new Color(1.0f,  0.15f, 0.15f, 1f);
-            Color recOutline = new Color(1.0f,  0.50f, 0.50f, 1f);
-
-            while (true)
+            // DOVirtual.Float sine loop: 0→1→0 at ~1.75 Hz
+            return DOVirtual.Float(0f, 1f, 1f, _ =>
             {
-                float pulse = (Mathf.Sin(Time.time * 3.5f) + 1f) * 0.5f; // 0→1→0, ~1.75 Hz
+                float pulse = (Mathf.Sin(Time.time * RUNE_PULSE_FREQ) + 1f) * 0.5f;
                 float alpha = Mathf.Lerp(0.25f, 1.0f, pulse);
-
                 if (_playerRuneContainer != null)
                 {
                     foreach (int idx in _runeHighlightTap)
-                        SetRuneBorderGlow(idx, tapFill, tapOutline, alpha);
+                        SetRuneBorderGlow(idx, RuneTapFill, RuneTapOutline, alpha);
                     foreach (int idx in _runeHighlightRecycle)
-                        SetRuneBorderGlow(idx, recFill, recOutline, alpha);
+                        SetRuneBorderGlow(idx, RuneRecFill, RuneRecOutline, alpha);
                 }
-                yield return null;
-            }
+            }).SetLoops(-1, LoopType.Restart).SetTarget(gameObject);
         }
 
         private void SetRuneBorderGlow(int idx, Color fillRGB, Color outlineRGB, float alpha)
@@ -897,39 +866,22 @@ namespace FWTCG.UI
             if (gs.Phase != _cachedPhase && _roundPhaseText != null)
             {
                 _cachedPhase = gs.Phase;
-                if (_phasePulseCoroutine != null) StopCoroutine(_phasePulseCoroutine);
-                _phasePulseCoroutine = StartCoroutine(PhasePulseRoutine(_roundPhaseText.GetComponent<RectTransform>()));
+                TweenHelper.KillSafe(ref _phasePulseTween);
+                var rt = _roundPhaseText.GetComponent<RectTransform>();
+                if (rt != null)
+                {
+                    rt.localScale = Vector3.one;
+                    _phasePulseTween = rt.DOScale(PHASE_PULSE_PEAK, PHASE_PULSE_DURATION * 0.5f)
+                        .SetEase(Ease.Linear)
+                        .SetLoops(2, LoopType.Yoyo)
+                        .OnComplete(() => { if (rt != null) rt.localScale = Vector3.one; _phasePulseTween = null; })
+                        .SetTarget(gameObject);
+                }
             }
         }
 
-        private IEnumerator PhasePulseRoutine(RectTransform rt)
-        {
-            if (rt == null) yield break;
-            const float DURATION = 0.4f;
-            const float PEAK     = 1.18f;
-            float half = DURATION * 0.5f;
-
-            // Scale up
-            float t = 0f;
-            while (t < half)
-            {
-                t += Time.deltaTime;
-                float s = Mathf.Lerp(1f, PEAK, t / half);
-                rt.localScale = new Vector3(s, s, 1f);
-                yield return null;
-            }
-            // Scale back down
-            t = 0f;
-            while (t < half)
-            {
-                t += Time.deltaTime;
-                float s = Mathf.Lerp(PEAK, 1f, t / half);
-                rt.localScale = new Vector3(s, s, 1f);
-                yield return null;
-            }
-            rt.localScale = Vector3.one;
-            _phasePulseCoroutine = null;
-        }
+        public const float PHASE_PULSE_DURATION = 0.4f;
+        public const float PHASE_PULSE_PEAK     = 1.18f;
 
         private void RefreshMana(GameState gs)
         {
@@ -1187,7 +1139,7 @@ namespace FWTCG.UI
             enterEntry.callback.AddListener((_) =>
             {
                 if (glowImg != null)
-                    StartCoroutine(FadeLegendGlow(glowImg, 0.25f));
+                    FadeLegendGlow(glowImg, 0.25f);
             });
             et.triggers.Add(enterEntry);
 
@@ -1196,21 +1148,21 @@ namespace FWTCG.UI
             exitEntry.callback.AddListener((_) =>
             {
                 if (glowImg != null)
-                    StartCoroutine(FadeLegendGlow(glowImg, 0f));
+                    FadeLegendGlow(glowImg, 0f);
             });
             et.triggers.Add(exitEntry);
         }
 
-        private static IEnumerator FadeLegendGlow(Image img, float targetAlpha)
+        public const float LEGEND_GLOW_SPEED = 4f;
+        private static void FadeLegendGlow(Image img, float targetAlpha)
         {
-            while (img != null)
-            {
-                var c = img.color;
-                float a = Mathf.MoveTowards(c.a, targetAlpha, 4f * Time.deltaTime);
-                img.color = new Color(c.r, c.g, c.b, a);
-                if (Mathf.Approximately(a, targetAlpha)) yield break;
-                yield return null;
-            }
+            if (img == null) return;
+            DOTween.Kill(img); // kill previous fade on this image
+            float currentAlpha = img.color.a;
+            float distance = Mathf.Abs(targetAlpha - currentAlpha);
+            float duration = distance / LEGEND_GLOW_SPEED;
+            if (duration < 0.01f) { var c = img.color; img.color = new Color(c.r, c.g, c.b, targetAlpha); return; }
+            img.DOFade(targetAlpha, duration).SetEase(Ease.Linear).SetTarget(img);
         }
 
         private readonly System.Collections.Generic.HashSet<int> _legendRightClickWired = new();
@@ -1661,25 +1613,16 @@ namespace FWTCG.UI
             entry.text = msg;
             _messageTexts.Enqueue(entry);
             // DEV-24: brief gold flash on new log entry
-            StartCoroutine(LogEntryFlashRoutine(entry));
+            if (entry != null)
+            {
+                Color original = entry.color;
+                entry.color = LOG_FLASH_GOLD;
+                entry.DOColor(original, LOG_FLASH_DURATION).SetEase(Ease.Linear).SetTarget(entry);
+            }
         }
 
-        private IEnumerator LogEntryFlashRoutine(Text entry)
-        {
-            if (entry == null) yield break;
-            Color original = entry.color;
-            Color gold = new Color(0.95f, 0.82f, 0.40f, 1f);
-            const float DUR = 0.8f;
-            float t = 0f;
-            while (t < 1f)
-            {
-                t += Time.deltaTime / DUR;
-                if (entry == null) yield break;
-                entry.color = Color.Lerp(gold, original, t);
-                yield return null;
-            }
-            if (entry != null) entry.color = original;
-        }
+        public static readonly Color LOG_FLASH_GOLD = new Color(0.95f, 0.82f, 0.40f, 1f);
+        public const float LOG_FLASH_DURATION = 0.8f;
 
         // ── Game over overlay ─────────────────────────────────────────────────
 
@@ -1692,11 +1635,14 @@ namespace FWTCG.UI
 
             // VFX-7c: detect win/lose and enhance
             bool isWin = msg != null && (msg.Contains("胜") || msg.Contains("Win") || msg.Contains("赢"));
-            StartCoroutine(GameOverEnhancedRoutine(_gameOverPanel, isWin));
+            CreateGameOverSequence(_gameOverPanel, isWin);
         }
 
+        public const float GAMEOVER_FADE_DUR = 0.5f;
+        public const float GAMEOVER_WIN_SCALE_DUR = 0.4f;
+
         // VFX-7c: enhanced win/lose screen
-        private IEnumerator GameOverEnhancedRoutine(GameObject panel, bool isWin)
+        private void CreateGameOverSequence(GameObject panel, bool isWin)
         {
             var cg = panel.GetComponent<CanvasGroup>();
             if (cg == null) cg = panel.AddComponent<CanvasGroup>();
@@ -1706,56 +1652,27 @@ namespace FWTCG.UI
             var bg = panel.GetComponent<Image>();
             if (bg != null)
                 bg.color = isWin
-                    ? new Color(0.05f, 0.02f, 0f, 0.90f)   // warm dark
-                    : new Color(0.05f, 0.05f, 0.08f, 0.92f); // cold dark
+                    ? new Color(0.05f, 0.02f, 0f, 0.90f)
+                    : new Color(0.05f, 0.05f, 0.08f, 0.92f);
 
             if (_gameOverText != null)
                 _gameOverText.color = isWin ? GameColors.Gold : new Color(0.6f, 0.6f, 0.65f, 1f);
 
-            // Fade in
-            const float DUR = 0.5f;
-            float t = 0f;
-            while (t < 1f)
-            {
-                t += Time.deltaTime / DUR;
-                if (cg == null) yield break;
-                cg.alpha = Mathf.Clamp01(t);
-                yield return null;
-            }
-            cg.alpha = 1f;
+            var seq = DOTween.Sequence();
+            seq.Append(cg.DOFade(1f, GAMEOVER_FADE_DUR));
 
-            // VFX-7c: victory text scale animation
+            // VFX-7c: victory text scale pop
             if (isWin && _gameOverText != null)
             {
-                var txt = _gameOverText.transform;
-                txt.localScale = Vector3.one * 0.5f;
-                float st = 0f;
-                while (st < 0.4f)
+                var txtRT = _gameOverText.GetComponent<RectTransform>();
+                if (txtRT != null)
                 {
-                    st += Time.deltaTime;
-                    float s = Mathf.Lerp(0.5f, 1.05f, st / 0.4f);
-                    txt.localScale = Vector3.one * s;
-                    yield return null;
+                    txtRT.localScale = Vector3.one * 0.5f;
+                    seq.Append(txtRT.DOScale(1.05f, GAMEOVER_WIN_SCALE_DUR).SetEase(Ease.OutQuad));
+                    seq.Append(txtRT.DOScale(1f, 0.1f));
                 }
-                txt.localScale = Vector3.one;
             }
-        }
-
-        private IEnumerator FadeInPanelRoutine(GameObject panel)
-        {
-            var cg = panel.GetComponent<CanvasGroup>();
-            if (cg == null) cg = panel.AddComponent<CanvasGroup>();
-            cg.alpha = 0f;
-            const float DUR = 0.5f;
-            float t = 0f;
-            while (t < 1f)
-            {
-                t += Time.deltaTime / DUR;
-                if (cg == null) yield break; // guard: panel destroyed mid-fade
-                cg.alpha = Mathf.Clamp01(t);
-                yield return null;
-            }
-            cg.alpha = 1f;
+            seq.SetTarget(gameObject);
         }
 
         // ── Button handlers ───────────────────────────────────────────────────
@@ -1918,45 +1835,24 @@ namespace FWTCG.UI
         }
 
         /// <summary>Card-played board flash — brief golden overlay on the board. DEV-18.</summary>
+        public const float BOARD_FLASH_HALF = 0.425f;
+
         private void OnCardPlayedHandler(UnitInstance unit, string owner)
         {
             if (_boardFlashOverlay == null) return;
-            if (_boardFlashCoroutine != null) StopCoroutine(_boardFlashCoroutine);
-            _boardFlashCoroutine = StartCoroutine(BoardFlashRoutine(owner));
-        }
+            TweenHelper.KillSafe(ref _boardFlashTween);
 
-        private IEnumerator BoardFlashRoutine(string owner)
-        {
-            // Player flash: gold. Enemy flash: red-tint.
             Color flashCol = owner == FWTCG.Core.GameRules.OWNER_PLAYER
                 ? new Color(0.78f, 0.67f, 0.43f, 0.18f)
                 : new Color(0.97f, 0.30f, 0.30f, 0.12f);
             Color clear = new Color(flashCol.r, flashCol.g, flashCol.b, 0f);
 
-            const float HALF = 0.425f; // 0.85s total / 2
-            float elapsed = 0f;
-
-            // Fade in
-            while (elapsed < HALF)
-            {
-                elapsed += Time.deltaTime;
-                float t = elapsed / HALF;
-                _boardFlashOverlay.color = Color.Lerp(clear, flashCol, t);
-                yield return null;
-            }
-
-            elapsed = 0f;
-            // Fade out
-            while (elapsed < HALF)
-            {
-                elapsed += Time.deltaTime;
-                float t = elapsed / HALF;
-                _boardFlashOverlay.color = Color.Lerp(flashCol, clear, t);
-                yield return null;
-            }
-
             _boardFlashOverlay.color = clear;
-            _boardFlashCoroutine = null;
+            _boardFlashTween = DOTween.Sequence()
+                .Append(_boardFlashOverlay.DOColor(flashCol, BOARD_FLASH_HALF))
+                .Append(_boardFlashOverlay.DOColor(clear, BOARD_FLASH_HALF))
+                .OnComplete(() => _boardFlashTween = null)
+                .SetTarget(gameObject);
         }
 
         // ── Info strip refresh (DEV-9) ───────────────────────────────────────
@@ -2004,6 +1900,8 @@ namespace FWTCG.UI
 
         // ── Log panel toggle (DEV-10) ────────────────────────────────────────
 
+        public const float LOG_TOGGLE_DURATION = 0.3f;
+
         public void ToggleLog()
         {
             _logCollapsed = !_logCollapsed;
@@ -2011,51 +1909,34 @@ namespace FWTCG.UI
             if (_logToggleText != null)
                 _logToggleText.text = _logCollapsed ? ">" : "<";
 
-            if (_logAnimCoroutine != null) StopCoroutine(_logAnimCoroutine);
-            _logAnimCoroutine = StartCoroutine(AnimateLogToggle(_logCollapsed));
-        }
+            TweenHelper.KillSafe(ref _logAnimTween);
 
-        private IEnumerator AnimateLogToggle(bool collapse)
-        {
-            float duration = 0.3f;
-            float elapsed = 0f;
-
-            // Right offset: -200 (log open) → 0 (log collapsed)
+            bool collapse = _logCollapsed;
             float startOffset = collapse ? -200f : 0f;
             float endOffset = collapse ? 0f : -200f;
 
-            // Reactivate log panel at start of expand animation
             if (!collapse && _logPanel != null)
                 _logPanel.SetActive(true);
 
-            while (elapsed < duration)
+            _logAnimTween = DOVirtual.Float(startOffset, endOffset, LOG_TOGGLE_DURATION, offset =>
             {
-                elapsed += Time.deltaTime;
-                float t = Mathf.SmoothStep(0f, 1f, elapsed / duration);
-                float offset = Mathf.Lerp(startOffset, endOffset, t);
-
-                // Move all areas that have -200 right margin for log
                 if (_boardWrapperOuter != null)
                     _boardWrapperOuter.offsetMax = new Vector2(offset, _boardWrapperOuter.offsetMax.y);
                 if (_playerHandZoneRT != null)
                     _playerHandZoneRT.offsetMax = new Vector2(offset, _playerHandZoneRT.offsetMax.y);
                 if (_enemyHandZoneRT != null)
                     _enemyHandZoneRT.offsetMax = new Vector2(offset, _enemyHandZoneRT.offsetMax.y);
-
-                // Move log toggle button to track the log panel edge
                 if (_logToggleBtn != null)
                 {
                     var btnRT = _logToggleBtn.GetComponent<RectTransform>();
                     if (btnRT != null)
                         btnRT.anchoredPosition = new Vector2(offset - 4f, btnRT.anchoredPosition.y);
                 }
-
-                yield return null;
-            }
-
-            // Final: hide log panel when collapsed
-            if (collapse && _logPanel != null)
-                _logPanel.SetActive(false);
+            }).SetEase(Ease.InOutQuad).OnComplete(() =>
+            {
+                if (collapse && _logPanel != null)
+                    _logPanel.SetActive(false);
+            }).SetTarget(gameObject);
         }
 
         // ── Debug panel toggle (DEV-10) ──────────────────────────────────────
@@ -2139,34 +2020,31 @@ namespace FWTCG.UI
             if (_timerDisplay != null) _timerDisplay.SetActive(true);
             UpdateTimerDisplay();
 
-            if (_timerCoroutine != null) StopCoroutine(_timerCoroutine);
-            _timerCoroutine = StartCoroutine(TimerCountdown());
+            TweenHelper.KillSafe(ref _timerTween);
+            _timerTween = DOVirtual.Float(_timerSeconds, 0f, _timerSeconds, v =>
+            {
+                int newSec = Mathf.CeilToInt(v);
+                if (newSec != _timerSeconds)
+                {
+                    _timerSeconds = newSec;
+                    UpdateTimerDisplay();
+                }
+            }).SetEase(Ease.Linear).OnComplete(() =>
+            {
+                _timerSeconds = 0;
+                UpdateTimerDisplay();
+                _timerTween = null;
+                if (_timerDisplay != null) _timerDisplay.SetActive(false);
+                _onTimerExpired?.Invoke();
+            }).SetTarget(gameObject);
         }
 
         public void ClearTurnTimer()
         {
-            if (_timerCoroutine != null)
-            {
-                StopCoroutine(_timerCoroutine);
-                _timerCoroutine = null;
-            }
+            TweenHelper.KillSafe(ref _timerTween);
+            TweenHelper.KillSafe(ref _timerPulseTween);
             if (_timerDisplay != null) _timerDisplay.SetActive(false);
             _onTimerExpired = null;
-        }
-
-        private IEnumerator TimerCountdown()
-        {
-            while (_timerSeconds > 0)
-            {
-                yield return new WaitForSeconds(1f);
-                _timerSeconds--;
-                UpdateTimerDisplay();
-            }
-
-            // Timer expired
-            _timerCoroutine = null;
-            if (_timerDisplay != null) _timerDisplay.SetActive(false);
-            _onTimerExpired?.Invoke();
         }
 
         private void UpdateTimerDisplay()
@@ -2200,13 +2078,12 @@ namespace FWTCG.UI
             // VFX-7f: pulse animation when <10s
             if (_timerSeconds <= 10 && _timerSeconds > 0 && _timerText != null)
             {
-                if (_timerPulseRoutine == null)
-                    _timerPulseRoutine = StartCoroutine(TimerPulseRoutine());
+                if (_timerPulseTween == null || !_timerPulseTween.IsActive())
+                    _timerPulseTween = CreateTimerPulseTween();
             }
-            else if (_timerPulseRoutine != null)
+            else if (_timerPulseTween != null)
             {
-                StopCoroutine(_timerPulseRoutine);
-                _timerPulseRoutine = null;
+                TweenHelper.KillSafe(ref _timerPulseTween);
                 if (_timerText != null)
                     _timerText.transform.localScale = Vector3.one;
             }
@@ -2215,16 +2092,15 @@ namespace FWTCG.UI
         // VFX-7f: scale pulse for timer text when <10s
         public const float TIMER_PULSE_FREQ = 2f; // Hz
         public const float TIMER_PULSE_SCALE = 1.15f;
-        private IEnumerator TimerPulseRoutine()
+        private Tween CreateTimerPulseTween()
         {
-            var t = _timerText.transform;
-            while (true)
+            var tr = _timerText.transform;
+            return DOVirtual.Float(0f, 1f, 1f, _ =>
             {
                 float s = 1f + (TIMER_PULSE_SCALE - 1f) *
                     ((Mathf.Sin(Time.time * TIMER_PULSE_FREQ * Mathf.PI * 2f) + 1f) * 0.5f);
-                t.localScale = new Vector3(s, s, 1f);
-                yield return null;
-            }
+                tr.localScale = new Vector3(s, s, 1f);
+            }).SetLoops(-1, LoopType.Restart).SetTarget(gameObject);
         }
 
         // ── Combat result display (DEV-10) ───────────────────────────────────
@@ -2235,14 +2111,14 @@ namespace FWTCG.UI
         [SerializeField] private Text _crOutcomeText;
         [SerializeField] private Text _crBfNameText;
 
-        private Coroutine _crHideRoutine;
+        private Sequence _crHideSeq;
 
         public void ShowCombatResult(Systems.CombatSystem.CombatResult result)
         {
             if (_combatResultPanel == null) return;
 
             // Stop any in-progress hide
-            if (_crHideRoutine != null) { StopCoroutine(_crHideRoutine); _crHideRoutine = null; }
+            TweenHelper.KillSafe(ref _crHideSeq);
 
             if (_crBfNameText != null) _crBfNameText.text = $"⚔ {result.BFName}";
 
@@ -2304,29 +2180,21 @@ namespace FWTCG.UI
             if (cg == null) cg = _combatResultPanel.AddComponent<CanvasGroup>();
             cg.alpha = 0f;
             _combatResultPanel.SetActive(true);
-            _crHideRoutine = StartCoroutine(ShowHideCombatResult(cg));
+            _crHideSeq = DOTween.Sequence()
+                .Append(cg.DOFade(1f, CR_FADE_IN))
+                .AppendInterval(CR_STAY)
+                .Append(cg.DOFade(0f, CR_FADE_OUT))
+                .OnComplete(() =>
+                {
+                    if (_combatResultPanel != null) _combatResultPanel.SetActive(false);
+                    _crHideSeq = null;
+                })
+                .SetTarget(gameObject);
         }
 
-        private IEnumerator ShowHideCombatResult(CanvasGroup cg)
-        {
-            const float FADE_IN  = 0.2f;
-            const float STAY     = 3.5f;   // 2.5s + 1s extra
-            const float FADE_OUT = 0.3f;
-
-            // Fade in
-            float t = 0f;
-            while (t < FADE_IN) { t += Time.deltaTime; cg.alpha = Mathf.Clamp01(t / FADE_IN); yield return null; }
-            cg.alpha = 1f;
-
-            yield return new WaitForSeconds(STAY);
-
-            // Fade out
-            t = 0f;
-            while (t < FADE_OUT) { t += Time.deltaTime; cg.alpha = Mathf.Clamp01(1f - t / FADE_OUT); yield return null; }
-            cg.alpha = 0f;
-            if (_combatResultPanel != null) _combatResultPanel.SetActive(false);
-            _crHideRoutine = null;
-        }
+        public const float CR_FADE_IN  = 0.2f;
+        public const float CR_STAY     = 3.5f;
+        public const float CR_FADE_OUT = 0.3f;
 
         // ── Discard/Exile click setup (DEV-10) ──────────────────────────────
 
@@ -2386,37 +2254,23 @@ namespace FWTCG.UI
         }
 
         /// <summary>Scales a score circle 1→1.15→1 over 1.8 s and spawns an expanding ring.</summary>
+        public const float SCORE_PULSE_HALF = 0.9f;
+        public const float SCORE_PULSE_PEAK = 1.15f;
+
         private void TriggerScorePulse(Image circle)
         {
             if (circle == null) return;
-            StartCoroutine(ScorePulseRoutine(circle));
-            SpawnScoreRing(circle);
-        }
-
-        private IEnumerator ScorePulseRoutine(Image circle)
-        {
             var rt = circle.GetComponent<RectTransform>();
-            if (rt == null) yield break;
-
-            Vector3 orig = rt.localScale;
-            Vector3 peak = orig * 1.15f;
-            const float HALF = 0.9f; // 1.8s total / 2
-
-            float elapsed = 0f;
-            while (elapsed < HALF)
+            if (rt != null)
             {
-                rt.localScale = Vector3.Lerp(orig, peak, elapsed / HALF);
-                elapsed += Time.deltaTime;
-                yield return null;
+                DOTween.Kill(rt); // kill any previous pulse on this circle
+                rt.localScale = Vector3.one;
+                rt.DOScale(SCORE_PULSE_PEAK, SCORE_PULSE_HALF)
+                    .SetLoops(2, LoopType.Yoyo)
+                    .OnComplete(() => { if (rt != null) rt.localScale = Vector3.one; })
+                    .SetTarget(rt);
             }
-            elapsed = 0f;
-            while (elapsed < HALF)
-            {
-                rt.localScale = Vector3.Lerp(peak, orig, elapsed / HALF);
-                elapsed += Time.deltaTime;
-                yield return null;
-            }
-            rt.localScale = orig;
+            SpawnScoreRing(circle);
         }
 
         private void SpawnScoreRing(Image circle)
@@ -2442,30 +2296,23 @@ namespace FWTCG.UI
             rt.anchoredPosition = localPos;
             rt.sizeDelta        = circleRT.sizeDelta;
 
-            StartCoroutine(ScoreRingRoutine(ringImg, rt));
-        }
-
-        private IEnumerator ScoreRingRoutine(Image ring, RectTransform rt)
-        {
-            if (ring == null || rt == null) yield break;
-            const float DUR = 2f;
-            float elapsed = 0f;
-            Vector3 initScale = rt.localScale;
-            Color initColor   = ring.color;
-
-            while (elapsed < DUR)
+            if (ringImg != null && rt != null)
             {
-                float t = elapsed / DUR;
-                rt.localScale = initScale * Mathf.Lerp(1f, 2.5f, t);
-                ring.color    = new Color(initColor.r, initColor.g, initColor.b,
-                                          Mathf.Lerp(initColor.a, 0f, t));
-                elapsed += Time.deltaTime;
-                yield return null;
+                var ringGo = ringImg.gameObject;
+                var seq = DOTween.Sequence();
+                seq.Append(rt.DOScale(rt.localScale * 2.5f, SCORE_RING_DURATION).SetEase(Ease.Linear));
+                seq.Join(ringImg.DOFade(0f, SCORE_RING_DURATION).SetEase(Ease.Linear));
+                seq.OnComplete(() => Destroy(ringGo));
+                seq.SetTarget(ringGo);
             }
-            Destroy(ring.gameObject);
         }
+
+        public const float SCORE_RING_DURATION = 2f;
 
         // ── DEV-19: End-turn button persistent pulse ───────────────────────────
+
+        public const float ENDTURN_PULSE_PERIOD = 2f;
+        public const float ENDTURN_PULSE_MIN_ALPHA = 0.60f;
 
         private void UpdateEndTurnPulse(bool active)
         {
@@ -2474,50 +2321,21 @@ namespace FWTCG.UI
 
             if (active)
             {
-                if (_endTurnPulseCoroutine == null && _endTurnButton != null)
-                    _endTurnPulseCoroutine = StartCoroutine(EndTurnPulseRoutine());
+                if ((_endTurnPulseTween == null || !_endTurnPulseTween.IsActive()) && _endTurnButton != null)
+                {
+                    var cg = _endTurnButton.GetComponent<CanvasGroup>();
+                    if (cg == null) cg = _endTurnButton.gameObject.AddComponent<CanvasGroup>();
+                    cg.alpha = 1f;
+                    _endTurnPulseTween = TweenHelper.PulseAlpha(cg, ENDTURN_PULSE_MIN_ALPHA, 1f, ENDTURN_PULSE_PERIOD);
+                }
             }
             else
             {
-                if (_endTurnPulseCoroutine != null)
-                {
-                    StopCoroutine(_endTurnPulseCoroutine);
-                    _endTurnPulseCoroutine = null;
-                }
-                // Restore full opacity
+                TweenHelper.KillSafe(ref _endTurnPulseTween);
                 if (_endTurnButton != null)
                 {
                     var cg = _endTurnButton.GetComponent<CanvasGroup>();
                     if (cg != null) cg.alpha = 1f;
-                }
-            }
-        }
-
-        private IEnumerator EndTurnPulseRoutine()
-        {
-            var cg = _endTurnButton.GetComponent<CanvasGroup>();
-            if (cg == null) cg = _endTurnButton.gameObject.AddComponent<CanvasGroup>();
-
-            const float PERIOD = 2f;
-            const float MIN_ALPHA = 0.60f;
-
-            while (true)
-            {
-                float elapsed = 0f;
-                // Fade dim
-                while (elapsed < PERIOD * 0.5f)
-                {
-                    cg.alpha = Mathf.Lerp(1f, MIN_ALPHA, elapsed / (PERIOD * 0.5f));
-                    elapsed += Time.deltaTime;
-                    yield return null;
-                }
-                elapsed = 0f;
-                // Fade bright
-                while (elapsed < PERIOD * 0.5f)
-                {
-                    cg.alpha = Mathf.Lerp(MIN_ALPHA, 1f, elapsed / (PERIOD * 0.5f));
-                    elapsed += Time.deltaTime;
-                    yield return null;
                 }
             }
         }
@@ -2535,45 +2353,37 @@ namespace FWTCG.UI
         /// Called by GameManager when the React button transitions to active.
         /// Plays a scale-X ribbon reveal animation on the button.
         /// </summary>
+        public const float REACT_REVEAL_DUR = 0.25f;
+        public const float REACT_PULSE_DUR  = 2f;
+        public const float REACT_PULSE_AMP  = 0.06f;
+
         public void PlayReactRibbonReveal(Button reactBtn)
         {
             if (reactBtn == null) return;
-            StartCoroutine(ReactRibbonRevealRoutine(reactBtn));
-        }
-
-        private IEnumerator ReactRibbonRevealRoutine(Button btn)
-        {
-            var rt = btn.GetComponent<RectTransform>();
-            if (rt == null) yield break;
+            var rt = reactBtn.GetComponent<RectTransform>();
+            if (rt == null) return;
 
             Vector3 orig = rt.localScale;
             Vector3 flat = new Vector3(0f, orig.y, orig.z);
-
-            const float REVEAL_DUR = 0.25f;
-            float elapsed = 0f;
-
             rt.localScale = flat;
-            while (elapsed < REVEAL_DUR)
-            {
-                float t = elapsed / REVEAL_DUR;
-                rt.localScale = Vector3.Lerp(flat, orig, t);
-                elapsed += Time.deltaTime;
-                yield return null;
-            }
-            rt.localScale = orig;
 
-            // Brief pulse after reveal (2 s period, 1 cycle)
-            const float PULSE_DUR = 2f;
-            elapsed = 0f;
-            while (elapsed < PULSE_DUR)
+            var seq = DOTween.Sequence();
+            // Scale-X reveal from 0 → orig
+            seq.Append(DOVirtual.Float(0f, 1f, REACT_REVEAL_DUR, v =>
             {
-                float t   = elapsed / PULSE_DUR;
-                float sin = Mathf.Sin(t * Mathf.PI * 2f); // one full cycle
-                rt.localScale = orig * (1f + sin * 0.06f);
-                elapsed += Time.deltaTime;
-                yield return null;
-            }
-            rt.localScale = orig;
+                if (rt != null) rt.localScale = new Vector3(orig.x * v, orig.y, orig.z);
+            }));
+            // Brief 1-cycle scale pulse
+            seq.Append(DOVirtual.Float(0f, 1f, REACT_PULSE_DUR, v =>
+            {
+                if (rt != null)
+                {
+                    float sin = Mathf.Sin(v * Mathf.PI * 2f);
+                    rt.localScale = orig * (1f + sin * REACT_PULSE_AMP);
+                }
+            }));
+            seq.OnComplete(() => { if (rt != null) rt.localScale = orig; });
+            seq.SetTarget(gameObject);
         }
 
         /// <summary>
@@ -2672,7 +2482,7 @@ namespace FWTCG.UI
             Vector2 toPos = targetCV != null
                 ? RectTransformToCanvasLocal(targetCV.GetComponent<RectTransform>())
                 : Vector2.zero;
-            StartCoroutine(EquipFlyRoutine(fromCanvasPos, toPos, onDone));
+            StartEquipFlyTween(fromCanvasPos, toPos, onDone);
         }
 
         /// <summary>
@@ -2681,7 +2491,7 @@ namespace FWTCG.UI
         public void AnimateEquipFlyToBase(Vector2 fromCanvasPos, Vector2 basePos,
                                           System.Action onDone)
         {
-            StartCoroutine(EquipFlyRoutine(fromCanvasPos, basePos, onDone));
+            StartEquipFlyTween(fromCanvasPos, basePos, onDone);
         }
 
         /// <summary>Convert any RectTransform's centre to canvas-root local coords.</summary>
@@ -2696,10 +2506,12 @@ namespace FWTCG.UI
             return local;
         }
 
-        private IEnumerator EquipFlyRoutine(Vector2 from, Vector2 to, System.Action onDone)
+        public const float EQUIP_FLY_DURATION = 0.35f;
+
+        private void StartEquipFlyTween(Vector2 from, Vector2 to, System.Action onDone)
         {
             _pendingEquipOnDone = onDone;
-            if (_rootCanvas == null) { _pendingEquipOnDone = null; onDone?.Invoke(); yield break; }
+            if (_rootCanvas == null) { _pendingEquipOnDone = null; onDone?.Invoke(); return; }
 
             var ghost = new GameObject("EquipFlyGhost");
             ghost.transform.SetParent(_rootCanvas.transform, false);
@@ -2708,24 +2520,21 @@ namespace FWTCG.UI
             ghostRT.anchoredPosition = from;
 
             var img = ghost.AddComponent<Image>();
-            img.color = new Color(0.85f, 0.75f, 0.25f, 0.85f); // gold ghost
+            img.color = new Color(0.85f, 0.75f, 0.25f, 0.85f);
 
             var cg = ghost.AddComponent<CanvasGroup>();
 
-            const float dur = 0.35f;
-            float t = 0f;
-            while (t < dur)
+            var seq = DOTween.Sequence();
+            seq.Append(ghostRT.DOAnchorPos(to, EQUIP_FLY_DURATION).SetEase(Ease.InOutQuad));
+            seq.Join(cg.DOFade(0.7f, EQUIP_FLY_DURATION)); // 1→0.7 slight fade
+            seq.SetUpdate(true); // unscaled time
+            seq.OnComplete(() =>
             {
-                t += Time.unscaledDeltaTime;
-                float p = Mathf.SmoothStep(0f, 1f, Mathf.Clamp01(t / dur));
-                ghostRT.anchoredPosition = Vector2.Lerp(from, to, p);
-                cg.alpha = 1f - p * 0.3f; // slight fade toward end
-                yield return null;
-            }
-
-            Destroy(ghost);
-            _pendingEquipOnDone = null;
-            onDone?.Invoke();
+                Destroy(ghost);
+                _pendingEquipOnDone = null;
+                onDone?.Invoke();
+            });
+            seq.SetTarget(ghost);
         }
     }
 }

@@ -136,21 +136,26 @@
 
 ---
 
-## DOT-6 — GameUI.cs（13个方法）
+## DOT-6 — GameUI.cs（18个方法，含5个额外发现）
 
-- [ ] BannerSlideRoutine → DOAnchorPos — DOT-6
-- [ ] RuneHighlightPulseRoutine → DOColor loop — DOT-6
-- [ ] PhasePulseRoutine → DOFade + DOScale — DOT-6
-- [ ] LogEntryFlashRoutine → DOColor — DOT-6
-- [ ] GameOverEnhancedRoutine → 复杂 Sequence — DOT-6
-- [ ] FadeInPanelRoutine → DOFade — DOT-6
-- [ ] BoardFlashRoutine → DOFade — DOT-6
-- [ ] TimerPulseRoutine → DOScale + DOColor loop — DOT-6
-- [ ] ScorePulseRoutine → DOScale — DOT-6
-- [ ] ScoreRingRoutine → DOFillAmount + DOScale — DOT-6
-- [ ] EndTurnPulseRoutine → DOScale + DOFade loop — DOT-6
-- [ ] ReactRibbonRevealRoutine → DOAnchorPos + DOFade — DOT-6
-- [ ] EquipFlyRoutine → DOAnchorPos — DOT-6
+- [x] BannerSlideRoutine → DOTween Sequence��DOFade in + interval + DOFade out）— DOT-6
+- [x] RuneHighlightPulseRoutine → DOVirtual.Float sine loop — DOT-6
+- [x] PhasePulseRoutine → DOScale Yoyo — DOT-6
+- [x] LogEntryFlashRoutine → DOColor（gold→original）— DOT-6
+- [x] GameOverEnhancedRoutine → Sequence（DOFade + DOScale pop）— DOT-6
+- [x] FadeInPanelRoutine → 删除（无引用）— DOT-6
+- [x] BoardFlashRoutine → Sequence（DOColor in + DOColor out）— DOT-6
+- [x] TimerPulseRoutine → DOVirtual.Float sine loop — DOT-6
+- [x] ScorePulseRoutine → DOScale Yoyo — DOT-6
+- [x] ScoreRingRoutine → Sequence（DOScale + DOFade + Destroy）— DOT-6
+- [x] EndTurnPulseRoutine → TweenHelper.PulseAlpha CG — DOT-6
+- [x] ReactRibbonRevealRoutine → Sequence（DOVirtual scale-X + pulse）— DOT-6
+- [x] EquipFlyRoutine → Sequence（DOAnchorPos + DOFade）— DOT-6
+- [x] FlashLegendText → DOColor SetLoops(8,Yoyo)（额外发现）— DOT-6
+- [x] FadeLegendGlow → static DOFade + Kill(img)（额外发现）— DOT-6
+- [x] AnimateLogToggle → DOVirtual.Float driving offsetMax（额外发现）— DOT-6
+- [x] TimerCountdown → DOVirtual.Float countdown（额外发现）— DOT-6
+- [x] ShowHideCombatResult → Sequence（DOFade in + interval + DOFade out）（额外发现）— DOT-6
 
 ---
 
