@@ -2,6 +2,37 @@
 
 ---
 
+## DOT-2：8个小文件 DOTween 替换 — 2026-04-06
+
+**Status**: ✅ Completed
+**Tests**: 823/823 EditMode 编译通过，772 FWTCG 测试中 769 绿 🟢（3 个预存失败非 DOT-2 引入），新增 35 个测试
+
+### 实现内容
+
+**FloatText.cs**：AnimateRoutine 协程 → DOAnchorPos + DOFade Sequence + OnDestroy KillSafe
+
+**DamagePopup.cs**：AnimateRoutine 协程 → DOAnchorPos + DOFade Sequence + OnDestroy KillSafe
+
+**ButtonCharge.cs**：SweepRoutine 协程 → DOAnchorPosX + SetTarget + OnDestroy KillSafe
+
+**ButtonHoverGlow.cs**：PulseRoutine 协程 → DOTween.To() driving Outline alpha, Yoyo -1 loop
+
+**MouseTrail.cs**：ClickEffectRoutine 协程 → DOScale + DOFade + DOAnchorPos Sequences，每个特效 GO 自动 Destroy
+
+**ToastUI.cs**：ShowToast 内 fade-in/fade-out 循环 → TweenHelper.FadeCanvasGroup + WaitForCompletion()，stay phase 保留协程（支持 _extendCurrent 重置逻辑）
+
+**ReactiveWindowUI.cs**：CountdownRoutine 协程 → DOVirtual.Float 15s→0s，OnUpdate 驱动 fillAmount + text
+
+**CardView.cs（DissolveOrFallbackRoutine）**：AnimMatFX.Create + SetFloat + Callback → TweenMatFX.DissolveSequence
+
+**VFX3DissolveTests.cs**：4 个 AnimMatFX 测试 → 6 个 TweenMatFX 测试（DOFloat/DOColor/DissolveSequence null-safety + callback）
+
+**DOT2ReplacementTests.cs（新建，31 测试）**：覆盖所有 8 个文件的结构验证（旧协程字段已移除、新 tween 字段存在、常量不变、TweenHelper null-safety）
+
+**Technical debt**: AnimMatFX.cs 现已无代码引用，可在 DOT-7 收尾时安全删除
+
+---
+
 ## VFX-8：投射物系统 — 2026-04-05
 
 **Status**: ✅ Completed

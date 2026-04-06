@@ -1,5 +1,6 @@
 using System.Collections;
 using System.Collections.Generic;
+using DG.Tweening;
 using UnityEngine;
 using UnityEngine.UI;
 using FWTCG.Systems;
@@ -27,6 +28,7 @@ namespace FWTCG.UI
         private bool          _showing;
         private string        _currentText;
         private bool          _extendCurrent; // reset stay timer when same message fires
+        private Tween         _fadeTween;
 
         private const float FADE_IN   = 0.15f;
         private const float STAY      = 0.8f;
@@ -58,12 +60,13 @@ namespace FWTCG.UI
             GameEventBus.OnClearBanners        -= ClearAll;
         }
 
-        // ── Public API ────────────────────────────────────────────────────────
+        // ── Public API ──────────────────���─────────────────────────────────────
 
         /// <summary>Immediately stops all toasts and clears the queue (e.g. on turn change).</summary>
         public void ClearAll()
         {
             StopAllCoroutines();
+            TweenHelper.KillSafe(ref _fadeTween);
             _queue.Clear();
             _showing       = false;
             _currentText   = null;
@@ -72,7 +75,7 @@ namespace FWTCG.UI
             if (_toastPanel != null) _toastPanel.SetActive(false);
         }
 
-        // ── Private ───────────────────────────────────────────────────────────
+        // ── Private ───────────────────────────────────��───────────────────────
 
         private void Enqueue(string msg)
         {
@@ -102,14 +105,14 @@ namespace FWTCG.UI
             while (_queue.Count > 0)
             {
                 string msg = _queue.Dequeue();
-                yield return StartCoroutine(ShowToast(msg));
+                yield return ShowToastRoutine(msg);
                 yield return new WaitForSeconds(0.04f);
             }
             _showing     = false;
             _currentText = null;
         }
 
-        private IEnumerator ShowToast(string msg)
+        private IEnumerator ShowToastRoutine(string msg)
         {
             if (_toastPanel == null || _toastText == null) yield break;
 
@@ -118,15 +121,14 @@ namespace FWTCG.UI
             _toastText.text = msg;
             _toastPanel.SetActive(true);
 
-            // Fade in
-            float t = 0f;
-            while (t < FADE_IN)
+            // Fade in via DOTween
+            TweenHelper.KillSafe(ref _fadeTween);
+            if (_cg != null)
             {
-                if (_cg != null) _cg.alpha = t / FADE_IN;
-                t += Time.deltaTime;
-                yield return null;
+                _cg.alpha = 0f;
+                _fadeTween = TweenHelper.FadeCanvasGroup(_cg, 1f, FADE_IN);
+                yield return _fadeTween.WaitForCompletion();
             }
-            if (_cg != null) _cg.alpha = 1f;
 
             // Stay — resets whenever the same message fires again
             float elapsed = 0f;
@@ -141,16 +143,20 @@ namespace FWTCG.UI
                 yield return null;
             }
 
-            // Fade out
-            t = 0f;
-            while (t < FADE_OUT)
+            // Fade out via DOTween
+            TweenHelper.KillSafe(ref _fadeTween);
+            if (_cg != null)
             {
-                if (_cg != null) _cg.alpha = 1f - (t / FADE_OUT);
-                t += Time.deltaTime;
-                yield return null;
+                _fadeTween = TweenHelper.FadeCanvasGroup(_cg, 0f, FADE_OUT);
+                yield return _fadeTween.WaitForCompletion();
             }
-            if (_cg != null) _cg.alpha = 0f;
+
             if (_toastPanel != null) _toastPanel.SetActive(false);
+        }
+
+        private void OnDestroy()
+        {
+            TweenHelper.KillSafe(ref _fadeTween);
         }
     }
 }

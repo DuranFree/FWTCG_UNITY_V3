@@ -1,5 +1,5 @@
-using System.Collections;
 using System.Collections.Generic;
+using DG.Tweening;
 using UnityEngine;
 using UnityEngine.UI;
 
@@ -24,7 +24,7 @@ namespace FWTCG.UI
 
         private Text _text;
         private RectTransform _rt;
-        private Coroutine _routine;
+        private Sequence _seq;
         private bool _inUse;
 
         // ── Public API ────────────────────────────────────────────────────────
@@ -121,43 +121,29 @@ namespace FWTCG.UI
             _text.color = color;
             _text.fontSize = large ? 32 : 24;
 
-            if (_routine != null) StopCoroutine(_routine);
-            _routine = StartCoroutine(AnimateRoutine());
-        }
+            TweenHelper.KillSafe(ref _seq);
 
-        private IEnumerator AnimateRoutine()
-        {
-            Vector2 startPos = _rt.anchoredPosition;
             Vector2 endPos = startPos + new Vector2(0f, 60f);
             const float duration = 0.9f;
-            float elapsed = 0f;
+            const float solidTime = duration * 0.35f;  // 0.315s
+            const float fadeTime  = duration * 0.65f;  // 0.585s
 
-            while (elapsed < duration)
-            {
-                elapsed += Time.deltaTime;
-                float t = elapsed / duration;
-
-                // Float upward with ease-out
-                float easedT = 1f - (1f - t) * (1f - t);
-                _rt.anchoredPosition = Vector2.Lerp(startPos, endPos, easedT);
-
-                // Solid for first 35%, fade out after
-                float alpha = t < 0.35f ? 1f : 1f - (t - 0.35f) / 0.65f;
-                var c = _text.color;
-                c.a = Mathf.Clamp01(alpha);
-                _text.color = c;
-
-                yield return null;
-            }
-
-            ReturnToPool();
+            _seq = DOTween.Sequence().SetTarget(gameObject);
+            _seq.Append(_rt.DOAnchorPos(endPos, duration).SetEase(Ease.OutQuad));
+            _seq.Insert(solidTime, _text.DOFade(0f, fadeTime).SetEase(Ease.Linear));
+            _seq.OnComplete(ReturnToPool);
         }
 
         private void ReturnToPool()
         {
             _inUse = false;
-            _routine = null;
+            _seq = null;
             gameObject.SetActive(false);
+        }
+
+        private void OnDestroy()
+        {
+            TweenHelper.KillSafe(ref _seq);
         }
     }
 }

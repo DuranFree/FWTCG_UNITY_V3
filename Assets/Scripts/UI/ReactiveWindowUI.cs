@@ -1,6 +1,6 @@
-using System.Collections;
 using System.Collections.Generic;
 using System.Threading.Tasks;
+using DG.Tweening;
 using UnityEngine;
 using UnityEngine.UI;
 using FWTCG.Core;
@@ -33,7 +33,7 @@ namespace FWTCG.UI
         private TaskCompletionSource<UnitInstance> _tcs;
         private readonly List<CardView> _cardViews = new List<CardView>();
         private List<UnitInstance> _pendingCards;
-        private Coroutine _countdownRoutine;
+        private Tween _countdownTween;
         private GameState _gs;
 
         private void Awake()
@@ -55,6 +55,7 @@ namespace FWTCG.UI
         private void OnDestroy()
         {
             if (Instance == this) Instance = null;
+            TweenHelper.KillSafe(ref _countdownTween);
             // H-3: Cancel any pending awaiter when the window is destroyed mid-flow
             _tcs?.TrySetCanceled();
         }
@@ -138,9 +139,9 @@ namespace FWTCG.UI
             // Show the panel (no pass button — player must pick)
             if (_panel != null) _panel.SetActive(true);
 
-            // Start countdown
-            if (_countdownRoutine != null) StopCoroutine(_countdownRoutine);
-            _countdownRoutine = StartCoroutine(CountdownRoutine());
+            // Start countdown via DOTween
+            TweenHelper.KillSafe(ref _countdownTween);
+            StartCountdown();
 
             return _tcs.Task;
         }
@@ -166,22 +167,26 @@ namespace FWTCG.UI
 
         // ── Countdown ─────────────────────────────────────────────────────────
 
-        private IEnumerator CountdownRoutine()
+        private void StartCountdown()
         {
-            float remaining = REACTION_TIMEOUT;
-            while (remaining > 0f)
+            if (_countdownFill != null) _countdownFill.fillAmount = 1f;
+            if (_countdownText != null) _countdownText.text = Mathf.CeilToInt(REACTION_TIMEOUT).ToString();
+
+            _countdownTween = DOVirtual.Float(REACTION_TIMEOUT, 0f, REACTION_TIMEOUT, remaining =>
             {
-                remaining -= Time.deltaTime;
                 float t = Mathf.Clamp01(remaining / REACTION_TIMEOUT);
-                if (_countdownFill != null)  _countdownFill.fillAmount = t;
-                if (_countdownText != null)  _countdownText.text = Mathf.CeilToInt(remaining).ToString();
-                yield return null;
-            }
-            // Time's up → auto-skip
-            if (_countdownFill != null) _countdownFill.fillAmount = 0f;
-            if (_countdownText != null) _countdownText.text = "0";
-            _countdownRoutine = null;
-            SkipReaction();
+                if (_countdownFill != null) _countdownFill.fillAmount = t;
+                if (_countdownText != null) _countdownText.text = Mathf.CeilToInt(remaining).ToString();
+            })
+            .SetEase(Ease.Linear)
+            .SetTarget(gameObject)
+            .OnComplete(() =>
+            {
+                if (_countdownFill != null) _countdownFill.fillAmount = 0f;
+                if (_countdownText != null) _countdownText.text = "0";
+                _countdownTween = null;
+                SkipReaction();
+            });
         }
 
         // ── Private callbacks ─────────────────────────────────────────────────
@@ -194,11 +199,7 @@ namespace FWTCG.UI
 
         private void HidePanel()
         {
-            if (_countdownRoutine != null)
-            {
-                StopCoroutine(_countdownRoutine);
-                _countdownRoutine = null;
-            }
+            TweenHelper.KillSafe(ref _countdownTween);
             if (_panel != null) _panel.SetActive(false);
 
             if (_cardContainer != null)

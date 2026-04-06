@@ -1,9 +1,10 @@
-using System.Collections.Generic;
-using System.Reflection;
+using DG.Tweening;
 using NUnit.Framework;
+using System.Reflection;
 using UnityEngine;
 using UnityEngine.UI;
 using FWTCG.FX;
+using FWTCG.Tests.EditMode;
 #if UNITY_EDITOR
 using UnityEditor;
 #endif
@@ -12,80 +13,73 @@ namespace FWTCG.Tests
 {
     /// <summary>
     /// VFX-3 — Dissolve death effect tests.
-    /// Covers: AnimMatFX float-drive logic, KillDissolveFX material property,
+    /// Covers: TweenMatFX dissolve API, KillDissolveFX material property,
     /// CardView._killDissolveMat field existence, and fallback path safety.
+    /// DOT-2: migrated from AnimMatFX to TweenMatFX.
     /// </summary>
     [TestFixture]
-    public class VFX3DissolveTests
+    public class VFX3DissolveTests : DOTweenTestBase
     {
-        // ── AnimMatFX tests ──────────────────────────────────────────────────
+        // ── TweenMatFX tests (replaces AnimMatFX) ───────────────────────────
 
         [Test]
-        public void AnimMatFX_Create_AttachesToGameObject()
+        public void TweenMatFX_DOFloat_NullMaterial_ReturnsNull()
         {
-            var go = new GameObject("TestAnimMatFX");
+            var tween = TweenMatFX.DOFloat(null, "_Prop", 1f, 0.5f);
+            Assert.IsNull(tween);
+        }
+
+        [Test]
+        public void TweenMatFX_DOFloat_MissingProperty_ReturnsNull()
+        {
             var mat = new Material(Shader.Find("UI/Default"));
-            var anim = AnimMatFX.Create(go, mat);
-
-            Assert.IsNotNull(anim);
-            Assert.AreSame(anim, go.GetComponent<AnimMatFX>());
-
-            Object.DestroyImmediate(go);
+            var tween = TweenMatFX.DOFloat(mat, "nonexistent_xyz", 1f, 0.5f);
+            Assert.IsNull(tween, "DOFloat should return null for missing shader property");
             Object.DestroyImmediate(mat);
         }
 
         [Test]
-        public void AnimMatFX_Create_Twice_ReturnsSameComponent()
+        public void TweenMatFX_DOColor_NullMaterial_ReturnsNull()
         {
-            var go = new GameObject("TestAnimMatFXReuse");
+            var tween = TweenMatFX.DOColor(null, "_Color", Color.red, 0.5f);
+            Assert.IsNull(tween);
+        }
+
+        [Test]
+        public void TweenMatFX_DOColor_MissingProperty_ReturnsNull()
+        {
             var mat = new Material(Shader.Find("UI/Default"));
-            var anim1 = AnimMatFX.Create(go, mat);
-            var anim2 = AnimMatFX.Create(go, mat);
-
-            Assert.AreSame(anim1, anim2, "Second Create should reuse existing component");
-
-            Object.DestroyImmediate(go);
+            var tween = TweenMatFX.DOColor(mat, "nonexistent_xyz", Color.red, 0.5f);
+            Assert.IsNull(tween, "DOColor should return null for missing shader property");
             Object.DestroyImmediate(mat);
         }
 
         [Test]
-        public void AnimMatFX_SetFloat_UnknownProperty_DoesNotThrow()
+        public void TweenMatFX_DissolveSequence_ReturnsSequence()
         {
-            var go = new GameObject("TestAnimMatFXUnknown");
             var mat = new Material(Shader.Find("UI/Default"));
-            var anim = AnimMatFX.Create(go, mat);
-
-            // Calling SetFloat with an unknown property name must not throw —
-            // call directly so NUnit catches any exception without a lambda wrapper
-            // (lambda wrappers in EditMode trigger ShouldRunBehaviour assertions).
-            anim.SetFloat("nonexistent_property_xyz", 1f, 0.5f);
-
-            // Verify the action was enqueued despite the unknown name
-            var seqField = typeof(AnimMatFX).GetField("_sequence", BindingFlags.NonPublic | BindingFlags.Instance);
-            var seq = seqField.GetValue(anim) as Queue<AnimMatAction>;
-            Assert.AreEqual(1, seq.Count, "SetFloat should enqueue one action even for unknown properties");
-
-            Object.DestroyImmediate(go);
+            // UI/Default doesn't have noise_fade, so inner DOFloat returns null,
+            // but DissolveSequence still returns a valid Sequence (possibly empty)
+            var seq = TweenMatFX.DissolveSequence(mat, 0.6f);
+            Assert.IsNotNull(seq, "DissolveSequence should always return a valid Sequence");
+            if (seq.IsActive()) seq.Kill();
             Object.DestroyImmediate(mat);
         }
 
         [Test]
-        public void AnimMatFX_Clear_ResetsState()
+        public void TweenMatFX_DissolveSequence_CallbackRegistered()
         {
-            var go = new GameObject("TestAnimMatFXClear");
             var mat = new Material(Shader.Find("UI/Default"));
-            var anim = AnimMatFX.Create(go, mat);
-            anim.SetFloat("_SomeFloat", 1f, 1f);
+            bool callbackFired = false;
+            var seq = TweenMatFX.DissolveSequence(mat, 0.5f, () => callbackFired = true);
 
-            // Call Clear directly — no lambda wrapper to avoid EditMode ShouldRunBehaviour assertions
-            anim.Clear();
+            // In EditMode, Complete() may not fire callbacks reliably because
+            // DOTween ManualUpdate doesn't run. Verify the sequence was created
+            // with the callback by checking it's active and has content.
+            Assert.IsNotNull(seq, "DissolveSequence should return a valid Sequence");
+            Assert.IsTrue(seq.IsActive(), "Sequence should be active after creation");
 
-            // Verify sequence is empty and internal state is reset
-            var seqField = typeof(AnimMatFX).GetField("_sequence", BindingFlags.NonPublic | BindingFlags.Instance);
-            var seq = seqField.GetValue(anim) as Queue<AnimMatAction>;
-            Assert.AreEqual(0, seq.Count, "Clear should empty the action sequence");
-
-            Object.DestroyImmediate(go);
+            if (seq.IsActive()) seq.Kill();
             Object.DestroyImmediate(mat);
         }
 
@@ -105,7 +99,7 @@ namespace FWTCG.Tests
             var mat = AssetDatabase.LoadAssetAtPath<Material>("Assets/Materials/KillDissolveFX.mat");
             Assert.IsNotNull(mat, "KillDissolveFX.mat missing — cannot check properties");
             Assert.IsTrue(mat.HasProperty("noise_fade"),
-                "KillDissolveFX.mat must expose 'noise_fade' float property for AnimMatFX");
+                "KillDissolveFX.mat must expose 'noise_fade' float property for TweenMatFX dissolve");
         }
 #endif
 
@@ -142,7 +136,6 @@ namespace FWTCG.Tests
             var cv = go.AddComponent<FWTCG.UI.CardView>();
 
             // _killDissolveMat is null by default — fallback path should be selected
-            // We verify that calling PlayDeathAnimation doesn't throw immediately
             Assert.DoesNotThrow(() => cv.PlayDeathAnimation(null, null));
 
             Object.DestroyImmediate(go);

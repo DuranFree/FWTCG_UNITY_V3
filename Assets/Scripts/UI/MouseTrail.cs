@@ -1,4 +1,4 @@
-using System.Collections;
+using DG.Tweening;
 using UnityEngine;
 using UnityEngine.UI;
 
@@ -95,66 +95,43 @@ namespace FWTCG.UI
 
             // Spawn click effect
             if (Input.GetMouseButtonDown(0))
-                StartCoroutine(ClickEffectRoutine(mouseCanvas));
+                SpawnClickEffect(mouseCanvas);
         }
 
         // ── Click effect ──────────────────────────────────────────────────────
 
-        private IEnumerator ClickEffectRoutine(Vector2 origin)
+        private void SpawnClickEffect(Vector2 origin)
         {
             const float DURATION = 0.5f;
 
-            // Ripple circle
+            // Ripple circle: scale 1→4 (20→80px), fade 0.8→0
             var rippleGO = CreateDot("ClickRipple", origin, 20f, _fgLayer);
             var rippleImg = rippleGO.GetComponent<Image>();
             var rippleRT  = rippleGO.GetComponent<RectTransform>();
             rippleImg.color = new Color(TRAIL_COLOR.r, TRAIL_COLOR.g, TRAIL_COLOR.b, 0.8f);
 
-            // Six hex flash dots
+            var rippleSeq = DOTween.Sequence().SetTarget(rippleGO);
+            rippleSeq.Append(rippleRT.DOScale(4f, DURATION).SetEase(Ease.OutQuad));
+            rippleSeq.Join(rippleImg.DOFade(0f, DURATION).SetEase(Ease.Linear));
+            rippleSeq.OnComplete(() => Destroy(rippleGO));
+
+            // Six hex flash dots fly outward
             const int HEX = 6;
-            var hexGOs  = new GameObject[HEX];
-            var hexRTs  = new RectTransform[HEX];
-            var hexImgs = new Image[HEX];
             for (int i = 0; i < HEX; i++)
             {
-                hexGOs[i]  = CreateDot($"HexDot_{i}", origin, 5f, _fgLayer);
-                hexRTs[i]  = hexGOs[i].GetComponent<RectTransform>();
-                hexImgs[i] = hexGOs[i].GetComponent<Image>();
-                hexImgs[i].color = new Color(HEX_COLOR.r, HEX_COLOR.g, HEX_COLOR.b, 0.9f);
+                var hexGO  = CreateDot($"HexDot_{i}", origin, 5f, _fgLayer);
+                var hexRT  = hexGO.GetComponent<RectTransform>();
+                var hexImg = hexGO.GetComponent<Image>();
+                hexImg.color = new Color(HEX_COLOR.r, HEX_COLOR.g, HEX_COLOR.b, 0.9f);
+
+                float angle = i * (360f / HEX) * Mathf.Deg2Rad;
+                Vector2 endPos = origin + new Vector2(Mathf.Cos(angle) * 38f, Mathf.Sin(angle) * 38f);
+
+                var hexSeq = DOTween.Sequence().SetTarget(hexGO);
+                hexSeq.Append(hexRT.DOAnchorPos(endPos, DURATION).SetEase(Ease.OutQuad));
+                hexSeq.Join(hexImg.DOFade(0f, DURATION).SetEase(Ease.Linear));
+                hexSeq.OnComplete(() => Destroy(hexGO));
             }
-
-            float elapsed = 0f;
-            while (elapsed < DURATION)
-            {
-                elapsed += Time.deltaTime;
-                float t = Mathf.Clamp01(elapsed / DURATION);
-
-                // Ripple: 20 → 80 px, alpha → 0
-                float rippleSize = Mathf.Lerp(20f, 80f, t);
-                rippleRT.sizeDelta = new Vector2(rippleSize, rippleSize);
-                var rc = rippleImg.color;
-                rc.a = (1f - t) * 0.8f;
-                rippleImg.color = rc;
-
-                // Hex dots fly outward
-                for (int i = 0; i < HEX; i++)
-                {
-                    float angle  = i * (360f / HEX) * Mathf.Deg2Rad;
-                    float radius = Mathf.Lerp(0f, 38f, t);
-                    hexRTs[i].anchoredPosition = origin + new Vector2(
-                        Mathf.Cos(angle) * radius,
-                        Mathf.Sin(angle) * radius
-                    );
-                    var hc = hexImgs[i].color;
-                    hc.a = (1f - t) * 0.9f;
-                    hexImgs[i].color = hc;
-                }
-
-                yield return null;
-            }
-
-            Destroy(rippleGO);
-            for (int i = 0; i < HEX; i++) Destroy(hexGOs[i]);
         }
 
         // ── Helper ────────────────────────────────────────────────────────────

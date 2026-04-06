@@ -75,8 +75,9 @@
 - [ ] 架构摩擦点 A4：反应窗口 static TaskCompletionSource 难以单元测试 — 详见 docs/architecture.md §六 — Phase DEV-32
 - [ ] 架构摩擦点 A5：TurnStateMachine + TurnManager + GameManager 三层状态管理并存 — 详见 docs/architecture.md §六 — Phase DEV-32
 - [ ] 架构摩擦点 A6：入场/死亡触发链通过直接调用编排，非统一事件总线 — 详见 docs/architecture.md §六 — Phase DEV-32
-- [ ] AnimMatFX.AnimMatActionType 枚举目前仅有 None/Float，扩展 Color/Vector/Int 时需更新 Update 分支 — Phase VFX-1（MEDIUM，VFX-3 实现溶解时处理）
-- [ ] AnimMatFX.Create 复用已有组件时调用 Clear()，若第三方代码同帧持有旧引用会导致队列被清空 — VFX-3（MEDIUM，当前路径安全，待 VFX-4 多 FX 并发时关注）
+- ✅ AnimMatFX.AnimMatActionType 枚举限制 — DOT-2 已迁移到 TweenMatFX，AnimMatFX 无引用可删除 — Phase VFX-1→DOT-2
+- ✅ AnimMatFX.Create 复用清空问题 — DOT-2 已迁移到 TweenMatFX，AnimMatFX 无引用可删除 — Phase VFX-3→DOT-2
 - [ ] CardView.DissolveOrFallbackRoutine fallback 路径红色叠加是累积累加而非从原始值插值，低帧率下轻微视觉偏差 — VFX-3（MEDIUM）
 - [ ] VFX-3 dissolve 路径 Phase B ghost 大小固定 0.6x（dissolve 不缩放卡牌，ghost 与实际卡牌尺寸轻微不一致）— VFX-3（LOW）
-- [ ] AudioTool.FadeRoutine 被外部 StopAllCoroutines 打断时 ch.FadeRoutine 引用不清空（当前无此路��，CancelFade 覆盖正常打断）— VFX-5（MEDIUM）
+- [ ] AudioTool.FadeRoutine 被外部 StopAllCoroutines 打断时 ch.FadeRoutine 引用不清空（当前无此路径，CancelFade 覆盖正常打断）— VFX-5（MEDIUM）
+- [ ] AnimMatFX.cs 文件仍存在但已无代码引用 — 待 DOT-7 收尾时确认安全后删除 — DOT-2（LOW）

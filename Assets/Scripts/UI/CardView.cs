@@ -1,5 +1,6 @@
 using System;
 using System.Collections;
+using DG.Tweening;
 using UnityEngine;
 using UnityEngine.UI;
 using UnityEngine.EventSystems;
@@ -1741,7 +1742,7 @@ namespace FWTCG.UI
         }
 
         // ── VFX-3: Dissolve phase (or shrink+fade fallback if material unavailable) ──
-        // Drives AnimMatFX noise_fade 0→1 on a cloned KillDissolveFX material assigned to
+        // Drives TweenMatFX noise_fade 0→1 on a cloned KillDissolveFX material assigned to
         // _cardBg; simultaneously fades all child images/texts. Falls back to the original
         // Phase-A shrink+red-tint (flyTarget path) or shrink+fade (no-flyTarget path).
         private IEnumerator DissolveOrFallbackRoutine(Vector3 startScale)
@@ -1759,11 +1760,10 @@ namespace FWTCG.UI
                 var images = GetComponentsInChildren<Image>(true);
                 foreach (var img in images) img.material = cloned;
 
-                // AnimMatFX drives noise_fade 0 → 1
+                // TweenMatFX drives noise_fade 0 → 1
                 bool dissolveDone = false;
-                var animFX = AnimMatFX.Create(gameObject, cloned);
-                animFX.SetFloat("noise_fade", 1f, dissolveTime);
-                animFX.Callback(0f, () => dissolveDone = true);
+                var dissolveSeq = TweenMatFX.DissolveSequence(cloned, dissolveTime,
+                    () => dissolveDone = true);
 
                 // Texts still fade independently (Text doesn't support ShaderGraph materials)
                 var texts  = GetComponentsInChildren<Text>(true);
@@ -1783,6 +1783,9 @@ namespace FWTCG.UI
                     }
                     yield return null;
                 }
+
+                // Kill dissolve tween if still alive
+                if (dissolveSeq != null && dissolveSeq.IsActive()) dissolveSeq.Kill();
 
                 // Cleanup: restore default material on all images
                 foreach (var img in images)

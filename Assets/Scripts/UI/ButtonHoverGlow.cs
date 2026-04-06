@@ -1,3 +1,4 @@
+using DG.Tweening;
 using UnityEngine;
 using UnityEngine.EventSystems;
 using UnityEngine.UI;
@@ -12,7 +13,7 @@ namespace FWTCG.UI
     public class ButtonHoverGlow : MonoBehaviour, IPointerEnterHandler, IPointerExitHandler
     {
         private Outline _outline;
-        private Coroutine _pulseCoroutine;
+        private Tween _pulseTween;
 
         private void Awake()
         {
@@ -27,14 +28,33 @@ namespace FWTCG.UI
             // VFX-7m: only glow when button is interactable
             var btn = GetComponent<Button>();
             if (btn != null && !btn.interactable) return;
-            if (_pulseCoroutine != null) StopCoroutine(_pulseCoroutine);
-            _pulseCoroutine = StartCoroutine(PulseRoutine());
+            if (_outline == null) return;
+
+            TweenHelper.KillSafe(ref _pulseTween);
+
+            var c = _outline.effectColor;
+            _outline.effectColor = new Color(c.r, c.g, c.b, 0.4f);
+
+            // DOTween.To driving Outline alpha 0.4↔1.0, ~2 Hz (period=0.5s)
+            _pulseTween = DOTween.To(
+                () => _outline.effectColor.a,
+                a =>
+                {
+                    if (_outline != null)
+                    {
+                        var ec = _outline.effectColor;
+                        _outline.effectColor = new Color(ec.r, ec.g, ec.b, a);
+                    }
+                },
+                1f, 0.25f)
+                .SetEase(Ease.InOutSine)
+                .SetLoops(-1, LoopType.Yoyo)
+                .SetTarget(gameObject);
         }
 
         public void OnPointerExit(PointerEventData eventData)
         {
-            if (_pulseCoroutine != null) StopCoroutine(_pulseCoroutine);
-            _pulseCoroutine = null;
+            TweenHelper.KillSafe(ref _pulseTween);
             if (_outline != null)
             {
                 var c = _outline.effectColor;
@@ -42,23 +62,9 @@ namespace FWTCG.UI
             }
         }
 
-        private System.Collections.IEnumerator PulseRoutine()
-        {
-            while (true)
-            {
-                float alpha = (Mathf.Sin(Time.time * 4f) + 1f) * 0.5f; // 0→1→0, ~2 Hz
-                if (_outline != null)
-                {
-                    var c = _outline.effectColor;
-                    _outline.effectColor = new Color(c.r, c.g, c.b, Mathf.Lerp(0.4f, 1f, alpha));
-                }
-                yield return null;
-            }
-        }
-
         private void OnDestroy()
         {
-            if (_pulseCoroutine != null) StopCoroutine(_pulseCoroutine);
+            TweenHelper.KillSafe(ref _pulseTween);
         }
     }
 }

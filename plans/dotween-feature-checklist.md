@@ -32,29 +32,30 @@
 ## DOT-2 — 8个小文件替换
 
 ### FloatText.cs
-- [ ] AnimateRoutine → DOAnchorPos + DOFade Sequence — DOT-2
+- [x] AnimateRoutine → DOAnchorPos + DOFade Sequence — DOT-2
 
 ### DamagePopup.cs
-- [ ] AnimateRoutine → DOAnchorPos + DOFade Sequence — DOT-2
+- [x] AnimateRoutine → DOAnchorPos + DOFade Sequence — DOT-2
 
 ### ButtonCharge.cs
-- [ ] SweepRoutine → DOAnchorPosX — DOT-2
+- [x] SweepRoutine → DOAnchorPosX — DOT-2
 
 ### ButtonHoverGlow.cs
-- [ ] PulseRoutine → DOFade().SetLoops(-1, Yoyo) — DOT-2
+- [x] PulseRoutine → DOTween.To().SetLoops(-1, Yoyo) — DOT-2
 
 ### MouseTrail.cs
-- [ ] ClickEffectRoutine → DOScale + DOFade Sequence — DOT-2
+- [x] ClickEffectRoutine → DOScale + DOFade Sequence — DOT-2
 
 ### ToastUI.cs
-- [ ] ShowToast → DOFade + DOVirtual.DelayedCall — DOT-2
+- [x] ShowToast → DOFade (TweenHelper.FadeCanvasGroup) + coroutine stay — DOT-2
 
 ### ReactiveWindowUI.cs
-- [ ] CountdownRoutine → DOFillAmount 或 DOVirtual.Float — DOT-2
+- [x] CountdownRoutine → DOVirtual.Float — DOT-2
 
 ### AnimMatFX.cs
-- [ ] 全部替换为 TweenMatFX.cs（material.DOFloat + Sequence）— DOT-2
-- [ ] VFX3DissolveTests 适配新 TweenMatFX API — DOT-2
+- [x] CardView.DissolveOrFallbackRoutine 替换为 TweenMatFX.DissolveSequence — DOT-2
+- [x] VFX3DissolveTests 适配新 TweenMatFX API — DOT-2
+- [x] AnimMatFX.cs 现已无引用（可在 DOT-7 收尾时删除）— DOT-2
 
 ---
 
