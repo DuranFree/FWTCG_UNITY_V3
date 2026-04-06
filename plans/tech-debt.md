@@ -79,5 +79,5 @@
 - ✅ AnimMatFX.Create 复用清空问题 — DOT-2 已迁移到 TweenMatFX，AnimMatFX 无引用可删除 — Phase VFX-3→DOT-2
 - [ ] CardView.DissolveOrFallbackRoutine fallback 路径红色叠加是累积累加而非从原始值插值，低帧率下轻微视觉偏差 — VFX-3（MEDIUM）
 - [ ] VFX-3 dissolve 路径 Phase B ghost 大小固定 0.6x（dissolve 不缩放卡牌，ghost 与实际卡牌尺寸轻微不一致）— VFX-3（LOW）
-- [ ] AudioTool.FadeRoutine 被外部 StopAllCoroutines 打断时 ch.FadeRoutine 引用不清空（当前无此路径，CancelFade 覆盖正常打断）— VFX-5（MEDIUM）
+- ✅ AudioTool.FadeRoutine 被外部 StopAllCoroutines 打断时 ch.FadeRoutine 引用不清空 — DOT-3 已解决：改用 DOTween FadeTween，CancelFade 直接 Kill，不受 StopAllCoroutines 影响 — VFX-5→DOT-3
 - [ ] AnimMatFX.cs 文件仍存在但已无代码引用 — 待 DOT-7 收尾时确认安全后删除 — DOT-2（LOW）

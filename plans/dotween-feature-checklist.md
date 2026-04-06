@@ -62,29 +62,29 @@
 ## DOT-3 — 6个中等文件替换
 
 ### EventBanner.cs
-- [ ] AnimateIn → DOAnchorPos + DOFade — DOT-3
-- [ ] AnimateOut → DOFade — DOT-3
-- [ ] ClearFadeRoutine → DOFade — DOT-3
-- [ ] WarningRoutine → DOScale(EaseOutBack) + DOFade — DOT-3
+- [x] AnimateIn → DOAnchorPos + DOFade — DOT-3
+- [x] AnimateOut → DOFade — DOT-3
+- [x] ClearFadeRoutine → DOFade — DOT-3
+- [x] WarningRoutine → DOScale(EaseOutBack) + DOFade — DOT-3
 
 ### AskPromptUI.cs
-- [ ] ShowRoutine → DOScale(Ease.OutBack) — DOT-3
-- [ ] HideRoutine → DOScale(Ease.InBack) — DOT-3
+- [x] ShowRoutine → DOScale(Ease.OutBack) — DOT-3
+- [x] HideRoutine → DOScale(Ease.InBack) — DOT-3
 
 ### SpellDuelUI.cs
-- [ ] BorderPulseLoop → DOFade loop — DOT-3
-- [ ] CountdownRoutine → DOScaleX / DOFillAmount — DOT-3
+- [x] BorderPulseLoop → DOFade loop — DOT-3
+- [x] CountdownRoutine → DOScaleX / DOFillAmount — DOT-3
 
 ### AudioTool.cs
-- [ ] FadeRoutine → DOVirtual.Float 驱动 AudioSource.volume — DOT-3
-- [ ] CrossFadeRoutine → DOVirtual.Float 双通道交叉 — DOT-3
+- [x] FadeRoutine → DOVirtual.Float 驱动 AudioSource.volume — DOT-3
+- [x] CrossFadeRoutine → DOVirtual.Float 双通道交叉 — DOT-3
 
 ### CardHoverScale.cs
-- [ ] Update Lerp → DOScale，拖拽时 Kill + snap — DOT-3
+- [x] Update Lerp → DOScale，拖拽时 Kill + snap — DOT-3
 
 ### PortalVFX.cs
-- [ ] FadeRoutine → DOFade — DOT-3
-- [ ] Update旋转保留（连续旋转不适合DOTween）— 排除
+- [x] FadeRoutine → DOFade — DOT-3
+- [x] Update旋转保留（连续旋转不适合DOTween）— 排除
 
 ---
 

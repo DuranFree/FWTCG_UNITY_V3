@@ -1,6 +1,6 @@
-using System.Collections;
 using System.Collections.Generic;
 using System.Threading.Tasks;
+using DG.Tweening;
 using UnityEngine;
 using UnityEngine.UI;
 using FWTCG.Core;
@@ -11,8 +11,8 @@ namespace FWTCG.UI
     /// DEV-19: General-purpose async prompt dialog.
     ///
     /// Supports two modes:
-    ///   1. Card-pick — shows a scrollable card list; player taps a card → Task<UnitInstance> completes.
-    ///   2. Confirm  — shows title + message + Confirm / Cancel buttons → Task<bool> completes.
+    ///   1. Card-pick — shows a scrollable card list; player taps a card → Task&lt;UnitInstance&gt; completes.
+    ///   2. Confirm  — shows title + message + Confirm / Cancel buttons → Task&lt;bool&gt; completes.
     ///
     /// Usage:
     ///   var chosen = await AskPromptUI.Instance.WaitForCardChoice(cards, "选择一张牌");
@@ -20,6 +20,8 @@ namespace FWTCG.UI
     ///
     /// Panel stays hidden (CanvasGroup alpha=0, blocksRaycasts=false) when not in use.
     /// All references wired by SceneBuilder; accessible via singleton Instance.
+    ///
+    /// DOT-3: ShowRoutine/HideRoutine coroutines → DOScale tweens.
     /// </summary>
     public class AskPromptUI : MonoBehaviour
     {
@@ -45,8 +47,12 @@ namespace FWTCG.UI
         private TaskCompletionSource<UnitInstance> _cardTcs;
         private TaskCompletionSource<bool>         _confirmTcs;
 
-        // ── Animation state ───────────────────────────────────────────────────
-        private Coroutine _animCoroutine;
+        // ── Animation constants ───────────────────────────────────────────────
+        private const float SHOW_DURATION = 0.20f;
+        private const float HIDE_DURATION = 0.12f;
+
+        // ── DOTween state ─────────────────────────────────────────────────────
+        private Tween _animTween;
 
         // ── Unity lifecycle ───────────────────────────────────────────────────
 
@@ -70,6 +76,7 @@ namespace FWTCG.UI
 
         private void OnDestroy()
         {
+            TweenHelper.KillSafe(ref _animTween);
             // Cancel pending tasks on scene teardown so awaiters get TaskCanceledException
             // rather than a sentinel value that looks like a legitimate user decision (H-1 fix)
             _cardTcs?.TrySetCanceled();
@@ -218,11 +225,18 @@ namespace FWTCG.UI
                 _canvasGroup.interactable   = true;
                 _canvasGroup.blocksRaycasts = true;
             }
-            if (_animCoroutine != null) StopCoroutine(_animCoroutine);
-            if (gameObject.activeInHierarchy)
-                _animCoroutine = StartCoroutine(ShowRoutine());
+            TweenHelper.KillSafe(ref _animTween);
+            if (_panel != null && gameObject.activeInHierarchy)
+            {
+                _animTween = _panel.transform.DOScale(1f, SHOW_DURATION)
+                    .SetEase(Ease.OutBack)
+                    .SetUpdate(true)
+                    .SetTarget(_panel);
+            }
             else if (_panel != null)
+            {
                 _panel.transform.localScale = Vector3.one;
+            }
         }
 
         private void Hide()
@@ -233,60 +247,25 @@ namespace FWTCG.UI
                 _canvasGroup.interactable   = false;
                 _canvasGroup.blocksRaycasts = false;
             }
-            if (_animCoroutine != null) StopCoroutine(_animCoroutine);
+            TweenHelper.KillSafe(ref _animTween);
             bool panelVisible = _panel != null && _panel.activeSelf;
             if (gameObject.activeInHierarchy && panelVisible)
             {
-                _animCoroutine = StartCoroutine(HideRoutine());
+                _animTween = _panel.transform.DOScale(0f, HIDE_DURATION)
+                    .SetEase(Ease.InBack)
+                    .SetUpdate(true)
+                    .SetTarget(_panel)
+                    .OnComplete(() =>
+                    {
+                        if (_panel != null) _panel.SetActive(false);
+                        if (_canvasGroup != null) _canvasGroup.alpha = 0f;
+                    });
             }
             else
             {
                 if (_panel != null) _panel.SetActive(false);
                 if (_canvasGroup != null) _canvasGroup.alpha = 0f;
             }
-        }
-
-        // ── Animation coroutines ──────────────────────────────────────────────
-
-        private IEnumerator ShowRoutine()
-        {
-            if (_panel == null) yield break;
-            Transform pt  = _panel.transform;
-            float     dur = 0.20f;
-            float     t   = 0f;
-            while (t < dur)
-            {
-                float p = t / dur;
-                // Ease-out with a slight overshoot: 0 → 1.08 → 1.0
-                float s = p < 0.75f
-                    ? Mathf.Lerp(0f,    1.08f, p / 0.75f)
-                    : Mathf.Lerp(1.08f, 1.00f, (p - 0.75f) / 0.25f);
-                pt.localScale = Vector3.one * s;
-                t += Time.unscaledDeltaTime;
-                yield return null;
-            }
-            pt.localScale  = Vector3.one;
-            _animCoroutine = null;
-        }
-
-        private IEnumerator HideRoutine()
-        {
-            if (_panel == null) yield break;
-            Transform pt  = _panel.transform;
-            float     dur = 0.12f;
-            float     t   = 0f;
-            while (t < dur)
-            {
-                float p = t / dur;
-                float s = Mathf.Lerp(1f, 0f, p * p); // ease-in shrink
-                pt.localScale = Vector3.one * s;
-                t += Time.unscaledDeltaTime;
-                yield return null;
-            }
-            pt.localScale = Vector3.zero;
-            if (_panel != null) _panel.SetActive(false);
-            if (_canvasGroup != null) _canvasGroup.alpha = 0f;
-            _animCoroutine = null;
         }
 
         private void ClearCardContainer()

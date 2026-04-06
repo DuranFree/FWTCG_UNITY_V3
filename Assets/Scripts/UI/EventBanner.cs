@@ -1,6 +1,7 @@
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
+using DG.Tweening;
 using UnityEngine;
 using UnityEngine.UI;
 
@@ -15,6 +16,8 @@ namespace FWTCG.UI
     ///   - Queue cap MAX_QUEUE: extras dropped
     ///   - ClearAll: subscribed to GameEventBus.OnClearBanners (fires on turn start)
     ///   - Animation speed: slide-in 0.1s / slide-out 0.12s (halved from original 0.2/0.25s)
+    ///
+    /// DOT-3: AnimateIn/AnimateOut/ClearFade/WarningScalePop → DOTween.
     /// </summary>
     public class EventBanner : MonoBehaviour
     {
@@ -27,9 +30,12 @@ namespace FWTCG.UI
         private readonly Queue<(string text, float duration, bool large)> _queue
             = new Queue<(string, float, bool)>();
         private Coroutine   _showRoutine;
-        private Coroutine   _clearFadeRoutine;
         private CanvasGroup _cg;
         private float       _drainDelay;   // one-shot delay before next DrainQueue starts
+
+        // ── DOTween state ─────────────────────────────────────────────────────
+        private Tween _animTween;       // current slide-in/out or scale-pop tween
+        private Tween _clearFadeTween;  // quick clear-all fade
 
         private const int   MAX_QUEUE  = 4;
         private const float ANIM_IN    = 0.1f;   // was 0.2s
@@ -71,6 +77,12 @@ namespace FWTCG.UI
             GameEventBus.OnSetBannerDelay -= SetDrainDelay;
         }
 
+        private void OnDestroy()
+        {
+            TweenHelper.KillSafe(ref _animTween);
+            TweenHelper.KillSafe(ref _clearFadeTween);
+        }
+
         private void SetDrainDelay(float seconds) => _drainDelay = seconds;
 
         // ── Public API ────────────────────────────────────────────────────────
@@ -79,10 +91,9 @@ namespace FWTCG.UI
         public void EnqueueBanner(string text, float duration, bool large)
         {
             // If a clear-fade is in progress, cancel it and reset alpha before showing new content
-            if (_clearFadeRoutine != null)
+            if (_clearFadeTween != null)
             {
-                StopCoroutine(_clearFadeRoutine);
-                _clearFadeRoutine = null;
+                TweenHelper.KillSafe(ref _clearFadeTween);
                 if (_cg != null) _cg.alpha = 0f;
             }
 
@@ -103,27 +114,14 @@ namespace FWTCG.UI
                 _showRoutine = null;
             }
             _queue.Clear();
+            TweenHelper.KillSafe(ref _animTween);
 
             if (_cg == null || _cg.alpha <= 0f)
                 return;
 
             // Quick visual fade-out instead of instant cut
-            if (_clearFadeRoutine != null) StopCoroutine(_clearFadeRoutine);
-            _clearFadeRoutine = StartCoroutine(ClearFadeRoutine());
-        }
-
-        private IEnumerator ClearFadeRoutine()
-        {
-            float start   = _cg.alpha;
-            float elapsed = 0f;
-            while (elapsed < CLEAR_FADE)
-            {
-                elapsed  += Time.deltaTime;
-                _cg.alpha = Mathf.Lerp(start, 0f, elapsed / CLEAR_FADE);
-                yield return null;
-            }
-            _cg.alpha         = 0f;
-            _clearFadeRoutine = null;
+            TweenHelper.KillSafe(ref _clearFadeTween);
+            _clearFadeTween = TweenHelper.FadeCanvasGroup(_cg, 0f, CLEAR_FADE);
         }
 
         // ── Animation ─────────────────────────────────────────────────────────
@@ -195,48 +193,38 @@ namespace FWTCG.UI
             // Slide in from above (+30px → 0) while fading in
             Vector2 origin = _bannerRT != null ? _bannerRT.anchoredPosition : Vector2.zero;
             Vector2 above  = origin + new Vector2(0f, 30f);
-            yield return StartCoroutine(AnimateIn(above, origin));
+
+            TweenHelper.KillSafe(ref _animTween);
+            _animTween = CreateAnimateIn(above, origin);
+            yield return _animTween.WaitForCompletion();
 
             // Stay
             _cg.alpha = 1f;
-            float elapsed = 0f;
-            while (elapsed < duration)
-            {
-                elapsed += Time.deltaTime;
-                yield return null;
-            }
+            yield return new WaitForSeconds(duration);
 
             // Fade out
-            yield return StartCoroutine(AnimateOut());
+            TweenHelper.KillSafe(ref _animTween);
+            _animTween = CreateAnimateOut();
+            yield return _animTween.WaitForCompletion();
         }
 
-        private IEnumerator AnimateIn(Vector2 fromPos, Vector2 toPos)
+        /// <summary>Create slide-in tween: position from above + fade alpha 0→1.</summary>
+        private Tween CreateAnimateIn(Vector2 fromPos, Vector2 toPos)
         {
-            float elapsed = 0f;
             if (_bannerRT != null) _bannerRT.anchoredPosition = fromPos;
-            while (elapsed < ANIM_IN)
-            {
-                elapsed += Time.deltaTime;
-                float t = Mathf.Clamp01(elapsed / ANIM_IN);
-                _cg.alpha = t;
-                if (_bannerRT != null)
-                    _bannerRT.anchoredPosition = Vector2.Lerp(fromPos, toPos, t * t * (3f - 2f * t));
-                yield return null;
-            }
-            if (_bannerRT != null) _bannerRT.anchoredPosition = toPos;
-            _cg.alpha = 1f;
+            _cg.alpha = 0f;
+
+            var seq = DOTween.Sequence().SetTarget(gameObject);
+            if (_bannerRT != null)
+                seq.Append(_bannerRT.DOAnchorPos(toPos, ANIM_IN).SetEase(Ease.InOutCubic));
+            seq.Join(_cg.DOFade(1f, ANIM_IN));
+            return seq;
         }
 
-        private IEnumerator AnimateOut()
+        /// <summary>Create fade-out tween: alpha 1→0.</summary>
+        private Tween CreateAnimateOut()
         {
-            float elapsed = 0f;
-            while (elapsed < ANIM_OUT)
-            {
-                elapsed   += Time.deltaTime;
-                _cg.alpha  = Mathf.Clamp01(1f - elapsed / ANIM_OUT);
-                yield return null;
-            }
-            _cg.alpha = 0f;
+            return TweenHelper.FadeCanvasGroup(_cg, 0f, ANIM_OUT);
         }
 
         // ── VFX-7h: Warning banner (red bg, white text, EaseOutBack scale pop) ──
@@ -250,6 +238,7 @@ namespace FWTCG.UI
         {
             if (string.IsNullOrEmpty(text)) return;
             if (_showRoutine != null) { StopCoroutine(_showRoutine); _showRoutine = null; }
+            TweenHelper.KillSafe(ref _animTween);
             _queue.Clear();
             _showRoutine = StartCoroutine(WarningRoutine(text, duration));
         }
@@ -274,17 +263,15 @@ namespace FWTCG.UI
                 _bannerRT.sizeDelta = new Vector2(w, h);
             }
 
-            // Scale pop: 0 → 1 with EaseOutBack
+            // Scale pop: 0 → 1 with DOTween OutBack
             _cg.alpha = 1f;
-            float elapsed = 0f;
-            while (elapsed < WARN_SCALE_IN)
-            {
-                elapsed += Time.deltaTime;
-                float t = Mathf.Clamp01(elapsed / WARN_SCALE_IN);
-                float s = EaseOutBack(t);
-                transform.localScale = new Vector3(s, s, 1f);
-                yield return null;
-            }
+            transform.localScale = Vector3.zero;
+            TweenHelper.KillSafe(ref _animTween);
+            _animTween = transform.DOScale(1f, WARN_SCALE_IN)
+                .SetEase(Ease.OutBack)
+                .SetTarget(gameObject);
+            yield return _animTween.WaitForCompletion();
+
             transform.localScale = Vector3.one;
 
             // Audio trigger point
@@ -295,15 +282,10 @@ namespace FWTCG.UI
             yield return new WaitForSeconds(duration);
 
             // Fade out
-            yield return StartCoroutine(AnimateOut());
+            TweenHelper.KillSafe(ref _animTween);
+            _animTween = CreateAnimateOut();
+            yield return _animTween.WaitForCompletion();
             _showRoutine = null;
-        }
-
-        private static float EaseOutBack(float t)
-        {
-            const float c1 = 1.70158f;
-            const float c3 = c1 + 1f;
-            return 1f + c3 * Mathf.Pow(t - 1f, 3f) + c1 * Mathf.Pow(t - 1f, 2f);
         }
     }
 }

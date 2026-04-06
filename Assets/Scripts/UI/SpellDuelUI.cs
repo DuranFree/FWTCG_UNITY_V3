@@ -1,4 +1,4 @@
-using System.Collections;
+using DG.Tweening;
 using UnityEngine;
 using UnityEngine.UI;
 
@@ -17,6 +17,8 @@ namespace FWTCG.UI
     ///   - After 30s: auto-calls ReactiveWindowUI.Instance.AutoSkipReaction()
     ///
     /// All created objects are Destroyed on HideDuelOverlay.
+    ///
+    /// DOT-3: BorderPulseLoop/CountdownRoutine coroutines → DOTween.
     /// </summary>
     public class SpellDuelUI : MonoBehaviour
     {
@@ -33,8 +35,9 @@ namespace FWTCG.UI
         private Text       _countdownText;
         private Image      _countdownBar;
 
-        private Coroutine _borderPulse;
-        private Coroutine _countdownRoutine;
+        // ── DOTween state ─────────────────────────────────────────────────────
+        private Tween _borderPulseTween;
+        private Tween _countdownTween;
 
         // ── Lifecycle ─────────────────────────────────────────────────────────
 
@@ -54,6 +57,7 @@ namespace FWTCG.UI
 
         private void OnDestroy()
         {
+            KillTweens();
             if (Instance == this) Instance = null;
             GameEventBus.OnDuelBanner   -= ShowDuelOverlay;
             GameEventBus.OnClearBanners -= HideDuelOverlay;
@@ -72,8 +76,8 @@ namespace FWTCG.UI
             if (root == null) return;
 
             BuildOverlay(root);
-            _borderPulse     = StartCoroutine(BorderPulseLoop());
-            _countdownRoutine = StartCoroutine(CountdownRoutine());
+            StartBorderPulse();
+            StartCountdown();
         }
 
         public void HideDuelOverlay()
@@ -81,7 +85,7 @@ namespace FWTCG.UI
             if (!this) return; // guard: destroyed object may still hold a delegate reference
             if (!IsShowing) return;
             IsShowing = false;
-            StopRoutines();
+            KillTweens();
             DestroyOverlay();
         }
 
@@ -213,54 +217,55 @@ namespace FWTCG.UI
             _countdownBar.raycastTarget = false;
         }
 
-        // ── Coroutines ────────────────────────────────────────────────────────
+        // ── DOTween animations ────────────────────────────────────────────────
 
-        private IEnumerator BorderPulseLoop()
+        private void StartBorderPulse()
         {
-            const float PERIOD = 1.5f;
-            float t = 0f;
-            while (true)
+            // Pulse alpha 0.4↔0.9 with period 1.5s (sine wave), unscaled time
+            _borderPulseTween = DOVirtual.Float(0.4f, 0.9f, 0.75f, alpha =>
             {
-                t += Time.unscaledDeltaTime / PERIOD;
-                float alpha = Mathf.Lerp(0.4f, 0.9f, (Mathf.Sin(t * Mathf.PI * 2f) + 1f) * 0.5f);
-                if (_borders != null)
-                    for (int i = 0; i < _borders.Length; i++)
-                        if (_borders[i] != null)
-                        {
-                            var c = _borders[i].color; c.a = alpha;
-                            _borders[i].color = c;
-                        }
-                yield return null;
-            }
+                if (_borders == null) return;
+                for (int i = 0; i < _borders.Length; i++)
+                    if (_borders[i] != null)
+                    {
+                        var c = _borders[i].color; c.a = alpha;
+                        _borders[i].color = c;
+                    }
+            })
+            .SetEase(Ease.InOutSine)
+            .SetLoops(-1, LoopType.Yoyo)
+            .SetUpdate(true)
+            .SetTarget(gameObject);
         }
 
-        private IEnumerator CountdownRoutine()
+        private void StartCountdown()
         {
-            float remaining = DUEL_TIMEOUT;
-            while (remaining > 0f)
+            // Count down from DUEL_TIMEOUT to 0 over DUEL_TIMEOUT seconds, unscaled time
+            _countdownTween = DOVirtual.Float(DUEL_TIMEOUT, 0f, DUEL_TIMEOUT, remaining =>
             {
-                remaining -= Time.unscaledDeltaTime;
                 float frac = Mathf.Clamp01(remaining / DUEL_TIMEOUT);
                 if (_countdownText != null)
                     _countdownText.text = Mathf.CeilToInt(Mathf.Max(0f, remaining)).ToString();
                 if (_countdownBar != null)
                     _countdownBar.rectTransform.localScale = new Vector3(frac, 1f, 1f);
-                yield return null;
-            }
-            _countdownRoutine = null;
-
-            // Auto-skip the reaction window
-            HideDuelOverlay();
-            ReactiveWindowUI.Instance?.AutoSkipReaction();
+            })
+            .SetEase(Ease.Linear)
+            .SetUpdate(true)
+            .SetTarget(gameObject)
+            .OnComplete(() =>
+            {
+                _countdownTween = null;
+                HideDuelOverlay();
+                ReactiveWindowUI.Instance?.AutoSkipReaction();
+            });
         }
 
         // ── Helpers ───────────────────────────────────────────────────────────
 
-        private void StopRoutines()
+        private void KillTweens()
         {
-            if (!this) return; // guard: StopCoroutine throws on destroyed MonoBehaviour
-            if (_borderPulse     != null) { StopCoroutine(_borderPulse);     _borderPulse     = null; }
-            if (_countdownRoutine != null) { StopCoroutine(_countdownRoutine); _countdownRoutine = null; }
+            TweenHelper.KillSafe(ref _borderPulseTween);
+            TweenHelper.KillSafe(ref _countdownTween);
         }
 
         private void DestroyOverlay()

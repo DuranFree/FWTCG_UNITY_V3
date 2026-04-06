@@ -1,4 +1,4 @@
-using System.Collections;
+using DG.Tweening;
 using UnityEngine;
 using UnityEngine.UI;
 
@@ -15,6 +15,8 @@ namespace FWTCG.UI
     ///   Ring 1 (mid):    42px radius, CCW, 2s/rev, cyan rgba(0,200,180)
     ///   Ring 2 (inner):  24px radius, CW, 1.3s/rev, white rgba(220,240,255)
     /// Plus 8 orbital particles at Ring 0 radius, counter-rotating.
+    ///
+    /// DOT-3: FadeRoutine coroutine → DOFade tween.
     /// </summary>
     public class PortalVFX : MonoBehaviour
     {
@@ -43,7 +45,9 @@ namespace FWTCG.UI
         private Image[] _orbitals;
         private RectTransform[] _orbitalRTs;
         private bool _visible;
-        private Coroutine _fadeCoroutine;
+
+        // ── DOTween state ────────────────────────────────────────────────────
+        private Tween _fadeTween;
 
         // ── Public API ───────────────────────────────────────────────────────
 
@@ -55,8 +59,13 @@ namespace FWTCG.UI
             _vfxRoot.SetActive(true);
             _visible = true;
 
-            if (_fadeCoroutine != null) StopCoroutine(_fadeCoroutine);
-            _fadeCoroutine = StartCoroutine(FadeRoutine(0f, 1f, FADE_IN_DURATION));
+            TweenHelper.KillSafe(ref _fadeTween);
+            if (_vfxCg != null)
+            {
+                _vfxCg.alpha = 0f;
+                _fadeTween = _vfxCg.DOFade(1f, FADE_IN_DURATION)
+                    .SetTarget(gameObject);
+            }
         }
 
         /// <summary>Move portal to new canvas-local position (called from OnDrag).</summary>
@@ -71,8 +80,17 @@ namespace FWTCG.UI
         {
             if (!_visible) return;
             _visible = false;
-            if (_fadeCoroutine != null) StopCoroutine(_fadeCoroutine);
-            _fadeCoroutine = StartCoroutine(FadeRoutine(1f, 0f, FADE_OUT_DURATION, hideOnDone: true));
+            TweenHelper.KillSafe(ref _fadeTween);
+            if (_vfxCg != null)
+            {
+                _fadeTween = _vfxCg.DOFade(0f, FADE_OUT_DURATION)
+                    .SetTarget(gameObject)
+                    .OnComplete(() =>
+                    {
+                        if (_vfxRoot != null) _vfxRoot.SetActive(false);
+                        _fadeTween = null;
+                    });
+            }
         }
 
         // ── Unity update ─────────────────────────────────────────────────────
@@ -166,14 +184,8 @@ namespace FWTCG.UI
                 _rings[i] = ring.GetComponent<Image>();
                 _rings[i].color = colors[i];
 
-                // Create ring outline using an inner mask cut-out approach:
-                // Outer Image at full size, inner solid Image on top (slightly smaller) to cut hole.
-                // Simpler: just use an Image with a RectMask2D trick.
-                // Easiest: outer Image + inner same-color background crop.
-                // We'll just draw the outer disc and cut with a child disc.
                 _rings[i].raycastTarget = false;
 
-                // Use a filled translucent disc with decreasing alpha for a ring-like look
                 float alpha = colors[i].a * (1f - (float)i / RING_COUNT * 0.3f);
                 _rings[i].color = new Color(colors[i].r, colors[i].g, colors[i].b, alpha * 0.4f);
                 _rings[i].raycastTarget = false;
@@ -203,24 +215,9 @@ namespace FWTCG.UI
             _vfxRoot.SetActive(false);
         }
 
-        private IEnumerator FadeRoutine(float from, float to, float duration, bool hideOnDone = false)
-        {
-            float t = 0f;
-            while (t < duration)
-            {
-                if (_vfxCg != null)
-                    _vfxCg.alpha = Mathf.Lerp(from, to, t / duration);
-                t += Time.deltaTime;
-                yield return null;
-            }
-            if (_vfxCg != null) _vfxCg.alpha = to;
-            if (hideOnDone && _vfxRoot != null)
-                _vfxRoot.SetActive(false);
-            _fadeCoroutine = null;
-        }
-
         private void OnDestroy()
         {
+            TweenHelper.KillSafe(ref _fadeTween);
             if (_vfxRoot != null)
                 Destroy(_vfxRoot);
         }

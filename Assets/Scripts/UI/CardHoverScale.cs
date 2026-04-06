@@ -1,3 +1,4 @@
+using DG.Tweening;
 using UnityEngine;
 using UnityEngine.EventSystems;
 using UnityEngine.UI;
@@ -9,19 +10,21 @@ namespace FWTCG.UI
     /// returns to normal on mouse exit.
     /// On hover enter, enables a nested Canvas with overrideSorting so the element
     /// renders above ALL other Canvas children (including PlayerHandZone).
+    ///
+    /// DOT-3: Update Lerp → DOScale tween; drag snap kills tween instantly.
     /// </summary>
     public class CardHoverScale : MonoBehaviour, IPointerEnterHandler, IPointerExitHandler
     {
-        private const float HOVER_SCALE = 1.08f;
-        private const float LERP_SPEED  = 10f;
-        private const int   HOVER_SORT  = 100; // above hand zone (depth ~163)
-
-        private Vector3 _targetScale = Vector3.one;
-        private bool    _animating;
+        private const float HOVER_SCALE    = 1.08f;
+        private const float TWEEN_DURATION = 0.1f;
+        private const int   HOVER_SORT     = 100; // above hand zone (depth ~163)
 
         // Nested Canvas for sorting override — added at runtime if missing
         private Canvas           _overrideCanvas;
         private GraphicRaycaster _raycaster;
+
+        // ── DOTween state ─────────────────────────────────────────────────────
+        private Tween _scaleTween;
 
         private void Awake()
         {
@@ -43,8 +46,10 @@ namespace FWTCG.UI
                 _overrideCanvas.overrideSorting = true;
                 _overrideCanvas.sortingOrder    = HOVER_SORT;
             }
-            _targetScale = new Vector3(HOVER_SCALE, HOVER_SCALE, 1f);
-            _animating   = true;
+            TweenHelper.KillSafe(ref _scaleTween);
+            _scaleTween = transform.DOScale(HOVER_SCALE, TWEEN_DURATION)
+                .SetEase(Ease.OutCubic)
+                .SetTarget(gameObject);
         }
 
         public void OnPointerExit(PointerEventData eventData)
@@ -53,35 +58,30 @@ namespace FWTCG.UI
             if (Input.GetMouseButton(0)) return;
             if (_overrideCanvas != null)
                 _overrideCanvas.overrideSorting = false;
-            _targetScale = Vector3.one;
-            _animating   = true;
+            TweenHelper.KillSafe(ref _scaleTween);
+            _scaleTween = transform.DOScale(1f, TWEEN_DURATION)
+                .SetEase(Ease.OutCubic)
+                .SetTarget(gameObject);
         }
 
         private void Update()
         {
-            // During drag or left-button hold, all cards must be at normal scale
+            // During drag or left-button hold, all cards must be at normal scale instantly
             if (CardDragHandler.BlockPointerEvents || Input.GetMouseButton(0))
             {
                 if (transform.localScale != Vector3.one)
                 {
+                    TweenHelper.KillSafe(ref _scaleTween);
                     transform.localScale = Vector3.one;
                     if (_overrideCanvas != null) _overrideCanvas.overrideSorting = false;
                 }
-                _targetScale = Vector3.one;
-                _animating   = false;
                 return;
             }
+        }
 
-            if (!_animating) return;
-
-            transform.localScale = Vector3.Lerp(transform.localScale, _targetScale,
-                Time.deltaTime * LERP_SPEED);
-
-            if (Vector3.Distance(transform.localScale, _targetScale) < 0.001f)
-            {
-                transform.localScale = _targetScale;
-                _animating = false;
-            }
+        private void OnDestroy()
+        {
+            TweenHelper.KillSafe(ref _scaleTween);
         }
     }
 }

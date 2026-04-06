@@ -1,5 +1,5 @@
-using System.Collections;
 using System.Collections.Generic;
+using DG.Tweening;
 using UnityEngine;
 
 namespace FWTCG.Audio
@@ -7,6 +7,8 @@ namespace FWTCG.Audio
     /// <summary>
     /// Channel-based audio system. Each channel has its own AudioSource,
     /// priority level, and independent volume control.
+    ///
+    /// DOT-3: FadeRoutine/CrossFadeRoutine coroutines → DOVirtual.Float tweens.
     /// </summary>
     public class AudioTool : MonoBehaviour
     {
@@ -69,7 +71,7 @@ namespace FWTCG.Audio
             public int         DefaultPriority;
             public int         CurrentPriority;
             public float       BaseVolume;     // per-channel volume (0-1)
-            public Coroutine   FadeRoutine;
+            public Tween       FadeTween;      // DOT-3: was Coroutine FadeRoutine
         }
 
         // ── State ────────────────────────────────────────────────────────────
@@ -88,6 +90,9 @@ namespace FWTCG.Audio
 
         private void OnDestroy()
         {
+            // Kill all channel fade tweens
+            foreach (var ch in _channels.Values)
+                CancelFade(ch);
             if (Instance == this) Instance = null;
         }
 
@@ -170,7 +175,7 @@ namespace FWTCG.Audio
         {
             if (!_channels.TryGetValue(channelName, out var ch)) return;
             CancelFade(ch);
-            ch.FadeRoutine = StartCoroutine(FadeRoutine(ch, 0f, ch.BaseVolume, duration, false));
+            StartFade(ch, 0f, ch.BaseVolume, duration, false);
         }
 
         /// <summary>Fade channel volume from current to 0 over duration, then stop.</summary>
@@ -178,7 +183,7 @@ namespace FWTCG.Audio
         {
             if (!_channels.TryGetValue(channelName, out var ch)) return;
             CancelFade(ch);
-            ch.FadeRoutine = StartCoroutine(FadeRoutine(ch, ch.Source.volume, 0f, duration, true));
+            StartFade(ch, ch.Source.volume, 0f, duration, true);
         }
 
         /// <summary>Cross-fade: fade out current clip, swap to new clip, fade in.</summary>
@@ -187,7 +192,7 @@ namespace FWTCG.Audio
             if (newClip == null) return;
             if (!_channels.TryGetValue(channelName, out var ch)) return;
             CancelFade(ch);
-            ch.FadeRoutine = StartCoroutine(CrossFadeRoutine(ch, newClip, duration));
+            StartCrossFade(ch, newClip, duration);
         }
 
         // ── Volume control ───────────────────────────────────────────────────
@@ -239,10 +244,10 @@ namespace FWTCG.Audio
 
         private void CancelFade(AudioChannel ch)
         {
-            if (ch.FadeRoutine != null)
+            if (ch.FadeTween != null)
             {
-                StopCoroutine(ch.FadeRoutine);
-                ch.FadeRoutine = null;
+                if (ch.FadeTween.IsActive()) ch.FadeTween.Kill();
+                ch.FadeTween = null;
             }
         }
 
@@ -251,73 +256,74 @@ namespace FWTCG.Audio
             foreach (var ch in _channels.Values)
             {
                 // Only update if not mid-fade
-                if (ch.FadeRoutine == null)
+                if (ch.FadeTween == null)
                     ch.Source.volume = ch.BaseVolume * _masterVolume;
             }
         }
 
-        private IEnumerator FadeRoutine(AudioChannel ch, float from, float to, float duration, bool stopAfter)
+        private void StartFade(AudioChannel ch, float from, float to, float duration, bool stopAfter)
         {
             if (duration <= 0f)
             {
                 ch.Source.volume = to * _masterVolume;
                 if (stopAfter) { ch.Source.Stop(); ch.CurrentPriority = 0; }
-                ch.FadeRoutine = null;
-                yield break;
+                ch.FadeTween = null;
+                return;
             }
 
-            float elapsed = 0f;
-            while (elapsed < duration)
+            ch.FadeTween = DOVirtual.Float(from, to, duration, vol =>
             {
-                elapsed += Time.unscaledDeltaTime;
-                float t = Mathf.Clamp01(elapsed / duration);
-                float vol = Mathf.Lerp(from, to, t);
                 ch.Source.volume = vol * _masterVolume;
-                yield return null;
-            }
-            ch.Source.volume = to * _masterVolume;
-
-            if (stopAfter)
+            })
+            .SetEase(Ease.Linear)
+            .SetUpdate(true)
+            .SetTarget(gameObject)
+            .OnComplete(() =>
             {
-                ch.Source.Stop();
-                ch.CurrentPriority = 0;
-            }
-            ch.FadeRoutine = null;
+                ch.Source.volume = to * _masterVolume;
+                if (stopAfter) { ch.Source.Stop(); ch.CurrentPriority = 0; }
+                ch.FadeTween = null;
+            });
         }
 
-        private IEnumerator CrossFadeRoutine(AudioChannel ch, AudioClip newClip, float duration)
+        private void StartCrossFade(AudioChannel ch, AudioClip newClip, float duration)
         {
-            float halfDur = duration * 0.5f;
-            float startVol = ch.Source.volume;
-
-            // Fade out
-            float elapsed = 0f;
-            while (elapsed < halfDur)
-            {
-                elapsed += Time.unscaledDeltaTime;
-                float t = Mathf.Clamp01(elapsed / halfDur);
-                ch.Source.volume = Mathf.Lerp(startVol, 0f, t);
-                yield return null;
-            }
-
-            // Swap clip
-            ch.Source.Stop();
-            ch.Source.clip = newClip;
-            ch.Source.volume = 0f;
-            ch.Source.Play();
-
-            // Fade in
-            elapsed = 0f;
+            float halfDur   = duration * 0.5f;
+            float startVol  = ch.Source.volume;
             float targetVol = ch.BaseVolume * _masterVolume;
-            while (elapsed < halfDur)
+
+            var seq = DOTween.Sequence()
+                .SetTarget(gameObject)
+                .SetUpdate(true);
+
+            // Phase 1: fade out current
+            seq.Append(DOVirtual.Float(startVol, 0f, halfDur, v =>
             {
-                elapsed += Time.unscaledDeltaTime;
-                float t = Mathf.Clamp01(elapsed / halfDur);
-                ch.Source.volume = Mathf.Lerp(0f, targetVol, t);
-                yield return null;
-            }
-            ch.Source.volume = targetVol;
-            ch.FadeRoutine = null;
+                ch.Source.volume = v;
+            }).SetEase(Ease.Linear));
+
+            // Swap clip at midpoint
+            seq.AppendCallback(() =>
+            {
+                ch.Source.Stop();
+                ch.Source.clip = newClip;
+                ch.Source.volume = 0f;
+                ch.Source.Play();
+            });
+
+            // Phase 2: fade in new
+            seq.Append(DOVirtual.Float(0f, targetVol, halfDur, v =>
+            {
+                ch.Source.volume = v;
+            }).SetEase(Ease.Linear));
+
+            seq.OnComplete(() =>
+            {
+                ch.Source.volume = targetVol;
+                ch.FadeTween = null;
+            });
+
+            ch.FadeTween = seq;
         }
     }
 }

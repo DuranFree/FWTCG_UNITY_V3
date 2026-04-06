@@ -2,6 +2,31 @@
 
 ---
 
+## DOT-3：6个中等文件 DOTween 替换 — 2026-04-06
+
+**Status**: ✅ Completed
+**Tests**: 869/869 EditMode 编译通过，859 FWTCG 测试中 859 绿 🟢（10 个预存失败非 DOT-3 引入），新增 46 个测试
+
+### 实现内容
+
+**EventBanner.cs**：AnimateIn/AnimateOut 协程 → DOAnchorPos + DOFade Sequence；ClearFadeRoutine 协程 → DOFade inline；WarningRoutine 手写 EaseOutBack → DOScale(Ease.OutBack)；EaseOutBack 静态方法移除；OnDestroy KillSafe
+
+**AskPromptUI.cs**：ShowRoutine 协程（自定义 overshoot ease）→ DOScale(Ease.OutBack) SetUpdate(true)；HideRoutine 协程（quadratic ease-in）→ DOScale(Ease.InBack) + OnComplete deactivate；_animCoroutine → _animTween
+
+**SpellDuelUI.cs**：BorderPulseLoop 协程（每帧 Sin wave 驱动4边框 alpha）→ DOVirtual.Float Yoyo -1 loop；CountdownRoutine 协程（30s 倒计时 + bar scaleX）→ DOVirtual.Float Linear + OnComplete auto-skip；StopRoutines → KillTweens
+
+**AudioTool.cs**：FadeRoutine 协程 → StartFade 用 DOVirtual.Float 驱动 AudioSource.volume；CrossFadeRoutine 协程 → StartCrossFade 用 Sequence（fade out → swap clip → fade in）；AudioChannel.FadeRoutine Coroutine → FadeTween Tween；所有 fade 使用 SetUpdate(true) 保持 unscaledTime
+
+**CardHoverScale.cs**：Update Lerp(_targetScale, LERP_SPEED) → DOScale(TWEEN_DURATION=0.1f, Ease.OutCubic)；_animating + _targetScale 字段移除；拖拽时 KillSafe + snap to Vector3.one；OnDestroy KillSafe
+
+**PortalVFX.cs**：FadeRoutine 协程 → DOFade on CanvasGroup；Show/Hide 各自 KillSafe + 新建 tween；OnDestroy KillSafe；Update 旋转保留（连续旋转不适合 DOTween）
+
+**DOT3ReplacementTests.cs（新建，46 测试）**：覆盖所有 6 个文件的结构验证（旧协程字段/方法已移除、新 tween 字段/方法存在、常量不变、AudioTool FadeIn/FadeOut/StopChannel/ZeroDuration 行为、TweenHelper null-safety）
+
+**Technical debt**: 无新增
+
+---
+
 ## DOT-2：8个小文件 DOTween 替换 — 2026-04-06
 
 **Status**: ✅ Completed
