@@ -2,6 +2,29 @@
 
 ---
 
+## DOT-5：4个装饰文件 DOTween 替换 — 2026-04-06
+
+**Status**: ✅ Completed
+**Tests**: 985/985 EditMode 编译通过，937 FWTCG+MCP 测试中 937 绿 🟢（3 个预存失败非 DOT-5 引入），新增 45 个测试
+
+### 实现内容
+
+**SceneryUI.cs**：SpinLoop 4个协程（手写 Mathf.Repeat + localEulerAngles 连续旋转）→ CreateSpinTween 用 DOLocalRotate(FastBeyond360) Restart -1 loop；DividerOrbLoop 协程（每帧 Sin 驱动 Y 振荡）→ DOVirtual.Float sine loop Restart + 缓存 baseY + 实时读 X（DEV-26 行为保留）；CornerGemLoop 协程（手写 Lerp alpha 渐变）→ DOVirtual.Float Yoyo loop 驱动 SetCornerAlpha；LegendGlowLoop 保持禁用（VFX-7 金色边框替代）+ 注释标注 TweenHelper.PulseAlpha 方式；OnDestroy 6 个 KillSafe
+
+**BattlefieldGlow.cs**：AmbientBreatheLoop 协程（每帧 Sin 驱动 alpha）→ DOVirtual.Float sine loop Restart；CtrlGlowLoop 协程（每帧 Sin + 运行时 _currentCtrl 条件色）→ DOVirtual.Float sine loop + callback 内保留条件逻辑（DEV-26 null→NoGlow 行为保留）；_breatheRoutine/_ctrlRoutine Coroutine → _breatheTween/_ctrlTween Tween；常量改 public 便于测试；OnEnable 创建 / OnDisable+OnDestroy KillSafe
+
+**SpellShowcaseUI.cs**：ShowCoroutine 协程（3阶段 fly-in/hold/fly-out 手写 SmoothStep + unscaledDeltaTime）→ ShowAsync 直接构建 DOTween Sequence（DOAnchorPosY InOutQuad + DOFade + AppendInterval + OnComplete）+ SetUpdate(true) unscaled；ShowGroupCoroutine 同上 + BuildGroupSlots 同步方法分离；完全消除 IEnumerator/System.Collections 依赖；_showSeq Sequence + OnDestroy KillSafe
+
+**StartupFlowUI.cs**：CoinSpinRoutine 协程（COIN_FLIP_COUNT 次 ScaleCoinX + 中间换面 + 落地弹跳）→ CreateCoinSpinSequence 用 DOScaleX InOutSine + AppendCallback 换面 + DOPunchScale 落地；ScaleCoinX 辅助方法移除；CoinBurstParticles 协程（20粒子每帧径向 ease-out-quad）→ StartCoinBurstTweens per-particle Sequence（DOAnchorPos OutQuad + DOSizeDelta + DOFade）+ SetTarget(go) + OnComplete 清理 _burstParticles；FadeIn/FadeOut 协程 → static 方法返回 Tween（DOFade），flow 协程 yield WaitForCompletion；FadeTextIn 协程 → DOTween.To alpha 返回 Tween；ScanLightLoop 协程 → DOAnchorPosX Restart loop；HexBreathLoop/TitleBeamPulseLoop 协程 → DOVirtual.Float sine loop；BgGradientRotateLoop 协程（5°/s）→ DOLocalRotate 72s Restart；TitleTextEntranceRoutine 协程 → CreateTitleEntranceSequence Sequence（DOAnchorPos + DOScale + DOFade OutQuad）；_scanLightRoutine/_hexBreathRoutine/_titleBeamRoutine/_bgGradientRoutine Coroutine → 对应 _xxxTween Tween；OnDisable+OnDestroy KillSafe + DOTween.Kill(go) burst 清理
+
+**保留协程**：CoinFlipFlowRoutine / MulliganFlowRoutine / FadeOutAndResolve — 均为游戏逻辑流程控制（含 yield WaitForSeconds、按钮点击等待、TCS resolve），不适合 DOTween
+
+**DOT5ReplacementTests.cs��新建，45 测试）**：覆盖所有 4 个文件的结构验证（旧协程方法/字段已移除、新 tween 字段/方法存在、常量不变、FadeIn/FadeOut null-safety、保留协程确认、TweenHelper null-safety 回归）
+
+**Technical debt**: 无新增
+
+---
+
 ## DOT-4：3个游戏逻辑文件 DOTween 替换 — 2026-04-06
 
 **Status**: ✅ Completed

@@ -1,18 +1,18 @@
-using System.Collections;
+using DG.Tweening;
 using UnityEngine;
 using UnityEngine.UI;
 
 namespace FWTCG.UI
 {
     /// <summary>
-    /// DEV-23: Ambient decorative effects for the game board.
+    /// DEV-23 → DOT-5: Ambient decorative effects for the game board.
     ///
-    /// Manages five categories of purely cosmetic animation:
+    /// Manages five categories of purely cosmetic animation via DOTween loops:
     ///   1. Center spinning rings  (spin-slow 20s CW / 12s CCW)
     ///   2. Center sigil rotation  (30s CW outer / 20s CCW inner)
     ///   3. Divider energy orb     (3.5s sinusoidal Y oscillation)
     ///   4. Corner gem pulse       (4s alpha flash, all 4 corners in sync)
-    ///   5. Legend slot glow       (5s breathing alpha, player + enemy)
+    ///   5. Legend slot glow       (5s breathing alpha — disabled, see VFX-7)
     ///
     /// All Image references are wired by SceneBuilder at build time.
     /// Null-safe: missing refs are silently skipped.
@@ -47,76 +47,69 @@ namespace FWTCG.UI
         [SerializeField] public Image playerLegendGlow;   // player hero slot glow
         [SerializeField] public Image enemyLegendGlow;    // enemy hero slot glow
 
+        // ── DOTween handles ──────────────────────────────────────────────────
+        private Tween _spinOuterTween;
+        private Tween _spinInnerTween;
+        private Tween _sigilOuterTween;
+        private Tween _sigilInnerTween;
+        private Tween _dividerOrbTween;
+        private Tween _cornerGemTween;
+        // VFX-7: legend glow disabled — gold frame border replaces breathing effect.
+        // Re-enable via: TweenHelper.PulseAlpha(img, LEGEND_GLOW_ALPHA_MIN, LEGEND_GLOW_ALPHA_MAX, LEGEND_GLOW_DURATION)
+
         // ── Unity lifecycle ───────────────────────────────────────────────────
 
         private void Start()
         {
-            if (spinOuter  != null) StartCoroutine(SpinLoop(spinOuter.rectTransform,  SPIN_OUTER_DURATION,  clockwise: true));
-            if (spinInner  != null) StartCoroutine(SpinLoop(spinInner.rectTransform,  SPIN_INNER_DURATION,  clockwise: false));
-            if (sigilOuter != null) StartCoroutine(SpinLoop(sigilOuter.rectTransform, SIGIL_OUTER_DURATION, clockwise: true));
-            if (sigilInner != null) StartCoroutine(SpinLoop(sigilInner.rectTransform, SIGIL_INNER_DURATION, clockwise: false));
+            if (spinOuter  != null) _spinOuterTween  = CreateSpinTween(spinOuter.rectTransform,  SPIN_OUTER_DURATION,  true);
+            if (spinInner  != null) _spinInnerTween  = CreateSpinTween(spinInner.rectTransform,  SPIN_INNER_DURATION,  false);
+            if (sigilOuter != null) _sigilOuterTween = CreateSpinTween(sigilOuter.rectTransform, SIGIL_OUTER_DURATION, true);
+            if (sigilInner != null) _sigilInnerTween = CreateSpinTween(sigilInner.rectTransform, SIGIL_INNER_DURATION, false);
 
-            if (dividerOrb != null) StartCoroutine(DividerOrbLoop());
-            if (cornerGems != null && cornerGems.Length > 0) StartCoroutine(CornerGemLoop());
-            // VFX-7: legend glow disabled — gold frame border replaces breathing effect
-            // if (playerLegendGlow != null) StartCoroutine(LegendGlowLoop(playerLegendGlow));
-            // if (enemyLegendGlow  != null) StartCoroutine(LegendGlowLoop(enemyLegendGlow));
-        }
-
-        // ── Private coroutines ────────────────────────────────────────────────
-
-        /// <summary>Continuously rotates <paramref name="rt"/> one full revolution per <paramref name="secondsPerRev"/>.</summary>
-        private static IEnumerator SpinLoop(RectTransform rt, float secondsPerRev, bool clockwise)
-        {
-            float sign = clockwise ? -1f : 1f; // Unity: negative Z = CW when viewed from front
-            float accum = 0f;
-            while (rt != null) // M-01: exit if target destroyed
+            if (dividerOrb != null)
             {
-                accum = Mathf.Repeat(accum + Time.deltaTime, secondsPerRev); // L-02: prevent float drift
-                float angle = sign * (accum / secondsPerRev) * 360f;
-                rt.localEulerAngles = new Vector3(0f, 0f, angle);
-                yield return null;
-            }
-        }
-
-        /// <summary>Sinusoidally oscillates the divider orb ±<see cref="DIVIDER_ORB_AMPLITUDE"/> px over <see cref="DIVIDER_ORB_DURATION"/> s.</summary>
-        private IEnumerator DividerOrbLoop()
-        {
-            var rt = dividerOrb.rectTransform;
-            // DEV-26: only cache base Y; X reads live so layout changes don't drift the center
-            float baseY = rt.anchoredPosition.y;
-            float t = 0f;
-            while (true)
-            {
-                t += Time.deltaTime;
-                float y = Mathf.Sin(t / DIVIDER_ORB_DURATION * Mathf.PI * 2f) * DIVIDER_ORB_AMPLITUDE;
-                var pos = rt.anchoredPosition;
-                rt.anchoredPosition = new Vector2(pos.x, baseY + y);
-                yield return null;
-            }
-        }
-
-        /// <summary>Pulses all corner gem alphas between <see cref="CORNER_GEM_ALPHA_MIN"/> and <see cref="CORNER_GEM_ALPHA_MAX"/>.</summary>
-        private IEnumerator CornerGemLoop()
-        {
-            while (true)
-            {
-                float half = CORNER_GEM_DURATION * 0.5f;
-                // Fade in
-                for (float t = 0f; t < half; t += Time.deltaTime)
+                var rt = dividerOrb.rectTransform;
+                // DEV-26: only cache base Y; X reads live so layout changes don't drift the center
+                float baseY = rt.anchoredPosition.y;
+                _dividerOrbTween = DOVirtual.Float(0f, 1f, DIVIDER_ORB_DURATION, v =>
                 {
-                    float a = Mathf.Lerp(CORNER_GEM_ALPHA_MIN, CORNER_GEM_ALPHA_MAX, t / half);
-                    SetCornerAlpha(a);
-                    yield return null;
-                }
-                // Fade out
-                for (float t = 0f; t < half; t += Time.deltaTime)
-                {
-                    float a = Mathf.Lerp(CORNER_GEM_ALPHA_MAX, CORNER_GEM_ALPHA_MIN, t / half);
-                    SetCornerAlpha(a);
-                    yield return null;
-                }
+                    if (rt == null) return;
+                    float y = Mathf.Sin(v * Mathf.PI * 2f) * DIVIDER_ORB_AMPLITUDE;
+                    var pos = rt.anchoredPosition;
+                    rt.anchoredPosition = new Vector2(pos.x, baseY + y);
+                }).SetLoops(-1, LoopType.Restart).SetEase(Ease.Linear)
+                  .SetTarget(dividerOrb.gameObject);
             }
+
+            if (cornerGems != null && cornerGems.Length > 0)
+            {
+                _cornerGemTween = DOVirtual.Float(CORNER_GEM_ALPHA_MIN, CORNER_GEM_ALPHA_MAX,
+                    CORNER_GEM_DURATION * 0.5f, SetCornerAlpha)
+                    .SetLoops(-1, LoopType.Yoyo).SetEase(Ease.Linear)
+                    .SetTarget(gameObject);
+            }
+        }
+
+        private void OnDestroy()
+        {
+            TweenHelper.KillSafe(ref _spinOuterTween);
+            TweenHelper.KillSafe(ref _spinInnerTween);
+            TweenHelper.KillSafe(ref _sigilOuterTween);
+            TweenHelper.KillSafe(ref _sigilInnerTween);
+            TweenHelper.KillSafe(ref _dividerOrbTween);
+            TweenHelper.KillSafe(ref _cornerGemTween);
+        }
+
+        // ── Helpers ───────────────────────────────────────────────────────────
+
+        /// <summary>Creates an infinite spin tween (CW = negative Z, CCW = positive Z).</summary>
+        private static Tween CreateSpinTween(RectTransform rt, float secondsPerRev, bool clockwise)
+        {
+            float endZ = clockwise ? -360f : 360f;
+            return rt.DOLocalRotate(new Vector3(0f, 0f, endZ), secondsPerRev, RotateMode.FastBeyond360)
+                .SetEase(Ease.Linear)
+                .SetLoops(-1, LoopType.Restart)
+                .SetTarget(rt.gameObject);
         }
 
         private void SetCornerAlpha(float a)
@@ -126,31 +119,6 @@ namespace FWTCG.UI
                 if (gem == null) continue;
                 Color c = gem.color;
                 gem.color = new Color(c.r, c.g, c.b, a);
-            }
-        }
-
-        /// <summary>Breathes <paramref name="img"/> alpha between glow min and max over <see cref="LEGEND_GLOW_DURATION"/> s.</summary>
-        private static IEnumerator LegendGlowLoop(Image img)
-        {
-            while (img != null) // M-01: exit if target destroyed
-            {
-                float half = LEGEND_GLOW_DURATION * 0.5f;
-                // Glow up
-                for (float t = 0f; t < half; t += Time.deltaTime)
-                {
-                    float a = Mathf.Lerp(LEGEND_GLOW_ALPHA_MIN, LEGEND_GLOW_ALPHA_MAX, t / half);
-                    Color c = img.color;
-                    img.color = new Color(c.r, c.g, c.b, a);
-                    yield return null;
-                }
-                // Glow down
-                for (float t = 0f; t < half; t += Time.deltaTime)
-                {
-                    float a = Mathf.Lerp(LEGEND_GLOW_ALPHA_MAX, LEGEND_GLOW_ALPHA_MIN, t / half);
-                    Color c = img.color;
-                    img.color = new Color(c.r, c.g, c.b, a);
-                    yield return null;
-                }
             }
         }
     }

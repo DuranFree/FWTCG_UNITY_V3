@@ -111,22 +111,28 @@
 ## DOT-5 — 4个装饰文件替换
 
 ### SceneryUI.cs
-- [ ] SpinLoop → DORotate SetLoops — DOT-5
-- [ ] DividerOrbLoop → DOAnchorPosY Yoyo — DOT-5
-- [ ] CornerGemLoop → DOFade loop — DOT-5
-- [ ] LegendGlowLoop → DOFade loop — DOT-5
+- [x] SpinLoop → DOLocalRotate SetLoops — DOT-5
+- [x] DividerOrbLoop → DOVirtual.Float sine loop — DOT-5
+- [x] CornerGemLoop → DOVirtual.Float Yoyo loop — DOT-5
+- [x] LegendGlowLoop → 已禁用，注释标注 TweenHelper.PulseAlpha 方式 — DOT-5
 
 ### BattlefieldGlow.cs
-- [ ] AmbientBreatheLoop → DOFade Yoyo loop — DOT-5
-- [ ] CtrlGlowLoop → DOFade Yoyo loop — DOT-5
+- [x] AmbientBreatheLoop → DOVirtual.Float sine loop — DOT-5
+- [x] CtrlGlowLoop → DOVirtual.Float sine loop（保留运行时 _currentCtrl 条件）— DOT-5
 
 ### SpellShowcaseUI.cs
-- [ ] ShowCoroutine → DOAnchorPos + DOFade Sequence — DOT-5
-- [ ] ShowGroupCoroutine → 同上批量 — DOT-5
+- [x] ShowCoroutine → DOAnchorPosY + DOFade Sequence（完全消除协程）— DOT-5
+- [x] ShowGroupCoroutine → 同上（BuildGroupSlots 同步 + Sequence 动画）— DOT-5
 
 ### StartupFlowUI.cs
-- [ ] 硬币翻转 → DOScaleX 翻转序列 — DOT-5
-- [ ] 爆发粒子 → DOAnchorPos + DOFade 批量 — DOT-5
+- [x] 硬币翻转 → DOScaleX Sequence + AppendCallback 换面 + DOPunchScale 落地 — DOT-5
+- [x] 爆发粒子 → per-particle DOAnchorPos + DOSizeDelta + DOFade Sequence — DOT-5
+- [x] FadeIn/FadeOut → DOFade（返回 Tween，flow 协程 yield WaitForCompletion）— DOT-5
+- [x] ScanLightLoop → DOAnchorPosX Restart loop — DOT-5
+- [x] HexBreathLoop/TitleBeamPulseLoop → DOVirtual.Float sine loop — DOT-5
+- [x] BgGradientRotateLoop → DOLocalRotate 72s Restart loop — DOT-5
+- [x] TitleTextEntranceRoutine → Sequence（DOAnchorPos + DOScale + DOFade）— DOT-5
+- [x] FadeTextIn → DOTween.To alpha — DOT-5
 
 ---
 

@@ -1,6 +1,6 @@
-using System.Collections;
 using System.Collections.Generic;
 using System.Threading.Tasks;
+using DG.Tweening;
 using UnityEngine;
 using UnityEngine.UI;
 using FWTCG.Core;
@@ -9,9 +9,8 @@ using FWTCG.Data;
 namespace FWTCG.UI
 {
     /// <summary>
-    /// DEV-16: Full-screen spell showcase overlay.
-    /// When a spell is cast (player or AI), this panel flies in from the bottom,
-    /// displays the card name + effect text for 0.5s, then fades out.
+    /// DEV-16 → DOT-5: Full-screen spell showcase overlay.
+    /// Fly-in/hold/fly-out animation uses a DOTween Sequence (no coroutines).
     ///
     /// Usage: await SpellShowcaseUI.Instance.ShowAsync(spell, owner)
     /// Safe to call when Instance is null (no-op).
@@ -44,6 +43,9 @@ namespace FWTCG.UI
         // Track whether a showcase is currently in progress
         public bool IsShowing { get; private set; }
 
+        // DOTween handle
+        private Sequence _showSeq;
+
         // ── Unity lifecycle ────────────────────────────────────────────────────
 
         private void Awake()
@@ -65,6 +67,7 @@ namespace FWTCG.UI
 
         private void OnDestroy()
         {
+            TweenHelper.KillSafe(ref _showSeq);
             if (Instance == this) Instance = null;
         }
 
@@ -77,33 +80,130 @@ namespace FWTCG.UI
         {
             if (spells == null || spells.Count == 0) return Task.CompletedTask;
             if (spells.Count == 1) return ShowAsync(spells[0], owner);
-            var tcs = new System.Threading.Tasks.TaskCompletionSource<bool>();
-            StartCoroutine(ShowGroupCoroutine(spells, owner, tcs));
+
+            var tcs = new TaskCompletionSource<bool>();
+            IsShowing = true;
+            bool isPlayer = owner == GameRules.OWNER_PLAYER;
+
+            // Build grid slots (sync)
+            RectTransform animPanel = _groupPanel != null ? _groupPanel : _cardPanel;
+            BuildGroupSlots(spells, isPlayer);
+
+            float flyStartY = isPlayer ? -FLY_OFFSET : FLY_OFFSET;
+            float flyExitY  = isPlayer ? -FLY_OFFSET : FLY_OFFSET;
+
+            if (animPanel != null)
+            {
+                var pos = animPanel.anchoredPosition;
+                animPanel.anchoredPosition = new Vector2(pos.x, flyStartY);
+                animPanel.gameObject.SetActive(true);
+            }
+            if (_canvasGroup != null) _canvasGroup.alpha = 0f;
+
+            // Build animation sequence (unscaled time for pause-safe)
+            TweenHelper.KillSafe(ref _showSeq);
+            var seq = DOTween.Sequence().SetUpdate(true);
+
+            // Fly in
+            if (animPanel != null)
+                seq.Append(animPanel.DOAnchorPosY(FLY_END_Y, FLY_IN_DURATION).SetEase(Ease.InOutQuad));
+            if (_canvasGroup != null)
+                seq.Join(_canvasGroup.DOFade(1f, FLY_IN_DURATION).SetEase(Ease.InOutQuad));
+
+            // Hold
+            seq.AppendInterval(HOLD_DURATION);
+
+            // Fly out
+            if (animPanel != null)
+                seq.Append(animPanel.DOAnchorPosY(flyExitY, FLY_OUT_DURATION).SetEase(Ease.InOutQuad));
+            if (_canvasGroup != null)
+                seq.Join(_canvasGroup.DOFade(0f, FLY_OUT_DURATION).SetEase(Ease.InOutQuad));
+
+            // Capture for closure
+            var slotsRoot = _slotsRoot;
+            var cardPanel = _cardPanel;
+            seq.OnComplete(() =>
+            {
+                // Clean up slots
+                if (slotsRoot != null)
+                {
+                    for (int i = slotsRoot.childCount - 1; i >= 0; i--)
+                        Destroy(slotsRoot.GetChild(i).gameObject);
+                    slotsRoot.gameObject.SetActive(false);
+                }
+                if (animPanel != null && animPanel != cardPanel)
+                    animPanel.gameObject.SetActive(false);
+                Hide();
+                IsShowing = false;
+                tcs.TrySetResult(true);
+            });
+            seq.SetTarget(gameObject);
+            _showSeq = seq;
+
             return tcs.Task;
         }
 
         /// <summary>
         /// Show the spell showcase. Awaitable — resolves after the full animation completes.
-        /// Safe to call from async Task context (bridges via TCS + coroutine).
+        /// Safe to call from async Task context.
         /// </summary>
         public Task ShowAsync(UnitInstance spell, string owner)
         {
             if (spell == null) return Task.CompletedTask;
-            // Panel stays always active — CanvasGroup controls visibility, no SetActive needed.
-            var tcs = new System.Threading.Tasks.TaskCompletionSource<bool>();
-            StartCoroutine(ShowCoroutine(spell, owner, tcs));
+
+            var tcs = new TaskCompletionSource<bool>();
+            IsShowing = true;
+
+            // Populate content (sync)
+            bool isPlayer = owner == GameRules.OWNER_PLAYER;
+            PopulateSingleCard(spell, isPlayer);
+
+            float flyStartY = isPlayer ? -FLY_OFFSET : FLY_OFFSET;
+            float flyExitY  = isPlayer ? -FLY_OFFSET : FLY_OFFSET;
+
+            // Reset position
+            if (_cardPanel != null)
+            {
+                var pos = _cardPanel.anchoredPosition;
+                _cardPanel.anchoredPosition = new Vector2(pos.x, flyStartY);
+            }
+            if (_canvasGroup != null) _canvasGroup.alpha = 0f;
+
+            // Build animation sequence (unscaled time for pause-safe)
+            TweenHelper.KillSafe(ref _showSeq);
+            var seq = DOTween.Sequence().SetUpdate(true);
+
+            // Fly in
+            if (_cardPanel != null)
+                seq.Append(_cardPanel.DOAnchorPosY(FLY_END_Y, FLY_IN_DURATION).SetEase(Ease.InOutQuad));
+            if (_canvasGroup != null)
+                seq.Join(_canvasGroup.DOFade(1f, FLY_IN_DURATION).SetEase(Ease.InOutQuad));
+
+            // Hold
+            seq.AppendInterval(HOLD_DURATION);
+
+            // Fly out
+            if (_cardPanel != null)
+                seq.Append(_cardPanel.DOAnchorPosY(flyExitY, FLY_OUT_DURATION).SetEase(Ease.InOutQuad));
+            if (_canvasGroup != null)
+                seq.Join(_canvasGroup.DOFade(0f, FLY_OUT_DURATION).SetEase(Ease.InOutQuad));
+
+            seq.OnComplete(() =>
+            {
+                Hide();
+                IsShowing = false;
+                tcs.TrySetResult(true);
+            });
+            seq.SetTarget(gameObject);
+            _showSeq = seq;
+
             return tcs.Task;
         }
 
-        // ── Internal coroutine ─────────────────────────────────────────────────
+        // ── Content helpers ────────────────────────────────────────────────────
 
-        private IEnumerator ShowCoroutine(UnitInstance spell, string owner,
-                                          System.Threading.Tasks.TaskCompletionSource<bool> tcs)
+        private void PopulateSingleCard(UnitInstance spell, bool isPlayer)
         {
-            IsShowing = true;
-
-            // Populate content
-            bool isPlayer = owner == GameRules.OWNER_PLAYER;
             if (_ownerLabel != null)
             {
                 _ownerLabel.text  = isPlayer ? "玩家" : "AI";
@@ -124,192 +224,52 @@ namespace FWTCG.UI
             {
                 _artImage.gameObject.SetActive(false);
             }
-
-            // Direction: player card from bottom, enemy card from top
-            float flyStartY = isPlayer ? -FLY_OFFSET : FLY_OFFSET;
-            float flyExitY  = isPlayer ? -FLY_OFFSET : FLY_OFFSET;
-
-            // Reset position
-            if (_cardPanel != null)
-            {
-                var pos = _cardPanel.anchoredPosition;
-                _cardPanel.anchoredPosition = new Vector2(pos.x, flyStartY);
-            }
-            if (_canvasGroup != null) _canvasGroup.alpha = 0f;
-
-            // ── Fly in ─────────────────────────────────────────────────────────
-            float t = 0f;
-            while (t < FLY_IN_DURATION)
-            {
-                t += Time.unscaledDeltaTime;
-                float p = Mathf.SmoothStep(0f, 1f, Mathf.Clamp01(t / FLY_IN_DURATION));
-                if (_canvasGroup != null) _canvasGroup.alpha = p;
-                if (_cardPanel != null)
-                {
-                    var pos = _cardPanel.anchoredPosition;
-                    _cardPanel.anchoredPosition = new Vector2(pos.x,
-                        Mathf.Lerp(flyStartY, FLY_END_Y, p));
-                }
-                yield return null;
-            }
-            if (_canvasGroup != null) _canvasGroup.alpha = 1f;
-            if (_cardPanel != null)
-            {
-                var pos = _cardPanel.anchoredPosition;
-                _cardPanel.anchoredPosition = new Vector2(pos.x, FLY_END_Y);
-            }
-
-            // ── Hold ───────────────────────────────────────────────────────────
-            float held = 0f;
-            while (held < HOLD_DURATION)
-            {
-                held += Time.unscaledDeltaTime;
-                yield return null;
-            }
-
-            // ── Fly out ────────────────────────────────────────────────────────
-            t = 0f;
-            while (t < FLY_OUT_DURATION)
-            {
-                t += Time.unscaledDeltaTime;
-                float p = Mathf.SmoothStep(0f, 1f, Mathf.Clamp01(t / FLY_OUT_DURATION));
-                if (_canvasGroup != null) _canvasGroup.alpha = 1f - p;
-                if (_cardPanel != null)
-                {
-                    var pos = _cardPanel.anchoredPosition;
-                    _cardPanel.anchoredPosition = new Vector2(pos.x,
-                        Mathf.Lerp(FLY_END_Y, flyExitY, p));
-                }
-                yield return null;
-            }
-
-            Hide();
-            IsShowing = false;
-            tcs.TrySetResult(true);
         }
 
-        // ── Group showcase coroutine ───────────────────────────────────────────
-
-        private IEnumerator ShowGroupCoroutine(List<UnitInstance> spells, string owner,
-                                               System.Threading.Tasks.TaskCompletionSource<bool> tcs)
+        private void BuildGroupSlots(List<UnitInstance> spells, bool isPlayer)
         {
-            IsShowing = true;
-            bool isPlayer = owner == GameRules.OWNER_PLAYER;
+            if (_slotsRoot == null) return;
 
-            // Build grid slots in _slotsRoot: 3 per row, scale by row count
-            RectTransform animPanel = _groupPanel != null ? _groupPanel : _cardPanel;
-            if (_slotsRoot != null)
+            for (int i = _slotsRoot.childCount - 1; i >= 0; i--)
+                Destroy(_slotsRoot.GetChild(i).gameObject);
+
+            // Disable any existing HLG — we position manually
+            var existingHlg = _slotsRoot.GetComponent<HorizontalLayoutGroup>();
+            if (existingHlg != null) existingHlg.enabled = false;
+
+            int count   = Mathf.Min(spells.Count, 9);
+            int rows    = Mathf.CeilToInt(count / 3f);
+            float slotW = rows == 1 ? 150f : rows == 2 ? 125f : 105f;
+            float slotH = rows == 1 ? 185f : rows == 2 ? 155f : 130f;
+            const float gapX = 8f;
+            const float gapY = 8f;
+
+            float totalW = 3 * slotW + 2 * gapX;
+            float totalH = rows * slotH + (rows - 1) * gapY;
+
+            // Resize slotsRoot to contain all rows
+            var slotsRT = _slotsRoot.GetComponent<RectTransform>();
+            if (slotsRT != null) slotsRT.sizeDelta = new Vector2(totalW, totalH);
+
+            for (int i = 0; i < count; i++)
             {
-                for (int i = _slotsRoot.childCount - 1; i >= 0; i--)
-                    Destroy(_slotsRoot.GetChild(i).gameObject);
+                int row = i / 3;
+                int col = i % 3;
+                // Left-aligned: col 0 starts at left edge regardless of how many cards in the row
+                float x = col * (slotW + gapX) - totalW * 0.5f + slotW * 0.5f;
+                float y = -(row * (slotH + gapY)) + totalH * 0.5f - slotH * 0.5f;
 
-                // Disable any existing HLG — we position manually
-                var existingHlg = _slotsRoot.GetComponent<UnityEngine.UI.HorizontalLayoutGroup>();
-                if (existingHlg != null) existingHlg.enabled = false;
-
-                int count   = Mathf.Min(spells.Count, 9);
-                int rows    = Mathf.CeilToInt(count / 3f);
-                float slotW = rows == 1 ? 150f : rows == 2 ? 125f : 105f;
-                float slotH = rows == 1 ? 185f : rows == 2 ? 155f : 130f;
-                const float gapX = 8f;
-                const float gapY = 8f;
-
-                float totalW = 3 * slotW + 2 * gapX;
-                float totalH = rows * slotH + (rows - 1) * gapY;
-
-                // Resize slotsRoot to contain all rows
-                var slotsRT = _slotsRoot.GetComponent<RectTransform>();
-                if (slotsRT != null) slotsRT.sizeDelta = new Vector2(totalW, totalH);
-
-                for (int i = 0; i < count; i++)
+                var slot = CreateCardSlot(spells[i], _slotsRoot, isPlayer, slotW, slotH);
+                var slotRT = slot.GetComponent<RectTransform>();
+                if (slotRT != null)
                 {
-                    int row = i / 3;
-                    int col = i % 3;
-                    // Left-aligned: col 0 starts at left edge regardless of how many cards in the row
-                    float x = col * (slotW + gapX) - totalW * 0.5f + slotW * 0.5f;
-                    float y = -(row * (slotH + gapY)) + totalH * 0.5f - slotH * 0.5f;
-
-                    var slot = CreateCardSlot(spells[i], _slotsRoot, isPlayer, slotW, slotH);
-                    var slotRT = slot.GetComponent<RectTransform>();
-                    if (slotRT != null)
-                    {
-                        slotRT.anchorMin = slotRT.anchorMax = new Vector2(0.5f, 0.5f);
-                        slotRT.pivot     = new Vector2(0.5f, 0.5f);
-                        slotRT.anchoredPosition = new Vector2(x, y);
-                    }
+                    slotRT.anchorMin = slotRT.anchorMax = new Vector2(0.5f, 0.5f);
+                    slotRT.pivot     = new Vector2(0.5f, 0.5f);
+                    slotRT.anchoredPosition = new Vector2(x, y);
                 }
-
-                _slotsRoot.gameObject.SetActive(true);
             }
 
-            float flyStartY = isPlayer ? -FLY_OFFSET : FLY_OFFSET;
-            float flyExitY  = isPlayer ? -FLY_OFFSET : FLY_OFFSET;
-
-            if (animPanel != null)
-            {
-                var pos = animPanel.anchoredPosition;
-                animPanel.anchoredPosition = new Vector2(pos.x, flyStartY);
-                animPanel.gameObject.SetActive(true);
-            }
-            if (_canvasGroup != null) _canvasGroup.alpha = 0f;
-
-            // ── Fly in ─────────────────────────────────────────────────────────
-            float t = 0f;
-            while (t < FLY_IN_DURATION)
-            {
-                t += Time.unscaledDeltaTime;
-                float p = Mathf.SmoothStep(0f, 1f, Mathf.Clamp01(t / FLY_IN_DURATION));
-                if (_canvasGroup != null) _canvasGroup.alpha = p;
-                if (animPanel != null)
-                {
-                    var pos = animPanel.anchoredPosition;
-                    animPanel.anchoredPosition = new Vector2(pos.x, Mathf.Lerp(flyStartY, FLY_END_Y, p));
-                }
-                yield return null;
-            }
-            if (_canvasGroup != null) _canvasGroup.alpha = 1f;
-            if (animPanel != null)
-            {
-                var pos = animPanel.anchoredPosition;
-                animPanel.anchoredPosition = new Vector2(pos.x, FLY_END_Y);
-            }
-
-            // ── Hold ───────────────────────────────────────────────────────────
-            float held = 0f;
-            while (held < HOLD_DURATION)
-            {
-                held += Time.unscaledDeltaTime;
-                yield return null;
-            }
-
-            // ── Fly out ────────────────────────────────────────────────────────
-            t = 0f;
-            while (t < FLY_OUT_DURATION)
-            {
-                t += Time.unscaledDeltaTime;
-                float p = Mathf.SmoothStep(0f, 1f, Mathf.Clamp01(t / FLY_OUT_DURATION));
-                if (_canvasGroup != null) _canvasGroup.alpha = 1f - p;
-                if (animPanel != null)
-                {
-                    var pos = animPanel.anchoredPosition;
-                    animPanel.anchoredPosition = new Vector2(pos.x, Mathf.Lerp(FLY_END_Y, flyExitY, p));
-                }
-                yield return null;
-            }
-
-            // Clean up slots
-            if (_slotsRoot != null)
-            {
-                for (int i = _slotsRoot.childCount - 1; i >= 0; i--)
-                    Destroy(_slotsRoot.GetChild(i).gameObject);
-                _slotsRoot.gameObject.SetActive(false);
-            }
-            if (animPanel != null && animPanel != _cardPanel)
-                animPanel.gameObject.SetActive(false);
-
-            Hide();
-            IsShowing = false;
-            tcs.TrySetResult(true);
+            _slotsRoot.gameObject.SetActive(true);
         }
 
         private static GameObject CreateCardSlot(UnitInstance spell, Transform parent,
