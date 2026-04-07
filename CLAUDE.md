@@ -198,6 +198,7 @@
 **注意：** 查顶层大节点（如 Canvas）数据量极大，应查具体子路径（如 `Canvas/Panel/Button`）。
 
 **⚠️ MCP 修改场景后必须立即 save_scene（不可跳过）：** 任何通过 MCP 修改场景内容的操作（添加/删除/修改 GameObject、组件属性等）完成后，必须**立即**调用 `save_scene`，防止场景处于 dirty 状态，避免后续操作触发 Unity 保存弹窗导致 MCP 超时。**每次修改后都要执行，不得批量延后。**
+注意：`FWTCG/Build Game Scene`（SceneBuilder）内部自带保存，调用后无需额外 save_scene。
 
 ---
 

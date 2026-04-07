@@ -1,0 +1,50 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="240" height="320" viewBox="0 0 240 320">
+  <defs>
+    <linearGradient id="heroBg" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#0e1e34"/>
+      <stop offset="100%" stop-color="#060f1e"/>
+    </linearGradient>
+    <linearGradient id="heroEdge" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#3a80d0"/>
+      <stop offset="100%" stop-color="#1a4090"/>
+    </linearGradient>
+    <radialGradient id="heroInner" cx="50%" cy="40%" r="60%">
+      <stop offset="0%" stop-color="#1a4080" stop-opacity="0.2"/>
+      <stop offset="100%" stop-color="#1a4080" stop-opacity="0"/>
+    </radialGradient>
+    <filter id="glow">
+      <feGaussianBlur stdDeviation="2" result="b"/>
+      <feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+  </defs>
+
+  <!-- 主面板 -->
+  <rect x="6" y="6" width="228" height="308" rx="10" fill="url(#heroBg)"/>
+  <rect x="6" y="6" width="228" height="308" rx="10" fill="url(#heroInner)"/>
+
+  <!-- 外框（蓝色调） -->
+  <rect x="6" y="6" width="228" height="308" rx="10" fill="none" stroke="url(#heroEdge)" stroke-width="2" opacity="0.8"/>
+  <!-- 内框细线 -->
+  <rect x="9" y="9" width="222" height="302" rx="8" fill="none" stroke="#4090d0" stroke-width="0.5" opacity="0.3"/>
+
+  <!-- 顶部高亮 -->
+  <rect x="6" y="6" width="228" height="3" rx="1" fill="#4090d0" opacity="0.6"/>
+
+  <!-- 四角L形装饰 -->
+  <g fill="none" stroke="#4090d0" stroke-width="1.5" opacity="0.8" filter="url(#glow)">
+    <path d="M16,24 L16,14 L26,14"/>
+    <path d="M224,24 L224,14 L214,14"/>
+    <path d="M16,296 L16,306 L26,306"/>
+    <path d="M224,296 L224,306 L214,306"/>
+  </g>
+
+  <!-- 顶部标题分隔线 -->
+  <line x1="20" y1="52" x2="220" y2="52" stroke="#2060b0" stroke-width="0.5" opacity="0.5"/>
+  <circle cx="120" cy="52" r="3" fill="#4090d0" opacity="0.5"/>
+
+  <!-- 底部数值区分隔线 -->
+  <line x1="20" y1="262" x2="220" y2="262" stroke="#2060b0" stroke-width="0.5" opacity="0.5"/>
+
+  <!-- 中间图像区域暗示框 -->
+  <rect x="20" y="60" width="200" height="192" rx="6" fill="none" stroke="#1a3a60" stroke-width="1" opacity="0.4"/>
+</svg>

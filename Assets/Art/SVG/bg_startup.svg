@@ -1,0 +1,63 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1920" height="1080" viewBox="0 0 1920 1080">
+  <defs>
+    <radialGradient id="startBg" cx="50%" cy="45%" r="70%">
+      <stop offset="0%" stop-color="#0e2040"/>
+      <stop offset="50%" stop-color="#080f20"/>
+      <stop offset="100%" stop-color="#030810"/>
+    </radialGradient>
+    <radialGradient id="centerBeam" cx="50%" cy="50%" r="40%">
+      <stop offset="0%" stop-color="#1a4080" stop-opacity="0.5"/>
+      <stop offset="40%" stop-color="#102860" stop-opacity="0.2"/>
+      <stop offset="100%" stop-color="#030810" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="vertBeam" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#2060b0" stop-opacity="0"/>
+      <stop offset="30%" stop-color="#2060b0" stop-opacity="0.3"/>
+      <stop offset="50%" stop-color="#3080d0" stop-opacity="0.5"/>
+      <stop offset="70%" stop-color="#2060b0" stop-opacity="0.3"/>
+      <stop offset="100%" stop-color="#2060b0" stop-opacity="0"/>
+    </linearGradient>
+    <filter id="glow">
+      <feGaussianBlur stdDeviation="12" result="blur"/>
+      <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+    <filter id="softBlur">
+      <feGaussianBlur stdDeviation="20"/>
+    </filter>
+  </defs>
+
+  <rect width="1920" height="1080" fill="url(#startBg)"/>
+  <rect width="1920" height="1080" fill="url(#centerBeam)"/>
+
+  <!-- 竖向光柱 -->
+  <rect x="920" y="0" width="80" height="1080" fill="url(#vertBeam)" opacity="0.6"/>
+  <rect x="940" y="0" width="40" height="1080" fill="url(#vertBeam)" opacity="0.4"/>
+  <rect x="955" y="0" width="10" height="1080" fill="#4090d0" opacity="0.15"/>
+
+  <!-- 粒子感光点 -->
+  <g filter="url(#glow)" opacity="0.8">
+    <circle cx="960" cy="200" r="3" fill="#60b0ff"/>
+    <circle cx="960" cy="400" r="2" fill="#4090d0"/>
+    <circle cx="960" cy="650" r="2.5" fill="#60b0ff"/>
+    <circle cx="960" cy="850" r="2" fill="#4090d0"/>
+  </g>
+  <g opacity="0.4">
+    <circle cx="500" cy="300" r="1.5" fill="#4080c0"/>
+    <circle cx="700" cy="180" r="1" fill="#3070b0"/>
+    <circle cx="800" cy="500" r="1.5" fill="#4080c0"/>
+    <circle cx="600" cy="700" r="1" fill="#3070b0"/>
+    <circle cx="1200" cy="280" r="1.5" fill="#4080c0"/>
+    <circle cx="1350" cy="480" r="1" fill="#3070b0"/>
+    <circle cx="1100" cy="620" r="1.5" fill="#4080c0"/>
+    <circle cx="1420" cy="750" r="1" fill="#3070b0"/>
+    <circle cx="300" cy="850" r="1" fill="#304060"/>
+    <circle cx="1650" cy="900" r="1" fill="#304060"/>
+  </g>
+
+  <!-- 顶底光边 -->
+  <rect width="1920" height="2" fill="#2060b0" opacity="0.5"/>
+  <rect width="1920" height="2" y="1078" fill="#2060b0" opacity="0.5"/>
+
+  <!-- 横向扫描线感 -->
+  <line x1="0" y1="540" x2="1920" y2="540" stroke="#1a4080" stroke-width="0.5" opacity="0.5" stroke-dasharray="40,60"/>
+</svg>

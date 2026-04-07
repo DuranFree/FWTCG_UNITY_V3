@@ -1,0 +1,42 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="120" height="120" viewBox="0 0 120 120">
+  <defs>
+    <radialGradient id="manaBg" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#0e1e3a"/>
+      <stop offset="100%" stop-color="#060c18"/>
+    </radialGradient>
+    <radialGradient id="manaGlow" cx="50%" cy="50%" r="45%">
+      <stop offset="0%" stop-color="#2060d0" stop-opacity="0.25"/>
+      <stop offset="100%" stop-color="#2060d0" stop-opacity="0"/>
+    </radialGradient>
+    <filter id="glow">
+      <feGaussianBlur stdDeviation="2" result="b"/>
+      <feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+  </defs>
+
+  <!-- 八边形外框 -->
+  <polygon points="60,4 94,16 112,46 112,74 94,104 60,116 26,104 8,74 8,46 26,16"
+    fill="url(#manaBg)" stroke="#2060b0" stroke-width="1.8" opacity="0.9"/>
+  <polygon points="60,10 90,21 106,48 106,72 90,99 60,110 30,99 14,72 14,48 30,21"
+    fill="none" stroke="#4090d0" stroke-width="0.6" opacity="0.25"/>
+
+  <!-- 内发光 -->
+  <polygon points="60,4 94,16 112,46 112,74 94,104 60,116 26,104 8,74 8,46 26,16"
+    fill="url(#manaGlow)"/>
+
+  <!-- 顶部高亮点 -->
+  <polygon points="60,4 94,16 112,46 112,74 94,104 60,116 26,104 8,74 8,46 26,16"
+    fill="none" stroke="#60a0ff" stroke-width="1" opacity="0.4" filter="url(#glow)"/>
+
+  <!-- 中心数值区 -->
+  <circle cx="60" cy="60" r="32" fill="#060f20" stroke="#2060b0" stroke-width="1" opacity="0.7"/>
+  <circle cx="60" cy="60" r="26" fill="none" stroke="#3070c0" stroke-width="0.5" opacity="0.3"/>
+
+  <!-- 四个小菱形装饰 -->
+  <g fill="#4090d0" opacity="0.5" filter="url(#glow)">
+    <polygon points="60,14 63,18 60,22 57,18"/>
+    <polygon points="60,98 63,102 60,106 57,102"/>
+    <polygon points="14,60 18,57 22,60 18,63"/>
+    <polygon points="98,60 102,57 106,60 102,63"/>
+  </g>
+</svg>

@@ -1,0 +1,57 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="240" height="360" viewBox="0 0 240 360">
+  <defs>
+    <linearGradient id="legendBg" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#1a1408"/>
+      <stop offset="100%" stop-color="#0a0c04"/>
+    </linearGradient>
+    <linearGradient id="goldEdge" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#e8c840"/>
+      <stop offset="50%" stop-color="#c8a020"/>
+      <stop offset="100%" stop-color="#a08010"/>
+    </linearGradient>
+    <radialGradient id="legendGlow" cx="50%" cy="35%" r="55%">
+      <stop offset="0%" stop-color="#c8a020" stop-opacity="0.12"/>
+      <stop offset="100%" stop-color="#c8a020" stop-opacity="0"/>
+    </radialGradient>
+    <filter id="glow">
+      <feGaussianBlur stdDeviation="2.5" result="b"/>
+      <feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+  </defs>
+
+  <!-- 主面板 -->
+  <rect x="6" y="6" width="228" height="348" rx="10" fill="url(#legendBg)"/>
+  <rect x="6" y="6" width="228" height="348" rx="10" fill="url(#legendGlow)"/>
+
+  <!-- 金边外框 -->
+  <rect x="6" y="6" width="228" height="348" rx="10" fill="none" stroke="url(#goldEdge)" stroke-width="2.5" opacity="0.9"/>
+  <!-- 内细线 -->
+  <rect x="10" y="10" width="220" height="340" rx="8" fill="none" stroke="#e8c840" stroke-width="0.5" opacity="0.25"/>
+
+  <!-- 顶部金色高亮 -->
+  <rect x="6" y="6" width="228" height="3" rx="1" fill="#e8c840" opacity="0.7"/>
+
+  <!-- 四角装饰（金色） -->
+  <g fill="none" stroke="#e8c840" stroke-width="1.5" opacity="0.9" filter="url(#glow)">
+    <path d="M17,26 L17,15 L28,15"/>
+    <path d="M223,26 L223,15 L212,15"/>
+    <path d="M17,334 L17,345 L28,345"/>
+    <path d="M223,334 L223,345 L212,345"/>
+  </g>
+
+  <!-- 顶部菱形装饰 -->
+  <polygon points="120,10 126,16 120,22 114,16" fill="#c8a020" opacity="0.6" filter="url(#glow)"/>
+
+  <!-- 标题分隔线（带中心装饰） -->
+  <line x1="20" y1="58" x2="104" y2="58" stroke="#c8a020" stroke-width="0.8" opacity="0.6"/>
+  <polygon points="120,54 125,58 120,62 115,58" fill="#c8a020" opacity="0.7"/>
+  <line x1="136" y1="58" x2="220" y2="58" stroke="#c8a020" stroke-width="0.8" opacity="0.6"/>
+
+  <!-- 底部数值分隔线 -->
+  <line x1="20" y1="300" x2="220" y2="300" stroke="#c8a020" stroke-width="0.8" opacity="0.5"/>
+  <!-- 技能区分隔线 -->
+  <line x1="20" y1="310" x2="220" y2="310" stroke="#a08010" stroke-width="0.5" opacity="0.4"/>
+
+  <!-- 图像区域暗示框 -->
+  <rect x="20" y="66" width="200" height="224" rx="6" fill="none" stroke="#604010" stroke-width="1" opacity="0.4"/>
+</svg>

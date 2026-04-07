@@ -1,0 +1,38 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="200" height="72" viewBox="0 0 200 72">
+  <defs>
+    <linearGradient id="reactBgH" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#603000"/>
+      <stop offset="50%" stop-color="#401800"/>
+      <stop offset="100%" stop-color="#200c00"/>
+    </linearGradient>
+    <linearGradient id="reactEdgeH" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0%" stop-color="#ff8020" stop-opacity="0.4"/>
+      <stop offset="40%" stop-color="#ffa040" stop-opacity="1"/>
+      <stop offset="60%" stop-color="#ffa040" stop-opacity="1"/>
+      <stop offset="100%" stop-color="#ff8020" stop-opacity="0.4"/>
+    </linearGradient>
+    <filter id="glow">
+      <feGaussianBlur stdDeviation="3" result="b"/>
+      <feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+    <filter id="outerGlow">
+      <feGaussianBlur stdDeviation="6" result="b"/>
+      <feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+  </defs>
+
+  <path d="M14,5 L190,5 L186,67 L10,67 Z" fill="none" stroke="#ff8020" stroke-width="6" opacity="0.2" filter="url(#outerGlow)"/>
+  <path d="M14,5 L190,5 L186,67 L10,67 Z" fill="url(#reactBgH)" opacity="0.95"/>
+  <path d="M14,5 L190,5 L186,67 L10,67 Z" fill="none" stroke="#ff8020" stroke-width="2" opacity="0.95" filter="url(#glow)"/>
+  <path d="M17,8 L187,8 L183,64 L13,64 Z" fill="none" stroke="#ffa040" stroke-width="0.8" opacity="0.4"/>
+
+  <path d="M14,5 L190,5" stroke="url(#reactEdgeH)" stroke-width="2.5" opacity="1" filter="url(#glow)"/>
+
+  <line x1="10" y1="67" x2="14" y2="5" stroke="#ff8020" stroke-width="1" opacity="0.5"/>
+  <line x1="190" y1="5" x2="186" y2="67" stroke="#ff8020" stroke-width="1" opacity="0.5"/>
+
+  <g fill="none" stroke="#ffa040" stroke-width="1.2" opacity="0.8" filter="url(#glow)">
+    <path d="M20,16 L20,9 L27,9"/>
+    <path d="M181,9 L188,9 L186,16"/>
+  </g>
+</svg>

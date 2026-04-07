@@ -1,0 +1,37 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1920" height="1080" viewBox="0 0 1920 1080">
+  <defs>
+    <radialGradient id="showcaseBg" cx="50%" cy="50%" r="55%">
+      <stop offset="0%" stop-color="#080818" stop-opacity="0.85"/>
+      <stop offset="100%" stop-color="#020408" stop-opacity="0.95"/>
+    </radialGradient>
+    <radialGradient id="showcaseGlow" cx="50%" cy="50%" r="35%">
+      <stop offset="0%" stop-color="#2040a0" stop-opacity="0.3"/>
+      <stop offset="100%" stop-color="#2040a0" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="vignette" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0%" stop-color="#000010" stop-opacity="0.7"/>
+      <stop offset="30%" stop-color="#000010" stop-opacity="0"/>
+      <stop offset="70%" stop-color="#000010" stop-opacity="0"/>
+      <stop offset="100%" stop-color="#000010" stop-opacity="0.7"/>
+    </linearGradient>
+    <filter id="bigBlur"><feGaussianBlur stdDeviation="40"/></filter>
+  </defs>
+
+  <!-- 全屏半透明遮罩 -->
+  <rect width="1920" height="1080" fill="url(#showcaseBg)"/>
+  <!-- 中心光晕 -->
+  <rect width="1920" height="1080" fill="url(#showcaseGlow)"/>
+  <!-- 左右暗角 -->
+  <rect width="1920" height="1080" fill="url(#vignette)"/>
+
+  <!-- 中心展示区光圈 -->
+  <ellipse cx="960" cy="540" rx="320" ry="420" fill="#1030a0" opacity="0.06" filter="url(#bigBlur)"/>
+
+  <!-- 底部托盘区背景（卡牌从这里飞出） -->
+  <rect x="660" y="900" width="600" height="160" rx="12" fill="#0a1020" stroke="#2040a0" stroke-width="1" opacity="0.6"/>
+  <rect x="660" y="900" width="600" height="2" rx="1" fill="#4060d0" opacity="0.5"/>
+
+  <!-- 顶部细装饰线 -->
+  <line x1="0" y1="0" x2="1920" y2="0" stroke="#2040a0" stroke-width="2" opacity="0.4"/>
+  <line x1="0" y1="1079" x2="1920" y2="1079" stroke="#2040a0" stroke-width="2" opacity="0.4"/>
+</svg>

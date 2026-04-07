@@ -1,0 +1,38 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="200" height="72" viewBox="0 0 200 72">
+  <defs>
+    <linearGradient id="reactBg" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#4a2000"/>
+      <stop offset="50%" stop-color="#301400"/>
+      <stop offset="100%" stop-color="#180a00"/>
+    </linearGradient>
+    <linearGradient id="reactEdge" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0%" stop-color="#e06010" stop-opacity="0.3"/>
+      <stop offset="40%" stop-color="#ff8020" stop-opacity="0.9"/>
+      <stop offset="60%" stop-color="#ff8020" stop-opacity="0.9"/>
+      <stop offset="100%" stop-color="#e06010" stop-opacity="0.3"/>
+    </linearGradient>
+    <linearGradient id="reactShine" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#ffb060" stop-opacity="0.18"/>
+      <stop offset="50%" stop-color="#ffb060" stop-opacity="0"/>
+    </linearGradient>
+    <filter id="glow">
+      <feGaussianBlur stdDeviation="2" result="b"/>
+      <feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+  </defs>
+
+  <path d="M14,5 L190,5 L186,67 L10,67 Z" fill="url(#reactBg)" opacity="0.95"/>
+  <path d="M14,5 L190,5 L190,32 L14,34 Z" fill="url(#reactShine)"/>
+  <path d="M14,5 L190,5 L186,67 L10,67 Z" fill="none" stroke="#e06010" stroke-width="1.5" opacity="0.8"/>
+  <path d="M17,8 L187,8 L183,64 L13,64 Z" fill="none" stroke="#ff8020" stroke-width="0.5" opacity="0.3"/>
+
+  <path d="M14,5 L190,5" stroke="url(#reactEdge)" stroke-width="2" opacity="0.9" filter="url(#glow)"/>
+
+  <line x1="10" y1="67" x2="14" y2="5" stroke="#e06010" stroke-width="0.8" opacity="0.4"/>
+  <line x1="190" y1="5" x2="186" y2="67" stroke="#e06010" stroke-width="0.8" opacity="0.4"/>
+
+  <g fill="none" stroke="#ff8020" stroke-width="1" opacity="0.6" filter="url(#glow)">
+    <path d="M20,16 L20,9 L27,9"/>
+    <path d="M181,9 L188,9 L186,16"/>
+  </g>
+</svg>

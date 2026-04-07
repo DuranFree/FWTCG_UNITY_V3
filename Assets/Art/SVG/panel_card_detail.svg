@@ -1,0 +1,54 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="480" height="720" viewBox="0 0 480 720">
+  <defs>
+    <linearGradient id="detailBg" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#0e1a2e"/>
+      <stop offset="100%" stop-color="#060c18"/>
+    </linearGradient>
+    <linearGradient id="detailTop" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0%" stop-color="#4090d0" stop-opacity="0"/>
+      <stop offset="30%" stop-color="#4090d0" stop-opacity="0.8"/>
+      <stop offset="50%" stop-color="#60b0ff" stop-opacity="1"/>
+      <stop offset="70%" stop-color="#4090d0" stop-opacity="0.8"/>
+      <stop offset="100%" stop-color="#4090d0" stop-opacity="0"/>
+    </linearGradient>
+    <filter id="glow">
+      <feGaussianBlur stdDeviation="2" result="b"/>
+      <feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+  </defs>
+
+  <rect x="8" y="8" width="464" height="704" rx="14" fill="url(#detailBg)"/>
+  <rect x="8" y="8" width="464" height="704" rx="14" fill="none" stroke="#2060b0" stroke-width="2" opacity="0.8"/>
+  <rect x="12" y="12" width="456" height="696" rx="11" fill="none" stroke="#4090d0" stroke-width="0.5" opacity="0.25"/>
+
+  <!-- 顶部高亮线 -->
+  <rect x="8" y="8" width="464" height="2.5" rx="1" fill="url(#detailTop)" filter="url(#glow)"/>
+
+  <!-- 四角装饰 -->
+  <g fill="none" stroke="#4090d0" stroke-width="1.5" opacity="0.8" filter="url(#glow)">
+    <path d="M20,30 L20,16 L34,16"/>
+    <path d="M460,30 L460,16 L446,16"/>
+    <path d="M20,690 L20,704 L34,704"/>
+    <path d="M460,690 L460,704 L446,704"/>
+  </g>
+
+  <!-- 卡图区域 -->
+  <rect x="24" y="32" width="432" height="280" rx="8" fill="#060c18" stroke="#1a4070" stroke-width="1" opacity="0.9"/>
+
+  <!-- 标题区分隔 -->
+  <line x1="24" y1="326" x2="456" y2="326" stroke="#2060b0" stroke-width="0.8" opacity="0.5"/>
+
+  <!-- 属性区分隔 -->
+  <line x1="24" y1="420" x2="456" y2="420" stroke="#1a3a60" stroke-width="0.8" opacity="0.4"/>
+
+  <!-- 描述文本区背景 -->
+  <rect x="24" y="430" width="432" height="200" rx="6" fill="#060f1e" stroke="#1a3060" stroke-width="0.8" opacity="0.5"/>
+
+  <!-- 底部关键词区 -->
+  <line x1="24" y1="644" x2="456" y2="644" stroke="#1a3a60" stroke-width="0.8" opacity="0.4"/>
+  <rect x="24" y="654" width="432" height="38" rx="6" fill="#060f1e" stroke="#1a3060" stroke-width="0.6" opacity="0.4"/>
+
+  <!-- 费用角标 -->
+  <circle cx="52" cy="56" r="22" fill="#0a1828" stroke="#4090d0" stroke-width="1.5" opacity="0.85"/>
+  <circle cx="52" cy="56" r="16" fill="none" stroke="#2060b0" stroke-width="0.8" opacity="0.4"/>
+</svg>

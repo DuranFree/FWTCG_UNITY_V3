@@ -1,0 +1,204 @@
+<?xml version="1.0" encoding="utf-8"?>
+<test-run id="2" testcasecount="31" result="Passed" total="31" passed="31" failed="0" inconclusive="0" skipped="0" asserts="0" engine-version="3.5.0.0" clr-version="4.0.30319.42000" start-time="2026-04-05 17:19:56Z" end-time="2026-04-05 17:19:56Z" duration="0.0820454">
+  <test-suite type="TestSuite" id="1000" name="FWTCG_UNITY_V3" fullname="FWTCG_UNITY_V3" runstate="Runnable" testcasecount="790" result="Passed" start-time="2026-04-05 17:19:56Z" end-time="2026-04-05 17:19:56Z" duration="0.082045" total="31" passed="31" failed="0" inconclusive="0" skipped="0" asserts="0">
+    <properties>
+      <property name="platform" value="EditMode" />
+    </properties>
+    <test-suite type="Assembly" id="1784" name="FWTCG.Tests.EditMode.dll" fullname="E:/claudeCode/unity/FWTCG_UNITY_V3/Library/ScriptAssemblies/FWTCG.Tests.EditMode.dll" runstate="Runnable" testcasecount="739" result="Passed" start-time="2026-04-05 17:19:56Z" end-time="2026-04-05 17:19:56Z" duration="0.075133" total="31" passed="31" failed="0" inconclusive="0" skipped="0" asserts="0">
+      <properties>
+        <property name="_PID" value="91820" />
+        <property name="_APPDOMAIN" value="Unity Child Domain" />
+        <property name="platform" value="EditMode" />
+      </properties>
+      <test-suite type="TestSuite" id="1785" name="FWTCG" fullname="FWTCG" runstate="Runnable" testcasecount="671" result="Passed" start-time="2026-04-05 17:19:56Z" end-time="2026-04-05 17:19:56Z" duration="0.069411" total="31" passed="31" failed="0" inconclusive="0" skipped="0" asserts="0">
+        <properties>
+          <property name="platform" value="EditMode" />
+        </properties>
+        <test-suite type="TestSuite" id="1786" name="Tests" fullname="FWTCG.Tests" runstate="Runnable" testcasecount="671" result="Passed" start-time="2026-04-05 17:19:56Z" end-time="2026-04-05 17:19:56Z" duration="0.066645" total="31" passed="31" failed="0" inconclusive="0" skipped="0" asserts="0">
+          <properties>
+            <property name="platform" value="EditMode" />
+          </properties>
+          <test-suite type="TestSuite" id="1787" name="EditMode" fullname="FWTCG.Tests.EditMode" runstate="Runnable" testcasecount="140" result="Passed" start-time="2026-04-05 17:19:56Z" end-time="2026-04-05 17:19:56Z" duration="0.060207" total="31" passed="31" failed="0" inconclusive="0" skipped="0" asserts="0">
+            <properties>
+              <property name="platform" value="EditMode" />
+            </properties>
+            <test-suite type="TestFixture" id="1678" name="DOT1InfraTests" fullname="FWTCG.Tests.EditMode.DOT1InfraTests" classname="FWTCG.Tests.EditMode.DOT1InfraTests" runstate="Runnable" testcasecount="30" result="Passed" start-time="2026-04-05 17:19:56Z" end-time="2026-04-05 17:19:56Z" duration="0.047942" total="30" passed="30" failed="0" inconclusive="0" skipped="0" asserts="0">
+              <properties>
+                <property name="platform" value="EditMode" />
+              </properties>
+              <test-case id="1679" name="DOTween_IsInitialized" fullname="FWTCG.Tests.EditMode.DOT1InfraTests.DOTween_IsInitialized" methodname="DOTween_IsInitialized" classname="FWTCG.Tests.EditMode.DOT1InfraTests" runstate="Runnable" seed="245197012" result="Passed" start-time="2026-04-05 17:19:56Z" end-time="2026-04-05 17:19:56Z" duration="0.008565" asserts="0">
+                <properties>
+                  <property name="platform" value="EditMode" />
+                </properties>
+              </test-case>
+              <test-case id="1681" name="DOTween_RectTransformDOAnchorPos_Compiles" fullname="FWTCG.Tests.EditMode.DOT1InfraTests.DOTween_RectTransformDOAnchorPos_Compiles" methodname="DOTween_RectTransformDOAnchorPos_Compiles" classname="FWTCG.Tests.EditMode.DOT1InfraTests" runstate="Runnable" seed="893236985" result="Passed" start-time="2026-04-05 17:19:56Z" end-time="2026-04-05 17:19:56Z" duration="0.003349" asserts="0">
+                <properties>
+                  <property name="platform" value="EditMode" />
+                </properties>
+              </test-case>
+              <test-case id="1680" name="DOTween_TransformDOMove_Compiles" fullname="FWTCG.Tests.EditMode.DOT1InfraTests.DOTween_TransformDOMove_Compiles" methodname="DOTween_TransformDOMove_Compiles" classname="FWTCG.Tests.EditMode.DOT1InfraTests" runstate="Runnable" seed="1971194459" result="Passed" start-time="2026-04-05 17:19:56Z" end-time="2026-04-05 17:19:56Z" duration="0.001009" asserts="0">
+                <properties>
+                  <property name="platform" value="EditMode" />
+                </properties>
+              </test-case>
+              <test-case id="1708" name="DOTweenTestBase_CompleteAll_FinishesAllTweens" fullname="FWTCG.Tests.EditMode.DOT1InfraTests.DOTweenTestBase_CompleteAll_FinishesAllTweens" methodname="DOTweenTestBase_CompleteAll_FinishesAllTweens" classname="FWTCG.Tests.EditMode.DOT1InfraTests" runstate="Runnable" seed="998703750" result="Passed" start-time="2026-04-05 17:19:56Z" end-time="2026-04-05 17:19:56Z" duration="0.004723" asserts="0">
+                <properties>
+                  <property name="platform" value="EditMode" />
+                </properties>
+              </test-case>
+              <test-case id="1707" name="DOTweenTestBase_CompleteAll_ReachesEndValue" fullname="FWTCG.Tests.EditMode.DOT1InfraTests.DOTweenTestBase_CompleteAll_ReachesEndValue" methodname="DOTweenTestBase_CompleteAll_ReachesEndValue" classname="FWTCG.Tests.EditMode.DOT1InfraTests" runstate="Runnable" seed="603780812" result="Passed" start-time="2026-04-05 17:19:56Z" end-time="2026-04-05 17:19:56Z" duration="0.000400" asserts="0">
+                <properties>
+                  <property name="platform" value="EditMode" />
+                </properties>
+              </test-case>
+              <test-case id="1688" name="FadeCanvasGroup_CompleteAll_ReachesTarget" fullname="FWTCG.Tests.EditMode.DOT1InfraTests.FadeCanvasGroup_CompleteAll_ReachesTarget" methodname="FadeCanvasGroup_CompleteAll_ReachesTarget" classname="FWTCG.Tests.EditMode.DOT1InfraTests" runstate="Runnable" seed="2032016508" result="Passed" start-time="2026-04-05 17:19:56Z" end-time="2026-04-05 17:19:56Z" duration="0.001542" asserts="0">
+                <properties>
+                  <property name="platform" value="EditMode" />
+                </properties>
+              </test-case>
+              <test-case id="1686" name="FadeCanvasGroup_NullCG_ReturnsNull" fullname="FWTCG.Tests.EditMode.DOT1InfraTests.FadeCanvasGroup_NullCG_ReturnsNull" methodname="FadeCanvasGroup_NullCG_ReturnsNull" classname="FWTCG.Tests.EditMode.DOT1InfraTests" runstate="Runnable" seed="69116965" result="Passed" start-time="2026-04-05 17:19:56Z" end-time="2026-04-05 17:19:56Z" duration="0.000196" asserts="0">
+                <properties>
+                  <property name="platform" value="EditMode" />
+                </properties>
+              </test-case>
+              <test-case id="1687" name="FadeCanvasGroup_ReturnsActiveTween" fullname="FWTCG.Tests.EditMode.DOT1InfraTests.FadeCanvasGroup_ReturnsActiveTween" methodname="FadeCanvasGroup_ReturnsActiveTween" classname="FWTCG.Tests.EditMode.DOT1InfraTests" runstate="Runnable" seed="523684036" result="Passed" start-time="2026-04-05 17:19:56Z" end-time="2026-04-05 17:19:56Z" duration="0.000283" asserts="0">
+                <properties>
+                  <property name="platform" value="EditMode" />
+                </properties>
+              </test-case>
+              <test-case id="1689" name="FadeImage_NullImg_ReturnsNull" fullname="FWTCG.Tests.EditMode.DOT1InfraTests.FadeImage_NullImg_ReturnsNull" methodname="FadeImage_NullImg_ReturnsNull" classname="FWTCG.Tests.EditMode.DOT1InfraTests" runstate="Runnable" seed="766717689" result="Passed" start-time="2026-04-05 17:19:56Z" end-time="2026-04-05 17:19:56Z" duration="0.000202" asserts="0">
+                <properties>
+                  <property name="platform" value="EditMode" />
+                </properties>
+              </test-case>
+              <test-case id="1690" name="FadeImage_ReturnsActiveTween" fullname="FWTCG.Tests.EditMode.DOT1InfraTests.FadeImage_ReturnsActiveTween" methodname="FadeImage_ReturnsActiveTween" classname="FWTCG.Tests.EditMode.DOT1InfraTests" runstate="Runnable" seed="657525287" result="Passed" start-time="2026-04-05 17:19:56Z" end-time="2026-04-05 17:19:56Z" duration="0.007045" asserts="0">
+                <properties>
+                  <property name="platform" value="EditMode" />
+                </properties>
+              </test-case>
+              <test-case id="1699" name="KillAllOn_KillsTweensOnTarget" fullname="FWTCG.Tests.EditMode.DOT1InfraTests.KillAllOn_KillsTweensOnTarget" methodname="KillAllOn_KillsTweensOnTarget" classname="FWTCG.Tests.EditMode.DOT1InfraTests" runstate="Runnable" seed="704552714" result="Passed" start-time="2026-04-05 17:19:56Z" end-time="2026-04-05 17:19:56Z" duration="0.000592" asserts="0">
+                <properties>
+                  <property name="platform" value="EditMode" />
+                </properties>
+              </test-case>
+              <test-case id="1698" name="KillAllOn_NullGO_NoThrow" fullname="FWTCG.Tests.EditMode.DOT1InfraTests.KillAllOn_NullGO_NoThrow" methodname="KillAllOn_NullGO_NoThrow" classname="FWTCG.Tests.EditMode.DOT1InfraTests" runstate="Runnable" seed="1726957930" result="Passed" start-time="2026-04-05 17:19:56Z" end-time="2026-04-05 17:19:56Z" duration="0.000709" asserts="0">
+                <properties>
+                  <property name="platform" value="EditMode" />
+                </properties>
+              </test-case>
+              <test-case id="1685" name="KillSafe_Sequence_ActiveSequence_Kills" fullname="FWTCG.Tests.EditMode.DOT1InfraTests.KillSafe_Sequence_ActiveSequence_Kills" methodname="KillSafe_Sequence_ActiveSequence_Kills" classname="FWTCG.Tests.EditMode.DOT1InfraTests" runstate="Runnable" seed="134451521" result="Passed" start-time="2026-04-05 17:19:56Z" end-time="2026-04-05 17:19:56Z" duration="0.000709" asserts="0">
+                <properties>
+                  <property name="platform" value="EditMode" />
+                </properties>
+              </test-case>
+              <test-case id="1684" name="KillSafe_Sequence_NullInput_NoThrow" fullname="FWTCG.Tests.EditMode.DOT1InfraTests.KillSafe_Sequence_NullInput_NoThrow" methodname="KillSafe_Sequence_NullInput_NoThrow" classname="FWTCG.Tests.EditMode.DOT1InfraTests" runstate="Runnable" seed="851938341" result="Passed" start-time="2026-04-05 17:19:56Z" end-time="2026-04-05 17:19:56Z" duration="0.000238" asserts="0">
+                <properties>
+                  <property name="platform" value="EditMode" />
+                </properties>
+              </test-case>
+              <test-case id="1683" name="KillSafe_Tween_ActiveTween_Kills" fullname="FWTCG.Tests.EditMode.DOT1InfraTests.KillSafe_Tween_ActiveTween_Kills" methodname="KillSafe_Tween_ActiveTween_Kills" classname="FWTCG.Tests.EditMode.DOT1InfraTests" runstate="Runnable" seed="1497285096" result="Passed" start-time="2026-04-05 17:19:56Z" end-time="2026-04-05 17:19:56Z" duration="0.000321" asserts="0">
+                <properties>
+                  <property name="platform" value="EditMode" />
+                </properties>
+              </test-case>
+              <test-case id="1682" name="KillSafe_Tween_NullInput_NoThrow" fullname="FWTCG.Tests.EditMode.DOT1InfraTests.KillSafe_Tween_NullInput_NoThrow" methodname="KillSafe_Tween_NullInput_NoThrow" classname="FWTCG.Tests.EditMode.DOT1InfraTests" runstate="Runnable" seed="1776663808" result="Passed" start-time="2026-04-05 17:19:56Z" end-time="2026-04-05 17:19:56Z" duration="0.000310" asserts="0">
+                <properties>
+                  <property name="platform" value="EditMode" />
+                </properties>
+              </test-case>
+              <test-case id="1694" name="PulseAlpha_CG_NullCG_ReturnsNull" fullname="FWTCG.Tests.EditMode.DOT1InfraTests.PulseAlpha_CG_NullCG_ReturnsNull" methodname="PulseAlpha_CG_NullCG_ReturnsNull" classname="FWTCG.Tests.EditMode.DOT1InfraTests" runstate="Runnable" seed="1743651441" result="Passed" start-time="2026-04-05 17:19:56Z" end-time="2026-04-05 17:19:56Z" duration="0.000298" asserts="0">
+                <properties>
+                  <property name="platform" value="EditMode" />
+                </properties>
+              </test-case>
+              <test-case id="1695" name="PulseAlpha_CG_SetsInitialAlpha" fullname="FWTCG.Tests.EditMode.DOT1InfraTests.PulseAlpha_CG_SetsInitialAlpha" methodname="PulseAlpha_CG_SetsInitialAlpha" classname="FWTCG.Tests.EditMode.DOT1InfraTests" runstate="Runnable" seed="105276291" result="Passed" start-time="2026-04-05 17:19:56Z" end-time="2026-04-05 17:19:56Z" duration="0.000287" asserts="0">
+                <properties>
+                  <property name="platform" value="EditMode" />
+                </properties>
+              </test-case>
+              <test-case id="1693" name="PulseAlpha_Image_IsInfiniteLoop" fullname="FWTCG.Tests.EditMode.DOT1InfraTests.PulseAlpha_Image_IsInfiniteLoop" methodname="PulseAlpha_Image_IsInfiniteLoop" classname="FWTCG.Tests.EditMode.DOT1InfraTests" runstate="Runnable" seed="1438058105" result="Passed" start-time="2026-04-05 17:19:56Z" end-time="2026-04-05 17:19:56Z" duration="0.000668" asserts="0">
+                <properties>
+                  <property name="platform" value="EditMode" />
+                </properties>
+              </test-case>
+              <test-case id="1691" name="PulseAlpha_Image_NullImg_ReturnsNull" fullname="FWTCG.Tests.EditMode.DOT1InfraTests.PulseAlpha_Image_NullImg_ReturnsNull" methodname="PulseAlpha_Image_NullImg_ReturnsNull" classname="FWTCG.Tests.EditMode.DOT1InfraTests" runstate="Runnable" seed="488000856" result="Passed" start-time="2026-04-05 17:19:56Z" end-time="2026-04-05 17:19:56Z" duration="0.000145" asserts="0">
+                <properties>
+                  <property name="platform" value="EditMode" />
+                </properties>
+              </test-case>
+              <test-case id="1692" name="PulseAlpha_Image_SetsInitialAlpha" fullname="FWTCG.Tests.EditMode.DOT1InfraTests.PulseAlpha_Image_SetsInitialAlpha" methodname="PulseAlpha_Image_SetsInitialAlpha" classname="FWTCG.Tests.EditMode.DOT1InfraTests" runstate="Runnable" seed="1723587448" result="Passed" start-time="2026-04-05 17:19:56Z" end-time="2026-04-05 17:19:56Z" duration="0.000255" asserts="0">
+                <properties>
+                  <property name="platform" value="EditMode" />
+                </properties>
+              </test-case>
+              <test-case id="1696" name="ShakeUI_NullRT_ReturnsNull" fullname="FWTCG.Tests.EditMode.DOT1InfraTests.ShakeUI_NullRT_ReturnsNull" methodname="ShakeUI_NullRT_ReturnsNull" classname="FWTCG.Tests.EditMode.DOT1InfraTests" runstate="Runnable" seed="1938440277" result="Passed" start-time="2026-04-05 17:19:56Z" end-time="2026-04-05 17:19:56Z" duration="0.000196" asserts="0">
+                <properties>
+                  <property name="platform" value="EditMode" />
+                </properties>
+              </test-case>
+              <test-case id="1697" name="ShakeUI_ReturnsActiveTween" fullname="FWTCG.Tests.EditMode.DOT1InfraTests.ShakeUI_ReturnsActiveTween" methodname="ShakeUI_ReturnsActiveTween" classname="FWTCG.Tests.EditMode.DOT1InfraTests" runstate="Runnable" seed="846731532" result="Passed" start-time="2026-04-05 17:19:56Z" end-time="2026-04-05 17:19:56Z" duration="0.001952" asserts="0">
+                <properties>
+                  <property name="platform" value="EditMode" />
+                </properties>
+              </test-case>
+              <test-case id="1706" name="TweenMatFX_DissolveSequence_ReturnsSequence" fullname="FWTCG.Tests.EditMode.DOT1InfraTests.TweenMatFX_DissolveSequence_ReturnsSequence" methodname="TweenMatFX_DissolveSequence_ReturnsSequence" classname="FWTCG.Tests.EditMode.DOT1InfraTests" runstate="Runnable" seed="573559122" result="Passed" start-time="2026-04-05 17:19:56Z" end-time="2026-04-05 17:19:56Z" duration="0.000460" asserts="0">
+                <properties>
+                  <property name="platform" value="EditMode" />
+                </properties>
+              </test-case>
+              <test-case id="1704" name="TweenMatFX_DOColor_MissingProperty_ReturnsNull" fullname="FWTCG.Tests.EditMode.DOT1InfraTests.TweenMatFX_DOColor_MissingProperty_ReturnsNull" methodname="TweenMatFX_DOColor_MissingProperty_ReturnsNull" classname="FWTCG.Tests.EditMode.DOT1InfraTests" runstate="Runnable" seed="1018478118" result="Passed" start-time="2026-04-05 17:19:56Z" end-time="2026-04-05 17:19:56Z" duration="0.002214" asserts="0">
+                <properties>
+                  <property name="platform" value="EditMode" />
+                </properties>
+                <output><![CDATA[[TweenMatFX] Property '_NonExistent' not found on UI/Default.
+]]></output>
+              </test-case>
+              <test-case id="1703" name="TweenMatFX_DOColor_NullMat_ReturnsNull" fullname="FWTCG.Tests.EditMode.DOT1InfraTests.TweenMatFX_DOColor_NullMat_ReturnsNull" methodname="TweenMatFX_DOColor_NullMat_ReturnsNull" classname="FWTCG.Tests.EditMode.DOT1InfraTests" runstate="Runnable" seed="1800790393" result="Passed" start-time="2026-04-05 17:19:56Z" end-time="2026-04-05 17:19:56Z" duration="0.000166" asserts="0">
+                <properties>
+                  <property name="platform" value="EditMode" />
+                </properties>
+              </test-case>
+              <test-case id="1705" name="TweenMatFX_DOColor_ValidProperty_ReturnsTween" fullname="FWTCG.Tests.EditMode.DOT1InfraTests.TweenMatFX_DOColor_ValidProperty_ReturnsTween" methodname="TweenMatFX_DOColor_ValidProperty_ReturnsTween" classname="FWTCG.Tests.EditMode.DOT1InfraTests" runstate="Runnable" seed="1302392239" result="Passed" start-time="2026-04-05 17:19:56Z" end-time="2026-04-05 17:19:56Z" duration="0.000382" asserts="0">
+                <properties>
+                  <property name="platform" value="EditMode" />
+                </properties>
+              </test-case>
+              <test-case id="1701" name="TweenMatFX_DOFloat_MissingProperty_ReturnsNull" fullname="FWTCG.Tests.EditMode.DOT1InfraTests.TweenMatFX_DOFloat_MissingProperty_ReturnsNull" methodname="TweenMatFX_DOFloat_MissingProperty_ReturnsNull" classname="FWTCG.Tests.EditMode.DOT1InfraTests" runstate="Runnable" seed="119280356" result="Passed" start-time="2026-04-05 17:19:56Z" end-time="2026-04-05 17:19:56Z" duration="0.000551" asserts="0">
+                <properties>
+                  <property name="platform" value="EditMode" />
+                </properties>
+                <output><![CDATA[[TweenMatFX] Property '_NonExistent' not found on UI/Default.
+]]></output>
+              </test-case>
+              <test-case id="1700" name="TweenMatFX_DOFloat_NullMat_ReturnsNull" fullname="FWTCG.Tests.EditMode.DOT1InfraTests.TweenMatFX_DOFloat_NullMat_ReturnsNull" methodname="TweenMatFX_DOFloat_NullMat_ReturnsNull" classname="FWTCG.Tests.EditMode.DOT1InfraTests" runstate="Runnable" seed="1980179833" result="Passed" start-time="2026-04-05 17:19:56Z" end-time="2026-04-05 17:19:56Z" duration="0.000152" asserts="0">
+                <properties>
+                  <property name="platform" value="EditMode" />
+                </properties>
+              </test-case>
+              <test-case id="1702" name="TweenMatFX_DOFloat_ValidProperty_ReturnsTween" fullname="FWTCG.Tests.EditMode.DOT1InfraTests.TweenMatFX_DOFloat_ValidProperty_ReturnsTween" methodname="TweenMatFX_DOFloat_ValidProperty_ReturnsTween" classname="FWTCG.Tests.EditMode.DOT1InfraTests" runstate="Runnable" seed="809803737" result="Passed" start-time="2026-04-05 17:19:56Z" end-time="2026-04-05 17:19:56Z" duration="0.000331" asserts="0">
+                <properties>
+                  <property name="platform" value="EditMode" />
+                </properties>
+              </test-case>
+            </test-suite>
+            <test-suite type="TestFixture" id="1709" name="DOT1SmokeTest" fullname="FWTCG.Tests.EditMode.DOT1SmokeTest" classname="FWTCG.Tests.EditMode.DOT1SmokeTest" runstate="Runnable" testcasecount="1" result="Passed" start-time="2026-04-05 17:19:56Z" end-time="2026-04-05 17:19:56Z" duration="0.007257" total="1" passed="1" failed="0" inconclusive="0" skipped="0" asserts="0">
+              <properties>
+                <property name="platform" value="EditMode" />
+              </properties>
+              <test-case id="1710" name="Smoke_NoDOTween_Pass" fullname="FWTCG.Tests.EditMode.DOT1SmokeTest.Smoke_NoDOTween_Pass" methodname="Smoke_NoDOTween_Pass" classname="FWTCG.Tests.EditMode.DOT1SmokeTest" runstate="Runnable" seed="1127770644" result="Passed" start-time="2026-04-05 17:19:56Z" end-time="2026-04-05 17:19:56Z" duration="0.002167" asserts="0">
+                <properties>
+                  <property name="platform" value="EditMode" />
+                </properties>
+                <reason>
+                  <message><![CDATA[This test uses no DOTween types]]></message>
+                </reason>
+                <output><![CDATA[Saving results to: TestResults-dot1.xml
+]]></output>
+              </test-case>
+            </test-suite>
+          </test-suite>
+        </test-suite>
+      </test-suite>
+    </test-suite>
+  </test-suite>
+</test-run>

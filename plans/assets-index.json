@@ -2445,6 +2445,270 @@
       "path": "TcgEngine/Sprites/UI/x_large.png",
       "type": "Texture",
       "source": "external:E:/project/unity/TCG Engine"
+    },
+    {
+      "name": "bg_coin_flip",
+      "path": "Assets/Resources/UI/Generated/bg_coin_flip.png",
+      "type": "Sprite",
+      "category": "background",
+      "source": "SVG-generated",
+      "svgSource": "Assets/Art/SVG/bg_coin_flip.svg"
+    },
+    {
+      "name": "bg_game_main",
+      "path": "Assets/Resources/UI/Generated/bg_game_main.png",
+      "type": "Sprite",
+      "category": "background",
+      "source": "SVG-generated",
+      "svgSource": "Assets/Art/SVG/bg_game_main.svg"
+    },
+    {
+      "name": "bg_game_over",
+      "path": "Assets/Resources/UI/Generated/bg_game_over.png",
+      "type": "Sprite",
+      "category": "background",
+      "source": "SVG-generated",
+      "svgSource": "Assets/Art/SVG/bg_game_over.svg"
+    },
+    {
+      "name": "bg_mulligan",
+      "path": "Assets/Resources/UI/Generated/bg_mulligan.png",
+      "type": "Sprite",
+      "category": "background",
+      "source": "SVG-generated",
+      "svgSource": "Assets/Art/SVG/bg_mulligan.svg"
+    },
+    {
+      "name": "bg_startup",
+      "path": "Assets/Resources/UI/Generated/bg_startup.png",
+      "type": "Sprite",
+      "category": "background",
+      "source": "SVG-generated",
+      "svgSource": "Assets/Art/SVG/bg_startup.svg"
+    },
+    {
+      "name": "btn_cancel",
+      "path": "Assets/Resources/UI/Generated/btn_cancel.png",
+      "type": "Sprite",
+      "category": "button",
+      "source": "SVG-generated",
+      "svgSource": "Assets/Art/SVG/btn_cancel.svg"
+    },
+    {
+      "name": "btn_confirm",
+      "path": "Assets/Resources/UI/Generated/btn_confirm.png",
+      "type": "Sprite",
+      "category": "button",
+      "source": "SVG-generated",
+      "svgSource": "Assets/Art/SVG/btn_confirm.svg"
+    },
+    {
+      "name": "btn_end_turn",
+      "path": "Assets/Resources/UI/Generated/btn_end_turn.png",
+      "type": "Sprite",
+      "category": "button",
+      "source": "SVG-generated",
+      "svgSource": "Assets/Art/SVG/btn_end_turn.svg"
+    },
+    {
+      "name": "btn_end_turn_hover",
+      "path": "Assets/Resources/UI/Generated/btn_end_turn_hover.png",
+      "type": "Sprite",
+      "category": "button",
+      "source": "SVG-generated",
+      "svgSource": "Assets/Art/SVG/btn_end_turn_hover.svg"
+    },
+    {
+      "name": "btn_react",
+      "path": "Assets/Resources/UI/Generated/btn_react.png",
+      "type": "Sprite",
+      "category": "button",
+      "source": "SVG-generated",
+      "svgSource": "Assets/Art/SVG/btn_react.svg"
+    },
+    {
+      "name": "btn_react_hover",
+      "path": "Assets/Resources/UI/Generated/btn_react_hover.png",
+      "type": "Sprite",
+      "category": "button",
+      "source": "SVG-generated",
+      "svgSource": "Assets/Art/SVG/btn_react_hover.svg"
+    },
+    {
+      "name": "btn_skip",
+      "path": "Assets/Resources/UI/Generated/btn_skip.png",
+      "type": "Sprite",
+      "category": "button",
+      "source": "SVG-generated",
+      "svgSource": "Assets/Art/SVG/btn_skip.svg"
+    },
+    {
+      "name": "deco_corner_gem",
+      "path": "Assets/Resources/UI/Generated/deco_corner_gem.png",
+      "type": "Sprite",
+      "category": "decoration",
+      "source": "SVG-generated",
+      "svgSource": "Assets/Art/SVG/deco_corner_gem.svg"
+    },
+    {
+      "name": "deco_divider_orb",
+      "path": "Assets/Resources/UI/Generated/deco_divider_orb.png",
+      "type": "Sprite",
+      "category": "decoration",
+      "source": "SVG-generated",
+      "svgSource": "Assets/Art/SVG/deco_divider_orb.svg"
+    },
+    {
+      "name": "deco_sigil_ring",
+      "path": "Assets/Resources/UI/Generated/deco_sigil_ring.png",
+      "type": "Sprite",
+      "category": "decoration",
+      "source": "SVG-generated",
+      "svgSource": "Assets/Art/SVG/deco_sigil_ring.svg"
+    },
+    {
+      "name": "frame_gold",
+      "path": "Assets/Resources/UI/Generated/frame_gold.png",
+      "type": "Sprite",
+      "category": "card_frame",
+      "source": "SVG-generated",
+      "svgSource": "Assets/Art/SVG/frame_gold.svg"
+    },
+    {
+      "name": "frame_silver",
+      "path": "Assets/Resources/UI/Generated/frame_silver.png",
+      "type": "Sprite",
+      "category": "card_frame",
+      "source": "SVG-generated",
+      "svgSource": "Assets/Art/SVG/frame_silver.svg"
+    },
+    {
+      "name": "panel_card_detail",
+      "path": "Assets/Resources/UI/Generated/panel_card_detail.png",
+      "type": "Sprite",
+      "category": "panel",
+      "source": "SVG-generated",
+      "svgSource": "Assets/Art/SVG/panel_card_detail.svg"
+    },
+    {
+      "name": "panel_glass",
+      "path": "Assets/Resources/UI/Generated/panel_glass.png",
+      "type": "Sprite",
+      "category": "panel",
+      "source": "SVG-generated",
+      "svgSource": "Assets/Art/SVG/panel_glass.svg"
+    },
+    {
+      "name": "panel_message_log",
+      "path": "Assets/Resources/UI/Generated/panel_message_log.png",
+      "type": "Sprite",
+      "category": "panel",
+      "source": "SVG-generated",
+      "svgSource": "Assets/Art/SVG/panel_message_log.svg"
+    },
+    {
+      "name": "panel_reactive",
+      "path": "Assets/Resources/UI/Generated/panel_reactive.png",
+      "type": "Sprite",
+      "category": "panel",
+      "source": "SVG-generated",
+      "svgSource": "Assets/Art/SVG/panel_reactive.svg"
+    },
+    {
+      "name": "panel_spell_showcase",
+      "path": "Assets/Resources/UI/Generated/panel_spell_showcase.png",
+      "type": "Sprite",
+      "category": "panel",
+      "source": "SVG-generated",
+      "svgSource": "Assets/Art/SVG/panel_spell_showcase.svg"
+    },
+    {
+      "name": "ui_event_banner",
+      "path": "Assets/Resources/UI/Generated/ui_event_banner.png",
+      "type": "Sprite",
+      "category": "ui_info",
+      "source": "SVG-generated",
+      "svgSource": "Assets/Art/SVG/ui_event_banner.svg"
+    },
+    {
+      "name": "ui_mana_frame",
+      "path": "Assets/Resources/UI/Generated/ui_mana_frame.png",
+      "type": "Sprite",
+      "category": "ui_info",
+      "source": "SVG-generated",
+      "svgSource": "Assets/Art/SVG/ui_mana_frame.svg"
+    },
+    {
+      "name": "ui_phase_round",
+      "path": "Assets/Resources/UI/Generated/ui_phase_round.png",
+      "type": "Sprite",
+      "category": "ui_info",
+      "source": "SVG-generated",
+      "svgSource": "Assets/Art/SVG/ui_phase_round.svg"
+    },
+    {
+      "name": "ui_score_frame",
+      "path": "Assets/Resources/UI/Generated/ui_score_frame.png",
+      "type": "Sprite",
+      "category": "ui_info",
+      "source": "SVG-generated",
+      "svgSource": "Assets/Art/SVG/ui_score_frame.svg"
+    },
+    {
+      "name": "ui_toast_bg",
+      "path": "Assets/Resources/UI/Generated/ui_toast_bg.png",
+      "type": "Sprite",
+      "category": "ui_info",
+      "source": "SVG-generated",
+      "svgSource": "Assets/Art/SVG/ui_toast_bg.svg"
+    },
+    {
+      "name": "zone_base",
+      "path": "Assets/Resources/UI/Generated/zone_base.png",
+      "type": "Sprite",
+      "category": "zone",
+      "source": "SVG-generated",
+      "svgSource": "Assets/Art/SVG/zone_base.svg"
+    },
+    {
+      "name": "zone_battlefield",
+      "path": "Assets/Resources/UI/Generated/zone_battlefield.png",
+      "type": "Sprite",
+      "category": "zone",
+      "source": "SVG-generated",
+      "svgSource": "Assets/Art/SVG/zone_battlefield.svg"
+    },
+    {
+      "name": "zone_hand",
+      "path": "Assets/Resources/UI/Generated/zone_hand.png",
+      "type": "Sprite",
+      "category": "zone",
+      "source": "SVG-generated",
+      "svgSource": "Assets/Art/SVG/zone_hand.svg"
+    },
+    {
+      "name": "zone_hero",
+      "path": "Assets/Resources/UI/Generated/zone_hero.png",
+      "type": "Sprite",
+      "category": "zone",
+      "source": "SVG-generated",
+      "svgSource": "Assets/Art/SVG/zone_hero.svg"
+    },
+    {
+      "name": "zone_legend",
+      "path": "Assets/Resources/UI/Generated/zone_legend.png",
+      "type": "Sprite",
+      "category": "zone",
+      "source": "SVG-generated",
+      "svgSource": "Assets/Art/SVG/zone_legend.svg"
+    },
+    {
+      "name": "zone_rune",
+      "path": "Assets/Resources/UI/Generated/zone_rune.png",
+      "type": "Sprite",
+      "category": "zone",
+      "source": "SVG-generated",
+      "svgSource": "Assets/Art/SVG/zone_rune.svg"
     }
   ],
   "external_sources": [

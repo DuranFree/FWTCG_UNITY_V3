@@ -1,0 +1,51 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="240" height="80" viewBox="0 0 240 80">
+  <defs>
+    <linearGradient id="btnBgH" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#206030"/>
+      <stop offset="50%" stop-color="#154020"/>
+      <stop offset="100%" stop-color="#0a2010"/>
+    </linearGradient>
+    <linearGradient id="btnEdgeH" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0%" stop-color="#40e060" stop-opacity="0.4"/>
+      <stop offset="40%" stop-color="#60ff80" stop-opacity="1"/>
+      <stop offset="60%" stop-color="#60ff80" stop-opacity="1"/>
+      <stop offset="100%" stop-color="#40e060" stop-opacity="0.4"/>
+    </linearGradient>
+    <linearGradient id="btnShineH" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#80ffA0" stop-opacity="0.25"/>
+      <stop offset="50%" stop-color="#80ffA0" stop-opacity="0"/>
+    </linearGradient>
+    <filter id="glow">
+      <feGaussianBlur stdDeviation="3" result="b"/>
+      <feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+    <filter id="outerGlow">
+      <feGaussianBlur stdDeviation="6" result="b"/>
+      <feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+  </defs>
+
+  <!-- 外发光层 -->
+  <path d="M16,6 L228,6 L224,74 L12,74 Z" fill="none" stroke="#40e060" stroke-width="6" opacity="0.2" filter="url(#outerGlow)"/>
+
+  <!-- 主底板 -->
+  <path d="M16,6 L228,6 L224,74 L12,74 Z" fill="url(#btnBgH)" opacity="0.95"/>
+  <path d="M16,6 L228,6 L228,36 L16,38 Z" fill="url(#btnShineH)"/>
+  <!-- 外框（更亮） -->
+  <path d="M16,6 L228,6 L224,74 L12,74 Z" fill="none" stroke="#40e060" stroke-width="2" opacity="0.95" filter="url(#glow)"/>
+  <!-- 内框 -->
+  <path d="M19,9 L225,9 L221,71 L15,71 Z" fill="none" stroke="#60ff80" stroke-width="0.8" opacity="0.4"/>
+
+  <!-- 顶部发光线 -->
+  <path d="M16,6 L228,6" stroke="url(#btnEdgeH)" stroke-width="2.5" opacity="1" filter="url(#glow)"/>
+
+  <!-- 侧边 -->
+  <line x1="12" y1="74" x2="16" y2="6" stroke="#40e060" stroke-width="1" opacity="0.5"/>
+  <line x1="228" y1="6" x2="224" y2="74" stroke="#40e060" stroke-width="1" opacity="0.5"/>
+
+  <!-- 角落装饰 -->
+  <g fill="none" stroke="#60ff80" stroke-width="1.2" opacity="0.8" filter="url(#glow)">
+    <path d="M22,18 L22,10 L30,10"/>
+    <path d="M218,10 L226,10 L224,18"/>
+  </g>
+</svg>

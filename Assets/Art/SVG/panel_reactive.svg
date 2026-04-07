@@ -1,0 +1,51 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="800" height="500" viewBox="0 0 800 500">
+  <defs>
+    <linearGradient id="reactPanelBg" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#1a1000" stop-opacity="0.92"/>
+      <stop offset="100%" stop-color="#080600" stop-opacity="0.97"/>
+    </linearGradient>
+    <linearGradient id="reactTopLine" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0%" stop-color="#e06010" stop-opacity="0"/>
+      <stop offset="25%" stop-color="#e06010" stop-opacity="0.7"/>
+      <stop offset="50%" stop-color="#ff8020" stop-opacity="1"/>
+      <stop offset="75%" stop-color="#e06010" stop-opacity="0.7"/>
+      <stop offset="100%" stop-color="#e06010" stop-opacity="0"/>
+    </linearGradient>
+    <linearGradient id="reactShine" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#ff9040" stop-opacity="0.08"/>
+      <stop offset="40%" stop-color="#ff9040" stop-opacity="0"/>
+    </linearGradient>
+    <filter id="glow">
+      <feGaussianBlur stdDeviation="2.5" result="b"/>
+      <feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+  </defs>
+
+  <rect x="10" y="10" width="780" height="480" rx="14" fill="url(#reactPanelBg)"/>
+  <rect x="10" y="10" width="780" height="200" rx="14" fill="url(#reactShine)"/>
+
+  <!-- 橙色外框 -->
+  <rect x="10" y="10" width="780" height="480" rx="14" fill="none" stroke="#c05010" stroke-width="1.8" opacity="0.8"/>
+  <rect x="14" y="14" width="772" height="472" rx="11" fill="none" stroke="#ff8020" stroke-width="0.5" opacity="0.25"/>
+
+  <!-- 顶部橙色发光线 -->
+  <rect x="10" y="10" width="780" height="2.5" rx="1" fill="url(#reactTopLine)" filter="url(#glow)"/>
+
+  <!-- 四角装饰（橙色） -->
+  <g fill="none" stroke="#ff8020" stroke-width="1.5" opacity="0.8" filter="url(#glow)">
+    <path d="M24,36 L24,20 L40,20"/>
+    <path d="M776,36 L776,20 L760,20"/>
+    <path d="M24,464 L24,480 L40,480"/>
+    <path d="M776,464 L776,480 L760,480"/>
+  </g>
+
+  <!-- 顶部标题分隔 -->
+  <line x1="40" y1="72" x2="760" y2="72" stroke="#c05010" stroke-width="0.8" opacity="0.5"/>
+  <polygon points="400,68 406,72 400,76 394,72" fill="#ff8020" opacity="0.7"/>
+
+  <!-- 底部分隔（按钮区） -->
+  <line x1="40" y1="430" x2="760" y2="430" stroke="#802000" stroke-width="0.8" opacity="0.4"/>
+
+  <!-- 手牌展示区暗示框 -->
+  <rect x="30" y="82" width="740" height="330" rx="8" fill="none" stroke="#602010" stroke-width="0.8" opacity="0.35"/>
+</svg>

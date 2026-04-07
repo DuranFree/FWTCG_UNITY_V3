@@ -1,0 +1,62 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="400" height="560" viewBox="0 0 400 560">
+  <defs>
+    <linearGradient id="silverFrame" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%"  stop-color="#d0d8e0"/>
+      <stop offset="25%" stop-color="#8090a0"/>
+      <stop offset="50%" stop-color="#c0ccd8"/>
+      <stop offset="75%" stop-color="#607080"/>
+      <stop offset="100%" stop-color="#b0bcc8"/>
+    </linearGradient>
+    <linearGradient id="silverInner" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%"  stop-color="#080e18" stop-opacity="0.7"/>
+      <stop offset="100%" stop-color="#040810" stop-opacity="0.85"/>
+    </linearGradient>
+    <radialGradient id="silverGlow" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#8090a8" stop-opacity="0.12"/>
+      <stop offset="100%" stop-color="#8090a8" stop-opacity="0"/>
+    </radialGradient>
+    <filter id="glow">
+      <feGaussianBlur stdDeviation="2" result="b"/>
+      <feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+    <!-- 9-slice: 上32 下32 左24 右24 -->
+  </defs>
+
+  <!-- 内部底板 -->
+  <rect x="24" y="32" width="352" height="496" rx="8" fill="url(#silverInner)"/>
+  <rect x="24" y="32" width="352" height="496" rx="8" fill="url(#silverGlow)"/>
+
+  <!-- 主框 -->
+  <rect x="20" y="8"   width="360" height="28" rx="4" fill="url(#silverFrame)"/>
+  <rect x="20" y="524" width="360" height="28" rx="4" fill="url(#silverFrame)"/>
+  <rect x="4"  y="28"  width="24"  height="504" rx="4" fill="url(#silverFrame)"/>
+  <rect x="372" y="28" width="24"  height="504" rx="4" fill="url(#silverFrame)"/>
+
+  <!-- 内框细线 -->
+  <rect x="28" y="36" width="344" height="488" rx="6" fill="none" stroke="#c0ccd8" stroke-width="0.8" opacity="0.3"/>
+
+  <!-- 四角装饰 -->
+  <g filter="url(#glow)">
+    <polygon points="20,20 36,8 52,20 36,32"   fill="#d0d8e0" stroke="#607080" stroke-width="0.8"/>
+    <polygon points="348,20 364,8 380,20 364,32" fill="#d0d8e0" stroke="#607080" stroke-width="0.8"/>
+    <polygon points="20,528 36,516 52,528 36,540" fill="#d0d8e0" stroke="#607080" stroke-width="0.8"/>
+    <polygon points="348,528 364,516 380,528 364,540" fill="#d0d8e0" stroke="#607080" stroke-width="0.8"/>
+  </g>
+
+  <!-- 顶部分隔线 -->
+  <rect x="28" y="80" width="344" height="2" rx="1" fill="url(#silverFrame)" opacity="0.6"/>
+  <!-- 图像底分隔线 -->
+  <rect x="28" y="330" width="344" height="2" rx="1" fill="url(#silverFrame)" opacity="0.5"/>
+  <!-- 属性区分隔线 -->
+  <rect x="28" y="420" width="344" height="1.5" rx="0.75" fill="#8090a0" opacity="0.4"/>
+
+  <!-- 顶部中心徽章底座 -->
+  <ellipse cx="200" cy="36" rx="28" ry="14" fill="#04080e" stroke="url(#silverFrame)" stroke-width="1.5" opacity="0.9"/>
+
+  <!-- 底部战力框 -->
+  <rect x="36"  y="524" width="60" height="28" rx="4" fill="#04080e" stroke="url(#silverFrame)" stroke-width="1.2" opacity="0.9"/>
+  <rect x="304" y="524" width="60" height="28" rx="4" fill="#04080e" stroke="url(#silverFrame)" stroke-width="1.2" opacity="0.9"/>
+
+  <!-- 费用圆 -->
+  <circle cx="44" cy="52" r="22" fill="#04080e" stroke="url(#silverFrame)" stroke-width="2" opacity="0.95" filter="url(#glow)"/>
+</svg>

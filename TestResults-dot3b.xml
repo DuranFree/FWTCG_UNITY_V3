@@ -1,0 +1,286 @@
+<?xml version="1.0" encoding="utf-8"?>
+<test-run id="2" testcasecount="46" result="Passed" total="46" passed="46" failed="0" inconclusive="0" skipped="0" asserts="0" engine-version="3.5.0.0" clr-version="4.0.30319.42000" start-time="2026-04-06 00:50:32Z" end-time="2026-04-06 00:50:32Z" duration="0.0503075">
+  <test-suite type="TestSuite" id="1000" name="FWTCG_UNITY_V3" fullname="FWTCG_UNITY_V3" runstate="Runnable" testcasecount="869" result="Passed" start-time="2026-04-06 00:50:32Z" end-time="2026-04-06 00:50:32Z" duration="0.050308" total="46" passed="46" failed="0" inconclusive="0" skipped="0" asserts="0">
+    <properties>
+      <property name="platform" value="EditMode" />
+    </properties>
+    <test-suite type="Assembly" id="1865" name="FWTCG.Tests.EditMode.dll" fullname="E:/claudeCode/unity/FWTCG_UNITY_V3/Library/ScriptAssemblies/FWTCG.Tests.EditMode.dll" runstate="Runnable" testcasecount="818" result="Passed" start-time="2026-04-06 00:50:32Z" end-time="2026-04-06 00:50:32Z" duration="0.043437" total="46" passed="46" failed="0" inconclusive="0" skipped="0" asserts="0">
+      <properties>
+        <property name="_PID" value="50744" />
+        <property name="_APPDOMAIN" value="Unity Child Domain" />
+        <property name="platform" value="EditMode" />
+      </properties>
+      <test-suite type="TestSuite" id="1866" name="FWTCG" fullname="FWTCG" runstate="Runnable" testcasecount="750" result="Passed" start-time="2026-04-06 00:50:32Z" end-time="2026-04-06 00:50:32Z" duration="0.040976" total="46" passed="46" failed="0" inconclusive="0" skipped="0" asserts="0">
+        <properties>
+          <property name="platform" value="EditMode" />
+        </properties>
+        <test-suite type="TestSuite" id="1867" name="Tests" fullname="FWTCG.Tests" runstate="Runnable" testcasecount="750" result="Passed" start-time="2026-04-06 00:50:32Z" end-time="2026-04-06 00:50:32Z" duration="0.038245" total="46" passed="46" failed="0" inconclusive="0" skipped="0" asserts="0">
+          <properties>
+            <property name="platform" value="EditMode" />
+          </properties>
+          <test-suite type="TestFixture" id="1538" name="DOT3ReplacementTests" fullname="FWTCG.Tests.DOT3ReplacementTests" classname="FWTCG.Tests.DOT3ReplacementTests" runstate="Runnable" testcasecount="46" result="Passed" start-time="2026-04-06 00:50:32Z" end-time="2026-04-06 00:50:32Z" duration="0.033993" total="46" passed="46" failed="0" inconclusive="0" skipped="0" asserts="0">
+            <properties>
+              <property name="platform" value="EditMode" />
+            </properties>
+            <test-case id="1553" name="AskPromptUI_Constants" fullname="FWTCG.Tests.DOT3ReplacementTests.AskPromptUI_Constants" methodname="AskPromptUI_Constants" classname="FWTCG.Tests.DOT3ReplacementTests" runstate="Runnable" seed="1038928168" result="Passed" start-time="2026-04-06 00:50:32Z" end-time="2026-04-06 00:50:32Z" duration="0.009514" asserts="0">
+              <properties>
+                <property name="platform" value="EditMode" />
+              </properties>
+            </test-case>
+            <test-case id="1549" name="AskPromptUI_HasNoCoroutineField" fullname="FWTCG.Tests.DOT3ReplacementTests.AskPromptUI_HasNoCoroutineField" methodname="AskPromptUI_HasNoCoroutineField" classname="FWTCG.Tests.DOT3ReplacementTests" runstate="Runnable" seed="742461121" result="Passed" start-time="2026-04-06 00:50:32Z" end-time="2026-04-06 00:50:32Z" duration="0.000216" asserts="0">
+              <properties>
+                <property name="platform" value="EditMode" />
+              </properties>
+            </test-case>
+            <test-case id="1552" name="AskPromptUI_HasNoHideRoutineCoroutine" fullname="FWTCG.Tests.DOT3ReplacementTests.AskPromptUI_HasNoHideRoutineCoroutine" methodname="AskPromptUI_HasNoHideRoutineCoroutine" classname="FWTCG.Tests.DOT3ReplacementTests" runstate="Runnable" seed="707366173" result="Passed" start-time="2026-04-06 00:50:32Z" end-time="2026-04-06 00:50:32Z" duration="0.000316" asserts="0">
+              <properties>
+                <property name="platform" value="EditMode" />
+              </properties>
+            </test-case>
+            <test-case id="1551" name="AskPromptUI_HasNoShowRoutineCoroutine" fullname="FWTCG.Tests.DOT3ReplacementTests.AskPromptUI_HasNoShowRoutineCoroutine" methodname="AskPromptUI_HasNoShowRoutineCoroutine" classname="FWTCG.Tests.DOT3ReplacementTests" runstate="Runnable" seed="704091797" result="Passed" start-time="2026-04-06 00:50:32Z" end-time="2026-04-06 00:50:32Z" duration="0.000188" asserts="0">
+              <properties>
+                <property name="platform" value="EditMode" />
+              </properties>
+            </test-case>
+            <test-case id="1550" name="AskPromptUI_HasTweenField" fullname="FWTCG.Tests.DOT3ReplacementTests.AskPromptUI_HasTweenField" methodname="AskPromptUI_HasTweenField" classname="FWTCG.Tests.DOT3ReplacementTests" runstate="Runnable" seed="1681729141" result="Passed" start-time="2026-04-06 00:50:32Z" end-time="2026-04-06 00:50:32Z" duration="0.000200" asserts="0">
+              <properties>
+                <property name="platform" value="EditMode" />
+              </properties>
+            </test-case>
+            <test-case id="1566" name="AudioTool_ChannelConstants_Unchanged" fullname="FWTCG.Tests.DOT3ReplacementTests.AudioTool_ChannelConstants_Unchanged" methodname="AudioTool_ChannelConstants_Unchanged" classname="FWTCG.Tests.DOT3ReplacementTests" runstate="Runnable" seed="1449040334" result="Passed" start-time="2026-04-06 00:50:32Z" end-time="2026-04-06 00:50:32Z" duration="0.000176" asserts="0">
+              <properties>
+                <property name="platform" value="EditMode" />
+              </properties>
+            </test-case>
+            <test-case id="1561" name="AudioTool_ChannelHasNoCoroutineField" fullname="FWTCG.Tests.DOT3ReplacementTests.AudioTool_ChannelHasNoCoroutineField" methodname="AudioTool_ChannelHasNoCoroutineField" classname="FWTCG.Tests.DOT3ReplacementTests" runstate="Runnable" seed="2031408566" result="Passed" start-time="2026-04-06 00:50:32Z" end-time="2026-04-06 00:50:32Z" duration="0.000152" asserts="0">
+              <properties>
+                <property name="platform" value="EditMode" />
+              </properties>
+            </test-case>
+            <test-case id="1560" name="AudioTool_ChannelHasTweenField" fullname="FWTCG.Tests.DOT3ReplacementTests.AudioTool_ChannelHasTweenField" methodname="AudioTool_ChannelHasTweenField" classname="FWTCG.Tests.DOT3ReplacementTests" runstate="Runnable" seed="665590837" result="Passed" start-time="2026-04-06 00:50:32Z" end-time="2026-04-06 00:50:32Z" duration="0.000148" asserts="0">
+              <properties>
+                <property name="platform" value="EditMode" />
+              </properties>
+            </test-case>
+            <test-case id="1568" name="AudioTool_FadeIn_SetsChannelTween" fullname="FWTCG.Tests.DOT3ReplacementTests.AudioTool_FadeIn_SetsChannelTween" methodname="AudioTool_FadeIn_SetsChannelTween" classname="FWTCG.Tests.DOT3ReplacementTests" runstate="Runnable" seed="527661449" result="Passed" start-time="2026-04-06 00:50:32Z" end-time="2026-04-06 00:50:32Z" duration="0.004098" asserts="0">
+              <properties>
+                <property name="platform" value="EditMode" />
+              </properties>
+              <output><![CDATA[
+IgnoreFailingMessages:true
+Assertion failed on expression: 'ShouldRunBehaviour()'
+
+IgnoreFailingMessages:false
+]]></output>
+            </test-case>
+            <test-case id="1571" name="AudioTool_FadeIn_ZeroDuration_SetsVolumeImmediately" fullname="FWTCG.Tests.DOT3ReplacementTests.AudioTool_FadeIn_ZeroDuration_SetsVolumeImmediately" methodname="AudioTool_FadeIn_ZeroDuration_SetsVolumeImmediately" classname="FWTCG.Tests.DOT3ReplacementTests" runstate="Runnable" seed="1513111179" result="Passed" start-time="2026-04-06 00:50:32Z" end-time="2026-04-06 00:50:32Z" duration="0.000672" asserts="0">
+              <properties>
+                <property name="platform" value="EditMode" />
+              </properties>
+              <output><![CDATA[
+IgnoreFailingMessages:true
+Assertion failed on expression: 'ShouldRunBehaviour()'
+
+IgnoreFailingMessages:false
+]]></output>
+            </test-case>
+            <test-case id="1569" name="AudioTool_FadeOut_SetsChannelTween" fullname="FWTCG.Tests.DOT3ReplacementTests.AudioTool_FadeOut_SetsChannelTween" methodname="AudioTool_FadeOut_SetsChannelTween" classname="FWTCG.Tests.DOT3ReplacementTests" runstate="Runnable" seed="620172913" result="Passed" start-time="2026-04-06 00:50:32Z" end-time="2026-04-06 00:50:32Z" duration="0.000763" asserts="0">
+              <properties>
+                <property name="platform" value="EditMode" />
+              </properties>
+              <output><![CDATA[
+IgnoreFailingMessages:true
+Assertion failed on expression: 'ShouldRunBehaviour()'
+
+IgnoreFailingMessages:false
+]]></output>
+            </test-case>
+            <test-case id="1563" name="AudioTool_HasNoCrossFadeRoutineCoroutine" fullname="FWTCG.Tests.DOT3ReplacementTests.AudioTool_HasNoCrossFadeRoutineCoroutine" methodname="AudioTool_HasNoCrossFadeRoutineCoroutine" classname="FWTCG.Tests.DOT3ReplacementTests" runstate="Runnable" seed="1509759072" result="Passed" start-time="2026-04-06 00:50:32Z" end-time="2026-04-06 00:50:32Z" duration="0.000166" asserts="0">
+              <properties>
+                <property name="platform" value="EditMode" />
+              </properties>
+            </test-case>
+            <test-case id="1562" name="AudioTool_HasNoFadeRoutineCoroutine" fullname="FWTCG.Tests.DOT3ReplacementTests.AudioTool_HasNoFadeRoutineCoroutine" methodname="AudioTool_HasNoFadeRoutineCoroutine" classname="FWTCG.Tests.DOT3ReplacementTests" runstate="Runnable" seed="69575557" result="Passed" start-time="2026-04-06 00:50:32Z" end-time="2026-04-06 00:50:32Z" duration="0.000136" asserts="0">
+              <properties>
+                <property name="platform" value="EditMode" />
+              </properties>
+            </test-case>
+            <test-case id="1565" name="AudioTool_HasStartCrossFade" fullname="FWTCG.Tests.DOT3ReplacementTests.AudioTool_HasStartCrossFade" methodname="AudioTool_HasStartCrossFade" classname="FWTCG.Tests.DOT3ReplacementTests" runstate="Runnable" seed="11358255" result="Passed" start-time="2026-04-06 00:50:32Z" end-time="2026-04-06 00:50:32Z" duration="0.000134" asserts="0">
+              <properties>
+                <property name="platform" value="EditMode" />
+              </properties>
+            </test-case>
+            <test-case id="1564" name="AudioTool_HasStartFade" fullname="FWTCG.Tests.DOT3ReplacementTests.AudioTool_HasStartFade" methodname="AudioTool_HasStartFade" classname="FWTCG.Tests.DOT3ReplacementTests" runstate="Runnable" seed="2017458905" result="Passed" start-time="2026-04-06 00:50:32Z" end-time="2026-04-06 00:50:32Z" duration="0.000136" asserts="0">
+              <properties>
+                <property name="platform" value="EditMode" />
+              </properties>
+            </test-case>
+            <test-case id="1567" name="AudioTool_PriorityConstants_Unchanged" fullname="FWTCG.Tests.DOT3ReplacementTests.AudioTool_PriorityConstants_Unchanged" methodname="AudioTool_PriorityConstants_Unchanged" classname="FWTCG.Tests.DOT3ReplacementTests" runstate="Runnable" seed="491357277" result="Passed" start-time="2026-04-06 00:50:32Z" end-time="2026-04-06 00:50:32Z" duration="0.000505" asserts="0">
+              <properties>
+                <property name="platform" value="EditMode" />
+              </properties>
+            </test-case>
+            <test-case id="1570" name="AudioTool_StopChannel_KillsFadeTween" fullname="FWTCG.Tests.DOT3ReplacementTests.AudioTool_StopChannel_KillsFadeTween" methodname="AudioTool_StopChannel_KillsFadeTween" classname="FWTCG.Tests.DOT3ReplacementTests" runstate="Runnable" seed="2141742718" result="Passed" start-time="2026-04-06 00:50:32Z" end-time="2026-04-06 00:50:32Z" duration="0.000752" asserts="0">
+              <properties>
+                <property name="platform" value="EditMode" />
+              </properties>
+              <output><![CDATA[
+IgnoreFailingMessages:true
+Assertion failed on expression: 'ShouldRunBehaviour()'
+
+IgnoreFailingMessages:false
+]]></output>
+            </test-case>
+            <test-case id="1572" name="CardHoverScale_HasNoAnimatingField" fullname="FWTCG.Tests.DOT3ReplacementTests.CardHoverScale_HasNoAnimatingField" methodname="CardHoverScale_HasNoAnimatingField" classname="FWTCG.Tests.DOT3ReplacementTests" runstate="Runnable" seed="1267053411" result="Passed" start-time="2026-04-06 00:50:32Z" end-time="2026-04-06 00:50:32Z" duration="0.000164" asserts="0">
+              <properties>
+                <property name="platform" value="EditMode" />
+              </properties>
+            </test-case>
+            <test-case id="1575" name="CardHoverScale_HasNoLerpSpeedConstant" fullname="FWTCG.Tests.DOT3ReplacementTests.CardHoverScale_HasNoLerpSpeedConstant" methodname="CardHoverScale_HasNoLerpSpeedConstant" classname="FWTCG.Tests.DOT3ReplacementTests" runstate="Runnable" seed="619262092" result="Passed" start-time="2026-04-06 00:50:32Z" end-time="2026-04-06 00:50:32Z" duration="0.000149" asserts="0">
+              <properties>
+                <property name="platform" value="EditMode" />
+              </properties>
+            </test-case>
+            <test-case id="1573" name="CardHoverScale_HasNoTargetScaleField" fullname="FWTCG.Tests.DOT3ReplacementTests.CardHoverScale_HasNoTargetScaleField" methodname="CardHoverScale_HasNoTargetScaleField" classname="FWTCG.Tests.DOT3ReplacementTests" runstate="Runnable" seed="1715869625" result="Passed" start-time="2026-04-06 00:50:32Z" end-time="2026-04-06 00:50:32Z" duration="0.000131" asserts="0">
+              <properties>
+                <property name="platform" value="EditMode" />
+              </properties>
+            </test-case>
+            <test-case id="1578" name="CardHoverScale_HasOnDestroy" fullname="FWTCG.Tests.DOT3ReplacementTests.CardHoverScale_HasOnDestroy" methodname="CardHoverScale_HasOnDestroy" classname="FWTCG.Tests.DOT3ReplacementTests" runstate="Runnable" seed="1881840589" result="Passed" start-time="2026-04-06 00:50:32Z" end-time="2026-04-06 00:50:32Z" duration="0.000154" asserts="0">
+              <properties>
+                <property name="platform" value="EditMode" />
+              </properties>
+            </test-case>
+            <test-case id="1576" name="CardHoverScale_HasTweenDurationConstant" fullname="FWTCG.Tests.DOT3ReplacementTests.CardHoverScale_HasTweenDurationConstant" methodname="CardHoverScale_HasTweenDurationConstant" classname="FWTCG.Tests.DOT3ReplacementTests" runstate="Runnable" seed="1343751457" result="Passed" start-time="2026-04-06 00:50:32Z" end-time="2026-04-06 00:50:32Z" duration="0.001694" asserts="0">
+              <properties>
+                <property name="platform" value="EditMode" />
+              </properties>
+            </test-case>
+            <test-case id="1574" name="CardHoverScale_HasTweenField" fullname="FWTCG.Tests.DOT3ReplacementTests.CardHoverScale_HasTweenField" methodname="CardHoverScale_HasTweenField" classname="FWTCG.Tests.DOT3ReplacementTests" runstate="Runnable" seed="1889008614" result="Passed" start-time="2026-04-06 00:50:32Z" end-time="2026-04-06 00:50:32Z" duration="0.000187" asserts="0">
+              <properties>
+                <property name="platform" value="EditMode" />
+              </properties>
+            </test-case>
+            <test-case id="1577" name="CardHoverScale_HoverScaleConstant_Unchanged" fullname="FWTCG.Tests.DOT3ReplacementTests.CardHoverScale_HoverScaleConstant_Unchanged" methodname="CardHoverScale_HoverScaleConstant_Unchanged" classname="FWTCG.Tests.DOT3ReplacementTests" runstate="Runnable" seed="1513243681" result="Passed" start-time="2026-04-06 00:50:32Z" end-time="2026-04-06 00:50:32Z" duration="0.000146" asserts="0">
+              <properties>
+                <property name="platform" value="EditMode" />
+              </properties>
+            </test-case>
+            <test-case id="1547" name="EventBanner_Constants_Unchanged" fullname="FWTCG.Tests.DOT3ReplacementTests.EventBanner_Constants_Unchanged" methodname="EventBanner_Constants_Unchanged" classname="FWTCG.Tests.DOT3ReplacementTests" runstate="Runnable" seed="559210601" result="Passed" start-time="2026-04-06 00:50:32Z" end-time="2026-04-06 00:50:32Z" duration="0.000261" asserts="0">
+              <properties>
+                <property name="platform" value="EditMode" />
+              </properties>
+            </test-case>
+            <test-case id="1545" name="EventBanner_HasCreateAnimateIn" fullname="FWTCG.Tests.DOT3ReplacementTests.EventBanner_HasCreateAnimateIn" methodname="EventBanner_HasCreateAnimateIn" classname="FWTCG.Tests.DOT3ReplacementTests" runstate="Runnable" seed="1401889230" result="Passed" start-time="2026-04-06 00:50:32Z" end-time="2026-04-06 00:50:32Z" duration="0.000170" asserts="0">
+              <properties>
+                <property name="platform" value="EditMode" />
+              </properties>
+            </test-case>
+            <test-case id="1546" name="EventBanner_HasCreateAnimateOut" fullname="FWTCG.Tests.DOT3ReplacementTests.EventBanner_HasCreateAnimateOut" methodname="EventBanner_HasCreateAnimateOut" classname="FWTCG.Tests.DOT3ReplacementTests" runstate="Runnable" seed="1980396984" result="Passed" start-time="2026-04-06 00:50:32Z" end-time="2026-04-06 00:50:32Z" duration="0.000151" asserts="0">
+              <properties>
+                <property name="platform" value="EditMode" />
+              </properties>
+            </test-case>
+            <test-case id="1541" name="EventBanner_HasNoAnimateInCoroutine" fullname="FWTCG.Tests.DOT3ReplacementTests.EventBanner_HasNoAnimateInCoroutine" methodname="EventBanner_HasNoAnimateInCoroutine" classname="FWTCG.Tests.DOT3ReplacementTests" runstate="Runnable" seed="831813739" result="Passed" start-time="2026-04-06 00:50:32Z" end-time="2026-04-06 00:50:32Z" duration="0.000127" asserts="0">
+              <properties>
+                <property name="platform" value="EditMode" />
+              </properties>
+            </test-case>
+            <test-case id="1542" name="EventBanner_HasNoAnimateOutCoroutine" fullname="FWTCG.Tests.DOT3ReplacementTests.EventBanner_HasNoAnimateOutCoroutine" methodname="EventBanner_HasNoAnimateOutCoroutine" classname="FWTCG.Tests.DOT3ReplacementTests" runstate="Runnable" seed="33866186" result="Passed" start-time="2026-04-06 00:50:32Z" end-time="2026-04-06 00:50:32Z" duration="0.000120" asserts="0">
+              <properties>
+                <property name="platform" value="EditMode" />
+              </properties>
+            </test-case>
+            <test-case id="1543" name="EventBanner_HasNoClearFadeRoutine" fullname="FWTCG.Tests.DOT3ReplacementTests.EventBanner_HasNoClearFadeRoutine" methodname="EventBanner_HasNoClearFadeRoutine" classname="FWTCG.Tests.DOT3ReplacementTests" runstate="Runnable" seed="280479601" result="Passed" start-time="2026-04-06 00:50:32Z" end-time="2026-04-06 00:50:32Z" duration="0.000119" asserts="0">
+              <properties>
+                <property name="platform" value="EditMode" />
+              </properties>
+            </test-case>
+            <test-case id="1539" name="EventBanner_HasNoCoroutineAnimFields" fullname="FWTCG.Tests.DOT3ReplacementTests.EventBanner_HasNoCoroutineAnimFields" methodname="EventBanner_HasNoCoroutineAnimFields" classname="FWTCG.Tests.DOT3ReplacementTests" runstate="Runnable" seed="607460262" result="Passed" start-time="2026-04-06 00:50:32Z" end-time="2026-04-06 00:50:32Z" duration="0.000119" asserts="0">
+              <properties>
+                <property name="platform" value="EditMode" />
+              </properties>
+            </test-case>
+            <test-case id="1544" name="EventBanner_HasNoEaseOutBack" fullname="FWTCG.Tests.DOT3ReplacementTests.EventBanner_HasNoEaseOutBack" methodname="EventBanner_HasNoEaseOutBack" classname="FWTCG.Tests.DOT3ReplacementTests" runstate="Runnable" seed="38466629" result="Passed" start-time="2026-04-06 00:50:32Z" end-time="2026-04-06 00:50:32Z" duration="0.000116" asserts="0">
+              <properties>
+                <property name="platform" value="EditMode" />
+              </properties>
+            </test-case>
+            <test-case id="1548" name="EventBanner_HasOnDestroy" fullname="FWTCG.Tests.DOT3ReplacementTests.EventBanner_HasOnDestroy" methodname="EventBanner_HasOnDestroy" classname="FWTCG.Tests.DOT3ReplacementTests" runstate="Runnable" seed="1599044754" result="Passed" start-time="2026-04-06 00:50:32Z" end-time="2026-04-06 00:50:32Z" duration="0.000144" asserts="0">
+              <properties>
+                <property name="platform" value="EditMode" />
+              </properties>
+            </test-case>
+            <test-case id="1540" name="EventBanner_HasTweenFields" fullname="FWTCG.Tests.DOT3ReplacementTests.EventBanner_HasTweenFields" methodname="EventBanner_HasTweenFields" classname="FWTCG.Tests.DOT3ReplacementTests" runstate="Runnable" seed="1699734795" result="Passed" start-time="2026-04-06 00:50:32Z" end-time="2026-04-06 00:50:32Z" duration="0.000171" asserts="0">
+              <properties>
+                <property name="platform" value="EditMode" />
+              </properties>
+            </test-case>
+            <test-case id="1582" name="PortalVFX_Constants_Unchanged" fullname="FWTCG.Tests.DOT3ReplacementTests.PortalVFX_Constants_Unchanged" methodname="PortalVFX_Constants_Unchanged" classname="FWTCG.Tests.DOT3ReplacementTests" runstate="Runnable" seed="376883974" result="Passed" start-time="2026-04-06 00:50:32Z" end-time="2026-04-06 00:50:32Z" duration="0.000169" asserts="0">
+              <properties>
+                <property name="platform" value="EditMode" />
+              </properties>
+            </test-case>
+            <test-case id="1579" name="PortalVFX_HasNoCoroutineField" fullname="FWTCG.Tests.DOT3ReplacementTests.PortalVFX_HasNoCoroutineField" methodname="PortalVFX_HasNoCoroutineField" classname="FWTCG.Tests.DOT3ReplacementTests" runstate="Runnable" seed="1631787950" result="Passed" start-time="2026-04-06 00:50:32Z" end-time="2026-04-06 00:50:32Z" duration="0.000126" asserts="0">
+              <properties>
+                <property name="platform" value="EditMode" />
+              </properties>
+            </test-case>
+            <test-case id="1581" name="PortalVFX_HasNoFadeRoutineCoroutine" fullname="FWTCG.Tests.DOT3ReplacementTests.PortalVFX_HasNoFadeRoutineCoroutine" methodname="PortalVFX_HasNoFadeRoutineCoroutine" classname="FWTCG.Tests.DOT3ReplacementTests" runstate="Runnable" seed="1852616333" result="Passed" start-time="2026-04-06 00:50:32Z" end-time="2026-04-06 00:50:32Z" duration="0.000127" asserts="0">
+              <properties>
+                <property name="platform" value="EditMode" />
+              </properties>
+            </test-case>
+            <test-case id="1580" name="PortalVFX_HasTweenField" fullname="FWTCG.Tests.DOT3ReplacementTests.PortalVFX_HasTweenField" methodname="PortalVFX_HasTweenField" classname="FWTCG.Tests.DOT3ReplacementTests" runstate="Runnable" seed="2037170128" result="Passed" start-time="2026-04-06 00:50:32Z" end-time="2026-04-06 00:50:32Z" duration="0.000158" asserts="0">
+              <properties>
+                <property name="platform" value="EditMode" />
+              </properties>
+            </test-case>
+            <test-case id="1558" name="SpellDuelUI_HasKillTweens" fullname="FWTCG.Tests.DOT3ReplacementTests.SpellDuelUI_HasKillTweens" methodname="SpellDuelUI_HasKillTweens" classname="FWTCG.Tests.DOT3ReplacementTests" runstate="Runnable" seed="374930107" result="Passed" start-time="2026-04-06 00:50:32Z" end-time="2026-04-06 00:50:32Z" duration="0.000138" asserts="0">
+              <properties>
+                <property name="platform" value="EditMode" />
+              </properties>
+            </test-case>
+            <test-case id="1556" name="SpellDuelUI_HasNoBorderPulseLoopCoroutine" fullname="FWTCG.Tests.DOT3ReplacementTests.SpellDuelUI_HasNoBorderPulseLoopCoroutine" methodname="SpellDuelUI_HasNoBorderPulseLoopCoroutine" classname="FWTCG.Tests.DOT3ReplacementTests" runstate="Runnable" seed="506551394" result="Passed" start-time="2026-04-06 00:50:32Z" end-time="2026-04-06 00:50:32Z" duration="0.000121" asserts="0">
+              <properties>
+                <property name="platform" value="EditMode" />
+              </properties>
+            </test-case>
+            <test-case id="1554" name="SpellDuelUI_HasNoCoroutineFields" fullname="FWTCG.Tests.DOT3ReplacementTests.SpellDuelUI_HasNoCoroutineFields" methodname="SpellDuelUI_HasNoCoroutineFields" classname="FWTCG.Tests.DOT3ReplacementTests" runstate="Runnable" seed="1602127328" result="Passed" start-time="2026-04-06 00:50:32Z" end-time="2026-04-06 00:50:32Z" duration="0.000128" asserts="0">
+              <properties>
+                <property name="platform" value="EditMode" />
+              </properties>
+            </test-case>
+            <test-case id="1557" name="SpellDuelUI_HasNoCountdownRoutineCoroutine" fullname="FWTCG.Tests.DOT3ReplacementTests.SpellDuelUI_HasNoCountdownRoutineCoroutine" methodname="SpellDuelUI_HasNoCountdownRoutineCoroutine" classname="FWTCG.Tests.DOT3ReplacementTests" runstate="Runnable" seed="1959816548" result="Passed" start-time="2026-04-06 00:50:32Z" end-time="2026-04-06 00:50:32Z" duration="0.000131" asserts="0">
+              <properties>
+                <property name="platform" value="EditMode" />
+              </properties>
+            </test-case>
+            <test-case id="1559" name="SpellDuelUI_HasNoStopRoutinesMethod" fullname="FWTCG.Tests.DOT3ReplacementTests.SpellDuelUI_HasNoStopRoutinesMethod" methodname="SpellDuelUI_HasNoStopRoutinesMethod" classname="FWTCG.Tests.DOT3ReplacementTests" runstate="Runnable" seed="683169300" result="Passed" start-time="2026-04-06 00:50:32Z" end-time="2026-04-06 00:50:32Z" duration="0.000122" asserts="0">
+              <properties>
+                <property name="platform" value="EditMode" />
+              </properties>
+            </test-case>
+            <test-case id="1555" name="SpellDuelUI_HasTweenFields" fullname="FWTCG.Tests.DOT3ReplacementTests.SpellDuelUI_HasTweenFields" methodname="SpellDuelUI_HasTweenFields" classname="FWTCG.Tests.DOT3ReplacementTests" runstate="Runnable" seed="1015115755" result="Passed" start-time="2026-04-06 00:50:32Z" end-time="2026-04-06 00:50:32Z" duration="0.000464" asserts="0">
+              <properties>
+                <property name="platform" value="EditMode" />
+              </properties>
+            </test-case>
+            <test-case id="1584" name="TweenHelper_FadeCanvasGroup_NullSafe" fullname="FWTCG.Tests.DOT3ReplacementTests.TweenHelper_FadeCanvasGroup_NullSafe" methodname="TweenHelper_FadeCanvasGroup_NullSafe" classname="FWTCG.Tests.DOT3ReplacementTests" runstate="Runnable" seed="154126760" result="Passed" start-time="2026-04-06 00:50:32Z" end-time="2026-04-06 00:50:32Z" duration="0.000330" asserts="0">
+              <properties>
+                <property name="platform" value="EditMode" />
+              </properties>
+            </test-case>
+            <test-case id="1583" name="TweenHelper_KillSafe_NullTween" fullname="FWTCG.Tests.DOT3ReplacementTests.TweenHelper_KillSafe_NullTween" methodname="TweenHelper_KillSafe_NullTween" classname="FWTCG.Tests.DOT3ReplacementTests" runstate="Runnable" seed="1621618102" result="Passed" start-time="2026-04-06 00:50:32Z" end-time="2026-04-06 00:50:32Z" duration="0.000225" asserts="0">
+              <properties>
+                <property name="platform" value="EditMode" />
+              </properties>
+              <output><![CDATA[Saving results to: E:/claudeCode/unity/FWTCG_UNITY_V3/TestResults-dot3b.xml
+]]></output>
+            </test-case>
+          </test-suite>
+        </test-suite>
+      </test-suite>
+    </test-suite>
+  </test-suite>
+</test-run>

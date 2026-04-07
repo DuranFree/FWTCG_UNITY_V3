@@ -40,14 +40,9 @@ namespace FWTCG.UI
 
         private const int MAX_MULLIGAN_SWAPS = 2;
 
-        // DOT-8: shuffle & mulligan flip constants
-        private const int   SHUFFLE_CARD_COUNT  = 4;
-        private const float SHUFFLE_CARD_DUR    = 0.22f;
-        private const float SHUFFLE_STAGGER     = 0.06f;
+        // DOT-8: mulligan flip constant
         private const float MULLIGAN_FLIP_HALF  = 0.11f;
 
-        // DOT-8: shuffle ghost tracking
-        private readonly List<GameObject> _shuffleGhosts = new List<GameObject>();
         private Sequence _mulliganFlipSeq; // M-3: track flip tween for cleanup
 
         // DEV-24: animation timing constants (seconds)
@@ -148,12 +143,6 @@ namespace FWTCG.UI
                 }
             }
             _burstParticles.Clear();
-            // DOT-8: destroy any lingering shuffle ghosts
-            foreach (var g in _shuffleGhosts)
-            {
-                if (g != null) { DOTween.Kill(g); Destroy(g); }
-            }
-            _shuffleGhosts.Clear();
             // Resolve any pending TCS so callers don't hang if this component is destroyed mid-flow
             _activeCoinTcs?.TrySetResult(true);
             _activeMulliganTcs?.TrySetResult(true);
@@ -682,72 +671,5 @@ namespace FWTCG.UI
             Debug.Log($"[Mulligan] 换了 {count} 张牌，新手牌数: {hand.Count}");
         }
 
-        // ── DOT-8: Shuffle animation ──────────────────────────────────────────
-
-        /// <summary>
-        /// DOT-8: 4 ghost cards cross each other left/right to simulate deck shuffle.
-        /// Plays inside the mulligan panel after fade-in, before cards are shown.
-        /// </summary>
-        private Tween CreateShuffleAnimationTween()
-        {
-            if (_mulliganPanel == null) return null;
-            var parentRT = _mulliganPanel.GetComponent<RectTransform>();
-            if (parentRT == null) return null;
-
-            const float cardW = 60f;
-            const float cardH = 88f;
-
-            var masterSeq = DOTween.Sequence().SetTarget(gameObject);
-            for (int i = 0; i < SHUFFLE_CARD_COUNT; i++)
-            {
-                int idx = i;
-                var go = new GameObject($"ShuffleGhost{i}");
-                _shuffleGhosts.Add(go);
-                go.transform.SetParent(parentRT, false);
-
-                var rt = go.AddComponent<RectTransform>();
-                rt.sizeDelta = new Vector2(cardW, cardH);
-                rt.anchorMin = rt.anchorMax = new Vector2(0.5f, 0.5f);
-                float startX = (idx - (SHUFFLE_CARD_COUNT - 1) * 0.5f) * (cardW * 0.55f);
-                rt.anchoredPosition = new Vector2(startX, 0f);
-
-                var img = go.AddComponent<Image>();
-                img.color = new Color(0.18f, 0.15f, 0.26f, 0.88f);
-
-                // Card border
-                var border = new GameObject("B");
-                border.transform.SetParent(go.transform, false);
-                var bRT = border.AddComponent<RectTransform>();
-                bRT.anchorMin = Vector2.zero; bRT.anchorMax = Vector2.one;
-                bRT.offsetMin = new Vector2(2, 2); bRT.offsetMax = new Vector2(-2, -2);
-                var bImg = border.AddComponent<Image>();
-                bImg.color = new Color(0.70f, 0.60f, 0.38f, 0.55f);
-                border.transform.SetSiblingIndex(0);
-
-                float delay  = idx * SHUFFLE_STAGGER;
-                // Alternate cross direction per card
-                float crossX = startX + (idx % 2 == 0 ? 1f : -1f) * cardW * 1.8f;
-
-                var cardSeq = DOTween.Sequence().SetTarget(go);
-                // Cross to opposite side
-                cardSeq.Append(rt.DOAnchorPosX(crossX, SHUFFLE_CARD_DUR).SetEase(Ease.OutQuad));
-                // Return, fade out during return
-                cardSeq.Append(rt.DOAnchorPosX(startX, SHUFFLE_CARD_DUR).SetEase(Ease.OutQuad));
-                cardSeq.Join(img.DOFade(0f, SHUFFLE_CARD_DUR * 0.75f).SetDelay(SHUFFLE_CARD_DUR * 0.25f));
-                cardSeq.OnComplete(() =>
-                {
-                    _shuffleGhosts.Remove(go);
-                    if (go != null) Destroy(go);
-                });
-
-                masterSeq.Insert(delay, cardSeq);
-            }
-
-            // Small buffer after last card completes
-            float lastStart = SHUFFLE_STAGGER * (SHUFFLE_CARD_COUNT - 1);
-            masterSeq.InsertCallback(lastStart + SHUFFLE_CARD_DUR * 2f + 0.1f, () => { });
-            masterSeq.AppendInterval(0.05f);
-            return masterSeq;
-        }
     }
 }

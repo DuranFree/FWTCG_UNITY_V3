@@ -1,0 +1,39 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="320" height="60" viewBox="0 0 320 60">
+  <defs>
+    <linearGradient id="phaseBg" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0%" stop-color="#060c18" stop-opacity="0"/>
+      <stop offset="15%" stop-color="#0a1828" stop-opacity="0.9"/>
+      <stop offset="50%" stop-color="#0e2040" stop-opacity="0.95"/>
+      <stop offset="85%" stop-color="#0a1828" stop-opacity="0.9"/>
+      <stop offset="100%" stop-color="#060c18" stop-opacity="0"/>
+    </linearGradient>
+    <linearGradient id="phaseEdge" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0%" stop-color="#4090d0" stop-opacity="0"/>
+      <stop offset="20%" stop-color="#4090d0" stop-opacity="0.7"/>
+      <stop offset="50%" stop-color="#60b0ff" stop-opacity="1"/>
+      <stop offset="80%" stop-color="#4090d0" stop-opacity="0.7"/>
+      <stop offset="100%" stop-color="#4090d0" stop-opacity="0"/>
+    </linearGradient>
+    <filter id="glow">
+      <feGaussianBlur stdDeviation="1.5" result="b"/>
+      <feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+  </defs>
+
+  <!-- 梭形底板 -->
+  <path d="M40,4 L280,4 L310,30 L280,56 L40,56 L10,30 Z" fill="url(#phaseBg)"/>
+  <path d="M40,4 L280,4 L310,30 L280,56 L40,56 L10,30 Z" fill="none" stroke="#2060b0" stroke-width="1.2" opacity="0.7"/>
+  <path d="M42,7 L278,7 L306,30 L278,53 L42,53 L14,30 Z" fill="none" stroke="#4090d0" stroke-width="0.4" opacity="0.25"/>
+
+  <!-- 顶部发光线 -->
+  <path d="M40,4 L280,4" stroke="url(#phaseEdge)" stroke-width="2" filter="url(#glow)"/>
+  <!-- 底部线 -->
+  <path d="M40,56 L280,56" stroke="#2060b0" stroke-width="0.8" opacity="0.4"/>
+
+  <!-- 左右菱形端点 -->
+  <polygon points="10,30 18,24 26,30 18,36" fill="#2060b0" opacity="0.6" filter="url(#glow)"/>
+  <polygon points="310,30 302,24 294,30 302,36" fill="#2060b0" opacity="0.6" filter="url(#glow)"/>
+
+  <!-- 中心分隔竖线 -->
+  <line x1="160" y1="10" x2="160" y2="50" stroke="#1a4080" stroke-width="0.6" opacity="0.4"/>
+</svg>

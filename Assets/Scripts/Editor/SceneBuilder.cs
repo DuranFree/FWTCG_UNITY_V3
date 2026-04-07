@@ -74,12 +74,13 @@ namespace FWTCG.Editor
             var canvas = canvasGO.GetComponent<Canvas>();
             var canvasRT = canvasGO.GetComponent<RectTransform>();
 
-            // ── Background (VFX-7i: bg_menu.png sprite, fallback to HexGrid shader) ──
+            // ── Background (SVG-gen bg_game_main, fallback bg_menu, fallback HexGrid) ──
             var background = CreateFullscreenPanel(canvasGO.transform, "Background",
                 HexColor("#010a13"));
             {
                 var bgImg = background.GetComponent<Image>();
-                var bgMenuSpr = AssetDatabase.LoadAssetAtPath<Sprite>("Assets/Sprites/UI/bg_menu.png");
+                var bgMenuSpr = AssetDatabase.LoadAssetAtPath<Sprite>("Assets/Resources/UI/Generated/bg_game_main.png")
+                    ?? AssetDatabase.LoadAssetAtPath<Sprite>("Assets/Sprites/UI/bg_menu.png");
                 if (bgMenuSpr != null)
                 {
                     bgImg.sprite = bgMenuSpr;
@@ -133,20 +134,30 @@ namespace FWTCG.Editor
                 dlRT.offsetMax = Vector2.zero;
                 _scenery = decorLayerGO.AddComponent<SceneryUI>();
 
+                // SVG-gen sprites for decor elements
+                var sigilSpr  = AssetDatabase.LoadAssetAtPath<Sprite>("Assets/Resources/UI/Generated/deco_sigil_ring.png");
+                var orbSpr    = AssetDatabase.LoadAssetAtPath<Sprite>("Assets/Resources/UI/Generated/deco_divider_orb.png");
+
                 // Center spinning rings (on top of each other at canvas center)
                 _spinOuter  = CreateDecorDisc(decorLayerGO.transform, "SpinOuter",  180f, new Color(GameColors.BlueSpell.r, GameColors.BlueSpell.g, GameColors.BlueSpell.b, 0.12f));
+                if (sigilSpr != null) { _spinOuter.sprite = sigilSpr; _spinOuter.color = new Color(0.4f, 0.7f, 1f, 0.12f); }
                 _spinInner  = CreateDecorDisc(decorLayerGO.transform, "SpinInner",  120f, new Color(GameColors.Teal.r, GameColors.Teal.g, GameColors.Teal.b, 0.10f));
+                if (sigilSpr != null) { _spinInner.sprite = sigilSpr; _spinInner.color = new Color(0.4f, 0.9f, 0.9f, 0.10f); }
 
                 // Sigil rotation layers (larger, slower)
                 _sigilOuter = CreateDecorDisc(decorLayerGO.transform, "SigilOuter", 280f, new Color(GameColors.Gold.r, GameColors.Gold.g, GameColors.Gold.b, 0.06f));
+                if (sigilSpr != null) { _sigilOuter.sprite = sigilSpr; _sigilOuter.color = new Color(1f, 0.85f, 0.3f, 0.06f); }
                 _sigilInner = CreateDecorDisc(decorLayerGO.transform, "SigilInner", 190f, new Color(GameColors.GoldLight.r, GameColors.GoldLight.g, GameColors.GoldLight.b, 0.08f));
+                if (sigilSpr != null) { _sigilInner.sprite = sigilSpr; _sigilInner.color = new Color(1f, 0.92f, 0.5f, 0.08f); }
 
                 // Divider energy orb (small glowing disc at canvas center)
                 _dividerOrb = CreateDecorDisc(decorLayerGO.transform, "DividerOrb",  18f, new Color(GameColors.BlueSpell.r, GameColors.BlueSpell.g, GameColors.BlueSpell.b, 0.75f));
+                if (orbSpr != null) { _dividerOrb.sprite = orbSpr; _dividerOrb.color = new Color(0.4f, 0.7f, 1f, 0.85f); }
 
                 // Corner gems — one per corner of the canvas
                 _cornerGems = new Image[4];
                 float gemSz = 48f;
+                var cornerGemSpr = AssetDatabase.LoadAssetAtPath<Sprite>("Assets/Resources/UI/Generated/deco_corner_gem.png");
                 Vector2[] cAnch = { new Vector2(0,1), new Vector2(1,1), new Vector2(0,0), new Vector2(1,0) };
                 Vector2[] cOff  = { new Vector2(16,-16), new Vector2(-16,-16), new Vector2(16,16), new Vector2(-16,16) };
                 for (int ci = 0; ci < 4; ci++)
@@ -159,7 +170,8 @@ namespace FWTCG.Editor
                     gemRT.anchoredPosition = cOff[ci];
                     gemRT.sizeDelta = Vector2.one * gemSz;
                     var gemImg = gemGO.GetComponent<Image>();
-                    gemImg.color = new Color(GameColors.Gold.r, GameColors.Gold.g, GameColors.Gold.b, SceneryUI.CORNER_GEM_ALPHA_MIN);
+                    if (cornerGemSpr != null) { gemImg.sprite = cornerGemSpr; gemImg.color = new Color(1f, 1f, 1f, SceneryUI.CORNER_GEM_ALPHA_MIN); }
+                    else gemImg.color = new Color(GameColors.Gold.r, GameColors.Gold.g, GameColors.Gold.b, SceneryUI.CORNER_GEM_ALPHA_MIN);
                     gemImg.raycastTarget = false;
                     _cornerGems[ci] = gemImg;
                 }
@@ -183,6 +195,7 @@ namespace FWTCG.Editor
                 // CSS: .hand-zone bg linear-gradient(135deg, rgba(3,14,25,0.85), rgba(1,10,19,0.9))
                 var ehImg = enemyHandZone.AddComponent<Image>();
                 ehImg.color = new Color(2f/255f, 12f/255f, 22f/255f, 0.87f);
+                TryApplySvgSprite(ehImg, "zone_hand", Image.Type.Sliced);
 
                 var ehHLG = enemyHandZone.AddComponent<HorizontalLayoutGroup>();
                 ehHLG.childControlWidth = false;
@@ -232,6 +245,7 @@ namespace FWTCG.Editor
                 // CSS: .hand-zone bg + border
                 var phImg = playerHandZone.AddComponent<Image>();
                 phImg.color = new Color(2f/255f, 12f/255f, 22f/255f, 0.87f);
+                TryApplySvgSprite(phImg, "zone_hand", Image.Type.Sliced);
                 var phOutline = playerHandZone.AddComponent<Outline>();
                 phOutline.effectColor = new Color(200f/255f, 170f/255f, 110f/255f, 0.2f);
                 phOutline.effectDistance = new Vector2(1f, -1f);
@@ -477,6 +491,8 @@ namespace FWTCG.Editor
 
             // ── CardArt: ensure all PNGs are imported as Sprite ──────────────
             EnsureCardArtImportedAsSprite();
+            // ── Generated UI: ensure all SVG-derived PNGs are imported as Sprite ──
+            EnsureGeneratedUISprites();
 
             // ── CardData ScriptableObjects ────────────────────────────────────
             EnsureDirectory("Assets/Resources/Cards");
@@ -685,6 +701,29 @@ namespace FWTCG.Editor
             AssetDatabase.Refresh();
 
             Debug.Log("[SceneBuilder] GameScene.unity 创建成功！");
+        }
+
+        // ── SVG-gen sprite helpers ────────────────────────────────────────────
+
+        /// <summary>
+        /// Loads a PNG from Assets/Resources/UI/Generated/{stem}.png as a Sprite.
+        /// Returns null if the file does not exist yet.
+        /// </summary>
+        private static Sprite GenSpr(string stem) =>
+            AssetDatabase.LoadAssetAtPath<Sprite>($"Assets/Resources/UI/Generated/{stem}.png");
+
+        /// <summary>
+        /// If a generated sprite exists, applies it to <paramref name="img"/> in Sliced mode
+        /// and sets the colour to white so the sprite renders at full quality.
+        /// Falls back to the existing solid colour when the file is missing.
+        /// </summary>
+        private static void TryApplySvgSprite(Image img, string stem, Image.Type mode = Image.Type.Sliced)
+        {
+            var spr = GenSpr(stem);
+            if (spr == null) return;
+            img.sprite = spr;
+            img.type   = mode;
+            img.color  = Color.white;
         }
 
         // ── DEV-23: Decorative helpers ────────────────────────────────────────
@@ -998,9 +1037,12 @@ namespace FWTCG.Editor
             var go = CreateAnchoredZone(parent, name, xMin, xMax, yMin, yMax);
 
             // CSS: background rgba(4,16,28,0.9), border 1px solid rgba(200,155,60,0.18)
-            bool isBase = name.Contains("Base");
+            bool isBase  = name.Contains("Base");
+            bool isRune  = name.Contains("Rune");
             var img = go.AddComponent<Image>();
             img.color = isBase ? ZoneBgBase : ZoneBgDefault;
+            if      (isBase) TryApplySvgSprite(img, "zone_base",  Image.Type.Sliced);
+            else if (isRune) TryApplySvgSprite(img, "zone_rune",  Image.Type.Sliced);
             var outline = go.AddComponent<Outline>();
             outline.effectColor = ZoneBorderColor;
             outline.effectDistance = new Vector2(1f, -1f);
@@ -1132,6 +1174,7 @@ namespace FWTCG.Editor
             // CSS: rgba(3,14,26,0.88), border rgba(200,155,60,0.18)
             var img = go.AddComponent<Image>();
             img.color = ZoneBgDefault;
+            TryApplySvgSprite(img, "zone_hero", Image.Type.Sliced);
             var outline = go.AddComponent<Outline>();
             outline.effectColor = ZoneBorderColor;
             outline.effectDistance = new Vector2(1f, -1f);
@@ -1302,6 +1345,12 @@ namespace FWTCG.Editor
             var le = panel.AddComponent<LayoutElement>();
             le.flexibleWidth = 1f;
             le.flexibleHeight = 1f;
+
+            // SVG-gen battlefield background
+            var bfBgImg = panel.AddComponent<Image>();
+            bfBgImg.color = new Color(3f/255f, 14f/255f, 26f/255f, 0.85f);
+            bfBgImg.raycastTarget = false;
+            TryApplySvgSprite(bfBgImg, "zone_battlefield", Image.Type.Sliced);
 
             var vlg = panel.AddComponent<VerticalLayoutGroup>();
             vlg.childControlWidth = true;
@@ -1516,8 +1565,9 @@ namespace FWTCG.Editor
             confirmRunesBtn = CreateActionButton(actionPanel.transform, "ConfirmRunesBtn", "确认符文操作", GameColors.ActionBtnPrimary);
             skipReactionBtn = CreateActionButton(actionPanel.transform, "SkipReactionBtn", "跳过响应", GameColors.ActionBtnSecondary);
             endTurnButton = CreateActionButton(actionPanel.transform, "EndTurnButton", "结束行动", GameColors.ActionBtnPrimary);
-            // VFX-7d: apply EndTurn button sprite if available
-            var endTurnSpr = AssetDatabase.LoadAssetAtPath<Sprite>("Assets/Sprites/UI/button_endturn.png");
+            // VFX-7d / SVG-gen: apply EndTurn button sprite if available
+            var endTurnSpr = AssetDatabase.LoadAssetAtPath<Sprite>("Assets/Resources/UI/Generated/btn_end_turn.png")
+                ?? AssetDatabase.LoadAssetAtPath<Sprite>("Assets/Sprites/UI/button_endturn.png");
             if (endTurnSpr != null)
             {
                 var endImg = endTurnButton.GetComponent<Image>();
@@ -1558,6 +1608,13 @@ namespace FWTCG.Editor
             var img = go.AddComponent<Image>();
             img.color = bgColor;
 
+            // SVG-gen: pick sprite by button name
+            if      (name.Contains("EndTurn"))    TryApplySvgSprite(img, "btn_end_turn",  Image.Type.Sliced);
+            else if (name.Contains("React"))      TryApplySvgSprite(img, "btn_react",      Image.Type.Sliced);
+            else if (name.Contains("Skip") || name.Contains("SkipReact")) TryApplySvgSprite(img, "btn_skip", Image.Type.Sliced);
+            else if (name.Contains("Confirm"))    TryApplySvgSprite(img, "btn_confirm",    Image.Type.Sliced);
+            else if (name.Contains("Cancel"))     TryApplySvgSprite(img, "btn_cancel",     Image.Type.Sliced);
+
             var btn = go.AddComponent<Button>();
 
             var lblGO = new GameObject("Label");
@@ -1596,6 +1653,7 @@ namespace FWTCG.Editor
 
             var img = go.AddComponent<Image>();
             img.color = new Color(0f, 0f, 0f, 0.5f);
+            TryApplySvgSprite(img, "panel_message_log", Image.Type.Sliced);
 
             var vlg = go.AddComponent<VerticalLayoutGroup>();
             vlg.childControlWidth = true;
@@ -1621,6 +1679,7 @@ namespace FWTCG.Editor
             out Text resultText, out Button restartButton)
         {
             var go = CreateFullscreenPanel(parent, "GameOverPanel", new Color(0f, 0f, 0f, 0.8f));
+            TryApplySvgSprite(go.GetComponent<Image>(), "bg_game_over", Image.Type.Simple);
             // DEV-24: CanvasGroup for fade-in
             go.AddComponent<CanvasGroup>();
 
@@ -3361,6 +3420,41 @@ namespace FWTCG.Editor
         {
             return CreateCardData(id, name, cost, 0, runeType, runeCost, desc, kw, effectId,
                 isSpell: true, spellTargetType: targetType);
+        }
+
+        /// <summary>
+        /// Sets TextureImporterType.Sprite on every PNG in Assets/Resources/UI/Generated/.
+        /// Called before SceneBuilder wires sprite references so assets are ready.
+        /// </summary>
+        private static void EnsureGeneratedUISprites()
+        {
+            string folder = "Assets/Resources/UI/Generated";
+            if (!System.IO.Directory.Exists(folder)) return;
+
+            foreach (string fullPath in System.IO.Directory.GetFiles(folder, "*.png"))
+            {
+                string assetPath = fullPath.Replace('\\', '/');
+                int idx = assetPath.IndexOf("Assets/");
+                if (idx >= 0) assetPath = assetPath.Substring(idx);
+                else continue;
+
+                AssetDatabase.ImportAsset(assetPath, ImportAssetOptions.ForceSynchronousImport);
+                var importer = AssetImporter.GetAtPath(assetPath) as TextureImporter;
+                if (importer == null) continue;
+
+                if (importer.textureType != TextureImporterType.Sprite)
+                {
+                    importer.textureType         = TextureImporterType.Sprite;
+                    importer.spriteImportMode    = SpriteImportMode.Single;
+                    importer.alphaIsTransparency = true;
+                    importer.maxTextureSize      = 4096;
+                    AssetDatabase.ImportAsset(assetPath, ImportAssetOptions.ForceSynchronousImport);
+                    Debug.Log($"[SceneBuilder] GeneratedUI 设为Sprite: {assetPath}");
+                }
+            }
+
+            // frame_gold/silver 保留原始文件，不在此重新导入
+            AssetDatabase.Refresh();
         }
 
         /// <summary>

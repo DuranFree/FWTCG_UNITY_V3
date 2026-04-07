@@ -1,0 +1,95 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1920" height="1080" viewBox="0 0 1920 1080">
+  <defs>
+    <!-- 深色星云背景渐变 -->
+    <radialGradient id="nebula1" cx="30%" cy="40%" r="60%">
+      <stop offset="0%" stop-color="#0d1f3c" stop-opacity="1"/>
+      <stop offset="100%" stop-color="#060c18" stop-opacity="1"/>
+    </radialGradient>
+    <radialGradient id="nebula2" cx="80%" cy="60%" r="50%">
+      <stop offset="0%" stop-color="#1a0d2e" stop-opacity="0.7"/>
+      <stop offset="100%" stop-color="#060c18" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="nebula3" cx="50%" cy="20%" r="40%">
+      <stop offset="0%" stop-color="#0a1a2a" stop-opacity="0.8"/>
+      <stop offset="100%" stop-color="#060c18" stop-opacity="0"/>
+    </radialGradient>
+    <!-- 六边形图案滤镜 -->
+    <filter id="glow" x="-20%" y="-20%" width="140%" height="140%">
+      <feGaussianBlur stdDeviation="2" result="blur"/>
+      <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+    <filter id="softglow" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur stdDeviation="8" result="blur"/>
+      <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+    <pattern id="hex" x="0" y="0" width="60" height="52" patternUnits="userSpaceOnUse">
+      <polygon points="30,2 56,17 56,47 30,62 4,47 4,17" fill="none" stroke="#1e3a5f" stroke-width="0.5" opacity="0.3"/>
+      <polygon points="30,2 56,17 56,47 30,62 4,47 4,17" fill="none" stroke="#2a5480" stroke-width="0.2" opacity="0.15"/>
+    </pattern>
+    <pattern id="hex2" x="30" y="26" width="60" height="52" patternUnits="userSpaceOnUse">
+      <polygon points="30,2 56,17 56,47 30,62 4,47 4,17" fill="none" stroke="#1e3a5f" stroke-width="0.5" opacity="0.3"/>
+    </pattern>
+    <!-- 中心光晕 -->
+    <radialGradient id="centerGlow" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#1a4080" stop-opacity="0.2"/>
+      <stop offset="60%" stop-color="#0d2040" stop-opacity="0.05"/>
+      <stop offset="100%" stop-color="#060c18" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+
+  <!-- 基础背景 -->
+  <rect width="1920" height="1080" fill="#060c18"/>
+  <!-- 星云层 -->
+  <rect width="1920" height="1080" fill="url(#nebula1)"/>
+  <rect width="1920" height="1080" fill="url(#nebula2)"/>
+  <rect width="1920" height="1080" fill="url(#nebula3)"/>
+
+  <!-- 六边形网格 -->
+  <rect width="1920" height="1080" fill="url(#hex)"/>
+  <rect width="1920" height="1080" fill="url(#hex2)"/>
+
+  <!-- 中心光晕 -->
+  <rect width="1920" height="1080" fill="url(#centerGlow)"/>
+
+  <!-- 顶部边缘渐变条 -->
+  <rect width="1920" height="3" y="0" fill="#2a6090" opacity="0.4"/>
+  <rect width="1920" height="1" y="0" fill="#4a90d0" opacity="0.6"/>
+
+  <!-- 底部边缘渐变条 -->
+  <rect width="1920" height="3" y="1077" fill="#2a6090" opacity="0.4"/>
+  <rect width="1920" height="1" y="1079" fill="#4a90d0" opacity="0.6"/>
+
+  <!-- 左右边缘竖线 -->
+  <rect width="1" height="1080" x="0" fill="#2a6090" opacity="0.3"/>
+  <rect width="1" height="1080" x="1919" fill="#2a6090" opacity="0.3"/>
+
+  <!-- 星点 -->
+  <g opacity="0.6">
+    <circle cx="120" cy="80" r="1" fill="#8ab4d4"/>
+    <circle cx="340" cy="200" r="1.5" fill="#a0c4e8"/>
+    <circle cx="580" cy="60" r="1" fill="#7090b0"/>
+    <circle cx="900" cy="140" r="1" fill="#8ab4d4"/>
+    <circle cx="1200" cy="90" r="1.5" fill="#a0c4e8"/>
+    <circle cx="1500" cy="160" r="1" fill="#7090b0"/>
+    <circle cx="1750" cy="70" r="1" fill="#8ab4d4"/>
+    <circle cx="200" cy="900" r="1" fill="#8ab4d4"/>
+    <circle cx="500" cy="980" r="1.5" fill="#a0c4e8"/>
+    <circle cx="800" cy="920" r="1" fill="#7090b0"/>
+    <circle cx="1100" cy="960" r="1" fill="#8ab4d4"/>
+    <circle cx="1400" cy="900" r="1.5" fill="#a0c4e8"/>
+    <circle cx="1700" cy="970" r="1" fill="#7090b0"/>
+    <circle cx="60" cy="400" r="1" fill="#6080a0"/>
+    <circle cx="1860" cy="600" r="1" fill="#6080a0"/>
+    <circle cx="400" cy="500" r="0.8" fill="#506080"/>
+    <circle cx="1600" cy="400" r="0.8" fill="#506080"/>
+    <circle cx="700" cy="300" r="1.2" fill="#7090b0"/>
+    <circle cx="1300" cy="700" r="1.2" fill="#7090b0"/>
+  </g>
+
+  <!-- 玩家区域分割线（中间横线暗示） -->
+  <line x1="0" y1="540" x2="1920" y2="540" stroke="#1e3a5f" stroke-width="1" opacity="0.4" stroke-dasharray="8,12"/>
+
+  <!-- 左右侧竖向装饰光带 -->
+  <rect x="0" y="200" width="2" height="680" fill="#2a5080" opacity="0.2"/>
+  <rect x="1918" y="200" width="2" height="680" fill="#2a5080" opacity="0.2"/>
+</svg>

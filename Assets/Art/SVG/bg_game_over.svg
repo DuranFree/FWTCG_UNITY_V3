@@ -1,0 +1,55 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1920" height="1080" viewBox="0 0 1920 1080">
+  <defs>
+    <radialGradient id="overBg" cx="50%" cy="50%" r="70%">
+      <stop offset="0%" stop-color="#200818"/>
+      <stop offset="60%" stop-color="#100510"/>
+      <stop offset="100%" stop-color="#040108"/>
+    </radialGradient>
+    <radialGradient id="redGlow" cx="50%" cy="50%" r="45%">
+      <stop offset="0%" stop-color="#800010" stop-opacity="0.4"/>
+      <stop offset="100%" stop-color="#800010" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="goldGlow" cx="50%" cy="50%" r="35%">
+      <stop offset="0%" stop-color="#c8a020" stop-opacity="0.2"/>
+      <stop offset="100%" stop-color="#c8a020" stop-opacity="0"/>
+    </radialGradient>
+    <filter id="bigBlur"><feGaussianBlur stdDeviation="30"/></filter>
+    <filter id="glow"><feGaussianBlur stdDeviation="8" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+  </defs>
+
+  <rect width="1920" height="1080" fill="url(#overBg)"/>
+  <rect width="1920" height="1080" fill="url(#redGlow)"/>
+  <rect width="1920" height="1080" fill="url(#goldGlow)"/>
+
+  <!-- 暗纹六边形 -->
+  <g opacity="0.08" stroke="#600010" stroke-width="0.5" fill="none">
+    <polygon points="960,200 1080,267 1080,400 960,467 840,400 840,267"/>
+    <polygon points="960,160 1110,247 1110,420 960,507 810,420 810,247"/>
+    <polygon points="960,120 1140,227 1140,440 960,547 780,440 780,227"/>
+  </g>
+
+  <!-- 顶底光边 -->
+  <rect width="1920" height="4" fill="#800010" opacity="0.6"/>
+  <rect width="1920" height="4" y="1076" fill="#800010" opacity="0.6"/>
+  <rect width="1920" height="1" fill="#ff2040" opacity="0.4"/>
+  <rect width="1920" height="1" y="1079" fill="#ff2040" opacity="0.4"/>
+
+  <!-- 中心光斑 -->
+  <ellipse cx="960" cy="540" rx="500" ry="300" fill="#600010" opacity="0.15" filter="url(#bigBlur)"/>
+
+  <!-- 角落暗红放射 -->
+  <line x1="0" y1="0" x2="400" y2="300" stroke="#600010" stroke-width="60" opacity="0.08"/>
+  <line x1="1920" y1="0" x2="1520" y2="300" stroke="#600010" stroke-width="60" opacity="0.08"/>
+  <line x1="0" y1="1080" x2="400" y2="780" stroke="#600010" stroke-width="60" opacity="0.08"/>
+  <line x1="1920" y1="1080" x2="1520" y2="780" stroke="#600010" stroke-width="60" opacity="0.08"/>
+
+  <!-- 星点（暗红色调） -->
+  <g fill="#c04060" opacity="0.4">
+    <circle cx="200" cy="150" r="1.5"/>
+    <circle cx="1700" cy="200" r="1"/>
+    <circle cx="400" cy="900" r="1.5"/>
+    <circle cx="1500" cy="850" r="1"/>
+    <circle cx="960" cy="100" r="2"/>
+    <circle cx="960" cy="980" r="2"/>
+  </g>
+</svg>
