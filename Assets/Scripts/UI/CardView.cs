@@ -1086,8 +1086,8 @@ namespace FWTCG.UI
 
         // DOT-7: shake constants
         public const float SHAKE_STRENGTH = 10f;
-        public const float SHAKE_DURATION = 0.28f;
-        public const int   SHAKE_VIBRATO = 7;
+        public const float SHAKE_DURATION = 0.08f;
+        public const int   SHAKE_VIBRATO = 12;
 
         /// <summary>Left-right shake: DOShakeAnchorPos ~0.28s.</summary>
         public void Shake()

@@ -1454,8 +1454,11 @@ namespace FWTCG.UI
                     // Reset CanvasGroup alpha — HideEquipCardInBase sets alpha=0 for fly
                     // animation; if this CardView is reused for a different unit the alpha
                     // must be restored or the new card appears transparent (white).
+                    // BUT skip if the card is currently being dragged (hidden by CardDragHandler).
+                    var dragH = cv.GetComponent<CardDragHandler>();
+                    bool hiddenByDrag = dragH != null && dragH.IsHiddenDuringDrag;
                     var cg = cv.GetComponent<UnityEngine.CanvasGroup>();
-                    if (cg != null) cg.alpha = 1f;
+                    if (cg != null && !hiddenByDrag) cg.alpha = 1f;
                     cv.Setup(u, isPlayer, onClick, _onCardRightClicked, onHoverEnter, onHoverExit,
                              playEnterAnim: playEnterAnim);
                     // Always reset first, then highlight only if in selection list

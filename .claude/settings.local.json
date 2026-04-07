@@ -27,7 +27,13 @@
       "mcp__mcp-unity__save_scene",
       "mcp__mcp-unity__get_gameobject",
       "mcp__mcp-unity__get_scene_info",
-      "Bash(grep -v \"//\")"
+      "Bash(grep -v \"//\")",
+      "Bash(tasklist)",
+      "Bash(findstr /I \"node\")",
+      "Bash(cmd.exe //C \"taskkill /F /IM node.exe\")",
+      "Bash(cp \"E:/claudeCode/DOC/Migration/DEV_RULES/UNITY-RULES.md\" \"E:/claudeCode/DOC/Scratch/DEV_RULES/UNITY-RULES.md\")",
+      "Bash(cp \"E:/claudeCode/DOC/Migration/DEV_RULES/GODOT-RULES.md\" \"E:/claudeCode/DOC/Scratch/DEV_RULES/GODOT-RULES.md\")",
+      "Bash(cp \"E:/claudeCode/DOC/Migration/DEV_RULES/UNREAL-RULES.md\" \"E:/claudeCode/DOC/Scratch/DEV_RULES/UNREAL-RULES.md\")"
     ]
   }
 }

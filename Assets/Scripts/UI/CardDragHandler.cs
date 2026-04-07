@@ -56,6 +56,8 @@ namespace FWTCG.UI
         private RectTransform _rt;
         private bool _isDragging;
         private bool _isCancelling;
+        private bool _hiddenDuringDrag;   // true while original card is hidden (alpha=0)
+        public bool IsHiddenDuringDrag => _hiddenDuringDrag;
 
         // Main drag ghost
         private GameObject _ghost;
@@ -111,6 +113,7 @@ namespace FWTCG.UI
         {
             _isDragging        = false;
             _isCancelling      = false;
+            _hiddenDuringDrag  = false;
             _dragPending       = false;
             BlockPointerEvents = false;
             TweenHelper.KillSafe(ref _cancelReturnSeq);
@@ -163,13 +166,14 @@ namespace FWTCG.UI
                     RootCanvas.GetComponent<RectTransform>(), cardScreenPos, RootCanvas.worldCamera, out _dragOriginCanvasPos);
             }
 
-            // Dim original card and add green overlay
-            if (_selfCanvasGroup != null)
-                _selfCanvasGroup.alpha = 0.45f;
-            AddDragOriginOverlay();
-
             Vector2 currentScreenPos = (Vector2)Input.mousePosition;
             CreateGhost(currentScreenPos);
+
+            // Hide original card AFTER ghost is created (so ghost clones from full alpha).
+            // Use both alpha=0 and a flag to prevent RefreshUnitList from resetting alpha.
+            _hiddenDuringDrag = true;
+            if (_selfCanvasGroup != null)
+                _selfCanvasGroup.alpha = 0f;
 
             if (_dragSource == DragSource.Base || _dragSource == DragSource.Hand || _dragSource == DragSource.Hero)
                 GatherCluster();
@@ -290,8 +294,7 @@ namespace FWTCG.UI
                 // Ghost stays hidden — it will be destroyed in Step 2 below
             }
 
-            // ── Step 2: Record ghost positions, cleanup ──────────────────────────
-            // Ghost may be hidden (alpha=0) but is still at the drop position — record it now.
+            // ── Step 2: Record ghost positions (keep ghosts alive for now) ─────
             Vector2 mainGhostPos = _ghost != null
                 ? (Vector2)_ghost.GetComponent<RectTransform>().localPosition
                 : ScreenToCanvas(dropScreenPos);
@@ -300,26 +303,60 @@ namespace FWTCG.UI
             foreach (var g in _clusterGhosts)
                 fromPositions.Add(g != null ? (Vector2)g.GetComponent<RectTransform>().localPosition : mainGhostPos);
 
-            RemoveDragOriginOverlay();
-            RestoreCluster();
-            if (_ghost != null) { Destroy(_ghost); _ghost = null; }
-
             // Capture drag source before HandleDrop (which may destroy 'this' via RefreshUI)
             DragSource capturedSource = _dragSource;
 
             // ── Step 3: Trigger game logic ────────────────────────────────────────
-            // HandleDrop fires async callbacks (e.g. PlayHandCardWithRuneConfirmAsync) that
-            // may open additional confirm dialogs. AskPromptUI.IsShowing is set synchronously
-            // inside WaitForConfirm/Show(), so it is already true by the time HandleDrop returns.
             HandleDrop(dropScreenPos);
 
-            // ── Step 4: Wait for ALL prompts to be resolved ───────────────────────
-            // One extra frame as safety margin, then drain any open dialog.
+            // ── Step 3.5: Detect play failure — card still in source zone ─────────
+            // If the card was NOT consumed by game logic (still in hand/hero),
+            // shake the ghost at its current position FIRST, then animate return.
+            bool playFailed = false;
+            if (gm != null && draggedUnit != null)
+            {
+                playFailed = capturedSource switch
+                {
+                    DragSource.Hand => gm.IsUnitInHand(draggedUnit),
+                    DragSource.Hero => gm.IsUnitHero(draggedUnit),
+                    _ => false,
+                };
+            }
+
+            if (playFailed && _ghost != null)
+            {
+                // Shake ghost at drop position, then return to origin
+                var ghostRT = _ghost.GetComponent<RectTransform>();
+                if (ghostRT != null)
+                {
+                    var shakeSeq = TweenHelper.ShakeUI(ghostRT, CardView.SHAKE_STRENGTH, CardView.SHAKE_DURATION, CardView.SHAKE_VIBRATO);
+                    if (shakeSeq != null)
+                    {
+                        bool shakeDone = false;
+                        shakeSeq.OnComplete(() => shakeDone = true);
+                        shakeSeq.OnKill(() => shakeDone = true);
+                        while (!shakeDone) yield return null;
+                    }
+                }
+                // Now animate ghost back to origin
+                _isCancelling = true;
+                CancelReturnTween();
+                while (_cancelReturnSeq != null && _cancelReturnSeq.IsActive())
+                    yield return null;
+                yield break;
+            }
+
+            // ── Step 4: Cleanup ghosts (play succeeded) ──────────────────────────
+            RemoveDragOriginOverlay();
+            RestoreCluster();
+            if (_ghost != null) { Destroy(_ghost); _ghost = null; }
+
+            // ── Step 5: Wait for ALL prompts to be resolved ──────────────────────
             yield return null;
             while (AskPromptUI.IsShowing || SpellTargetPopup.IsShowing)
                 yield return null;
 
-            // ── Step 5: Animate on a temporary host ───────────────────────────────
+            // ── Step 6: Animate on a temporary host ──────────────────────────────
             SpawnDropAnimation(capturedSource, draggedUnit, clusterUnits, fromPositions);
             _isCancelling      = false;
             BlockPointerEvents = false;
@@ -379,7 +416,7 @@ namespace FWTCG.UI
         /// Begins cancel animation: stops follow coroutine, animates ghosts back to origins.
         /// Selection state is intentionally preserved (no deselect callbacks fired).
         /// </summary>
-        public const float CANCEL_RETURN_DURATION = 0.42f;
+        public const float CANCEL_RETURN_DURATION = 0.21f;
         public const float CANCEL_STAGGER_DELAY  = 0.05f;
 
         private void StartCancelDrag()
@@ -553,6 +590,7 @@ namespace FWTCG.UI
         private void RemoveDragOriginOverlay()
         {
             if (_dragOriginOverlay != null) { Destroy(_dragOriginOverlay); _dragOriginOverlay = null; }
+            _hiddenDuringDrag = false;
             if (_selfCanvasGroup != null) _selfCanvasGroup.alpha = 1f;
         }
 
@@ -657,10 +695,10 @@ namespace FWTCG.UI
                 var rt = cv.GetComponent<RectTransform>();
                 if (rt == null) continue;
 
-                // Dim original in-place — visible but clearly "in motion"
+                // Hide original in-place — ghost replaces it visually
                 cv.SuspendLift();
                 var origCG = cv.GetComponent<CanvasGroup>() ?? cv.gameObject.AddComponent<CanvasGroup>();
-                origCG.alpha = 0.35f;
+                origCG.alpha = 0f;
                 _clusterOrigViews.Add(cv);
 
                 // Snapshot screen position before creating ghost.
@@ -784,6 +822,7 @@ namespace FWTCG.UI
             // coroutine is interrupted, the host is destroyed early,
             // or any other unexpected interruption occurs.
             private readonly List<CanvasGroup> _managedCGs = new List<CanvasGroup>();
+            private readonly List<CanvasGroup> _fadeInCGs  = new List<CanvasGroup>();
             // DOT-4 Codex H-1: track overlay GOs + master sequence for OnDestroy cleanup
             private readonly List<GameObject> _overlayObjs = new List<GameObject>();
             private Sequence _masterSeq;
@@ -806,6 +845,10 @@ namespace FWTCG.UI
                 foreach (var cg in _managedCGs)
                     if (cg != null) cg.alpha = 1f;
                 _managedCGs.Clear();
+                // SAFETY NET: restore fade-in cards too
+                foreach (var cg in _fadeInCGs)
+                    if (cg != null) { DOTween.Kill(cg.gameObject); cg.alpha = 1f; }
+                _fadeInCGs.Clear();
             }
 
             private IEnumerator AnimRoutine(DragSource dragSource, UnitInstance mainUnit,
@@ -873,8 +916,26 @@ namespace FWTCG.UI
 
                     Vector2 fromPos = i < fromPositions.Count ? fromPositions[i] : fromPositions[0];
 
-                    if (Vector2.Distance(fromPos, finalPos) < 5f) continue;
                     if (RootCanvas == null) continue;
+
+                    // Cancel EnterAnimRoutine to prevent scale/position animation conflict.
+                    cv.CancelEnterAnim();
+
+                    // Hide the real card while the overlay flies in (or fades in).
+                    // OnDestroy safety net guarantees alpha is restored even if
+                    // this coroutine is interrupted for any reason.
+                    var cardCG = cv.GetComponent<CanvasGroup>() ?? cv.gameObject.AddComponent<CanvasGroup>();
+                    cardCG.alpha = 0f;
+                    _managedCGs.Add(cardCG);
+
+                    // If from and to are very close (e.g. after a confirm dialog where
+                    // RefreshUI already placed the card at its final position), skip the
+                    // fly-in overlay but still fade-in the real card to avoid a pop-in.
+                    if (Vector2.Distance(fromPos, finalPos) < 5f)
+                    {
+                        _fadeInCGs.Add(cardCG);
+                        continue;
+                    }
 
                     var overlay = Instantiate(cv.gameObject, RootCanvas.transform);
                     overlay.name = "LandGhost";
@@ -892,16 +953,6 @@ namespace FWTCG.UI
                     oRT.localPosition = new Vector3(fromPos.x, fromPos.y, 0f);
                     overlay.transform.SetAsLastSibling();
                     overlayObjs.Add(overlay);
-
-                    // Cancel EnterAnimRoutine to prevent scale/position animation conflict.
-                    cv.CancelEnterAnim();
-
-                    // Hide the real card while the overlay flies in.
-                    // OnDestroy safety net guarantees alpha is restored even if
-                    // this coroutine is interrupted for any reason.
-                    var cardCG = cv.GetComponent<CanvasGroup>() ?? cv.gameObject.AddComponent<CanvasGroup>();
-                    cardCG.alpha = 0f;
-                    _managedCGs.Add(cardCG);
 
                     overlayItems.Add((oRT, fromPos, finalPos));
                 }
@@ -959,6 +1010,17 @@ namespace FWTCG.UI
                 foreach (var cg in _managedCGs)
                     if (cg != null) cg.alpha = 1f;
                 _managedCGs.Clear();
+
+                // Fade-in cards that were too close for a fly-in overlay (e.g. after confirm dialog)
+                const float fadeInDur = 0.25f;
+                foreach (var cg in _fadeInCGs)
+                {
+                    if (cg != null)
+                        DOTween.To(() => cg.alpha, a => { if (cg != null) cg.alpha = a; }, 1f, fadeInDur)
+                            .SetEase(Ease.OutQuad)
+                            .SetTarget(cg.gameObject);
+                }
+                _fadeInCGs.Clear();
 
                 foreach (var obj in overlayObjs)
                     if (obj != null) Destroy(obj);

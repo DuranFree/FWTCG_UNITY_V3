@@ -469,7 +469,8 @@ namespace FWTCG
             TurnManager.BroadcastMessage_Static(
                 $"[开局] {firstLabel} 先手。战场：{_gs.BFNames[0]} / {_gs.BFNames[1]}。发牌完成。");
 
-            RefreshUI();
+            // Don't RefreshUI here — defer until after coin flip + mulligan
+            // so card enter animations play AFTER startup overlays close.
         }
 
         // ── Startup flow then game loop ───────────────────────────────────────
@@ -482,8 +483,14 @@ namespace FWTCG
                 yield return new WaitUntil(() => startupTask.IsCompleted);
                 if (startupTask.IsFaulted)
                     Debug.LogError($"[StartupFlow] 异常: {startupTask.Exception}");
-                RefreshUI();
             }
+            // Refresh AFTER startup flow — card enter animations now visible
+            RefreshUI();
+
+            // Wait for card enter animations + foil sweep to finish before starting game loop.
+            // This ensures the board is fully stable before turn banners / phase messages appear.
+            yield return new WaitForSeconds(1.0f);
+
             StartCoroutine(GameLoop());
         }
 

@@ -94,7 +94,16 @@ namespace FWTCG.UI
 
         private void Awake()
         {
-            HidePanel(_coinFlipPanel, ref _coinFlipCG);
+            // Coin flip panel starts VISIBLE (alpha=1) — player must never see the board behind it.
+            // It will be faded out after the coin flip flow completes.
+            if (_coinFlipPanel != null)
+            {
+                _coinFlipCG = EnsureCG(_coinFlipPanel, _coinFlipCG);
+                _coinFlipCG.alpha = 1f;
+                _coinFlipCG.interactable = true;
+                _coinFlipCG.blocksRaycasts = true;
+                _coinFlipPanel.SetActive(true);
+            }
             HidePanel(_mulliganPanel, ref _mulliganCG);
 
             // DEV-30 V2/V3/V5: find overlay elements by name (created by SceneBuilder)
@@ -238,11 +247,12 @@ namespace FWTCG.UI
                 _coinFlipOkButton.interactable = false;
             if (_coinCircleImage != null) _coinCircleImage.color = Color.clear;
 
-            // ── Show panel ────────────────────────────────────────────────────
+            // ── Show panel (instant — no fade-in, player should never see the board) ─
             if (_coinFlipPanel != null) _coinFlipPanel.SetActive(true);
             _coinFlipCG = EnsureCG(_coinFlipPanel, _coinFlipCG);
-            var fadeInTween = FadeIn(_coinFlipCG, PANEL_FADE_IN);
-            if (fadeInTween != null) yield return fadeInTween.WaitForCompletion();
+            _coinFlipCG.alpha = 1f;
+            _coinFlipCG.interactable = true;
+            _coinFlipCG.blocksRaycasts = true;
 
             // ── Start scan light background loop ──────────────────────────────
             if (_scanLightImage != null)
@@ -584,9 +594,7 @@ namespace FWTCG.UI
             var fadeInTween = FadeIn(_mulliganCG, PANEL_FADE_IN);
             if (fadeInTween != null) yield return fadeInTween.WaitForCompletion();
 
-            // DOT-8: shuffle animation — ghost cards cross before revealing hand
-            var shuffleTween = CreateShuffleAnimationTween();
-            if (shuffleTween != null) yield return shuffleTween.WaitForCompletion();
+            // DOT-8: shuffle animation removed — felt out of place
 
             if (_mulliganConfirmButton != null)
             {

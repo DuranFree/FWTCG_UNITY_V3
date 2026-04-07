@@ -2121,7 +2121,7 @@ namespace FWTCG.Editor
             out Text coinFlipText, out Button okButton,
             out Image coinCircleImage, out Text coinResultText, out Image scanLightImage)
         {
-            var go = CreateFullscreenPanel(parent, "CoinFlipPanel", new Color(0.02f, 0.04f, 0.07f, 0.97f));
+            var go = CreateFullscreenPanel(parent, "CoinFlipPanel", new Color(0.02f, 0.04f, 0.07f, 1f));
             // DEV-24: CanvasGroup for fade transitions
             go.AddComponent<CanvasGroup>();
 
