@@ -309,13 +309,21 @@ namespace FWTCG.UI
             // ── Step 3: Trigger game logic ────────────────────────────────────────
             HandleDrop(dropScreenPos);
 
-            // ── Step 3.5: Detect play failure — card still in source zone ─────────
-            // If the card was NOT consumed by game logic (still in hand/hero),
-            // shake the ghost at its current position FIRST, then animate return.
-            bool playFailed = false;
+            // ── Step 3.5: If a confirm dialog opened, hide ghost and wait ────────
+            bool hasPrompt = AskPromptUI.IsShowing || SpellTargetPopup.IsShowing;
+            if (hasPrompt)
+            {
+                SetGhostsVisible(false);
+                yield return null;
+                while (AskPromptUI.IsShowing || SpellTargetPopup.IsShowing)
+                    yield return null;
+            }
+
+            // ── Step 3.6: Check if card was consumed or rejected ─────────────────
+            bool stillInSource = false;
             if (gm != null && draggedUnit != null)
             {
-                playFailed = capturedSource switch
+                stillInSource = capturedSource switch
                 {
                     DragSource.Hand => gm.IsUnitInHand(draggedUnit),
                     DragSource.Hero => gm.IsUnitHero(draggedUnit),
@@ -323,9 +331,10 @@ namespace FWTCG.UI
                 };
             }
 
-            if (playFailed && _ghost != null)
+            if (stillInSource && _ghost != null)
             {
-                // Shake ghost at drop position, then return to origin
+                // Play failed or user cancelled — shake ghost then return to origin
+                SetGhostsVisible(true);
                 var ghostRT = _ghost.GetComponent<RectTransform>();
                 if (ghostRT != null)
                 {
@@ -338,7 +347,6 @@ namespace FWTCG.UI
                         while (!shakeDone) yield return null;
                     }
                 }
-                // Now animate ghost back to origin
                 _isCancelling = true;
                 CancelReturnTween();
                 while (_cancelReturnSeq != null && _cancelReturnSeq.IsActive())
@@ -351,12 +359,7 @@ namespace FWTCG.UI
             RestoreCluster();
             if (_ghost != null) { Destroy(_ghost); _ghost = null; }
 
-            // ── Step 5: Wait for ALL prompts to be resolved ──────────────────────
-            yield return null;
-            while (AskPromptUI.IsShowing || SpellTargetPopup.IsShowing)
-                yield return null;
-
-            // ── Step 6: Animate on a temporary host ──────────────────────────────
+            // ── Step 5: Animate on a temporary host ──────────────────────────────
             SpawnDropAnimation(capturedSource, draggedUnit, clusterUnits, fromPositions);
             _isCancelling      = false;
             BlockPointerEvents = false;
