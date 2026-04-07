@@ -1,62 +1,73 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="900" height="280" viewBox="0 0 900 280">
+<svg xmlns="http://www.w3.org/2000/svg" width="871" height="540" viewBox="0 0 871 540">
   <defs>
-    <linearGradient id="bfBg" x1="0" y1="0" x2="0" y2="1">
-      <stop offset="0%" stop-color="#0d2040" stop-opacity="0.9"/>
-      <stop offset="100%" stop-color="#060f20" stop-opacity="0.95"/>
+    <linearGradient id="bg" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%"  stop-color="#0c1422"/>
+      <stop offset="50%" stop-color="#070d1a"/>
+      <stop offset="100%" stop-color="#0a1220"/>
     </linearGradient>
-    <linearGradient id="bfEdge" x1="0" y1="0" x2="1" y2="0">
-      <stop offset="0%" stop-color="#2060b0" stop-opacity="0"/>
-      <stop offset="20%" stop-color="#2060b0" stop-opacity="0.8"/>
-      <stop offset="50%" stop-color="#4090d0" stop-opacity="1"/>
-      <stop offset="80%" stop-color="#2060b0" stop-opacity="0.8"/>
-      <stop offset="100%" stop-color="#2060b0" stop-opacity="0"/>
+    <linearGradient id="bH" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0%"  stop-color="#3a2008"/>
+      <stop offset="20%" stop-color="#c88828"/>
+      <stop offset="50%" stop-color="#e8b030"/>
+      <stop offset="80%" stop-color="#c88828"/>
+      <stop offset="100%" stop-color="#3a2008"/>
     </linearGradient>
-    <linearGradient id="innerGlow" x1="0" y1="0" x2="0" y2="1">
-      <stop offset="0%" stop-color="#2060b0" stop-opacity="0.15"/>
-      <stop offset="50%" stop-color="#1040a0" stop-opacity="0.05"/>
-      <stop offset="100%" stop-color="#2060b0" stop-opacity="0.1"/>
+    <linearGradient id="bV" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%"  stop-color="#3a2008"/>
+      <stop offset="30%" stop-color="#c88828"/>
+      <stop offset="50%" stop-color="#e8b030"/>
+      <stop offset="70%" stop-color="#c88828"/>
+      <stop offset="100%" stop-color="#3a2008"/>
     </linearGradient>
-    <filter id="glow">
-      <feGaussianBlur stdDeviation="3" result="b"/>
-      <feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
-    </filter>
-    <!-- 9-slice 边距标记：上下左右各 12px -->
+    <linearGradient id="ig" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%"  stop-color="#1a2e50" stop-opacity="0.25"/>
+      <stop offset="50%" stop-color="#0a1428" stop-opacity="0.08"/>
+      <stop offset="100%" stop-color="#1a2e50" stop-opacity="0.25"/>
+    </linearGradient>
+    <filter id="g"><feGaussianBlur stdDeviation="2" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
   </defs>
-
-  <!-- 主背景（9-slice 中间区域） -->
-  <rect x="8" y="8" width="884" height="264" rx="10" fill="url(#bfBg)"/>
-
-  <!-- 内发光填充 -->
-  <rect x="8" y="8" width="884" height="264" rx="10" fill="url(#innerGlow)"/>
-
-  <!-- 外框主线 -->
-  <rect x="8" y="8" width="884" height="264" rx="10" fill="none" stroke="#2060b0" stroke-width="1.5" opacity="0.8"/>
-  <!-- 内框细线 -->
-  <rect x="11" y="11" width="878" height="258" rx="8" fill="none" stroke="#4090d0" stroke-width="0.5" opacity="0.3"/>
-
-  <!-- 顶部发光边 -->
-  <rect x="8" y="8" width="884" height="2" rx="1" fill="url(#bfEdge)" opacity="0.9"/>
-  <!-- 底部发光边 -->
-  <rect x="8" y="270" width="884" height="2" rx="1" fill="url(#bfEdge)" opacity="0.6"/>
-
-  <!-- 中间竖向分割槽（卡槽间距示意：5格） -->
-  <g stroke="#1a4070" stroke-width="0.8" stroke-dasharray="4,6" opacity="0.5">
-    <line x1="188" y1="20" x2="188" y2="260"/>
-    <line x1="364" y1="20" x2="364" y2="260"/>
-    <line x1="540" y1="20" x2="540" y2="260"/>
-    <line x1="716" y1="20" x2="716" y2="260"/>
+  <rect width="871" height="540" fill="url(#bg)"/>
+  <rect width="871" height="540" fill="url(#ig)"/>
+  <!-- Subtle diagonals -->
+  <g stroke="#0e1828" stroke-width="1" opacity="0.25">
+    <line x1="0" y1="0" x2="871" y2="540"/>
+    <line x1="0" y1="180" x2="691" y2="540"/>
+    <line x1="180" y1="0" x2="871" y2="360"/>
+    <line x1="871" y1="0" x2="0" y2="540"/>
+    <line x1="691" y1="0" x2="0" y2="360"/>
+    <line x1="871" y1="180" x2="180" y2="540"/>
   </g>
-
-  <!-- 四角装饰 -->
-  <g fill="none" stroke="#4090d0" stroke-width="1.2" opacity="0.7" filter="url(#glow)">
-    <path d="M18,28 L18,18 L28,18"/>
-    <path d="M882,28 L882,18 L872,18"/>
-    <path d="M18,252 L18,262 L28,262"/>
-    <path d="M882,252 L882,262 L872,262"/>
+  <!-- Bronze border bars -->
+  <rect x="0" y="0" width="871" height="8" fill="url(#bH)"/>
+  <rect x="0" y="532" width="871" height="8" fill="url(#bH)"/>
+  <rect x="0" y="0" width="8" height="540" fill="url(#bV)"/>
+  <rect x="863" y="0" width="8" height="540" fill="url(#bV)"/>
+  <!-- Inner borders -->
+  <rect x="12" y="12" width="847" height="516" rx="2" fill="none" stroke="#8a5c18" stroke-width="1.2" opacity="0.7"/>
+  <rect x="17" y="17" width="837" height="506" rx="1" fill="none" stroke="#c88828" stroke-width="0.6" opacity="0.3"/>
+  <!-- Corner L-brackets -->
+  <g stroke="#e8b030" stroke-width="3" fill="none" filter="url(#g)">
+    <path d="M12,60 L12,12 L60,12"/>
+    <path d="M811,12 L859,12 L859,60"/>
+    <path d="M12,480 L12,528 L60,528"/>
+    <path d="M811,528 L859,528 L859,480"/>
   </g>
-
-  <!-- 控制权标记区（中心圆环） -->
-  <circle cx="450" cy="140" r="20" fill="none" stroke="#2060b0" stroke-width="1" opacity="0.4"/>
-  <circle cx="450" cy="140" r="14" fill="none" stroke="#4090d0" stroke-width="0.5" opacity="0.3"/>
-  <circle cx="450" cy="140" r="5" fill="#2060b0" opacity="0.3"/>
+  <g fill="#e8b030" filter="url(#g)">
+    <rect x="10" y="10" width="6" height="6"/>
+    <rect x="855" y="10" width="6" height="6"/>
+    <rect x="10" y="524" width="6" height="6"/>
+    <rect x="855" y="524" width="6" height="6"/>
+  </g>
+  <!-- Card slot dividers (5 slots) -->
+  <g stroke="#2a3c58" stroke-width="1" stroke-dasharray="6,9" opacity="0.45">
+    <line x1="182" y1="22" x2="182" y2="518"/>
+    <line x1="358" y1="22" x2="358" y2="518"/>
+    <line x1="513" y1="22" x2="513" y2="518"/>
+    <line x1="689" y1="22" x2="689" y2="518"/>
+  </g>
+  <!-- Center marker (diamond — scale-invariant) -->
+  <g filter="url(#g)" opacity="0.5">
+    <polygon points="435,250 455,270 435,290 415,270" fill="none" stroke="#c88828" stroke-width="1.5"/>
+    <polygon points="435,260 445,270 435,280 425,270" fill="#8a5c18" opacity="0.4"/>
+  </g>
 </svg>

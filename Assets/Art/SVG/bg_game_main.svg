@@ -1,95 +1,75 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="1920" height="1080" viewBox="0 0 1920 1080">
   <defs>
-    <!-- 深色星云背景渐变 -->
-    <radialGradient id="nebula1" cx="30%" cy="40%" r="60%">
-      <stop offset="0%" stop-color="#0d1f3c" stop-opacity="1"/>
-      <stop offset="100%" stop-color="#060c18" stop-opacity="1"/>
+    <radialGradient id="bgCenter" cx="50%" cy="50%" r="60%">
+      <stop offset="0%"  stop-color="#101828"/>
+      <stop offset="50%" stop-color="#080e18"/>
+      <stop offset="100%" stop-color="#040810"/>
     </radialGradient>
-    <radialGradient id="nebula2" cx="80%" cy="60%" r="50%">
-      <stop offset="0%" stop-color="#1a0d2e" stop-opacity="0.7"/>
-      <stop offset="100%" stop-color="#060c18" stop-opacity="0"/>
+    <radialGradient id="swirlGlow" cx="50%" cy="50%" r="35%">
+      <stop offset="0%"  stop-color="#1a2840" stop-opacity="0.7"/>
+      <stop offset="100%" stop-color="#040810" stop-opacity="0"/>
     </radialGradient>
-    <radialGradient id="nebula3" cx="50%" cy="20%" r="40%">
-      <stop offset="0%" stop-color="#0a1a2a" stop-opacity="0.8"/>
-      <stop offset="100%" stop-color="#060c18" stop-opacity="0"/>
-    </radialGradient>
-    <!-- 六边形图案滤镜 -->
-    <filter id="glow" x="-20%" y="-20%" width="140%" height="140%">
-      <feGaussianBlur stdDeviation="2" result="blur"/>
-      <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
-    </filter>
-    <filter id="softglow" x="-50%" y="-50%" width="200%" height="200%">
-      <feGaussianBlur stdDeviation="8" result="blur"/>
-      <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
-    </filter>
-    <pattern id="hex" x="0" y="0" width="60" height="52" patternUnits="userSpaceOnUse">
-      <polygon points="30,2 56,17 56,47 30,62 4,47 4,17" fill="none" stroke="#1e3a5f" stroke-width="0.5" opacity="0.3"/>
-      <polygon points="30,2 56,17 56,47 30,62 4,47 4,17" fill="none" stroke="#2a5480" stroke-width="0.2" opacity="0.15"/>
-    </pattern>
-    <pattern id="hex2" x="30" y="26" width="60" height="52" patternUnits="userSpaceOnUse">
-      <polygon points="30,2 56,17 56,47 30,62 4,47 4,17" fill="none" stroke="#1e3a5f" stroke-width="0.5" opacity="0.3"/>
-    </pattern>
-    <!-- 中心光晕 -->
-    <radialGradient id="centerGlow" cx="50%" cy="50%" r="50%">
-      <stop offset="0%" stop-color="#1a4080" stop-opacity="0.2"/>
-      <stop offset="60%" stop-color="#0d2040" stop-opacity="0.05"/>
-      <stop offset="100%" stop-color="#060c18" stop-opacity="0"/>
-    </radialGradient>
+    <linearGradient id="vigH" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0%"  stop-color="#020408" stop-opacity="0.8"/>
+      <stop offset="15%" stop-color="#020408" stop-opacity="0"/>
+      <stop offset="85%" stop-color="#020408" stop-opacity="0"/>
+      <stop offset="100%" stop-color="#020408" stop-opacity="0.8"/>
+    </linearGradient>
+    <linearGradient id="vigV" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%"  stop-color="#020408" stop-opacity="0.8"/>
+      <stop offset="12%" stop-color="#020408" stop-opacity="0"/>
+      <stop offset="88%" stop-color="#020408" stop-opacity="0"/>
+      <stop offset="100%" stop-color="#020408" stop-opacity="0.8"/>
+    </linearGradient>
+    <filter id="glow5"><feGaussianBlur stdDeviation="5" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
   </defs>
 
-  <!-- 基础背景 -->
-  <rect width="1920" height="1080" fill="#060c18"/>
-  <!-- 星云层 -->
-  <rect width="1920" height="1080" fill="url(#nebula1)"/>
-  <rect width="1920" height="1080" fill="url(#nebula2)"/>
-  <rect width="1920" height="1080" fill="url(#nebula3)"/>
+  <!-- Deep dark base -->
+  <rect width="1920" height="1080" fill="url(#bgCenter)"/>
 
-  <!-- 六边形网格 -->
-  <rect width="1920" height="1080" fill="url(#hex)"/>
-  <rect width="1920" height="1080" fill="url(#hex2)"/>
-
-  <!-- 中心光晕 -->
-  <rect width="1920" height="1080" fill="url(#centerGlow)"/>
-
-  <!-- 顶部边缘渐变条 -->
-  <rect width="1920" height="3" y="0" fill="#2a6090" opacity="0.4"/>
-  <rect width="1920" height="1" y="0" fill="#4a90d0" opacity="0.6"/>
-
-  <!-- 底部边缘渐变条 -->
-  <rect width="1920" height="3" y="1077" fill="#2a6090" opacity="0.4"/>
-  <rect width="1920" height="1" y="1079" fill="#4a90d0" opacity="0.6"/>
-
-  <!-- 左右边缘竖线 -->
-  <rect width="1" height="1080" x="0" fill="#2a6090" opacity="0.3"/>
-  <rect width="1" height="1080" x="1919" fill="#2a6090" opacity="0.3"/>
-
-  <!-- 星点 -->
-  <g opacity="0.6">
-    <circle cx="120" cy="80" r="1" fill="#8ab4d4"/>
-    <circle cx="340" cy="200" r="1.5" fill="#a0c4e8"/>
-    <circle cx="580" cy="60" r="1" fill="#7090b0"/>
-    <circle cx="900" cy="140" r="1" fill="#8ab4d4"/>
-    <circle cx="1200" cy="90" r="1.5" fill="#a0c4e8"/>
-    <circle cx="1500" cy="160" r="1" fill="#7090b0"/>
-    <circle cx="1750" cy="70" r="1" fill="#8ab4d4"/>
-    <circle cx="200" cy="900" r="1" fill="#8ab4d4"/>
-    <circle cx="500" cy="980" r="1.5" fill="#a0c4e8"/>
-    <circle cx="800" cy="920" r="1" fill="#7090b0"/>
-    <circle cx="1100" cy="960" r="1" fill="#8ab4d4"/>
-    <circle cx="1400" cy="900" r="1.5" fill="#a0c4e8"/>
-    <circle cx="1700" cy="970" r="1" fill="#7090b0"/>
-    <circle cx="60" cy="400" r="1" fill="#6080a0"/>
-    <circle cx="1860" cy="600" r="1" fill="#6080a0"/>
-    <circle cx="400" cy="500" r="0.8" fill="#506080"/>
-    <circle cx="1600" cy="400" r="0.8" fill="#506080"/>
-    <circle cx="700" cy="300" r="1.2" fill="#7090b0"/>
-    <circle cx="1300" cy="700" r="1.2" fill="#7090b0"/>
+  <!-- Subtle diagonal leather-like lines -->
+  <g stroke="#0e1624" stroke-width="1" opacity="0.4">
+    <line x1="0" y1="0" x2="1920" y2="1080"/>
+    <line x1="0" y1="108" x2="1812" y2="1080"/>
+    <line x1="108" y1="0" x2="1920" y2="972"/>
+    <line x1="0" y1="216" x2="1704" y2="1080"/>
+    <line x1="216" y1="0" x2="1920" y2="864"/>
+    <line x1="0" y1="324" x2="1596" y2="1080"/>
+    <line x1="324" y1="0" x2="1920" y2="756"/>
+    <line x1="1920" y1="0" x2="0" y2="1080"/>
+    <line x1="1920" y1="108" x2="108" y2="1080"/>
+    <line x1="1812" y1="0" x2="0" y2="972"/>
+    <line x1="1920" y1="216" x2="216" y2="1080"/>
+    <line x1="1704" y1="0" x2="0" y2="864"/>
   </g>
 
-  <!-- 玩家区域分割线（中间横线暗示） -->
-  <line x1="0" y1="540" x2="1920" y2="540" stroke="#1e3a5f" stroke-width="1" opacity="0.4" stroke-dasharray="8,12"/>
+  <!-- Grid overlay -->
+  <g stroke="#121e32" stroke-width="0.5" opacity="0.3">
+    <line x1="0" y1="270" x2="1920" y2="270"/>
+    <line x1="0" y1="540" x2="1920" y2="540"/>
+    <line x1="0" y1="810" x2="1920" y2="810"/>
+    <line x1="480" y1="0" x2="480" y2="1080"/>
+    <line x1="960" y1="0" x2="960" y2="1080"/>
+    <line x1="1440" y1="0" x2="1440" y2="1080"/>
+  </g>
 
-  <!-- 左右侧竖向装饰光带 -->
-  <rect x="0" y="200" width="2" height="680" fill="#2a5080" opacity="0.2"/>
-  <rect x="1918" y="200" width="2" height="680" fill="#2a5080" opacity="0.2"/>
+  <!-- Center swirl glow -->
+  <ellipse cx="960" cy="540" rx="700" ry="420" fill="url(#swirlGlow)"/>
+
+  <!-- Spiral arms (subtle) -->
+  <g fill="none" stroke="#162030" stroke-width="1.5" opacity="0.5">
+    <path d="M960,540 Q1100,420 1200,320 Q1320,200 1280,100"/>
+    <path d="M960,540 Q820,420 720,320 Q600,200 640,100"/>
+    <path d="M960,540 Q1100,660 1200,760 Q1320,880 1280,980"/>
+    <path d="M960,540 Q820,660 720,760 Q600,880 640,980"/>
+  </g>
+  <g fill="none" stroke="#162030" stroke-width="1" opacity="0.3">
+    <circle cx="960" cy="540" r="320"/>
+    <circle cx="960" cy="540" r="200"/>
+    <circle cx="960" cy="540" r="100"/>
+  </g>
+
+  <!-- Vignette sides -->
+  <rect width="1920" height="1080" fill="url(#vigH)"/>
+  <rect width="1920" height="1080" fill="url(#vigV)"/>
 </svg>

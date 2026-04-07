@@ -195,7 +195,7 @@ namespace FWTCG.Editor
                 // CSS: .hand-zone bg linear-gradient(135deg, rgba(3,14,25,0.85), rgba(1,10,19,0.9))
                 var ehImg = enemyHandZone.AddComponent<Image>();
                 ehImg.color = new Color(2f/255f, 12f/255f, 22f/255f, 0.87f);
-                TryApplySvgSprite(ehImg, "zone_hand", Image.Type.Sliced);
+                TryApplySvgSprite(ehImg, "zone_hand", Image.Type.Simple);
 
                 var ehHLG = enemyHandZone.AddComponent<HorizontalLayoutGroup>();
                 ehHLG.childControlWidth = false;
@@ -245,7 +245,7 @@ namespace FWTCG.Editor
                 // CSS: .hand-zone bg + border
                 var phImg = playerHandZone.AddComponent<Image>();
                 phImg.color = new Color(2f/255f, 12f/255f, 22f/255f, 0.87f);
-                TryApplySvgSprite(phImg, "zone_hand", Image.Type.Sliced);
+                TryApplySvgSprite(phImg, "zone_hand", Image.Type.Simple);
                 var phOutline = playerHandZone.AddComponent<Outline>();
                 phOutline.effectColor = new Color(200f/255f, 170f/255f, 110f/255f, 0.2f);
                 phOutline.effectDistance = new Vector2(1f, -1f);
@@ -717,13 +717,14 @@ namespace FWTCG.Editor
         /// and sets the colour to white so the sprite renders at full quality.
         /// Falls back to the existing solid colour when the file is missing.
         /// </summary>
-        private static void TryApplySvgSprite(Image img, string stem, Image.Type mode = Image.Type.Sliced)
+        private static void TryApplySvgSprite(Image img, string stem, Image.Type mode = Image.Type.Simple)
         {
             var spr = GenSpr(stem);
             if (spr == null) return;
-            img.sprite = spr;
-            img.type   = mode;
-            img.color  = Color.white;
+            img.sprite           = spr;
+            img.type             = mode;
+            img.color            = Color.white;
+            img.preserveAspect   = false;   // always fill the RectTransform
         }
 
         // ── DEV-23: Decorative helpers ────────────────────────────────────────
@@ -816,6 +817,7 @@ namespace FWTCG.Editor
 
             var img = go.AddComponent<Image>();
             img.color = GameColors.InfoStripBg;
+            TryApplySvgSprite(img, "ui_phase_round");
 
             var hlg = go.AddComponent<HorizontalLayoutGroup>();
             hlg.childControlWidth = true;
@@ -1041,8 +1043,8 @@ namespace FWTCG.Editor
             bool isRune  = name.Contains("Rune");
             var img = go.AddComponent<Image>();
             img.color = isBase ? ZoneBgBase : ZoneBgDefault;
-            if      (isBase) TryApplySvgSprite(img, "zone_base",  Image.Type.Sliced);
-            else if (isRune) TryApplySvgSprite(img, "zone_rune",  Image.Type.Sliced);
+            if      (isBase) TryApplySvgSprite(img, "zone_base",  Image.Type.Simple);
+            else if (isRune) TryApplySvgSprite(img, "zone_rune",  Image.Type.Simple);
             var outline = go.AddComponent<Outline>();
             outline.effectColor = ZoneBorderColor;
             outline.effectDistance = new Vector2(1f, -1f);
@@ -1063,6 +1065,11 @@ namespace FWTCG.Editor
             float xMin, float xMax, float yMin, float yMax, Image[] circleImages)
         {
             var go = CreateAnchoredZone(parent, name, xMin, xMax, yMin, yMax);
+
+            // Score track background
+            var trackBg = go.AddComponent<Image>();
+            trackBg.color = new Color(0.03f, 0.08f, 0.15f, 0.85f);
+            TryApplySvgSprite(trackBg, "ui_score_frame");
 
             var vlg = go.AddComponent<VerticalLayoutGroup>();
             vlg.childControlWidth = true;
@@ -1088,6 +1095,7 @@ namespace FWTCG.Editor
 
                 var img = circleGO.AddComponent<Image>();
                 img.color = GameColors.ScoreCircleInactive;
+                TryApplySvgSprite(img, "deco_divider_orb");
 
                 var numText = CreateTMPText(circleGO.transform, "Num", num.ToString(),
                     GameColors.GoldLight, 12, TextAnchor.MiddleCenter);
@@ -1174,7 +1182,7 @@ namespace FWTCG.Editor
             // CSS: rgba(3,14,26,0.88), border rgba(200,155,60,0.18)
             var img = go.AddComponent<Image>();
             img.color = ZoneBgDefault;
-            TryApplySvgSprite(img, "zone_hero", Image.Type.Sliced);
+            TryApplySvgSprite(img, "zone_hero", Image.Type.Simple);
             var outline = go.AddComponent<Outline>();
             outline.effectColor = ZoneBorderColor;
             outline.effectDistance = new Vector2(1f, -1f);
@@ -1325,7 +1333,7 @@ namespace FWTCG.Editor
             if (glowSpr != null) glowImg.sprite = glowSpr;
             glowImg.color = new Color(0.29f, 0.87f, 0.50f, 0f); // green, starts invisible
             glowImg.raycastTarget = false;
-            glowImg.type = Image.Type.Sliced;
+            glowImg.type = Image.Type.Simple;
 
             return go;
         }
@@ -1346,11 +1354,11 @@ namespace FWTCG.Editor
             le.flexibleWidth = 1f;
             le.flexibleHeight = 1f;
 
-            // SVG-gen battlefield background
+            // SVG-gen battlefield background — preserveAspect to avoid horizontal distortion
             var bfBgImg = panel.AddComponent<Image>();
             bfBgImg.color = new Color(3f/255f, 14f/255f, 26f/255f, 0.85f);
             bfBgImg.raycastTarget = false;
-            TryApplySvgSprite(bfBgImg, "zone_battlefield", Image.Type.Sliced);
+            TryApplySvgSprite(bfBgImg, "zone_battlefield", Image.Type.Simple);
 
             var vlg = panel.AddComponent<VerticalLayoutGroup>();
             vlg.childControlWidth = true;
@@ -1526,6 +1534,7 @@ namespace FWTCG.Editor
             infoLE.flexibleHeight = 1f;
             var infoImg = infoStrip.AddComponent<Image>();
             infoImg.color = GameColors.InfoStripBg;
+            TryApplySvgSprite(infoImg, "ui_phase_round");
 
             var infoHLG = infoStrip.AddComponent<HorizontalLayoutGroup>();
             infoHLG.childControlWidth = true;
@@ -1546,6 +1555,9 @@ namespace FWTCG.Editor
             actionPanel.AddComponent<RectTransform>();
             var actionLE = actionPanel.AddComponent<LayoutElement>();
             actionLE.flexibleHeight = 1f;
+            var actionImg = actionPanel.AddComponent<Image>();
+            actionImg.color = new Color(0.02f, 0.05f, 0.1f, 0.85f);
+            TryApplySvgSprite(actionImg, "ui_event_banner");
 
             var actionHLG = actionPanel.AddComponent<HorizontalLayoutGroup>();
             actionHLG.childControlWidth = true;
@@ -1572,7 +1584,7 @@ namespace FWTCG.Editor
             {
                 var endImg = endTurnButton.GetComponent<Image>();
                 endImg.sprite = endTurnSpr;
-                endImg.type = Image.Type.Sliced;
+                endImg.type = Image.Type.Simple;
                 endImg.color = Color.white;
             }
             reactBtn = CreateActionButton(actionPanel.transform, "ReactButton", "反应", new Color(1f, 0.55f, 0f, 1f));
@@ -1609,11 +1621,11 @@ namespace FWTCG.Editor
             img.color = bgColor;
 
             // SVG-gen: pick sprite by button name
-            if      (name.Contains("EndTurn"))    TryApplySvgSprite(img, "btn_end_turn",  Image.Type.Sliced);
-            else if (name.Contains("React"))      TryApplySvgSprite(img, "btn_react",      Image.Type.Sliced);
-            else if (name.Contains("Skip") || name.Contains("SkipReact")) TryApplySvgSprite(img, "btn_skip", Image.Type.Sliced);
-            else if (name.Contains("Confirm"))    TryApplySvgSprite(img, "btn_confirm",    Image.Type.Sliced);
-            else if (name.Contains("Cancel"))     TryApplySvgSprite(img, "btn_cancel",     Image.Type.Sliced);
+            if      (name.Contains("EndTurn"))    TryApplySvgSprite(img, "btn_end_turn",  Image.Type.Simple);
+            else if (name.Contains("React"))      TryApplySvgSprite(img, "btn_react",      Image.Type.Simple);
+            else if (name.Contains("Skip") || name.Contains("SkipReact")) TryApplySvgSprite(img, "btn_skip", Image.Type.Simple);
+            else if (name.Contains("Confirm"))    TryApplySvgSprite(img, "btn_confirm",    Image.Type.Simple);
+            else if (name.Contains("Cancel"))     TryApplySvgSprite(img, "btn_cancel",     Image.Type.Simple);
 
             var btn = go.AddComponent<Button>();
 
@@ -1653,7 +1665,7 @@ namespace FWTCG.Editor
 
             var img = go.AddComponent<Image>();
             img.color = new Color(0f, 0f, 0f, 0.5f);
-            TryApplySvgSprite(img, "panel_message_log", Image.Type.Sliced);
+            TryApplySvgSprite(img, "panel_message_log", Image.Type.Simple);
 
             var vlg = go.AddComponent<VerticalLayoutGroup>();
             vlg.childControlWidth = true;
@@ -1790,6 +1802,7 @@ namespace FWTCG.Editor
             // Semi-transparent dark background
             var bg = go.AddComponent<Image>();
             bg.color = new Color(0f, 0f, 0f, 0.72f);
+            TryApplySvgSprite(bg, "panel_spell_showcase");
 
             // CanvasGroup for alpha animation
             var cg = go.AddComponent<CanvasGroup>();
@@ -2089,6 +2102,7 @@ namespace FWTCG.Editor
             boxGO.transform.SetParent(panel.transform, false);
             var boxImg = boxGO.AddComponent<Image>();
             boxImg.color = new Color(0.04f, 0.08f, 0.14f, 0.97f);
+            TryApplySvgSprite(boxImg, "panel_glass");
             boxGO.AddComponent<FWTCG.UI.GlassPanelFX>();  // DEV-25 glass effect
             var boxRT = boxGO.GetComponent<RectTransform>();
             boxRT.anchorMin = new Vector2(0.5f, 0.5f);
@@ -2166,7 +2180,9 @@ namespace FWTCG.Editor
             btnHlg.childAlignment        = TextAnchor.MiddleCenter;
 
             confirmBtn     = CreateButton(btnRowGO.transform, "ConfirmBtn", "确认");
+            TryApplySvgSprite(confirmBtn.GetComponent<Image>(), "btn_confirm");
             cancelBtn      = CreateButton(btnRowGO.transform, "CancelBtn",  "取消");
+            TryApplySvgSprite(cancelBtn.GetComponent<Image>(), "btn_cancel");
             confirmBtnText = confirmBtn.GetComponentInChildren<Text>();
             cancelBtnText  = cancelBtn.GetComponentInChildren<Text>();
 
@@ -2180,9 +2196,22 @@ namespace FWTCG.Editor
             out Text coinFlipText, out Button okButton,
             out Image coinCircleImage, out Text coinResultText, out Image scanLightImage)
         {
-            var go = CreateFullscreenPanel(parent, "CoinFlipPanel", new Color(0.02f, 0.04f, 0.07f, 1f));
+            var go = CreateFullscreenPanel(parent, "CoinFlipPanel", new Color(0.02f, 0.04f, 0.07f, 0.95f));
             // DEV-24: CanvasGroup for fade transitions
             go.AddComponent<CanvasGroup>();
+
+            // Centered dialog frame (ignoreLayout so VLG skips it, renders behind content)
+            {
+                var bgBox = new GameObject("PanelBg");
+                bgBox.transform.SetParent(go.transform, false);
+                var le = bgBox.AddComponent<LayoutElement>(); le.ignoreLayout = true;
+                var rt = bgBox.GetComponent<RectTransform>();
+                rt.anchorMin = new Vector2(0.5f, 0.5f); rt.anchorMax = new Vector2(0.5f, 0.5f);
+                rt.pivot = new Vector2(0.5f, 0.5f); rt.sizeDelta = new Vector2(800f, 600f);
+                var bgImg = bgBox.AddComponent<Image>();
+                bgImg.color = Color.white; bgImg.raycastTarget = false;
+                TryApplySvgSprite(bgImg, "bg_coin_flip");
+            }
 
             var vlg = go.AddComponent<VerticalLayoutGroup>();
             vlg.childControlWidth = false;
@@ -2226,6 +2255,7 @@ namespace FWTCG.Editor
             coinResultText.color = rc;
 
             okButton = CreateButton(go.transform, "OkButton", "开始");
+            TryApplySvgSprite(okButton.GetComponent<Image>(), "btn_confirm");
             AddButtonCharge(okButton.gameObject); // V4: 按钮入场动画
 
             // ── Scan light (absolute positioned, not in VLG) ──────────────────
@@ -2242,45 +2272,7 @@ namespace FWTCG.Editor
             scanLightImage = scanGO.AddComponent<Image>();
             scanLightImage.color = new Color(0.37f, 0.55f, 1f, 0.35f); // translucent blue-white
 
-            // ── DEV-30 V2/V3/V5 visual overlays ──────────────────────────────────
-            // V5: BgGradientOverlay — slow-rotating diamond, subtle Hextech glow
-            {
-                var bgGO = new GameObject("BgGradientOverlay");
-                bgGO.transform.SetParent(go.transform, false);
-                bgGO.transform.localRotation = Quaternion.Euler(0f, 0f, 45f);
-                var le = bgGO.AddComponent<LayoutElement>(); le.ignoreLayout = true;
-                // LayoutElement [RequireComponent(RectTransform)] auto-adds RT — use GetComponent
-                var rt = bgGO.GetComponent<RectTransform>();
-                rt.anchorMin = new Vector2(0.5f, 0.5f); rt.anchorMax = new Vector2(0.5f, 0.5f);
-                rt.pivot = new Vector2(0.5f, 0.5f); rt.sizeDelta = new Vector2(1500f, 1500f);
-                var img = bgGO.AddComponent<Image>();
-                img.color = new Color(0.04f, 0.55f, 0.7f, 0.08f);
-                img.raycastTarget = false;
-            }
-            // V2: HexBreathOverlay — full-screen Hextech blue alpha breath
-            {
-                var hexGO = new GameObject("HexBreathOverlay");
-                hexGO.transform.SetParent(go.transform, false);
-                var le = hexGO.AddComponent<LayoutElement>(); le.ignoreLayout = true;
-                var rt = hexGO.GetComponent<RectTransform>();
-                rt.anchorMin = Vector2.zero; rt.anchorMax = Vector2.one;
-                rt.offsetMin = Vector2.zero; rt.offsetMax = Vector2.zero;
-                var img = hexGO.AddComponent<Image>();
-                img.color = new Color(0.04f, 0.78f, 0.73f, 0.15f);
-                img.raycastTarget = false;
-            }
-            // V3: TitleBeam — centered horizontal glow beam, pulsing alpha
-            {
-                var beamGO = new GameObject("TitleBeam");
-                beamGO.transform.SetParent(go.transform, false);
-                var le = beamGO.AddComponent<LayoutElement>(); le.ignoreLayout = true;
-                var rt = beamGO.GetComponent<RectTransform>();
-                rt.anchorMin = new Vector2(0f, 0.5f); rt.anchorMax = new Vector2(1f, 0.5f);
-                rt.pivot = new Vector2(0.5f, 0.5f); rt.sizeDelta = new Vector2(0f, 60f);
-                var img = beamGO.AddComponent<Image>();
-                img.color = new Color(0.37f, 0.85f, 1f, 0f);
-                img.raycastTarget = false;
-            }
+            // DEV-30 V2/V3/V5 overlays removed — SVG background (bg_coin_flip) covers the visual design
 
             go.SetActive(false);
             return go;
@@ -2290,9 +2282,22 @@ namespace FWTCG.Editor
             out Text titleText, out Transform cardContainer,
             out Button confirmButton, out Text confirmLabel)
         {
-            var go = CreateFullscreenPanel(parent, "MulliganPanel", new Color(0f, 0f, 0f, 0.85f));
+            var go = CreateFullscreenPanel(parent, "MulliganPanel", new Color(0f, 0f, 0f, 0.9f));
             // DEV-24: CanvasGroup for fade transitions
             go.AddComponent<CanvasGroup>();
+
+            // Centered dialog frame (ignoreLayout so VLG skips it, renders behind content)
+            {
+                var bgBox = new GameObject("PanelBg");
+                bgBox.transform.SetParent(go.transform, false);
+                var le = bgBox.AddComponent<LayoutElement>(); le.ignoreLayout = true;
+                var rt = bgBox.GetComponent<RectTransform>();
+                rt.anchorMin = new Vector2(0.5f, 0.5f); rt.anchorMax = new Vector2(0.5f, 0.5f);
+                rt.pivot = new Vector2(0.5f, 0.5f); rt.sizeDelta = new Vector2(1200f, 700f);
+                var bgImg = bgBox.AddComponent<Image>();
+                bgImg.color = Color.white; bgImg.raycastTarget = false;
+                TryApplySvgSprite(bgImg, "bg_mulligan");
+            }
 
             var vlg = go.AddComponent<VerticalLayoutGroup>();
             vlg.childControlWidth = false;
@@ -2319,6 +2324,7 @@ namespace FWTCG.Editor
 
             // Confirm button with label
             confirmButton = CreateButton(go.transform, "ConfirmButton", "确认");
+            TryApplySvgSprite(confirmButton.GetComponent<Image>(), "btn_confirm");
             AddButtonCharge(confirmButton.gameObject); // V8: 梦想手牌确认按钮动画
             confirmLabel  = confirmButton.GetComponentInChildren<Text>();
 
@@ -2531,6 +2537,7 @@ namespace FWTCG.Editor
             // Full-screen dark overlay
             var panel = CreateFullscreenPanel(parent, "ReactiveWindowPanel",
                 new Color(0f, 0f, 0f, 0.75f));
+            TryApplySvgSprite(panel.GetComponent<Image>(), "panel_reactive");
 
             var vlg = panel.AddComponent<VerticalLayoutGroup>();
             vlg.childControlWidth = false;
@@ -2778,6 +2785,7 @@ namespace FWTCG.Editor
             var panelImg = panel.AddComponent<Image>();
             panelImg.color = new Color(0.06f, 0.08f, 0.14f, 0.95f);
             panelImg.raycastTarget = true;
+            TryApplySvgSprite(panelImg, "panel_card_detail");
             panel.AddComponent<FWTCG.UI.GlassPanelFX>();  // DEV-25 glass effect
 
             var panelRT = panel.GetComponent<RectTransform>();
@@ -3100,7 +3108,7 @@ namespace FWTCG.Editor
             if (glowSpr != null) glowImg.sprite = glowSpr;
             glowImg.color = new Color(1f, 1f, 1f, 0f); // starts invisible
             glowImg.raycastTarget = false;
-            glowImg.type = Image.Type.Sliced;
+            glowImg.type = Image.Type.Simple;
             glowImg.enabled = false;
             var glowRT = glowGO.GetComponent<RectTransform>();
             glowRT.anchorMin = Vector2.zero;

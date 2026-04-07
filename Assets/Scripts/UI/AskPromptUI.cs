@@ -171,6 +171,38 @@ namespace FWTCG.UI
             return _confirmTcs.Task;
         }
 
+        // ── Bot helpers ───────────────────────────────────────────────────────
+
+        /// <summary>
+        /// Bot calls this to programmatically answer the current dialog.
+        /// For confirm dialogs: confirm=true → click Confirm, false → click Cancel.
+        /// For card-choice dialogs: picks the first card in the list (confirm ignored).
+        /// </summary>
+        public void BotAutoAnswer(bool confirm)
+        {
+            if (_confirmTcs != null)
+            {
+                Hide();
+                _confirmTcs?.TrySetResult(confirm);
+            }
+            else if (_cardTcs != null)
+            {
+                // Pick first available card button in container
+                if (_cardContainer != null)
+                {
+                    var cv = _cardContainer.GetComponentInChildren<CardView>();
+                    if (cv != null && cv.Unit != null)
+                    {
+                        Hide();
+                        _cardTcs?.TrySetResult(cv.Unit);
+                        return;
+                    }
+                }
+                Hide();
+                _cardTcs?.TrySetResult(null);
+            }
+        }
+
         // ── Test helpers (allow unit tests to resolve pending tasks) ──────────
 
         /// <summary>Cancels any pending task. Used by unit tests to avoid hanging.</summary>

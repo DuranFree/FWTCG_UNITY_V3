@@ -1,50 +1,57 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="240" height="320" viewBox="0 0 240 320">
+<svg xmlns="http://www.w3.org/2000/svg" width="134" height="270" viewBox="0 0 134 270">
   <defs>
-    <linearGradient id="heroBg" x1="0" y1="0" x2="0" y2="1">
-      <stop offset="0%" stop-color="#0e1e34"/>
-      <stop offset="100%" stop-color="#060f1e"/>
+    <linearGradient id="bg" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%"  stop-color="#0c1422"/>
+      <stop offset="100%" stop-color="#080e18"/>
     </linearGradient>
-    <linearGradient id="heroEdge" x1="0" y1="0" x2="0" y2="1">
-      <stop offset="0%" stop-color="#3a80d0"/>
-      <stop offset="100%" stop-color="#1a4090"/>
+    <linearGradient id="bH" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0%"  stop-color="#3a2008"/>
+      <stop offset="30%" stop-color="#c88828"/>
+      <stop offset="50%" stop-color="#e8b030"/>
+      <stop offset="70%" stop-color="#c88828"/>
+      <stop offset="100%" stop-color="#3a2008"/>
     </linearGradient>
-    <radialGradient id="heroInner" cx="50%" cy="40%" r="60%">
-      <stop offset="0%" stop-color="#1a4080" stop-opacity="0.2"/>
-      <stop offset="100%" stop-color="#1a4080" stop-opacity="0"/>
-    </radialGradient>
-    <filter id="glow">
-      <feGaussianBlur stdDeviation="2" result="b"/>
-      <feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
-    </filter>
+    <linearGradient id="bV" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%"  stop-color="#3a2008"/>
+      <stop offset="30%" stop-color="#c88828"/>
+      <stop offset="50%" stop-color="#e8b030"/>
+      <stop offset="70%" stop-color="#c88828"/>
+      <stop offset="100%" stop-color="#3a2008"/>
+    </linearGradient>
+    <filter id="g"><feGaussianBlur stdDeviation="1.5" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
   </defs>
-
-  <!-- 主面板 -->
-  <rect x="6" y="6" width="228" height="308" rx="10" fill="url(#heroBg)"/>
-  <rect x="6" y="6" width="228" height="308" rx="10" fill="url(#heroInner)"/>
-
-  <!-- 外框（蓝色调） -->
-  <rect x="6" y="6" width="228" height="308" rx="10" fill="none" stroke="url(#heroEdge)" stroke-width="2" opacity="0.8"/>
-  <!-- 内框细线 -->
-  <rect x="9" y="9" width="222" height="302" rx="8" fill="none" stroke="#4090d0" stroke-width="0.5" opacity="0.3"/>
-
-  <!-- 顶部高亮 -->
-  <rect x="6" y="6" width="228" height="3" rx="1" fill="#4090d0" opacity="0.6"/>
-
-  <!-- 四角L形装饰 -->
-  <g fill="none" stroke="#4090d0" stroke-width="1.5" opacity="0.8" filter="url(#glow)">
-    <path d="M16,24 L16,14 L26,14"/>
-    <path d="M224,24 L224,14 L214,14"/>
-    <path d="M16,296 L16,306 L26,306"/>
-    <path d="M224,296 L224,306 L214,306"/>
+  <rect width="134" height="270" fill="url(#bg)"/>
+  <!-- Diagonals -->
+  <g stroke="#0e1828" stroke-width="0.7" opacity="0.3">
+    <line x1="0" y1="0" x2="134" y2="270"/>
+    <line x1="0" y1="135" x2="67" y2="270"/>
+    <line x1="67" y1="0" x2="134" y2="135"/>
+    <line x1="134" y1="0" x2="0" y2="270"/>
+    <line x1="67" y1="0" x2="0" y2="100"/>
+    <line x1="134" y1="135" x2="34" y2="270"/>
   </g>
-
-  <!-- 顶部标题分隔线 -->
-  <line x1="20" y1="52" x2="220" y2="52" stroke="#2060b0" stroke-width="0.5" opacity="0.5"/>
-  <circle cx="120" cy="52" r="3" fill="#4090d0" opacity="0.5"/>
-
-  <!-- 底部数值区分隔线 -->
-  <line x1="20" y1="262" x2="220" y2="262" stroke="#2060b0" stroke-width="0.5" opacity="0.5"/>
-
-  <!-- 中间图像区域暗示框 -->
-  <rect x="20" y="60" width="200" height="192" rx="6" fill="none" stroke="#1a3a60" stroke-width="1" opacity="0.4"/>
+  <!-- Bronze bars -->
+  <rect x="0" y="0" width="134" height="6" fill="url(#bH)"/>
+  <rect x="0" y="264" width="134" height="6" fill="url(#bH)"/>
+  <rect x="0" y="0" width="6" height="270" fill="url(#bV)"/>
+  <rect x="128" y="0" width="6" height="270" fill="url(#bV)"/>
+  <!-- Inner border -->
+  <rect x="9" y="9" width="116" height="252" rx="1" fill="none" stroke="#8a5c18" stroke-width="1" opacity="0.7"/>
+  <rect x="12" y="12" width="110" height="246" rx="1" fill="none" stroke="#c88828" stroke-width="0.5" opacity="0.3"/>
+  <!-- Corner L-brackets -->
+  <g stroke="#e8b030" stroke-width="2" fill="none" filter="url(#g)">
+    <path d="M9,30 L9,9 L30,9"/>
+    <path d="M104,9 L125,9 L125,30"/>
+    <path d="M9,240 L9,261 L30,261"/>
+    <path d="M104,261 L125,261 L125,240"/>
+  </g>
+  <g fill="#e8b030" filter="url(#g)">
+    <rect x="7" y="7" width="4" height="4"/>
+    <rect x="123" y="7" width="4" height="4"/>
+    <rect x="7" y="259" width="4" height="4"/>
+    <rect x="123" y="259" width="4" height="4"/>
+  </g>
+  <!-- Separator lines -->
+  <rect x="12" y="54" width="110" height="1.5" fill="url(#bH)" opacity="0.6"/>
+  <rect x="12" y="216" width="110" height="1.5" fill="url(#bH)" opacity="0.6"/>
 </svg>

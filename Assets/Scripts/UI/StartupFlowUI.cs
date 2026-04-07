@@ -40,6 +40,11 @@ namespace FWTCG.UI
 
         private const int MAX_MULLIGAN_SWAPS = 2;
 
+        /// <summary>
+        /// Bot 专用：设为 true 时，硬币结果和换牌面板出现后自动点击确认，无需人工操作。
+        /// </summary>
+        public static bool BotAutoAdvance = false;
+
         // DOT-8: mulligan flip constant
         private const float MULLIGAN_FLIP_HALF  = 0.11f;
 
@@ -293,7 +298,11 @@ namespace FWTCG.UI
                 });
                 yield return new WaitForSeconds(0.5f);
                 if (_coinFlipOkButton != null)
+                {
                     _coinFlipOkButton.interactable = true;
+                    // Bot 模式：自动点击确认按钮
+                    if (BotAutoAdvance) _coinFlipOkButton.onClick.Invoke();
+                }
             }
             else
             {
@@ -595,6 +604,8 @@ namespace FWTCG.UI
                     PerformMulligan(gs);
                     StartCoroutine(FadeOutAndResolve(_mulliganPanel, _mulliganCG, tcs));
                 });
+                // Bot 模式：自动点击确认（不换牌，直接接受初始手牌）
+                if (BotAutoAdvance) _mulliganConfirmButton.onClick.Invoke();
             }
             else
             {

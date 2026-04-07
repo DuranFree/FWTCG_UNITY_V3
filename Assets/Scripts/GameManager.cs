@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Threading.Tasks;
 using UnityEngine;
 using UnityEngine.UI;
+using DG.Tweening;
 using FWTCG.Core;
 using FWTCG.Data;
 using FWTCG.Systems;
@@ -150,6 +151,9 @@ namespace FWTCG
         private bool? _pendingDragHasteDecision;  // DEV-22: pre-answered Haste choice from drag flow prompt
 
         // ── DEV-22: Drag query helpers (used by CardDragHandler) ─────────────
+
+        /// <summary>Exposes game state for Bot and tooling.</summary>
+        public GameState GetState() => _gs;
 
         /// <summary>True when it is the player's action phase and no AI reaction is blocking.</summary>
         public bool IsPlayerActionPhase()
@@ -414,6 +418,46 @@ namespace FWTCG
                 _ui.SetupDragZones();
             }
 
+            InitGame();
+            StartCoroutine(RunWithStartup());
+        }
+
+        // ── Bot: 原地重置（不重载场景）────────────────────────────────────────
+
+        /// <summary>
+        /// Bot 专用：不重载场景，直接重置游戏状态并重新跑完整启动流程。
+        /// 保留所有游戏逻辑、动画、UI；仅清空当前局数据。
+        /// </summary>
+        public void RestartGameInPlace()
+        {
+            // 1. 让当前所有游戏逻辑感知到游戏已结束，让异步任务自然退出
+            if (_gs != null) _gs.GameOver = true;
+
+            // 2. 停止所有当前协程（GameLoop、RunWithStartup 等）
+            StopAllCoroutines();
+
+            // 3. 停掉所有 DOTween（清除残留动画）
+            DOTween.KillAll();
+
+            // 4. 重置交互状态
+            _selectedUnit               = null;
+            _selectedUnitLoc            = null;
+            _selectedBaseUnits.Clear();
+            _selectedHandUnits.Clear();
+            _targetingSpell             = null;
+            _aiReactionPending          = false;
+            _bfClickInFlight            = false;
+            _pendingDragHasteDecision   = null;
+
+            // 5. 重置静态反应窗口状态
+            _reactionWindowActive   = false;
+            _aiReactionWindowActive = false;
+            _reactionTcs?.TrySetCanceled();
+            _reactionTcs  = null;
+            _aiReactionTcs?.TrySetCanceled();
+            _aiReactionTcs = null;
+
+            // 6. 重新初始化并启动完整流程（含硬币+换牌）
             InitGame();
             StartCoroutine(RunWithStartup());
         }

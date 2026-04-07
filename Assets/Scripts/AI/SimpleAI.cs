@@ -661,15 +661,15 @@ namespace FWTCG.AI
             if (SpellShowcaseUI.Instance != null)
                 _ = SpellShowcaseUI.Instance.ShowAsync(spell, GameRules.OWNER_ENEMY);
 
-            // Give player a window to click the React button
-            await Task.Delay(SPELL_REACTION_WINDOW_MS);
+            // Give player a window to click the React button (skipped in bot mode)
+            await Delay(SPELL_REACTION_WINDOW_MS);
             await GameManager.WaitIfReactionActive();
 
             if (!gs.GameOver)
             {
                 spellSys.CastSpell(spell, GameRules.OWNER_ENEMY, target, gs);
                 // Wait for hit-flash + shake before next action destroys CardViews
-                await Task.Delay(550);
+                await Delay(550);
             }
         }
 
@@ -849,6 +849,14 @@ namespace FWTCG.AI
 
         // ── Logging/Delay helpers ─────────────────────────────────────────────
         private static void Log(string msg) => TurnManager.BroadcastMessage_Static(msg);
-        private static Task Delay(int ms)   => Task.Delay(ms);
+
+        /// <summary>
+        /// Bot 模式下跳过所有 AI 延迟，实现超速对局。
+        /// 由 GameBot 在启动时设置。
+        /// </summary>
+        public static bool SkipDelays = false;
+
+        private static Task Delay(int ms)
+            => SkipDelays ? Task.CompletedTask : Task.Delay(ms);
     }
 }

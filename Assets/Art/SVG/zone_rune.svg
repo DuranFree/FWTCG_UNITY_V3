@@ -1,81 +1,84 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="160" height="400" viewBox="0 0 160 400">
+<svg xmlns="http://www.w3.org/2000/svg" width="749" height="130" viewBox="0 0 749 130">
   <defs>
-    <linearGradient id="runeBg" x1="0" y1="0" x2="1" y2="0">
-      <stop offset="0%" stop-color="#0a1828"/>
-      <stop offset="100%" stop-color="#060f1e"/>
+    <linearGradient id="bg" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%"  stop-color="#0e0a1c"/>
+      <stop offset="100%" stop-color="#080614"/>
     </linearGradient>
-    <radialGradient id="runeSlotOn" cx="50%" cy="50%" r="50%">
-      <stop offset="0%" stop-color="#60a0ff" stop-opacity="0.4"/>
-      <stop offset="60%" stop-color="#2060c0" stop-opacity="0.15"/>
-      <stop offset="100%" stop-color="#2060c0" stop-opacity="0"/>
+    <linearGradient id="bronzeH" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0%"  stop-color="#3a2008"/>
+      <stop offset="20%" stop-color="#c88828"/>
+      <stop offset="50%" stop-color="#e8b030"/>
+      <stop offset="80%" stop-color="#c88828"/>
+      <stop offset="100%" stop-color="#3a2008"/>
+    </linearGradient>
+    <linearGradient id="bronzeV" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%"  stop-color="#3a2008"/>
+      <stop offset="30%" stop-color="#c88828"/>
+      <stop offset="50%" stop-color="#e8b030"/>
+      <stop offset="70%" stop-color="#c88828"/>
+      <stop offset="100%" stop-color="#3a2008"/>
+    </linearGradient>
+    <radialGradient id="runeGlow" cx="50%" cy="50%" r="50%">
+      <stop offset="0%"  stop-color="#3010a0" stop-opacity="0.35"/>
+      <stop offset="100%" stop-color="#080614" stop-opacity="0"/>
     </radialGradient>
-    <radialGradient id="runeSlotOff" cx="50%" cy="50%" r="50%">
-      <stop offset="0%" stop-color="#1a2a40" stop-opacity="0.6"/>
-      <stop offset="100%" stop-color="#0a1020" stop-opacity="0.3"/>
-    </radialGradient>
-    <filter id="glow">
-      <feGaussianBlur stdDeviation="2" result="b"/>
-      <feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
-    </filter>
+    <filter id="glow"><feGaussianBlur stdDeviation="1.5" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
   </defs>
 
-  <!-- 主容器 -->
-  <rect x="6" y="6" width="148" height="388" rx="12" fill="url(#runeBg)" opacity="0.85"/>
-  <rect x="6" y="6" width="148" height="388" rx="12" fill="none" stroke="#2050a0" stroke-width="1.5" opacity="0.6"/>
-  <rect x="9" y="9" width="142" height="382" rx="10" fill="none" stroke="#3070c0" stroke-width="0.5" opacity="0.2"/>
+  <rect width="749" height="130" fill="url(#bg)"/>
+  <rect width="749" height="130" fill="url(#runeGlow)"/>
 
-  <!-- 8个符文槽（圆形） -->
-  <!-- 槽1 -->
-  <circle cx="80" cy="46" r="22" fill="url(#runeSlotOn)" stroke="#4080d0" stroke-width="1.5" opacity="0.9"/>
-  <circle cx="80" cy="46" r="16" fill="none" stroke="#60a0ff" stroke-width="0.8" opacity="0.5"/>
-  <circle cx="80" cy="46" r="8" fill="#3070c0" opacity="0.4" filter="url(#glow)"/>
-
-  <!-- 槽2 -->
-  <circle cx="80" cy="96" r="22" fill="url(#runeSlotOn)" stroke="#4080d0" stroke-width="1.5" opacity="0.9"/>
-  <circle cx="80" cy="96" r="16" fill="none" stroke="#60a0ff" stroke-width="0.8" opacity="0.5"/>
-  <circle cx="80" cy="96" r="8" fill="#3070c0" opacity="0.4" filter="url(#glow)"/>
-
-  <!-- 槽3 -->
-  <circle cx="80" cy="146" r="22" fill="url(#runeSlotOn)" stroke="#4080d0" stroke-width="1.5" opacity="0.9"/>
-  <circle cx="80" cy="146" r="16" fill="none" stroke="#60a0ff" stroke-width="0.8" opacity="0.5"/>
-  <circle cx="80" cy="146" r="8" fill="#3070c0" opacity="0.4" filter="url(#glow)"/>
-
-  <!-- 槽4 -->
-  <circle cx="80" cy="196" r="22" fill="url(#runeSlotOn)" stroke="#4080d0" stroke-width="1.5" opacity="0.9"/>
-  <circle cx="80" cy="196" r="16" fill="none" stroke="#60a0ff" stroke-width="0.8" opacity="0.5"/>
-  <circle cx="80" cy="196" r="8" fill="#3070c0" opacity="0.4" filter="url(#glow)"/>
-
-  <!-- 槽5（空/暗） -->
-  <circle cx="80" cy="246" r="22" fill="url(#runeSlotOff)" stroke="#1a3060" stroke-width="1.2" opacity="0.7"/>
-  <circle cx="80" cy="246" r="16" fill="none" stroke="#2050a0" stroke-width="0.5" opacity="0.3"/>
-
-  <!-- 槽6（空） -->
-  <circle cx="80" cy="296" r="22" fill="url(#runeSlotOff)" stroke="#1a3060" stroke-width="1.2" opacity="0.7"/>
-  <circle cx="80" cy="296" r="16" fill="none" stroke="#2050a0" stroke-width="0.5" opacity="0.3"/>
-
-  <!-- 槽7（空） -->
-  <circle cx="80" cy="346" r="22" fill="url(#runeSlotOff)" stroke="#1a3060" stroke-width="1.2" opacity="0.7"/>
-  <circle cx="80" cy="346" r="16" fill="none" stroke="#2050a0" stroke-width="0.5" opacity="0.3"/>
-
-  <!-- 槽8（空） -->
-  <circle cx="80" cy="382" r="16" fill="url(#runeSlotOff)" stroke="#1a3060" stroke-width="1" opacity="0.5"/>
-
-  <!-- 槽间连接线 -->
-  <g stroke="#1a3a60" stroke-width="0.8" opacity="0.4">
-    <line x1="80" y1="68" x2="80" y2="74"/>
-    <line x1="80" y1="118" x2="80" y2="124"/>
-    <line x1="80" y1="168" x2="80" y2="174"/>
-    <line x1="80" y1="218" x2="80" y2="224"/>
-    <line x1="80" y1="268" x2="80" y2="274"/>
-    <line x1="80" y1="318" x2="80" y2="324"/>
-    <line x1="80" y1="362" x2="80" y2="366"/>
+  <!-- Subtle diagonals -->
+  <g stroke="#18082a" stroke-width="0.7" opacity="0.3">
+    <line x1="0" y1="0" x2="749" y2="130"/>
+    <line x1="0" y1="65" x2="684" y2="130"/>
+    <line x1="65" y1="0" x2="749" y2="65"/>
+    <line x1="749" y1="0" x2="0" y2="130"/>
   </g>
 
-  <!-- 四角装饰 -->
-  <g fill="none" stroke="#3070c0" stroke-width="1" opacity="0.5">
-    <path d="M14,20 L14,12 L22,12"/>
-    <path d="M146,20 L146,12 L138,12"/>
-    <path d="M14,380 L14,388 L22,388"/>
-    <path d="M146,380 L146,388 L138,388"/>
+  <!-- Bronze bars -->
+  <rect x="0" y="0" width="749" height="6" fill="url(#bronzeH)"/>
+  <rect x="0" y="124" width="749" height="6" fill="url(#bronzeH)"/>
+  <rect x="0" y="0" width="6" height="130" fill="url(#bronzeV)"/>
+  <rect x="743" y="0" width="6" height="130" fill="url(#bronzeV)"/>
+
+  <!-- Inner border -->
+  <rect x="9" y="9" width="731" height="112" rx="1" fill="none" stroke="#8a5c18" stroke-width="1" opacity="0.7"/>
+  <rect x="12" y="12" width="725" height="106" rx="1" fill="none" stroke="#c88828" stroke-width="0.5" opacity="0.3"/>
+
+  <!-- Corner L-brackets -->
+  <g stroke="#e8b030" stroke-width="2" fill="none" filter="url(#glow)">
+    <path d="M9,30 L9,9 L30,9"/>
+    <path d="M719,9 L740,9 L740,30"/>
+    <path d="M9,100 L9,121 L30,121"/>
+    <path d="M719,121 L740,121 L740,100"/>
+  </g>
+  <g fill="#e8b030" filter="url(#glow)">
+    <rect x="7" y="7" width="4" height="4"/>
+    <rect x="738" y="7" width="4" height="4"/>
+    <rect x="7" y="119" width="4" height="4"/>
+    <rect x="738" y="119" width="4" height="4"/>
+  </g>
+
+  <!-- Rune slot dividers (4 slots -> 3 dividers) -->
+  <g stroke="#4020a0" stroke-width="0.8" stroke-dasharray="4,6" opacity="0.5">
+    <line x1="196" y1="14" x2="196" y2="116"/>
+    <line x1="374" y1="14" x2="374" y2="116"/>
+    <line x1="553" y1="14" x2="553" y2="116"/>
+  </g>
+
+  <!-- Rune slot diamonds (centered in each of 4 slots: 98, 285, 463, 651) -->
+  <g fill="none" stroke="#7030d0" stroke-width="1" opacity="0.5" filter="url(#glow)">
+    <polygon points="98,48 110,60 98,72 86,60"/>
+    <polygon points="285,48 297,60 285,72 273,60"/>
+    <polygon points="463,48 475,60 463,72 451,60"/>
+    <polygon points="651,48 663,60 651,72 639,60"/>
+  </g>
+  <!-- Inner fill diamonds -->
+  <g fill="#3010a0" opacity="0.3">
+    <polygon points="98,53 106,60 98,67 90,60"/>
+    <polygon points="285,53 293,60 285,67 277,60"/>
+    <polygon points="463,53 471,60 463,67 455,60"/>
+    <polygon points="651,53 659,60 651,67 643,60"/>
   </g>
 </svg>

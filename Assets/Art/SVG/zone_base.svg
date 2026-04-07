@@ -1,54 +1,85 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="200" height="200" viewBox="0 0 200 200">
+<svg xmlns="http://www.w3.org/2000/svg" width="749" height="140" viewBox="0 0 749 140">
   <defs>
-    <radialGradient id="baseBg" cx="50%" cy="50%" r="55%">
-      <stop offset="0%" stop-color="#0e1e30"/>
-      <stop offset="100%" stop-color="#060c18"/>
-    </radialGradient>
-    <radialGradient id="baseGlow" cx="50%" cy="50%" r="45%">
-      <stop offset="0%" stop-color="#2060b0" stop-opacity="0.2"/>
-      <stop offset="100%" stop-color="#2060b0" stop-opacity="0"/>
-    </radialGradient>
-    <linearGradient id="hpBar" x1="0" y1="0" x2="1" y2="0">
-      <stop offset="0%" stop-color="#20c040"/>
-      <stop offset="60%" stop-color="#18a030"/>
-      <stop offset="100%" stop-color="#108020"/>
+    <linearGradient id="bg" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%"  stop-color="#101828"/>
+      <stop offset="100%" stop-color="#060c16"/>
     </linearGradient>
-    <filter id="glow">
-      <feGaussianBlur stdDeviation="2" result="b"/>
-      <feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
-    </filter>
+    <linearGradient id="bronzeH" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0%"  stop-color="#3a2008"/>
+      <stop offset="20%" stop-color="#c88828"/>
+      <stop offset="50%" stop-color="#e8b030"/>
+      <stop offset="80%" stop-color="#c88828"/>
+      <stop offset="100%" stop-color="#3a2008"/>
+    </linearGradient>
+    <linearGradient id="bronzeV" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%"  stop-color="#3a2008"/>
+      <stop offset="30%" stop-color="#c88828"/>
+      <stop offset="50%" stop-color="#e8b030"/>
+      <stop offset="70%" stop-color="#c88828"/>
+      <stop offset="100%" stop-color="#3a2008"/>
+    </linearGradient>
+    <linearGradient id="centerGlow" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0%"   stop-color="#060c16" stop-opacity="0"/>
+      <stop offset="40%"  stop-color="#1a2e50" stop-opacity="0.3"/>
+      <stop offset="50%"  stop-color="#2a4070" stop-opacity="0.4"/>
+      <stop offset="60%"  stop-color="#1a2e50" stop-opacity="0.3"/>
+      <stop offset="100%" stop-color="#060c16" stop-opacity="0"/>
+    </linearGradient>
+    <filter id="glow"><feGaussianBlur stdDeviation="1.5" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
   </defs>
 
-  <!-- 八边形底座 -->
-  <polygon points="100,8 158,28 188,80 188,120 158,172 100,192 42,172 12,120 12,80 42,28"
-    fill="url(#baseBg)" stroke="#2060b0" stroke-width="2" opacity="0.9"/>
-  <polygon points="100,14 152,32 180,80 180,120 152,168 100,186 48,168 20,120 20,80 48,32"
-    fill="none" stroke="#4090d0" stroke-width="0.5" opacity="0.3"/>
+  <rect width="749" height="140" fill="url(#bg)"/>
+  <rect width="749" height="140" fill="url(#centerGlow)"/>
 
-  <!-- 中心光晕 -->
-  <circle cx="100" cy="100" r="60" fill="url(#baseGlow)"/>
+  <!-- Subtle diagonals -->
+  <g stroke="#0e1828" stroke-width="0.7" opacity="0.25">
+    <line x1="0" y1="0" x2="749" y2="140"/>
+    <line x1="0" y1="70" x2="679" y2="140"/>
+    <line x1="70" y1="0" x2="749" y2="70"/>
+    <line x1="749" y1="0" x2="0" y2="140"/>
+    <line x1="679" y1="0" x2="0" y2="70"/>
+    <line x1="749" y1="70" x2="70" y2="140"/>
+  </g>
 
-  <!-- 盾牌图形（徽章） -->
-  <path d="M100,40 L136,58 L136,100 Q136,130 100,148 Q64,130 64,100 L64,58 Z"
-    fill="#0a1828" stroke="#2060b0" stroke-width="1.5" opacity="0.85"/>
-  <path d="M100,48 L130,64 L130,100 Q130,124 100,140 Q70,124 70,100 L70,64 Z"
-    fill="none" stroke="#4090d0" stroke-width="0.8" opacity="0.4"/>
+  <!-- Bronze bars -->
+  <rect x="0" y="0" width="749" height="6" fill="url(#bronzeH)"/>
+  <rect x="0" y="134" width="749" height="6" fill="url(#bronzeH)"/>
+  <rect x="0" y="0" width="6" height="140" fill="url(#bronzeV)"/>
+  <rect x="743" y="0" width="6" height="140" fill="url(#bronzeV)"/>
 
-  <!-- 盾中心装饰 -->
-  <polygon points="100,62 108,82 130,82 113,94 120,115 100,102 80,115 87,94 70,82 92,82"
-    fill="#1a4080" stroke="#4090d0" stroke-width="0.8" opacity="0.6" filter="url(#glow)"/>
+  <!-- Inner border -->
+  <rect x="9" y="9" width="731" height="122" rx="1" fill="none" stroke="#8a5c18" stroke-width="1" opacity="0.7"/>
+  <rect x="12" y="12" width="725" height="116" rx="1" fill="none" stroke="#c88828" stroke-width="0.5" opacity="0.3"/>
 
-  <!-- HP 数值底框 -->
-  <rect x="60" y="155" width="80" height="22" rx="4" fill="#061020" stroke="#2060b0" stroke-width="1" opacity="0.8"/>
-  <!-- HP 条 -->
-  <rect x="63" y="158" width="60" height="16" rx="3" fill="#0a1828"/>
-  <rect x="63" y="158" width="48" height="16" rx="3" fill="url(#hpBar)" opacity="0.85"/>
+  <!-- Corner L-brackets -->
+  <g stroke="#e8b030" stroke-width="2" fill="none" filter="url(#glow)">
+    <path d="M9,36 L9,9 L36,9"/>
+    <path d="M713,9 L740,9 L740,36"/>
+    <path d="M9,104 L9,131 L36,131"/>
+    <path d="M713,131 L740,131 L740,104"/>
+  </g>
+  <g fill="#e8b030" filter="url(#glow)">
+    <rect x="7" y="7" width="4" height="4"/>
+    <rect x="738" y="7" width="4" height="4"/>
+    <rect x="7" y="129" width="4" height="4"/>
+    <rect x="738" y="129" width="4" height="4"/>
+  </g>
 
-  <!-- 角落装饰 -->
-  <g fill="none" stroke="#3070c0" stroke-width="1" opacity="0.5">
-    <path d="M12,30 L12,18 L24,18"/>
-    <path d="M188,30 L188,18 L176,18"/>
-    <path d="M12,170 L12,182 L24,182"/>
-    <path d="M188,170 L188,182 L176,182"/>
+  <!-- HP bar track -->
+  <rect x="40" y="118" width="669" height="8" rx="4" fill="#0a0e18" stroke="#8a5c18" stroke-width="0.8" opacity="0.9"/>
+  <!-- HP bar fill (50%) -->
+  <rect x="42" y="119.5" width="330" height="5" rx="2.5" fill="#208040" opacity="0.8"/>
+
+  <!-- Center diamond (base emblem) -->
+  <g opacity="0.4" filter="url(#glow)">
+    <polygon points="374,40 394,60 374,80 354,60" fill="none" stroke="#c88828" stroke-width="1.2"/>
+    <polygon points="374,50 384,60 374,70 364,60" fill="#8a5c18" opacity="0.5"/>
+  </g>
+
+  <!-- Vertical tick marks (section dividers) -->
+  <g stroke="#c88828" stroke-width="0.6" opacity="0.3">
+    <line x1="187" y1="14" x2="187" y2="110"/>
+    <line x1="374" y1="14" x2="374" y2="110"/>
+    <line x1="561" y1="14" x2="561" y2="110"/>
   </g>
 </svg>
