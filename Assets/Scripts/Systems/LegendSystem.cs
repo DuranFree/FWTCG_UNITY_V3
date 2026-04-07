@@ -73,7 +73,6 @@ namespace FWTCG.Systems
 
             int blazing = gs.GetSch(owner, RuneType.Blazing);
             Log($"[传奇] 卡莎发动【虚空感知】— 进入休眠，获得1炽烈符能（当前{blazing}点）");
-            TurnManager.ShowBanner_Static("✨ 虚空感知！");
             FWTCG.UI.GameEventBus.FireLegendSkillBanner("虚空感知", "休眠·炽烈符能+1"); // DEV-18b
             return true;
         }
@@ -107,7 +106,6 @@ namespace FWTCG.Systems
             {
                 legend.Evolve();
                 Log($"[传奇] 卡莎进化！盟友拥有{distinctCount}种关键词 — 升至等级2！");
-                TurnManager.ShowBanner_Static("⭐ 卡莎·进化！Lv.2");
                 OnLegendEvolved?.Invoke(kaisaOwner, legend.Level); // DEV-15
                 FWTCG.UI.GameEventBus.FireLegendEvolvedBanner(); // DEV-18b
             }

@@ -2008,8 +2008,6 @@ namespace FWTCG
                 if (_gs.Phase == GameRules.PHASE_AWAKEN)
                 {
                     UI.GameEventBus.FireClearBanners();
-                    string who = _gs.Turn == GameRules.OWNER_PLAYER ? "玩家" : "AI";
-                    _ui.ShowBanner($"回合 {_gs.Round + 1} · {who}的回合");
                     UI.GameEventBus.FireTurnChanged(_gs.Turn, _gs.Round); // DOT-8: turn banner + mana fill
                 }
 
