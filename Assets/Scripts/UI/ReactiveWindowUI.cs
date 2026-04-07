@@ -172,11 +172,26 @@ namespace FWTCG.UI
             if (_countdownFill != null) _countdownFill.fillAmount = 1f;
             if (_countdownText != null) _countdownText.text = Mathf.CeilToInt(REACTION_TIMEOUT).ToString();
 
+            Color normalColor = _countdownText != null ? _countdownText.color : Color.white;
             _countdownTween = DOVirtual.Float(REACTION_TIMEOUT, 0f, REACTION_TIMEOUT, remaining =>
             {
                 float t = Mathf.Clamp01(remaining / REACTION_TIMEOUT);
                 if (_countdownFill != null) _countdownFill.fillAmount = t;
-                if (_countdownText != null) _countdownText.text = Mathf.CeilToInt(remaining).ToString();
+                if (_countdownText != null)
+                {
+                    _countdownText.text = Mathf.CeilToInt(remaining).ToString();
+                    // Last 3 seconds: pulse red warning
+                    if (remaining < 3f)
+                    {
+                        float pulse = (Mathf.Sin(Time.time * 8f) + 1f) * 0.5f;
+                        _countdownText.color = Color.Lerp(normalColor,
+                            new Color(1f, 0.2f, 0.2f, 1f), pulse * (3f - remaining) / 3f);
+                    }
+                    else
+                    {
+                        _countdownText.color = normalColor;
+                    }
+                }
             })
             .SetEase(Ease.Linear)
             .SetTarget(gameObject)

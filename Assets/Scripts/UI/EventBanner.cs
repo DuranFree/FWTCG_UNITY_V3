@@ -216,8 +216,12 @@ namespace FWTCG.UI
 
             var seq = DOTween.Sequence().SetTarget(gameObject);
             if (_bannerRT != null)
+            {
+                _bannerRT.localScale = Vector3.one * 0.92f;
                 seq.Append(_bannerRT.DOAnchorPos(toPos, ANIM_IN).SetEase(Ease.InOutCubic));
-            seq.Join(_cg.DOFade(1f, ANIM_IN));
+                seq.Join(_bannerRT.DOScale(1f, ANIM_IN).SetEase(Ease.OutBack));
+            }
+            seq.Join(_cg.DOFade(1f, ANIM_IN).SetEase(Ease.OutCubic));
             return seq;
         }
 

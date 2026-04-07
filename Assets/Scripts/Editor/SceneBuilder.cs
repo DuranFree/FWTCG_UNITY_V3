@@ -267,6 +267,11 @@ namespace FWTCG.Editor
             // ── EventBanner (DEV-18b) ─────────────────────────────────────────
             var eventBannerGO = CreateEventBannerPanel(canvasGO.transform);
 
+            // ── LegendSkillShowcase (DOT-8) ───────────────────────────────────
+            var legendShowcaseGO = new GameObject("LegendSkillShowcase");
+            legendShowcaseGO.transform.SetParent(canvasGO.transform, false);
+            legendShowcaseGO.AddComponent<FWTCG.UI.LegendSkillShowcase>();
+
             // ── SpellShowcasePanel (DEV-16) ───────────────────────────────────
             var spellShowcaseGO = CreateSpellShowcasePanel(canvasGO.transform);
 

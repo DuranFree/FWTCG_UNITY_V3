@@ -68,6 +68,9 @@ namespace FWTCG.UI
             if (!this) return;
             if (!isActiveAndEnabled || _vfxLayer == null) return;
 
+            // Skip particle VFX for spell cards — showcase plays immediately instead
+            if (card?.CardData != null && card.CardData.IsSpell) return;
+
             StartCoroutine(DelayedCardPlayFX(card, owner));
         }
 

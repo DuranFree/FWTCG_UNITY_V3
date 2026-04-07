@@ -30,6 +30,12 @@
 
 以上 4 个文件构成最小上下文。除非任务需要，不进行代码文件的全量或无目的预读；在执行任务时按调用链逐步加载相关代码。
 
+**MCP 僵尸进程清理（每次新会话开始时执行）：**
+- 执行 `tasklist | grep -c "node.exe"` 检查 node 进程数量
+- 如果超过 10 个 → 说明有僵尸 MCP 进程堆积，执行 `cmd.exe //C "taskkill /F /IM node.exe"` 全部杀掉（Claude Code 会自动重启需要的那个）
+- 杀完后告知用户：`⚠️ [MCP 清理] 检测到 N 个僵尸 node 进程，已全部清理`
+- 10 个以下 → 静默继续
+
 **开始新 Phase 前必须读取：**
 - `./plans/feature-checklist.md`
 - `./plans/visual-checklist.md`

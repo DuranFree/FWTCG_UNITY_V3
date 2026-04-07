@@ -2,6 +2,62 @@
 
 ---
 
+## DOT-8：DOTween 视效强化（17个新效果）— 2026-04-07
+
+**Status**: ✅ Completed
+**Tests**: 60 新测试 (DOT8ReplacementTests) 全绿，DOT7/6/5/4/3/2 + DEV29/30/32/27/28 等所有批次无回归
+
+### 实现内容
+
+**GameEventBus.cs**：新增 3 个静态事件 + Fire 方法：`OnTurnChanged(string owner, int round)`、`OnAOETargets(UnitInstance[] targets)`、`OnLegendSkillFired(LegendInstance legend, string owner)`
+
+**GameManager.cs**：`HandlePhaseChanged` 在 Action 阶段触发 `FireTurnChanged`；`OnLegendSkillClicked` 触发 `FireLegendSkillFired`
+
+**CardView.cs**：
+- 手牌推挤：`_spreadLayoutEl` LayoutElement 控制邻牌 preferredWidth +32px，0.12s EaseOutBack 弹出，`StartHandSpread/StopHandSpread`
+- 3D 倾斜：`FixedUpdate` 跟随鼠标 `_tiltTarget` ±10°，`Update` lerp 插值 speed=9，切换 `_isTiltActive`
+- 数字翻滚：`_displayedHp/_displayedAtk` int.MinValue 哨兵初始化，`DOVirtual.Float STAT_ROLL_DUR=0.45s` 逐帧更新文字
+- 击杀特写：`KillCloseupRoutine` DOTween Sequence，放大 1→1.4 + 发光 0→1，hold 0.3s，缩回
+
+**CardDragHandler.cs**：出牌弹弓蓄力，拖拽 `DOScaleX` 按距离压缩，最大 0.85x
+
+**CombatAnimator.cs**：AOE 连锁高亮，`DOVirtual.DelayedCall` 0.08s stagger 依次 `PunchScale` 各目标；`_activeGhosts` 列表 + `OnDestroy` 清理
+
+**GameUI.cs**（8个新 handler）：
+- `OnBigDamageHandler`：damage ≥5 触发 Canvas `DOShakeAnchorPos` 0.35s
+- `OnFatalHitHandler`：timeScale 1→0.3（0.15s）→ hold 0.2s →1（0.5s），`SetUpdate(true)` 不受 timeScale 影响；re-trigger 修复（H-1：先重置 timeScale=1 再启动）
+- `OnTurnChangedHandler`：调用 TurnSweepBanner + ManaFillStagger
+- `PlayTurnSweepBanner`：懒建 Text，OutBack 飞入 0.5s → hold 1s → InQuad 飞出 0.35s
+- `PlayManaFillStagger`：3拍 InsertCallback PunchScale，stagger=0.08s
+- `SpawnConfetti`：25 彩色方块从顶部落下旋转淡出 ~2.8s；OnDestroy 清理（H-2 修复）
+- `PlayOpponentCardPreview`：ghost 卡淡入飞入 → hold 0.5s → 淡出；`_opponentPreviewGO` 字段防泄漏（H-3 修复）
+- `HandleEndTurn`：`PunchScaleUI` 按钮 Squash 0.15f；`RefreshPileCounts` 剩余≤2 触发牌库抖动
+
+**StartupFlowUI.cs**：
+- 洗牌动画：`CreateShuffleAnimationTween` 4张幽灵卡交叉飞行 + 淡出，`_shuffleGhosts` 追踪
+- Mulligan 翻转：`OnMulliganCardClicked` 添加 DOScaleX 0→1 翻转，0.11s×2
+
+**LegendSkillShowcase.cs**（新文件）：
+- 单例 `Instance` + `GameEventBus.OnLegendSkillFired` 订阅
+- `PlayShowcase`：overlay 0→0.72（0.15s）+ panel 0.4→1.08→1（0.4s）→ hold 0.8s → exit（0.3s）
+- `EnsureOverlayElements`：懒创建 dark overlay Image + card panel（Border + Name + SkillLabel）
+- SceneBuilder 补加 `Canvas/LegendSkillShowcase` GO + 组件
+
+**CardBackManager.cs 修复**：`ResetForTest` 改 `_loaded=true`，防止 `Load()` 覆盖测试设置的 Default 变体
+
+**Codex 审查 High 修复**：
+- H-1: `OnFatalHitHandler` 二次触发前重置 `Time.timeScale=1f`
+- H-2: `OnDestroy` 新增 confetti GO 清理循环（DOTween.Kill + Destroy）
+- H-3: `_opponentPreviewGO` 字段追踪，re-trigger 时先销毁旧 GO
+
+### Technical debt（新增 Medium/Low 记入 tech-debt）
+- MEDIUM: `LegendSkillShowcase` 两阶段 scale 动画（0.4→1.08→1）Join+SetDelay 方式视觉上有轻微冻帧（MEDIUM-1）
+- MEDIUM: `_turnSweepSeq` kill 未用 `KillSafe(ref)`，与其他 seq 不一致（MEDIUM-2）
+- MEDIUM: Mulligan 翻转 tween 无 `_mulliganFlipSeq` 字段追踪，销毁路径有漏（MEDIUM-3）
+- MEDIUM: `PlayManaFillStagger` InsertCallback 内部 PunchScale tween 无 `SetTarget(gameObject)` 追踪（MEDIUM-5）
+
+---
+
 ## DOT-7：CardView.cs DOTween 替换 + AnimMatFX 清理 — 2026-04-06
 
 **Status**: ✅ Completed

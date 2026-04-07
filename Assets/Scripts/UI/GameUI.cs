@@ -227,6 +227,39 @@ namespace FWTCG.UI
         private const int MAX_MESSAGES = 5;
         private readonly Queue<Text> _messageTexts = new Queue<Text>();
 
+        // ── DOT-8: Screen shake ───────────────────────────────────────────────
+        private const int   SHAKE_BIG_DAMAGE_THRESHOLD = 5; // damage >= this triggers shake
+        private const float SHAKE_STRENGTH   = 12f;
+        private const float SHAKE_DURATION   = 0.35f;
+        private Tween _canvasShakeTween;
+
+        // ── DOT-8: Slow motion (bullet time) ─────────────────────────────────
+        private const float SLOW_SCALE       = 0.3f;
+        private const float SLOW_IN_DUR      = 0.05f;
+        private const float SLOW_HOLD        = 0.45f;
+        private const float SLOW_OUT_DUR     = 0.4f;
+        private Tween _slowMotionTween;
+
+        // ── DOT-8: Turn sweep banner ──────────────────────────────────────────
+        private Sequence _turnSweepSeq;
+        private Text     _turnSweepText;  // created lazily
+
+        // ── DOT-8: Deck shake ─────────────────────────────────────────────────
+        private int   _lastPlayerDeckCount = -1;
+        private Tween _deckShakeTween;
+
+        // ── DOT-8: Mana fill stagger ─────────────────────────────────────────
+        private Sequence _manaFillSeq;
+
+        // ── DOT-8: Victory confetti ───────────────────────────────────────────
+        private const int   CONFETTI_COUNT = 25;
+        private readonly System.Collections.Generic.List<GameObject> _confettiObjs =
+            new System.Collections.Generic.List<GameObject>();
+
+        // ── DOT-8: Opponent card preview ─────────────────────────────────────
+        private Sequence  _opponentPreviewSeq;
+        private GameObject _opponentPreviewGO;
+
         // ── Unity lifecycle ───────────────────────────────────────────────────
 
         private void Awake()
@@ -271,6 +304,8 @@ namespace FWTCG.UI
             // DEV-19
             FWTCG.Systems.ScoreManager.OnScoreAdded += OnScoreAddedHandler;
             GameEventBus.OnDuelBanner               += OnDuelBannerHandler;
+            // DOT-8: new visual effects
+            GameEventBus.OnTurnChanged += OnTurnChangedHandler;
         }
 
         // DEV-26: OnUnitDamaged/OnUnitDied drive animations — only subscribe when component is enabled
@@ -278,12 +313,16 @@ namespace FWTCG.UI
         {
             GameEventBus.OnUnitDamaged += OnSpellUnitDamaged;  // DEV-27: migrated from GameManager
             GameEventBus.OnUnitDied    += OnUnitDiedHandler;   // DEV-27: migrated from GameManager
+            GameEventBus.OnUnitDamaged += OnBigDamageHandler;  // DOT-8: screen shake
+            GameEventBus.OnUnitDied    += OnFatalHitHandler;   // DOT-8: slow motion
         }
 
         private void OnDisable()
         {
             GameEventBus.OnUnitDamaged -= OnSpellUnitDamaged;
             GameEventBus.OnUnitDied    -= OnUnitDiedHandler;
+            GameEventBus.OnUnitDamaged -= OnBigDamageHandler;  // DOT-8
+            GameEventBus.OnUnitDied    -= OnFatalHitHandler;   // DOT-8
             // Kill infinite-loop tweens on disable to prevent callbacks on disabled object
             TweenHelper.KillSafe(ref _timerTween);
             TweenHelper.KillSafe(ref _timerPulseTween);
@@ -320,6 +359,20 @@ namespace FWTCG.UI
             // DEV-19
             FWTCG.Systems.ScoreManager.OnScoreAdded -= OnScoreAddedHandler;
             GameEventBus.OnDuelBanner               -= OnDuelBannerHandler;
+            // DOT-8
+            GameEventBus.OnTurnChanged -= OnTurnChangedHandler;
+            TweenHelper.KillSafe(ref _canvasShakeTween);
+            TweenHelper.KillSafe(ref _slowMotionTween);
+            TweenHelper.KillSafe(ref _deckShakeTween);
+            TweenHelper.KillSafe(ref _manaFillSeq);
+            TweenHelper.KillSafe(ref _opponentPreviewSeq);
+            if (_opponentPreviewGO != null) { Destroy(_opponentPreviewGO); _opponentPreviewGO = null; } // H-3
+            if (_turnSweepSeq != null && _turnSweepSeq.IsActive()) _turnSweepSeq.Kill();
+            _turnSweepSeq = null;
+            Time.timeScale = 1f; // ensure timescale restored if we're destroyed mid slow-motion
+            // H-2: destroy any in-flight confetti GOs (their tweens target the GO, not gameObject)
+            foreach (var c in _confettiObjs) { if (c != null) { DOTween.Kill(c); Destroy(c); } }
+            _confettiObjs.Clear();
             // DEV-22: clear static drag zone refs to prevent stale references after scene reload
             CardDragHandler.RootCanvas = null;
             CardDragHandler.HandZoneRT = null;
@@ -1677,11 +1730,13 @@ namespace FWTCG.UI
                 var txtRT = _gameOverText.GetComponent<RectTransform>();
                 if (txtRT != null)
                 {
-                    txtRT.localScale = Vector3.one * 0.5f;
-                    _gameOverSeq.Append(txtRT.DOScale(1.05f, GAMEOVER_WIN_SCALE_DUR).SetEase(Ease.OutQuad));
-                    _gameOverSeq.Append(txtRT.DOScale(1f, 0.1f));
+                    txtRT.localScale = Vector3.one * 0.3f;
+                    _gameOverSeq.Append(txtRT.DOScale(1.1f, GAMEOVER_WIN_SCALE_DUR).SetEase(Ease.OutElastic));
+                    _gameOverSeq.Append(txtRT.DOScale(1f, 0.15f).SetEase(Ease.InOutQuad));
                 }
             }
+            // DOT-8: victory confetti
+            if (isWin) _gameOverSeq.AppendCallback(SpawnConfetti);
             _gameOverSeq.SetTarget(gameObject);
         }
 
@@ -1689,6 +1744,9 @@ namespace FWTCG.UI
 
         private void HandleEndTurn()
         {
+            // DOT-8: squash & stretch on click
+            if (_endTurnButton != null)
+                TweenHelper.PunchScaleUI(_endTurnButton.transform, 0.15f, 0.25f, 1);
             GameEventBus.FireClearBanners(); // immediately dismiss any showing banner
             _onEndTurnClicked?.Invoke();
         }
@@ -1754,6 +1812,22 @@ namespace FWTCG.UI
 
         public void RefreshPileCounts(GameState gs)
         {
+            // DOT-8: deck shake when player deck runs low (≤ 2 cards)
+            int newDeckCount = gs.PDeck.Count;
+            if (newDeckCount != _lastPlayerDeckCount && newDeckCount <= 2 && newDeckCount > 0
+                && _playerDeckCountText != null)
+            {
+                var deckRT = _playerDeckCountText.GetComponent<RectTransform>();
+                if (deckRT != null)
+                {
+                    TweenHelper.KillSafe(ref _deckShakeTween);
+                    _deckShakeTween = deckRT.DOShakeAnchorPos(0.4f, 6f, 10, 90f, false, true)
+                        .SetTarget(gameObject)
+                        .OnComplete(() => _deckShakeTween = null);
+                }
+            }
+            _lastPlayerDeckCount = newDeckCount;
+
             if (_playerDeckCountText != null)
                 _playerDeckCountText.text = gs.PDeck.Count.ToString();
             if (_enemyDeckCountText != null)
@@ -1849,6 +1923,10 @@ namespace FWTCG.UI
 
         private void OnCardPlayedHandler(UnitInstance unit, string owner)
         {
+            // DOT-8: opponent card preview ghost
+            if (owner != FWTCG.Core.GameRules.OWNER_PLAYER)
+                PlayOpponentCardPreview(unit);
+
             if (_boardFlashOverlay == null) return;
             TweenHelper.KillSafe(ref _boardFlashTween);
 
@@ -2277,6 +2355,7 @@ namespace FWTCG.UI
                 DOTween.Kill(rt); // kill any previous pulse on this circle
                 Vector3 orig = rt.localScale;
                 rt.DOScale(orig * SCORE_PULSE_PEAK, SCORE_PULSE_HALF)
+                    .SetEase(Ease.OutElastic)
                     .SetLoops(2, LoopType.Yoyo)
                     .OnComplete(() => { if (rt != null) rt.localScale = orig; })
                     .SetTarget(rt);
@@ -2509,6 +2588,218 @@ namespace FWTCG.UI
                                           System.Action onDone)
         {
             StartEquipFlyTween(fromCanvasPos, basePos, onDone);
+        }
+
+        // ── DOT-8: Screen shake ───────────────────────────────────────────────
+
+        private void OnBigDamageHandler(UnitInstance unit, int damage, string spellName)
+        {
+            if (damage < SHAKE_BIG_DAMAGE_THRESHOLD || _rootCanvas == null) return;
+            var canvasRT = _rootCanvas.GetComponent<RectTransform>();
+            if (canvasRT == null) return;
+            TweenHelper.KillSafe(ref _canvasShakeTween);
+            _canvasShakeTween = canvasRT
+                .DOShakeAnchorPos(SHAKE_DURATION, SHAKE_STRENGTH, 12, 90f, false, true)
+                .SetTarget(gameObject)
+                .OnComplete(() => _canvasShakeTween = null);
+        }
+
+        // ── DOT-8: Slow motion (bullet time on fatal hit) ─────────────────────
+
+        private void OnFatalHitHandler(UnitInstance unit)
+        {
+            TweenHelper.KillSafe(ref _slowMotionTween);
+            Time.timeScale = 1f; // H-1: reset before re-entering so double fatal hit can't trap at SLOW_SCALE
+            var seq = DOTween.Sequence().SetUpdate(true).SetTarget(gameObject);
+            seq.Append(DOTween.To(() => Time.timeScale, v => Time.timeScale = v, SLOW_SCALE, SLOW_IN_DUR)
+                .SetEase(Ease.InQuad).SetUpdate(true));
+            seq.AppendInterval(SLOW_HOLD);
+            seq.Append(DOTween.To(() => Time.timeScale, v => Time.timeScale = v, 1f, SLOW_OUT_DUR)
+                .SetEase(Ease.OutQuad).SetUpdate(true));
+            seq.OnComplete(() => { Time.timeScale = 1f; _slowMotionTween = null; });
+            _slowMotionTween = seq;
+        }
+
+        // ── DOT-8: Turn sweep banner + mana fill stagger ──────────────────────
+
+        private void OnTurnChangedHandler(string owner, int round)
+        {
+            PlayTurnSweepBanner(owner, round);
+            if (owner == FWTCG.Core.GameRules.OWNER_PLAYER)
+                PlayManaFillStagger();
+        }
+
+        private void PlayTurnSweepBanner(string owner, int round)
+        {
+            if (_rootCanvas == null) return;
+            if (_turnSweepText == null) _turnSweepText = CreateTurnSweepText();
+            if (_turnSweepText == null) return;
+            var rt = _turnSweepText.GetComponent<RectTransform>();
+            if (rt == null) return;
+
+            string label = owner == FWTCG.Core.GameRules.OWNER_PLAYER
+                ? $"第 {round} 回合 — 你的回合"
+                : $"第 {round} 回合 — 对手回合";
+            _turnSweepText.text = label;
+            _turnSweepText.gameObject.SetActive(true);
+
+            float hw = _rootCanvas.GetComponent<RectTransform>().rect.width * 0.5f;
+            rt.anchoredPosition = new Vector2(-hw - 300f, 0f); // start offscreen left
+
+            if (_turnSweepSeq != null && _turnSweepSeq.IsActive()) _turnSweepSeq.Kill();
+            _turnSweepSeq = DOTween.Sequence().SetUpdate(true).SetTarget(gameObject);
+            _turnSweepSeq.Append(rt.DOAnchorPos(Vector2.zero, 0.5f).SetEase(Ease.OutBack).SetUpdate(true));
+            _turnSweepSeq.AppendInterval(1.0f);
+            _turnSweepSeq.Append(rt.DOAnchorPos(new Vector2(hw + 300f, 0f), 0.35f).SetEase(Ease.InQuad).SetUpdate(true));
+            _turnSweepSeq.OnComplete(() =>
+            {
+                if (_turnSweepText != null) _turnSweepText.gameObject.SetActive(false);
+                _turnSweepSeq = null;
+            });
+        }
+
+        private Text CreateTurnSweepText()
+        {
+            if (_rootCanvas == null) return null;
+            var go = new GameObject("TurnSweepBanner");
+            go.transform.SetParent(_rootCanvas.transform, false);
+            var rt = go.AddComponent<RectTransform>();
+            rt.anchorMin = rt.anchorMax = new Vector2(0.5f, 0.5f);
+            rt.pivot = new Vector2(0.5f, 0.5f);
+            rt.sizeDelta = new Vector2(620f, 80f);
+            rt.anchoredPosition = Vector2.zero;
+
+            // Background panel
+            var bg = new GameObject("Bg");
+            bg.transform.SetParent(go.transform, false);
+            var bgRT = bg.AddComponent<RectTransform>();
+            bgRT.anchorMin = Vector2.zero; bgRT.anchorMax = Vector2.one;
+            bgRT.offsetMin = bgRT.offsetMax = Vector2.zero;
+            var bgImg = bg.AddComponent<Image>();
+            bgImg.color = new Color(0f, 0f, 0f, 0.65f);
+            bg.transform.SetSiblingIndex(0);
+
+            var txt = go.AddComponent<Text>();
+            txt.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
+            txt.fontSize = 36;
+            txt.fontStyle = FontStyle.Bold;
+            txt.alignment = TextAnchor.MiddleCenter;
+            txt.color = new Color(1f, 0.92f, 0.55f, 1f);
+            go.SetActive(false);
+            return txt;
+        }
+
+        private void PlayManaFillStagger()
+        {
+            if (_playerManaText == null) return;
+            TweenHelper.KillSafe(ref _manaFillSeq);
+            var rt = _playerManaText.GetComponent<RectTransform>();
+            if (rt == null) return;
+            _manaFillSeq = DOTween.Sequence().SetTarget(gameObject);
+            for (int i = 0; i < 3; i++)
+            {
+                float delay = i * 0.08f;
+                var captured = rt;
+                _manaFillSeq.InsertCallback(delay, () => TweenHelper.PunchScaleUI(captured, 0.12f, 0.18f, 1));
+            }
+            _manaFillSeq.OnComplete(() => _manaFillSeq = null);
+        }
+
+        // ── DOT-8: Victory confetti ───────────────────────────────────────────
+
+        private void SpawnConfetti()
+        {
+            if (_rootCanvas == null) return;
+            var canvasRT = _rootCanvas.GetComponent<RectTransform>();
+            float hw = canvasRT.rect.width  * 0.5f;
+            float hh = canvasRT.rect.height * 0.5f;
+
+            for (int i = 0; i < CONFETTI_COUNT; i++)
+            {
+                var go = new GameObject("Confetti");
+                _confettiObjs.Add(go);
+                go.transform.SetParent(_rootCanvas.transform, false);
+                var rt = go.AddComponent<RectTransform>();
+                rt.sizeDelta = new Vector2(10f, 10f);
+                rt.anchorMin = rt.anchorMax = new Vector2(0.5f, 0.5f);
+                float startX = UnityEngine.Random.Range(-hw, hw);
+                rt.anchoredPosition = new Vector2(startX, hh + 20f);
+                var img = go.AddComponent<Image>();
+                img.color = ConfettiColor();
+                float dur    = UnityEngine.Random.Range(1.5f, 2.8f);
+                float rotAmt = UnityEngine.Random.Range(-540f, 540f);
+                var seq = DOTween.Sequence().SetTarget(go);
+                seq.Append(rt.DOAnchorPosY(-hh - 20f, dur).SetEase(Ease.Linear));
+                seq.Join(rt.DOLocalRotate(new Vector3(0f, 0f, rotAmt), dur, RotateMode.FastBeyond360));
+                seq.Join(img.DOFade(0f, dur * 0.6f).SetDelay(dur * 0.4f));
+                seq.OnComplete(() =>
+                {
+                    _confettiObjs.Remove(go);
+                    Destroy(go);
+                });
+            }
+        }
+
+        private static Color ConfettiColor()
+        {
+            int idx = UnityEngine.Random.Range(0, 5);
+            switch (idx)
+            {
+                case 0: return new Color(0.95f, 0.82f, 0.25f); // gold
+                case 1: return new Color(0.95f, 0.35f, 0.35f); // red
+                case 2: return new Color(0.35f, 0.85f, 0.45f); // green
+                case 3: return new Color(0.35f, 0.65f, 0.95f); // blue
+                default: return new Color(0.90f, 0.55f, 0.95f); // purple
+            }
+        }
+
+        // ── DOT-8: Opponent card preview ghost ────────────────────────────────
+
+        private void PlayOpponentCardPreview(UnitInstance unit)
+        {
+            if (_rootCanvas == null) return;
+            var canvasRT = _rootCanvas.GetComponent<RectTransform>();
+            float hh = canvasRT.rect.height * 0.5f;
+
+            var go = new GameObject("OpponentPreview");
+            go.transform.SetParent(_rootCanvas.transform, false);
+            var rt = go.AddComponent<RectTransform>();
+            rt.sizeDelta = new Vector2(80f, 112f);
+            rt.anchorMin = rt.anchorMax = new Vector2(0.5f, 0.5f);
+            rt.anchoredPosition = new Vector2(0f, hh - 60f); // near enemy hand area
+
+            var img = go.AddComponent<Image>();
+            img.color = new Color(0.97f, 0.3f, 0.3f, 0.8f);
+
+            var nameGo = new GameObject("Name");
+            nameGo.transform.SetParent(go.transform, false);
+            var nameRT = nameGo.AddComponent<RectTransform>();
+            nameRT.anchorMin = Vector2.zero; nameRT.anchorMax = Vector2.one;
+            nameRT.offsetMin = nameRT.offsetMax = Vector2.zero;
+            var nameTxt = nameGo.AddComponent<Text>();
+            nameTxt.text = unit?.UnitName ?? "?";
+            nameTxt.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
+            nameTxt.fontSize = 13;
+            nameTxt.alignment = TextAnchor.MiddleCenter;
+            nameTxt.color = Color.white;
+
+            var cg = go.AddComponent<CanvasGroup>();
+            cg.alpha = 0f;
+
+            TweenHelper.KillSafe(ref _opponentPreviewSeq);
+            if (_opponentPreviewGO != null) { Destroy(_opponentPreviewGO); _opponentPreviewGO = null; } // H-3
+            _opponentPreviewGO = go;
+            _opponentPreviewSeq = DOTween.Sequence().SetTarget(gameObject);
+            _opponentPreviewSeq.Append(cg.DOFade(1f, 0.15f));
+            _opponentPreviewSeq.Join(rt.DOAnchorPosY(hh * 0.35f, 0.3f).SetEase(Ease.OutBack));
+            _opponentPreviewSeq.AppendInterval(0.5f);
+            _opponentPreviewSeq.Append(cg.DOFade(0f, 0.25f));
+            _opponentPreviewSeq.OnComplete(() =>
+            {
+                _opponentPreviewSeq = null;
+                _opponentPreviewGO = null;
+                if (go != null) Destroy(go);
+            });
         }
 
         /// <summary>Convert any RectTransform's centre to canvas-root local coords.</summary>

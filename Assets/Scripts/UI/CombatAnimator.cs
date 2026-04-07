@@ -47,16 +47,23 @@ namespace FWTCG.UI
         public const float BACK_DURATION  = 0.30f;  // phase 3: rebound
         public const float FLY_OFFSET     = 40f;    // px toward enemy side (was 28)
 
+        // DOT-8: AOE chain highlight
+        private const float AOE_STAGGER    = 0.10f; // seconds between each target highlight
+        private const float AOE_GLOW_DUR   = 0.25f; // glow duration per card
+        private const float AOE_SHAKE_STR  = 6f;
+
         private void Awake()
         {
             CombatSystem.OnCombatResult    += OnCombatResult;
             CombatSystem.OnCombatWillStart += OnCombatWillStart;
+            GameEventBus.OnAOETargets      += OnAOETargets; // DOT-8
         }
 
         private void OnDestroy()
         {
             CombatSystem.OnCombatResult    -= OnCombatResult;
             CombatSystem.OnCombatWillStart -= OnCombatWillStart;
+            GameEventBus.OnAOETargets      -= OnAOETargets; // DOT-8
             TweenHelper.KillSafe(ref _sw1Tween);
             TweenHelper.KillSafe(ref _sw2Tween);
             // DEV-29: destroy any fly ghosts that are mid-animation when the component is torn down
@@ -157,10 +164,11 @@ namespace FWTCG.UI
             var seq = DOTween.Sequence().SetTarget(host);
             // Phase 1: lunge toward enemy
             seq.Append(ghostRT.DOAnchorPos(target, FLY_DURATION).SetEase(Ease.OutQuad));
-            // Phase 2: impact hold
+            // Phase 2: impact hold + punch scale on hit
+            seq.AppendCallback(() => TweenHelper.PunchScaleUI(ghostRT, 0.12f, 0.15f, 2));
             seq.AppendInterval(PAUSE_DURATION);
-            // Phase 3: rebound
-            seq.Append(ghostRT.DOAnchorPos(origin, BACK_DURATION).SetEase(Ease.InOutQuad));
+            // Phase 3: rebound with bounce
+            seq.Append(ghostRT.DOAnchorPos(origin, BACK_DURATION).SetEase(Ease.OutBounce));
             // Cleanup
             seq.OnComplete(() =>
             {
@@ -195,8 +203,8 @@ namespace FWTCG.UI
             img.gameObject.SetActive(true);
 
             var seq = DOTween.Sequence().SetTarget(img);
-            seq.Append(rt.DOScale(SHOCKWAVE_END_SCALE, SHOCKWAVE_DURATION).SetEase(Ease.Linear));
-            seq.Join(img.DOFade(0f, SHOCKWAVE_DURATION).SetEase(Ease.Linear));
+            seq.Append(rt.DOScale(SHOCKWAVE_END_SCALE, SHOCKWAVE_DURATION).SetEase(Ease.OutCubic));
+            seq.Join(img.DOFade(0f, SHOCKWAVE_DURATION).SetEase(Ease.InQuad));
             seq.OnComplete(() =>
             {
                 img.gameObject.SetActive(false);
@@ -205,6 +213,34 @@ namespace FWTCG.UI
                 else if (img == _shockwave2) _sw2Tween = null;
             });
             return seq;
+        }
+
+        // ── DOT-8: AOE chain highlight ────────────────────────────────────────
+
+        /// <summary>
+        /// DOT-8: Stagger-highlight each AOE target with 0.1s delay between hits.
+        /// Each target flashes red + gets a brief scale punch, simulating sequential impact.
+        /// </summary>
+        private void OnAOETargets(UnitInstance[] targets)
+        {
+            if (targets == null || targets.Length == 0 || GameUI.Instance == null) return;
+            for (int i = 0; i < targets.Length; i++)
+            {
+                int idx = i;
+                var cv = GameUI.Instance.FindCardView(targets[idx]);
+                if (cv == null) continue;
+                float delay = idx * AOE_STAGGER;
+                DOVirtual.DelayedCall(delay, () =>
+                {
+                    if (cv == null) return;
+                    cv.FlashRed();
+                    cv.Shake();
+                    // Scale punch on the target card
+                    var rt = cv.GetComponent<RectTransform>();
+                    if (rt != null)
+                        TweenHelper.PunchScaleUI(rt, 0.15f, AOE_GLOW_DUR, 2);
+                }).SetTarget(this);
+            }
         }
 
         private static Image CreateShockwave(RectTransform parent)

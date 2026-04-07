@@ -264,6 +264,7 @@ namespace FWTCG.Tests
         [Test]
         public void SetFaceDown_True_CreatesCardBackOverlay()
         {
+            CardBackManager.ResetForTest(); // ensure geometric overlay path (no sprite)
             var cv = MakeCardView();
             Assert.IsNull(GetPrivateField<GameObject>(cv, "_cardBackOverlay"),
                 "Overlay should not exist before SetFaceDown(true)");
@@ -313,6 +314,7 @@ namespace FWTCG.Tests
         [Test]
         public void CardBackOverlay_ContainsDiamond_WhenCreated()
         {
+            CardBackManager.ResetForTest(); // ensure geometric overlay path (no sprite)
             var cv = MakeCardView();
             cv.SetFaceDown(true);
 

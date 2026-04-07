@@ -121,12 +121,20 @@ namespace FWTCG.UI
             _toastText.text = msg;
             _toastPanel.SetActive(true);
 
-            // Fade in via DOTween
+            // Fade in + slide up via DOTween
             TweenHelper.KillSafe(ref _fadeTween);
             if (_cg != null)
             {
                 _cg.alpha = 0f;
-                _fadeTween = TweenHelper.FadeCanvasGroup(_cg, 1f, FADE_IN);
+                var panelRT = _toastPanel.GetComponent<RectTransform>();
+                Vector2 endPos = panelRT != null ? panelRT.anchoredPosition : Vector2.zero;
+                if (panelRT != null)
+                    panelRT.anchoredPosition = endPos + new Vector2(0f, -8f);
+                var seq = DOTween.Sequence().SetTarget(_cg);
+                seq.Append(_cg.DOFade(1f, FADE_IN).SetEase(Ease.OutCubic));
+                if (panelRT != null)
+                    seq.Join(panelRT.DOAnchorPos(endPos, FADE_IN).SetEase(Ease.OutCubic));
+                _fadeTween = seq;
                 yield return _fadeTween.WaitForCompletion();
             }
 

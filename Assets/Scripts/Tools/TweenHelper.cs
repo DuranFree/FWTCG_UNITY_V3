@@ -90,5 +90,51 @@ namespace FWTCG
             if (go != null)
                 DOTween.Kill(go);
         }
+
+        // ── DOT-enhance: new utility methods ──────────────────────────────
+
+        /// <summary>Punch-scale a UI element (impact feel). Returns tween for KillSafe.</summary>
+        public static Tween PunchScaleUI(Transform t, float strength = 0.15f, float duration = 0.2f,
+            int vibrato = 2)
+        {
+            if (t == null) return null;
+            return t.DOPunchScale(Vector3.one * strength, duration, vibrato, 0f).SetTarget(t);
+        }
+
+        /// <summary>Elastic move a RectTransform to target position.</summary>
+        public static Tween ElasticMove(RectTransform rt, Vector2 target, float duration)
+        {
+            if (rt == null) return null;
+            return rt.DOAnchorPos(target, duration).SetEase(Ease.OutElastic).SetTarget(rt);
+        }
+
+        /// <summary>Scale pop-in from small to target (OutBack overshoot).</summary>
+        public static Tween ScalePopIn(Transform t, float targetScale = 1f, float duration = 0.25f)
+        {
+            if (t == null) return null;
+            t.localScale = Vector3.one * 0.5f;
+            return t.DOScale(targetScale, duration).SetEase(Ease.OutBack).SetTarget(t);
+        }
+
+        /// <summary>
+        /// Animate multiple RectTransforms from one position to their current position
+        /// with staggered delays. Each element slides in with the given ease.
+        /// </summary>
+        public static void AnimateInWithStagger(System.Collections.Generic.List<RectTransform> rts,
+            Vector2 fromOffset, float duration, float stagger, Ease ease = Ease.OutCubic)
+        {
+            if (rts == null) return;
+            for (int i = 0; i < rts.Count; i++)
+            {
+                var rt = rts[i];
+                if (rt == null) continue;
+                Vector2 endPos = rt.anchoredPosition;
+                rt.anchoredPosition = endPos + fromOffset;
+                rt.DOAnchorPos(endPos, duration)
+                    .SetDelay(i * stagger)
+                    .SetEase(ease)
+                    .SetTarget(rt);
+            }
+        }
     }
 }

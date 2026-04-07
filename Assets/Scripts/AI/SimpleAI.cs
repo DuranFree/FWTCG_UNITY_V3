@@ -657,22 +657,19 @@ namespace FWTCG.AI
             }
             Log($"[AI] 发动法术 {spell.UnitName}（费用{spell.CardData.Cost}）　⚡ 可点击【反应】按钮响应！");
 
+            // Show showcase immediately on cast (fire-and-forget, plays during reaction window)
+            if (SpellShowcaseUI.Instance != null)
+                _ = SpellShowcaseUI.Instance.ShowAsync(spell, GameRules.OWNER_ENEMY);
+
             // Give player a window to click the React button
             await Task.Delay(SPELL_REACTION_WINDOW_MS);
             await GameManager.WaitIfReactionActive();
 
             if (!gs.GameOver)
             {
-                // DEV-16: show showcase before resolving AI spell
-                if (SpellShowcaseUI.Instance != null)
-                    await SpellShowcaseUI.Instance.ShowAsync(spell, GameRules.OWNER_ENEMY);
-
-                if (!gs.GameOver)
-                {
-                    spellSys.CastSpell(spell, GameRules.OWNER_ENEMY, target, gs);
-                    // Wait for hit-flash + shake before next action destroys CardViews
-                    await Task.Delay(550);
-                }
+                spellSys.CastSpell(spell, GameRules.OWNER_ENEMY, target, gs);
+                // Wait for hit-flash + shake before next action destroys CardViews
+                await Task.Delay(550);
             }
         }
 

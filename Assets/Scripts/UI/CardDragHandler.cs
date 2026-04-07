@@ -835,10 +835,12 @@ namespace FWTCG.UI
                 yield return null;
                 Canvas.ForceUpdateCanvases();
 
-                const float phase1Dur   = 0.18f;
-                const float phase2Dur   = 0.16f;
-                const float hoverHeight = 70f;
-                const float stagger     = 0.04f;
+                const float phase1Dur      = 0.18f;
+                const float phase2Dur      = 0.16f;
+                const float hoverHeight    = 70f;
+                const float stagger        = 0.04f;
+                const float slingshotDur   = 0.05f; // DOT-8: pullback duration
+                const float slingshotDist  = 18f;   // DOT-8: pullback distance px
 
                 var allUnits = new List<UnitInstance>();
                 if (mainUnit != null) allUnits.Add(mainUnit);
@@ -918,19 +920,28 @@ namespace FWTCG.UI
                         float delay = i * stagger;
 
                         var cardSeq = DOTween.Sequence();
-                        // Phase 1: fly to hover
+                        // DOT-8: Phase 0 — slingshot pullback (opposite direction of travel)
+                        Vector2 travelDir = (hover - item.from).normalized;
+                        Vector2 pullPos   = item.from - travelDir * slingshotDist;
+                        cardSeq.Append(
+                            DOTween.To(() => (Vector2)item.overlayRT.localPosition,
+                                       v => item.overlayRT.localPosition = new Vector3(v.x, v.y, 0f),
+                                       pullPos, slingshotDur)
+                            .SetEase(Ease.InQuad)
+                            .SetTarget(item.overlayRT));
+                        // Phase 1: fly to hover (OutBack gives spring feel)
                         cardSeq.Append(
                             DOTween.To(() => (Vector2)item.overlayRT.localPosition,
                                        v => item.overlayRT.localPosition = new Vector3(v.x, v.y, 0f),
                                        hover, phase1Dur)
-                            .SetEase(Ease.OutQuad)
+                            .SetEase(Ease.OutBack)
                             .SetTarget(item.overlayRT));
-                        // Phase 2: drop to final
+                        // Phase 2: drop to final with bounce landing
                         cardSeq.Append(
                             DOTween.To(() => (Vector2)item.overlayRT.localPosition,
                                        v => item.overlayRT.localPosition = new Vector3(v.x, v.y, 0f),
                                        item.to, phase2Dur)
-                            .SetEase(Ease.InQuad)
+                            .SetEase(Ease.OutBounce)
                             .SetTarget(item.overlayRT));
 
                         _masterSeq.Insert(delay, cardSeq);

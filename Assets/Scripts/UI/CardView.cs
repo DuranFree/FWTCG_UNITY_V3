@@ -148,6 +148,27 @@ namespace FWTCG.UI
         private bool       _idleFXSpawned;
         private bool       _bfVisualsApplied; // guard: only apply rotation/shadow once per placement
 
+        // ── DOT-8: Hand spread (push neighbors via LayoutElement width) ───────
+        private Tween _handSpreadTween;
+        private UnityEngine.UI.LayoutElement _spreadLayoutEl;
+        private float _naturalCardWidth = -1f;
+        private const float HAND_SPREAD_EXTRA = 32f;  // extra px given to hovered card
+        private const float HAND_SPREAD_DUR   = 0.12f;
+
+        // ── DOT-8: 3D perspective tilt ────────────────────────────────────────
+        private bool      _isTiltActive;
+        private Vector3   _tiltTarget;
+        private Vector3   _tiltCurrent;
+        private Quaternion _preTiltRotation;
+        private const float TILT_MAX   = 10f; // max degrees each axis
+        private const float TILT_SPEED = 9f;  // lerp speed
+
+        // ── DOT-8: Stat roll counter ──────────────────────────────────────────
+        private Tween _statRollTween;
+        private int   _displayedHp  = int.MinValue;
+        private int   _displayedAtk = int.MinValue;
+        private const float STAT_ROLL_DUR = 0.45f;
+
         private void Awake()
         {
             // Auto-wire SerializeField refs by child name if Inspector connections were lost
@@ -229,6 +250,8 @@ namespace FWTCG.UI
             TweenHelper.KillSafe(ref _orbitTween);
             TweenHelper.KillSafe(ref _heroAuraPulse);
             TweenHelper.KillSafe(ref _foilSweep);
+            TweenHelper.KillSafe(ref _handSpreadTween);
+            TweenHelper.KillSafe(ref _statRollTween);
             if (_enterAnimSeq != null && _enterAnimSeq.IsActive()) _enterAnimSeq.Kill();
             _enterAnimSeq = null;
             if (_deathSeq != null && _deathSeq.IsActive()) _deathSeq.Kill();
@@ -271,18 +294,51 @@ namespace FWTCG.UI
             if (_shadowImage != null) { SafeDestroy(_shadowImage); _shadowImage = null; }
         }
 
-        // ── VFX-7k: Smooth glow overlay fade ──────────────────────────────
+        // ── VFX-7k + DOT-8: Update — glow fade + 3D tilt ────────────────────
         private void Update()
         {
-            if (_glowOverlay == null) return;
-            if (Mathf.Approximately(_glowCurrentAlpha, _glowTargetAlpha)) return;
+            // VFX-7k: glow overlay smooth fade
+            if (_glowOverlay != null && !Mathf.Approximately(_glowCurrentAlpha, _glowTargetAlpha))
+            {
+                _glowCurrentAlpha = Mathf.MoveTowards(_glowCurrentAlpha, _glowTargetAlpha,
+                    GLOW_FADE_SPEED * Time.deltaTime);
+                var gc = _glowTargetColor;
+                gc.a = _glowCurrentAlpha;
+                _glowOverlay.color = gc;
+                _glowOverlay.enabled = _glowCurrentAlpha > 0.01f;
+            }
 
-            _glowCurrentAlpha = Mathf.MoveTowards(_glowCurrentAlpha, _glowTargetAlpha,
-                GLOW_FADE_SPEED * Time.deltaTime);
-            var c = _glowTargetColor;
-            c.a = _glowCurrentAlpha;
-            _glowOverlay.color = c;
-            _glowOverlay.enabled = _glowCurrentAlpha > 0.01f;
+            // DOT-8: 3D perspective tilt (continuous mouse tracking — excluded from DOTween per rules)
+            if (_isTiltActive)
+            {
+                var rt = (RectTransform)transform;
+                var corners = new Vector3[4];
+                rt.GetWorldCorners(corners);
+                float w = corners[2].x - corners[0].x;
+                float h = corners[2].y - corners[0].y;
+                if (w > 1f && h > 1f)
+                {
+                    Vector2 center = new Vector2(
+                        (corners[0].x + corners[2].x) * 0.5f,
+                        (corners[0].y + corners[2].y) * 0.5f);
+                    Vector2 delta  = (Vector2)Input.mousePosition - center;
+                    float normX = Mathf.Clamp(delta.x / (w * 0.5f), -1f, 1f);
+                    float normY = Mathf.Clamp(delta.y / (h * 0.5f), -1f, 1f);
+                    _tiltTarget = new Vector3(-normY * TILT_MAX, normX * TILT_MAX, 0f);
+                }
+            }
+            else
+            {
+                _tiltTarget = Vector3.zero;
+            }
+
+            if (_isTiltActive || _tiltCurrent.sqrMagnitude > 0.001f)
+            {
+                _tiltCurrent = Vector3.Lerp(_tiltCurrent, _tiltTarget, TILT_SPEED * Time.deltaTime);
+                transform.localRotation = _preTiltRotation * Quaternion.Euler(_tiltCurrent);
+                if (!_isTiltActive && _tiltCurrent.sqrMagnitude < 0.001f)
+                    transform.localRotation = _preTiltRotation; // snap when fully returned
+            }
         }
 
         /// <summary>VFX-7k: Set glow overlay target. Color: green for ally, red for enemy.</summary>
@@ -353,6 +409,10 @@ namespace FWTCG.UI
             if (_unit != null && !_faceDown)
             {
                 ShowGlow(); // VFX-7k
+                StartHandSpread();           // DOT-8: push neighbors apart
+                _preTiltRotation = transform.localRotation;
+                _isTiltActive    = true;     // DOT-8: enable 3D tilt
+                _tiltCurrent     = Vector3.zero;
                 _onHoverEnter?.Invoke(_unit);
             }
         }
@@ -363,6 +423,8 @@ namespace FWTCG.UI
             if (_unit != null && !_faceDown)
             {
                 if (!_selected) HideGlow(); // VFX-7k: keep glow if selected
+                StopHandSpread();           // DOT-8: restore spread
+                _isTiltActive = false;      // DOT-8: tilt lerps back to zero in Update
                 _onHoverExit?.Invoke(_unit);
             }
         }
@@ -556,9 +618,33 @@ namespace FWTCG.UI
                 {
                     // Effective ATK = CurrentAtk (includes equipment/buffs) + TempAtkBonus
                     int effAtk = _unit.CurrentAtk + _unit.TempAtkBonus;
-                    _atkText.text = _unit.CurrentHp != _unit.CurrentAtk
-                        ? $"{_unit.CurrentHp}/{effAtk}"
-                        : $"{effAtk}";
+                    int newHp  = _unit.CurrentHp;
+
+                    // DOT-8: roll numbers from old value to new value when stats change
+                    bool hpChanged  = newHp  != _displayedHp;
+                    bool atkChanged = effAtk != _displayedAtk;
+                    if ((hpChanged || atkChanged) && _displayedHp != int.MinValue
+                        && gameObject.activeInHierarchy)
+                    {
+                        int fromHp  = _displayedHp;
+                        int fromAtk = _displayedAtk;
+                        _displayedHp  = newHp;
+                        _displayedAtk = effAtk;
+                        TweenHelper.KillSafe(ref _statRollTween);
+                        _statRollTween = DOVirtual.Float(0f, 1f, STAT_ROLL_DUR, t =>
+                        {
+                            if (_atkText == null) return;
+                            int dHp  = Mathf.RoundToInt(Mathf.Lerp(fromHp,  newHp,  t));
+                            int dAtk = Mathf.RoundToInt(Mathf.Lerp(fromAtk, effAtk, t));
+                            _atkText.text = dHp != dAtk ? $"{dHp}/{dAtk}" : $"{dAtk}";
+                        }).SetEase(Ease.OutCubic).SetTarget(gameObject);
+                    }
+                    else
+                    {
+                        _displayedHp  = newHp;
+                        _displayedAtk = effAtk;
+                        _atkText.text = newHp != effAtk ? $"{newHp}/{effAtk}" : $"{effAtk}";
+                    }
 
                     // Glow when any modifier is active
                     bool modified = _unit.HasBuff || _unit.HasDebuff
@@ -806,6 +892,51 @@ namespace FWTCG.UI
         {
             if (_selected && _isLifted && (_liftFloat == null || !_liftFloat.IsActive()))
                 StartLiftFloat();
+        }
+
+        // ── DOT-8: Hand spread helpers ────────────────────────────────────────
+
+        /// <summary>DOT-8: Expand preferred width → HLG pushes neighboring cards apart.</summary>
+        private void StartHandSpread()
+        {
+            // Only spread hand cards (inside a HorizontalLayoutGroup)
+            if (transform.parent == null) return;
+            if (transform.parent.GetComponent<UnityEngine.UI.HorizontalLayoutGroup>() == null) return;
+
+            if (_spreadLayoutEl == null)
+                _spreadLayoutEl = GetComponent<UnityEngine.UI.LayoutElement>()
+                               ?? gameObject.AddComponent<UnityEngine.UI.LayoutElement>();
+
+            if (_naturalCardWidth < 0f)
+                _naturalCardWidth = ((RectTransform)transform).rect.width;
+
+            float from = _spreadLayoutEl.preferredWidth < 0f
+                ? _naturalCardWidth
+                : _spreadLayoutEl.preferredWidth;
+            float to   = _naturalCardWidth + HAND_SPREAD_EXTRA;
+
+            TweenHelper.KillSafe(ref _handSpreadTween);
+            _handSpreadTween = DOVirtual.Float(from, to, HAND_SPREAD_DUR, v =>
+            {
+                if (_spreadLayoutEl != null) _spreadLayoutEl.preferredWidth = v;
+            }).SetEase(Ease.OutQuad).SetTarget(gameObject);
+        }
+
+        /// <summary>DOT-8: Restore preferred width to natural size.</summary>
+        private void StopHandSpread()
+        {
+            if (_spreadLayoutEl == null) return;
+            float from = _spreadLayoutEl.preferredWidth < 0f
+                ? (_naturalCardWidth >= 0f ? _naturalCardWidth : 0f)
+                : _spreadLayoutEl.preferredWidth;
+            float to = _naturalCardWidth >= 0f ? _naturalCardWidth : from;
+
+            TweenHelper.KillSafe(ref _handSpreadTween);
+            _handSpreadTween = DOVirtual.Float(from, to, HAND_SPREAD_DUR, v =>
+            {
+                if (_spreadLayoutEl != null) _spreadLayoutEl.preferredWidth = v;
+            }).SetEase(Ease.OutQuad).SetTarget(gameObject)
+              .OnComplete(() => { if (_spreadLayoutEl != null) _spreadLayoutEl.preferredWidth = -1f; });
         }
 
         /// <summary>DOT-7: DOVirtual.Float sine loop driving anchoredPosition.y.</summary>
@@ -1466,9 +1597,11 @@ namespace FWTCG.UI
             Vector2 endPos   = rt.anchoredPosition;
 
             rt.anchoredPosition = startPos;
+            rt.localEulerAngles = new Vector3(0f, 0f, -4f); // slight tilt for drop-in feel
             _enterAnimSeq = DOTween.Sequence()
-                .Append(rt.DOAnchorPos(endPos, ENTER_ANIM_DURATION).SetEase(Ease.OutQuad))
-                .Join(transform.DOScale(Vector3.one, ENTER_ANIM_DURATION).SetEase(Ease.OutQuad))
+                .Append(rt.DOAnchorPos(endPos, ENTER_ANIM_DURATION).SetEase(Ease.OutCubic))
+                .Join(transform.DOScale(Vector3.one, ENTER_ANIM_DURATION).SetEase(Ease.OutCubic))
+                .Join(rt.DOLocalRotate(Vector3.zero, ENTER_ANIM_DURATION).SetEase(Ease.OutQuad))
                 .SetTarget(gameObject)
                 .OnComplete(() =>
                 {
@@ -1619,8 +1752,18 @@ namespace FWTCG.UI
         {
             Vector3 startScale = transform.localScale;
 
+            // DOT-8: kill closeup — scale up 1.25x + red flash before dissolve
+            bool punchDone = false;
+            DOTween.Sequence()
+                .Append(transform.DOScale(startScale * 1.25f, 0.10f).SetEase(Ease.OutBack))
+                .AppendCallback(FlashRed)
+                .AppendInterval(0.18f)
+                .SetTarget(gameObject)
+                .OnComplete(() => punchDone = true);
+            while (!punchDone) yield return null;
+
             // Phase A: dissolve or fallback (still coroutine due to TweenMatFX await)
-            yield return StartCoroutine(DissolveOrFallbackRoutine(startScale));
+            yield return StartCoroutine(DissolveOrFallbackRoutine(transform.localScale));
 
             if (flyTarget.HasValue && canvas != null)
             {
@@ -1664,9 +1807,10 @@ namespace FWTCG.UI
 
                 gameObject.SetActive(false);
 
-                // DOT-7: DOVirtual.Float drives bezier + scale + fade
+                // DOT-7 + enhance: punch on death start, then bezier fly
                 bool phaseBDone = false;
                 _deathSeq = DOTween.Sequence()
+                    .Append(ghostRT.DOPunchScale(Vector3.one * 0.18f, 0.12f, 2, 0f))
                     .Append(DOVirtual.Float(0f, 1f, DEATH_PHASE_B, t =>
                     {
                         if (ghostRT == null) return;

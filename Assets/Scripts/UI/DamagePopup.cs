@@ -57,8 +57,14 @@ namespace FWTCG.UI
             Vector2 endPos = _rt.anchoredPosition + new Vector2(0f, 75f);
 
             _seq = DOTween.Sequence().SetTarget(gameObject);
-            _seq.Append(_rt.DOAnchorPos(endPos, duration).SetEase(Ease.OutQuad));
-            _seq.Insert(solidTime, _text.DOFade(0f, fadeTime).SetEase(Ease.Linear));
+            // Scale pop on spawn: 0.6 → 1.15 (OutBack overshoot) → 1.0
+            _rt.localScale = Vector3.one * 0.6f;
+            _seq.Append(_rt.DOScale(1.15f, duration * 0.2f).SetEase(Ease.OutBack));
+            _seq.Append(_rt.DOScale(1f, duration * 0.1f).SetEase(Ease.InQuad));
+            // Float up with OutCubic for snappier lift
+            _seq.Join(_rt.DOAnchorPos(endPos, duration).SetEase(Ease.OutCubic));
+            // Fade out after solid period
+            _seq.Insert(solidTime, _text.DOFade(0f, fadeTime).SetEase(Ease.InQuad));
             _seq.OnComplete(() => Destroy(gameObject));
         }
 

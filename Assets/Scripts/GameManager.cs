@@ -1674,6 +1674,10 @@ namespace FWTCG
             FireCardPlayed(spell, GameRules.OWNER_PLAYER);
             _gs.PHand.Remove(spell);
 
+            // Show spell showcase immediately on cast (skip particle VFX delay)
+            if (_spellShowcase != null)
+                _ = _spellShowcase.ShowAsync(spell, GameRules.OWNER_PLAYER);
+
             if (spell.CardData.SpellTargetType == SpellTargetType.None)
             {
                 // No target needed — give AI reaction window (DEV-15)
@@ -1775,17 +1779,13 @@ namespace FWTCG
             }
             else if (!_gs.GameOver)
             {
-                if (_spellShowcase != null)
-                    await _spellShowcase.ShowAsync(spell, GameRules.OWNER_PLAYER);
+                // Showcase already shown immediately in TryPlaySpellAsync
 
-                if (!_gs.GameOver)
-                {
-                    if (_spellSys != null)
-                        _spellSys.CastSpell(spell, GameRules.OWNER_PLAYER, target, _gs);
-                    else
-                        _gs.PDiscard.Add(spell);
-                    _legendSys?.CheckKaisaEvolution(GameRules.OWNER_PLAYER, _gs);
-                }
+                if (_spellSys != null)
+                    _spellSys.CastSpell(spell, GameRules.OWNER_PLAYER, target, _gs);
+                else
+                    _gs.PDiscard.Add(spell);
+                _legendSys?.CheckKaisaEvolution(GameRules.OWNER_PLAYER, _gs);
             }
 
             // Wait for death animation to complete before RefreshUI rebuilds containers.
@@ -2010,6 +2010,7 @@ namespace FWTCG
                     UI.GameEventBus.FireClearBanners();
                     string who = _gs.Turn == GameRules.OWNER_PLAYER ? "玩家" : "AI";
                     _ui.ShowBanner($"回合 {_gs.Round + 1} · {who}的回合");
+                    UI.GameEventBus.FireTurnChanged(_gs.Turn, _gs.Round); // DOT-8: turn banner + mana fill
                 }
 
                 // Start/clear turn timer based on phase (DEV-10)
@@ -2209,7 +2210,13 @@ namespace FWTCG
             if (_legendSys == null) return;
 
             bool used = _legendSys.UseKaisaActive(GameRules.OWNER_PLAYER, _gs);
-            if (used) RefreshUI();
+            if (used)
+            {
+                RefreshUI();
+                // DOT-8: legend skill closeup
+                if (_gs.PLegend != null)
+                    UI.GameEventBus.FireLegendSkillFired(_gs.PLegend, GameRules.OWNER_PLAYER);
+            }
         }
 
         // ── DEBUG methods ─────────────────────────────────────────────────────

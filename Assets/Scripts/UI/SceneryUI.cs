@@ -114,11 +114,15 @@ namespace FWTCG.UI
 
         private void SetCornerAlpha(float a)
         {
+            // Map alpha range to subtle scale: 0.96 at min, 1.04 at max
+            float scaleNorm = Mathf.InverseLerp(CORNER_GEM_ALPHA_MIN, CORNER_GEM_ALPHA_MAX, a);
+            float scale = Mathf.Lerp(0.96f, 1.04f, scaleNorm);
             foreach (var gem in cornerGems)
             {
                 if (gem == null) continue;
                 Color c = gem.color;
                 gem.color = new Color(c.r, c.g, c.b, a);
+                gem.transform.localScale = Vector3.one * scale;
             }
         }
     }

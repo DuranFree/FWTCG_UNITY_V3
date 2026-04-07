@@ -166,6 +166,31 @@ namespace FWTCG.UI
         public static void FireConquerScoreBanner()
             => FireEventBanner("征服！+1分", 1.0f);
 
+        // ── DOT-8: Turn changed (AWAKEN phase start) ─────────────────────────
+        /// <summary>
+        /// Fired at the start of each turn (AWAKEN phase).
+        /// GameUI subscribes to show the "你的回合" sweep banner and animate mana fill.
+        /// </summary>
+        public static event Action<string, int> OnTurnChanged; // owner, round
+        public static void FireTurnChanged(string owner, int round) => OnTurnChanged?.Invoke(owner, round);
+
+        // ── DOT-8: AOE multi-target highlight ────────────────────────────────
+        /// <summary>
+        /// Fired when a skill/spell hits multiple targets simultaneously.
+        /// CombatAnimator subscribes to stagger-highlight each target with 0.1s delay.
+        /// </summary>
+        public static event Action<UnitInstance[]> OnAOETargets;
+        public static void FireAOETargets(UnitInstance[] targets) => OnAOETargets?.Invoke(targets);
+
+        // ── DOT-8: Legend skill fired (for closeup) ──────────────────────────
+        /// <summary>
+        /// Fired when a legend skill is successfully activated.
+        /// LegendSkillShowcase subscribes to play fullscreen darken + card zoom.
+        /// </summary>
+        public static event Action<FWTCG.Core.LegendInstance, string> OnLegendSkillFired; // legend, owner
+        public static void FireLegendSkillFired(FWTCG.Core.LegendInstance legend, string owner)
+            => OnLegendSkillFired?.Invoke(legend, owner);
+
         // ── DEV-30 F1: conquest VFX ───────────────────────────────────────────
         /// <summary>Fired when a conquest score is successfully awarded. SpellVFX subscribes for particle burst.</summary>
         public static event Action<string> OnConquestScored;

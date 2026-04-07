@@ -424,3 +424,37 @@
 - [x] VFXResolver.ResolveProjectile（effectId 精确映射 + RuneType 元素投射物）— VFX-8
 - [x] SpellVFX 投射物路径集成（ProjectileThenFXRoutine，法术/装备卡自动飞行 0.4s 弧线）— VFX-8
 - [x] 投射物到达触发 impact FX + 白色 8 点径向爆裂 — VFX-8
+
+---
+
+## 十二、DOTween 视效强化（DOT-8）
+
+### CardView
+- [x] 手牌推挤（手牌悬停时两侧卡牌 preferredWidth +32，0.12s 弹出）— DOT-8
+- [x] 3D 倾斜（FixedUpdate 跟随鼠标，±10°，Update 插值 lerp speed=9）— DOT-8
+- [x] 数字翻滚（HP/ATK 变化时 DOVirtual.Float 0.45s 逐帧更新文字）— DOT-8
+- [x] 击杀特写（KillCloseupRoutine：放大1→1.4+发光0→1，hold 0.3s，缩回）— DOT-8
+
+### CardDragHandler
+- [x] 出牌弹弓蓄力（拖拽时 DOScaleX 按距离压缩，最大 0.85x）— DOT-8
+
+### CombatAnimator
+- [x] AOE 连锁高亮跳跃（DOVirtual.DelayedCall 0.08s stagger，依次 PunchScale 目标）— DOT-8
+
+### GameUI
+- [x] 屏幕震动（大伤害 ≥5 触发 DOShakeAnchorPos，duration=0.35s）— DOT-8
+- [x] 慢动作（单位阵亡触发，timeScale 1→0.3→1，总时长≈0.85s，SetUpdate=true）— DOT-8
+- [x] 回合横幅（新回合横扫字幕，OutBack 飞入 0.5s → hold 1s → InQuad 飞出 0.35s）— DOT-8
+- [x] 牌库抖动（剩余 ≤2 张时 DOShakeAnchorPos 提醒）— DOT-8
+- [x] 符能填充（回合开始3拍交错 PunchScale，stagger=0.08s）— DOT-8
+- [x] 撒花彩纸（胜利时 25 个彩色方块从顶部落下旋转淡出）— DOT-8
+- [x] 对手出牌预告（幽灵卡近敌手区淡入飞入 → hold 0.5s → 淡出）— DOT-8
+- [x] EndTurn 按钮 Squash（按下时 PunchScale 0.15f）— DOT-8
+
+### StartupFlowUI
+- [x] 洗牌动画（Mulligan 前 4 张幽灵卡交叉飞行 + 淡出）— DOT-8
+- [x] Mulligan 翻转（点击换牌时 DOScaleX 0→1 翻转，0.11s×2）— DOT-8
+
+### LegendSkillShowcase（新文件）
+- [x] 传奇技能特写（全屏变暗 + 卡牌面板缩放弹入 + hold 0.8s + 缩出）— DOT-8
+- [x] LegendSkillShowcase.cs 单例 + GameEventBus.OnLegendSkillFired 订阅 — DOT-8

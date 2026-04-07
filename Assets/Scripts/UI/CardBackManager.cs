@@ -66,10 +66,10 @@ namespace FWTCG.UI
             _current = CardBackVariant.Back01;
         }
 
-        /// <summary>Test hook: reset cached state.</summary>
+        /// <summary>Test hook: reset cached state to Default variant.</summary>
         public static void ResetForTest()
         {
-            _loaded = false;
+            _loaded = true;  // prevent Load() from overriding the reset
             _current = CardBackVariant.Default;
             _cachedSprite = null;
         }
