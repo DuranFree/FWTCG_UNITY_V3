@@ -84,8 +84,8 @@
 - [ ] DissolveOrFallbackRoutine fallback path tween 未存入字段，SetTarget(gameObject) 兜底，低风险 — DOT-7（Codex MEDIUM）
 - [ ] CreateShadow shadow DOColor tween 未跟踪，ClearBattlefieldVisuals 时若 shadow 被销毁可能 MissingReferenceException — DOT-7（Codex LOW）
 
-- [ ] LegendSkillShowcase 两阶段 scale（0.4→1.08→1）通过 Join+SetDelay 实现，两个 DOScale 实际同时启动，视觉上有轻微冻帧；应改用嵌套 Sequence 或 OnComplete 链式 — DOT-8（Codex MEDIUM-1）
-- [ ] _turnSweepSeq kill 用 `if (IsActive()) Kill()` 而非 `TweenHelper.KillSafe(ref)`，与其他 seq 不一致，边缘情况下可能对已完成序列做重复操作 — DOT-8（Codex MEDIUM-2）
-- [ ] Mulligan 翻转 tween 无 `_mulliganFlipSeq` 字段追踪，StartupFlowUI OnDestroy 无法 kill 进行中的翻转动画 — DOT-8（Codex MEDIUM-3）
-- [ ] PlayManaFillStagger InsertCallback 内创建的 PunchScale tween 未挂 SetTarget(gameObject)，KillSafe(_manaFillSeq) 不能级联 kill 这些子 tween — DOT-8（Codex MEDIUM-5）
-- [ ] CardBackManager.SetPlayerCardBack 写入 PlayerPrefs，但 Load() 硬编码 Back01 忽略 PlayerPrefs；SetPlayerCardBack 功能性死代码，再次 domain reload 后选择被覆盖 — DOT-8（Codex MEDIUM-4）
+- ✅ LegendSkillShowcase 两阶段 scale（0.4→1.08→1）通过 Join+SetDelay 实现，视觉轻微冻帧 — 已修复：改用嵌套 Sequence + Append 链式，DOT-8 Medium fix — DOT-8（Codex MEDIUM-1）
+- ✅ _turnSweepSeq kill 用 `if (IsActive()) Kill()` 而非 `TweenHelper.KillSafe(ref)` — 已修复：两处均替换为 KillSafe，DOT-8 Medium fix — DOT-8（Codex MEDIUM-2）
+- ✅ Mulligan 翻转 tween 无 `_mulliganFlipSeq` 字段追踪，OnDestroy/OnDisable 无法 kill — 已修复：新增字段并在 OnDisable/OnDestroy 调用 KillSafe，DOT-8 Medium fix — DOT-8（Codex MEDIUM-3）
+- ✅ PlayManaFillStagger InsertCallback 创建的 PunchScale tween 未挂 SetTarget，KillSafe 无法级联 kill — 已修复：改用 seq.Insert + SetTarget，DOT-8 Medium fix — DOT-8（Codex MEDIUM-5）
+- [ ] CardBackManager.SetPlayerCardBack 写入 PlayerPrefs，但 Load() 硬编码 Back01 忽略 PlayerPrefs；SetPlayerCardBack 功能性死代码，再次 domain reload 后选择被覆盖 — DOT-8（Codex MEDIUM-4，功能未完整实现，暂不修复）

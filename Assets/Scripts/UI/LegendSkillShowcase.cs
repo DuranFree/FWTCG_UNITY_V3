@@ -95,10 +95,11 @@ namespace FWTCG.UI
             if (_cardPanel != null)
             {
                 var cg = _cardPanel.GetComponent<CanvasGroup>();
-                _showcaseSeq.Join(
-                    _cardPanel.DOScale(1.08f, ZOOM_DUR * 0.75f).SetEase(Ease.OutBack));
-                _showcaseSeq.Join(
-                    _cardPanel.DOScale(1f, ZOOM_DUR * 0.25f).SetEase(Ease.InOutQuad).SetDelay(ZOOM_DUR * 0.75f));
+                // M-1: nested sub-sequence guarantees 0.4→1.08→1 correctly chains (Append, not Join+SetDelay)
+                var scaleSeq = DOTween.Sequence().SetTarget(gameObject);
+                scaleSeq.Append(_cardPanel.DOScale(1.08f, ZOOM_DUR * 0.75f).SetEase(Ease.OutBack));
+                scaleSeq.Append(_cardPanel.DOScale(1f,    ZOOM_DUR * 0.25f).SetEase(Ease.InOutQuad));
+                _showcaseSeq.Join(scaleSeq);
                 if (cg != null)
                     _showcaseSeq.Join(cg.DOFade(1f, ZOOM_DUR * 0.5f).SetEase(Ease.OutQuad));
             }

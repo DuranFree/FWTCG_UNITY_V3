@@ -48,6 +48,7 @@ namespace FWTCG.UI
 
         // DOT-8: shuffle ghost tracking
         private readonly List<GameObject> _shuffleGhosts = new List<GameObject>();
+        private Sequence _mulliganFlipSeq; // M-3: track flip tween for cleanup
 
         // DEV-24: animation timing constants (seconds)
         public const float PANEL_FADE_IN  = 0.4f;
@@ -116,6 +117,7 @@ namespace FWTCG.UI
             TweenHelper.KillSafe(ref _bgGradientTween);
             TweenHelper.KillSafe(ref _coinSpinSeq);
             TweenHelper.KillSafe(ref _titleEntranceTween);
+            TweenHelper.KillSafe(ref _mulliganFlipSeq); // M-3
         }
 
         private void OnDestroy()
@@ -126,6 +128,7 @@ namespace FWTCG.UI
             TweenHelper.KillSafe(ref _bgGradientTween);
             TweenHelper.KillSafe(ref _coinSpinSeq);
             TweenHelper.KillSafe(ref _titleEntranceTween);
+            TweenHelper.KillSafe(ref _mulliganFlipSeq); // M-3
             // VFX-6: destroy any lingering burst particles
             foreach (var p in _burstParticles)
             {
@@ -617,12 +620,13 @@ namespace FWTCG.UI
                 var rt = _mulliganCardViews[idx].GetComponent<RectTransform>();
                 if (rt != null)
                 {
-                    DOTween.Kill(rt, false);
+                    TweenHelper.KillSafe(ref _mulliganFlipSeq); // M-3
                     rt.localScale = Vector3.one;
-                    DOTween.Sequence()
+                    _mulliganFlipSeq = DOTween.Sequence()
                         .Append(rt.DOScaleX(0f, MULLIGAN_FLIP_HALF).SetEase(Ease.InQuad))
                         .Append(rt.DOScaleX(1f, MULLIGAN_FLIP_HALF).SetEase(Ease.OutBack))
-                        .SetTarget(rt);
+                        .SetTarget(gameObject)
+                        .OnComplete(() => _mulliganFlipSeq = null);
                 }
             }
         }

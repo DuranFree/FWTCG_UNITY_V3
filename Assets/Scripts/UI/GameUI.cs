@@ -367,8 +367,7 @@ namespace FWTCG.UI
             TweenHelper.KillSafe(ref _manaFillSeq);
             TweenHelper.KillSafe(ref _opponentPreviewSeq);
             if (_opponentPreviewGO != null) { Destroy(_opponentPreviewGO); _opponentPreviewGO = null; } // H-3
-            if (_turnSweepSeq != null && _turnSweepSeq.IsActive()) _turnSweepSeq.Kill();
-            _turnSweepSeq = null;
+            TweenHelper.KillSafe(ref _turnSweepSeq); // M-2: consistent with other seqs
             Time.timeScale = 1f; // ensure timescale restored if we're destroyed mid slow-motion
             // H-2: destroy any in-flight confetti GOs (their tweens target the GO, not gameObject)
             foreach (var c in _confettiObjs) { if (c != null) { DOTween.Kill(c); Destroy(c); } }
@@ -2646,7 +2645,7 @@ namespace FWTCG.UI
             float hw = _rootCanvas.GetComponent<RectTransform>().rect.width * 0.5f;
             rt.anchoredPosition = new Vector2(-hw - 300f, 0f); // start offscreen left
 
-            if (_turnSweepSeq != null && _turnSweepSeq.IsActive()) _turnSweepSeq.Kill();
+            TweenHelper.KillSafe(ref _turnSweepSeq); // M-2
             _turnSweepSeq = DOTween.Sequence().SetUpdate(true).SetTarget(gameObject);
             _turnSweepSeq.Append(rt.DOAnchorPos(Vector2.zero, 0.5f).SetEase(Ease.OutBack).SetUpdate(true));
             _turnSweepSeq.AppendInterval(1.0f);
@@ -2698,9 +2697,9 @@ namespace FWTCG.UI
             _manaFillSeq = DOTween.Sequence().SetTarget(gameObject);
             for (int i = 0; i < 3; i++)
             {
-                float delay = i * 0.08f;
-                var captured = rt;
-                _manaFillSeq.InsertCallback(delay, () => TweenHelper.PunchScaleUI(captured, 0.12f, 0.18f, 1));
+                // M-5: Insert tween directly into sequence so KillSafe(_manaFillSeq) kills them too
+                var t = TweenHelper.PunchScaleUI(rt, 0.12f, 0.18f, 1);
+                if (t != null) _manaFillSeq.Insert(i * 0.08f, t.SetTarget(gameObject));
             }
             _manaFillSeq.OnComplete(() => _manaFillSeq = null);
         }
