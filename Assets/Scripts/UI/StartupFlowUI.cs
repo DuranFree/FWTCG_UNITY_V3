@@ -16,6 +16,8 @@ namespace FWTCG.UI
     /// </summary>
     public class StartupFlowUI : MonoBehaviour
     {
+        public static StartupFlowUI Instance { get; private set; }
+
         // ── Coin flip panel ───────────────────────────────────────────────────
         [SerializeField] private GameObject _coinFlipPanel;
         [SerializeField] private Text _coinFlipText;
@@ -24,6 +26,9 @@ namespace FWTCG.UI
         [SerializeField] private Image _coinCircleImage;
         [SerializeField] private Text _coinResultText;
         [SerializeField] private Image _scanLightImage;
+
+        // 3D coin rim: found by name in Awake, animated during scaleX flip
+        private Image _coinEdgeImage;
 
         // ── VFX-6: coin flip audio hooks ──────────────────────────────────
         [SerializeField] private AudioClip _coinFlipStartClip;
@@ -94,6 +99,8 @@ namespace FWTCG.UI
 
         private void Awake()
         {
+            Instance = this;
+
             // Coin flip panel starts VISIBLE (alpha=1) — player must never see the board behind it.
             // It will be faded out after the coin flip flow completes.
             if (_coinFlipPanel != null)
@@ -115,6 +122,10 @@ namespace FWTCG.UI
                 if (beam) _titleBeam = beam.GetComponent<Image>();
                 var bgGrad = _coinFlipPanel.transform.Find("BgGradientOverlay");
                 if (bgGrad) _bgGradientOverlay = bgGrad.GetComponent<Image>();
+
+                // 3D coin rim strip (CoinGroup/CoinContainer/CoinEdge)
+                var edgeT = _coinFlipPanel.transform.Find("CoinGroup/CoinContainer/CoinEdge");
+                if (edgeT != null) _coinEdgeImage = edgeT.GetComponent<Image>();
             }
         }
 
@@ -131,6 +142,7 @@ namespace FWTCG.UI
 
         private void OnDestroy()
         {
+            if (Instance == this) Instance = null;
             TweenHelper.KillSafe(ref _scanLightTween);
             TweenHelper.KillSafe(ref _hexBreathTween);
             TweenHelper.KillSafe(ref _titleBeamTween);
@@ -151,6 +163,28 @@ namespace FWTCG.UI
             // Resolve any pending TCS so callers don't hang if this component is destroyed mid-flow
             _activeCoinTcs?.TrySetResult(true);
             _activeMulliganTcs?.TrySetResult(true);
+        }
+
+        // ── Bot helpers ───────────────────────────────────────────────────────
+
+        /// <summary>Bot 主动点击硬币确认按钮（面板未显示或按钮不可交互时静默忽略）。</summary>
+        public bool TryBotClickCoinFlip()
+        {
+            if (_coinFlipOkButton == null) return false;
+            if (!_coinFlipOkButton.interactable) return false;
+            if (_coinFlipPanel == null || !_coinFlipPanel.activeSelf) return false;
+            _coinFlipOkButton.onClick.Invoke();
+            return true;
+        }
+
+        /// <summary>Bot 主动点击换牌确认按钮（面板未显示或按钮不可交互时静默忽略）。</summary>
+        public bool TryBotClickMulligan()
+        {
+            if (_mulliganConfirmButton == null) return false;
+            if (!_mulliganConfirmButton.interactable) return false;
+            if (_mulliganPanel == null || !_mulliganPanel.activeSelf) return false;
+            _mulliganConfirmButton.onClick.Invoke();
+            return true;
         }
 
         // ── Public entry point ────────────────────────────────────────────────
@@ -347,8 +381,12 @@ namespace FWTCG.UI
                 _coinCircleImage.color  = new Color(0.78f, 0.67f, 0.43f, 1f); // Gold
             }
 
-            var coinImg = _coinCircleImage; // capture for closures
+            var coinImg  = _coinCircleImage; // capture for closures
             var flipText = _coinFlipText;
+            var edgeImg  = _coinEdgeImage;   // 3D rim strip
+
+            // Ensure edge starts invisible
+            if (edgeImg != null) { var ec = edgeImg.color; ec.a = 0f; edgeImg.color = ec; }
 
             var seq = DOTween.Sequence();
             for (int i = 0; i < COIN_FLIP_COUNT; i++)
@@ -359,9 +397,16 @@ namespace FWTCG.UI
                 bool capturedLast = isLast;
 
                 // Fold to edge (scaleX → 0)
-                seq.Append(rt.DOScaleX(0f, halfDur).SetEase(Ease.InOutSine));
+                // OnUpdate drives edge alpha: edge fades IN as coin compresses (scaleX↓)
+                seq.Append(rt.DOScaleX(0f, halfDur).SetEase(Ease.InOutSine)
+                    .OnUpdate(() =>
+                    {
+                        if (edgeImg == null || rt == null) return;
+                        float sx = Mathf.Clamp01(rt.localScale.x);
+                        var c = edgeImg.color; c.a = 1f - sx; edgeImg.color = c;
+                    }));
 
-                // Swap face at midpoint
+                // Swap face at midpoint (scaleX == 0, edge fully visible)
                 seq.AppendCallback(() =>
                 {
                     if (coinImg == null) return;
@@ -387,9 +432,24 @@ namespace FWTCG.UI
                 });
 
                 // Unfold (scaleX → 1)
-                seq.Append(rt.DOScaleX(1f, halfDur).SetEase(Ease.InOutSine));
+                // OnUpdate drives edge alpha: edge fades OUT as coin opens (scaleX↑)
+                seq.Append(rt.DOScaleX(1f, halfDur).SetEase(Ease.InOutSine)
+                    .OnUpdate(() =>
+                    {
+                        if (edgeImg == null || rt == null) return;
+                        float sx = Mathf.Clamp01(rt.localScale.x);
+                        var c = edgeImg.color; c.a = 1f - sx; edgeImg.color = c;
+                    }));
+
                 if (!isLast) seq.AppendInterval(0.04f);
             }
+
+            // Ensure edge is fully hidden after all flips complete
+            seq.AppendCallback(() =>
+            {
+                if (edgeImg == null) return;
+                var c = edgeImg.color; c.a = 0f; edgeImg.color = c;
+            });
 
             // Landing bounce
             seq.Append(rt.DOPunchScale(Vector3.one * 0.15f, COIN_LAND_DUR, 1, 0f));

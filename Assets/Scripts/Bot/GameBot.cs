@@ -230,6 +230,26 @@ namespace FWTCG.Bot
                 // ── UI 时序监控（每帧）──────────────────────────────────────
                 CheckUIOverlap(gs);
 
+                // ── Bot 主动点击启动流按钮（不依赖 BotAutoAdvance 时机）──
+                var sfu = UI.StartupFlowUI.Instance;
+                if (sfu != null)
+                {
+                    if (sfu.TryBotClickCoinFlip())
+                    {
+                        _currentGame?.Log("[Bot] 自动点击硬币确认");
+                        _lastProgressTime = Time.realtimeSinceStartup;
+                        yield return new WaitForSeconds(DialogDelay);
+                        continue;
+                    }
+                    if (sfu.TryBotClickMulligan())
+                    {
+                        _currentGame?.Log("[Bot] 自动点击换牌确认");
+                        _lastProgressTime = Time.realtimeSinceStartup;
+                        yield return new WaitForSeconds(DialogDelay);
+                        continue;
+                    }
+                }
+
                 // 处理弹窗
                 if (UI.AskPromptUI.IsShowing)
                 {
