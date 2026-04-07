@@ -67,7 +67,21 @@ namespace FWTCG.Bot
         private float      _lastProgressTime;
         private string     _lastPhase;
         private int        _lastRound;
-        private int        _actionCount;   // actions in current turn
+        private int        _actionCount;
+
+        // ── UI 时序监控状态 ───────────────────────────────────────────────────
+        // 上一帧各面板的显示状态，用于检测非法叠加和意外关闭
+        private bool _prevAskPrompt;
+        private bool _prevSpellTarget;
+        private bool _prevSpellShowcase;
+        private bool _prevSpellDuel;
+        private bool _prevReactiveWindow;
+        private bool _prevCoinFlip;
+        private bool _prevMulligan;
+        // 面板开启时间（真实时间），用于检测异常滞留
+        private float _askPromptOpenTime;
+        private float _spellTargetOpenTime;
+        private const float MAX_PANEL_DURATION = 8f; // 超过此秒数面板仍在 → 报异常滞留
 
         // 公开给 Editor 窗口查询
         public bool Running       => _running;
@@ -212,6 +226,9 @@ namespace FWTCG.Bot
                     yield return new WaitForSeconds(1f);
                     continue;
                 }
+
+                // ── UI 时序监控（每帧）──────────────────────────────────────
+                CheckUIOverlap(gs);
 
                 // 处理弹窗
                 if (UI.AskPromptUI.IsShowing)
@@ -399,6 +416,97 @@ namespace FWTCG.Bot
             // 回合数不能倒退
             if (gs.Round < _lastRound)
                 LogBug("回合倒退", $"Round 从 {_lastRound} → {gs.Round}");
+        }
+
+        // ── UI 时序检测 ───────────────────────────────────────────────────────
+
+        private void CheckUIOverlap(GameState gs)
+        {
+            string ctx = $"Phase={gs.Phase} Round={gs.Round} Turn={gs.Turn}";
+
+            bool askPrompt     = UI.AskPromptUI.IsShowing;
+            bool spellTarget   = UI.SpellTargetPopup.IsShowing;
+            bool spellShowcase = UI.SpellShowcaseUI.Instance != null && UI.SpellShowcaseUI.Instance.IsShowing;
+            bool spellDuel     = UI.SpellDuelUI.Instance != null && UI.SpellDuelUI.Instance.IsShowing;
+            bool reactiveWin   = IsReactiveWindowOpen();
+            bool coinFlip      = IsCoinFlipOpen();
+            bool mulligan      = IsMulliganOpen();
+
+            // ── 1. 检测弹窗叠加（多个互斥面板同时显示）────────────────────
+            // AskPromptUI 和 SpellTargetPopup 不应同时出现
+            if (askPrompt && spellTarget)
+                LogBug("UI叠加", $"AskPromptUI + SpellTargetPopup 同时显示 [{ctx}]");
+
+            // AskPromptUI 和 SpellShowcase 不应同时出现（showcase 应先关闭）
+            if (askPrompt && spellShowcase)
+                LogBug("UI叠加", $"AskPromptUI + SpellShowcaseUI 同时显示 [{ctx}]");
+
+            // SpellDuel 和 SpellShowcase 不应同时出现
+            if (spellDuel && spellShowcase)
+                LogBug("UI叠加", $"SpellDuelUI + SpellShowcaseUI 同时显示 [{ctx}]");
+
+            // 启动流面板（硬币/换牌）不应和游戏弹窗同时出现
+            if ((coinFlip || mulligan) && (askPrompt || spellTarget || spellShowcase || spellDuel))
+                LogBug("UI叠加", $"启动流面板与游戏弹窗同时显示 coinFlip={coinFlip} mulligan={mulligan} [{ctx}]");
+
+            // 换牌和硬币不应同时出现
+            if (coinFlip && mulligan)
+                LogBug("UI叠加", $"CoinFlipPanel + MulliganPanel 同时显示 [{ctx}]");
+
+            // ── 2. 检测面板在游戏结束后仍残留 ────────────────────────────
+            if (gs.GameOver && (askPrompt || spellTarget || spellShowcase || spellDuel || reactiveWin))
+                LogBug("UI残留", $"游戏已结束但面板仍显示 ask={askPrompt} spellTarget={spellTarget} showcase={spellShowcase} duel={spellDuel} reactive={reactiveWin}");
+
+            // ── 3. 检测面板异常滞留（开启超过阈值还未关闭）───────────────
+            float now = Time.realtimeSinceStartup;
+
+            if (askPrompt && !_prevAskPrompt)   _askPromptOpenTime   = now;
+            if (spellTarget && !_prevSpellTarget) _spellTargetOpenTime = now;
+
+            if (askPrompt   && now - _askPromptOpenTime   > MAX_PANEL_DURATION)
+                LogBug("UI滞留", $"AskPromptUI 已显示超过 {MAX_PANEL_DURATION}s 未关闭 [{ctx}]");
+            if (spellTarget && now - _spellTargetOpenTime > MAX_PANEL_DURATION)
+                LogBug("UI滞留", $"SpellTargetPopup 已显示超过 {MAX_PANEL_DURATION}s 未关闭 [{ctx}]");
+
+            // ── 4. 检测非玩家回合时出现了需要玩家操作的弹窗 ─────────────
+            bool isPlayerTurn = gs.Turn == GameRules.OWNER_PLAYER;
+            if (!isPlayerTurn && askPrompt && !spellDuel)
+                LogBug("时序错误", $"AI 回合出现了 AskPromptUI [{ctx}]");
+
+            // ── 更新上一帧状态 ────────────────────────────────────────────
+            _prevAskPrompt      = askPrompt;
+            _prevSpellTarget    = spellTarget;
+            _prevSpellShowcase  = spellShowcase;
+            _prevSpellDuel      = spellDuel;
+            _prevReactiveWindow = reactiveWin;
+            _prevCoinFlip       = coinFlip;
+            _prevMulligan       = mulligan;
+        }
+
+        // 通过 GameObject 活跃状态检测（ReactiveWindowUI 没有静态 IsShowing）
+        private bool IsReactiveWindowOpen()
+        {
+            var rwUI = FindObjectOfType<UI.ReactiveWindowUI>();
+            if (rwUI == null) return false;
+            var panel = rwUI.transform.Find("Panel") ?? rwUI.transform.GetChild(0);
+            return panel != null && panel.gameObject.activeSelf;
+        }
+
+        private bool IsCoinFlipOpen()
+        {
+            var sfu = FindObjectOfType<UI.StartupFlowUI>();
+            if (sfu == null) return false;
+            // 通过 BotAutoAdvance 静态标志和 panel 活跃状态综合判断
+            var panel = sfu.transform.Find("CoinFlipPanel");
+            return panel != null && panel.gameObject.activeSelf;
+        }
+
+        private bool IsMulliganOpen()
+        {
+            var sfu = FindObjectOfType<UI.StartupFlowUI>();
+            if (sfu == null) return false;
+            var panel = sfu.transform.Find("MulliganPanel");
+            return panel != null && panel.gameObject.activeSelf;
         }
 
         // ── 异常捕获 ──────────────────────────────────────────────────────────
