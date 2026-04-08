@@ -460,7 +460,6 @@
 <rect x="1300" y="940" width="70" height="102" fill="#0c1624" stroke="#c89b3c70" stroke-width="1.2" rx="3"/>
 <rect x="1388" y="940" width="70" height="102" fill="#0c1624" stroke="#c89b3c70" stroke-width="1.2" rx="3"/>
 
-<!-- ═══ 角标装饰层（LoL 垫风格 L 形边角 + 内边框） ═══ -->
 <!-- 内边框：所有主区域双边框效果 -->
 <rect x="252" y="12"  width="1416" height="132" fill="none" stroke="#c89b3c" stroke-width="0.6" rx="3" opacity="0.22"/>
 <rect x="252" y="156" width="1416" height="84"  fill="none" stroke="#9070e0" stroke-width="0.6" rx="3" opacity="0.22"/>
@@ -468,46 +467,6 @@
 <rect x="252" y="698" width="1416" height="114" fill="none" stroke="#c89b3c" stroke-width="0.6" rx="3" opacity="0.22"/>
 <rect x="252" y="824" width="1416" height="84"  fill="none" stroke="#9070e0" stroke-width="0.6" rx="3" opacity="0.22"/>
 <rect x="252" y="920" width="1416" height="132" fill="none" stroke="#c89b3c" stroke-width="0.6" rx="3" opacity="0.22"/>
-<!-- 角标：Enemy HAND (248,8 → 1672,148) -->
-<g stroke="#c89b3c" stroke-width="1.8" fill="none" opacity="0.75">
-  <polyline points="262,10 250,10 250,22"/>  <polyline points="1658,10 1670,10 1670,22"/>
-  <polyline points="1658,146 1670,146 1670,134"/> <polyline points="262,146 250,146 250,134"/>
-</g>
-<!-- 角标：Enemy RUNE (248,152 → 1672,244) -->
-<g stroke="#9070e0" stroke-width="1.8" fill="none" opacity="0.75">
-  <polyline points="262,154 250,154 250,166"/>  <polyline points="1658,154 1670,154 1670,166"/>
-  <polyline points="1658,242 1670,242 1670,230"/> <polyline points="262,242 250,242 250,230"/>
-</g>
-<!-- 角标：Enemy BASE (248,248 → 1672,370) -->
-<g stroke="#c89b3c" stroke-width="1.8" fill="none" opacity="0.75">
-  <polyline points="262,250 250,250 250,262"/>  <polyline points="1658,250 1670,250 1670,262"/>
-  <polyline points="1658,368 1670,368 1670,356"/> <polyline points="262,368 250,368 250,356"/>
-</g>
-<!-- 角标：BF[0] (48,374 → 944,690) -->
-<g stroke="#4080b0" stroke-width="1.8" fill="none" opacity="0.65">
-  <polyline points="62,376 50,376 50,388"/>   <polyline points="930,376 942,376 942,388"/>
-  <polyline points="930,688 942,688 942,676"/> <polyline points="62,688 50,688 50,676"/>
-</g>
-<!-- 角标：BF[1] (976,374 → 1870,690) -->
-<g stroke="#3070a0" stroke-width="1.8" fill="none" opacity="0.65">
-  <polyline points="990,376 978,376 978,388"/>   <polyline points="1858,376 1870,376 1870,388"/>
-  <polyline points="1858,688 1870,688 1870,676"/> <polyline points="990,688 978,688 978,676"/>
-</g>
-<!-- 角标：Player BASE (248,694 → 1672,816) -->
-<g stroke="#c89b3c" stroke-width="1.8" fill="none" opacity="0.75">
-  <polyline points="262,696 250,696 250,708"/>  <polyline points="1658,696 1670,696 1670,708"/>
-  <polyline points="1658,814 1670,814 1670,802"/> <polyline points="262,814 250,814 250,802"/>
-</g>
-<!-- 角标：Player RUNE (248,820 → 1672,912) -->
-<g stroke="#9070e0" stroke-width="1.8" fill="none" opacity="0.75">
-  <polyline points="262,822 250,822 250,834"/>  <polyline points="1658,822 1670,822 1670,834"/>
-  <polyline points="1658,910 1670,910 1670,898"/> <polyline points="262,910 250,910 250,898"/>
-</g>
-<!-- 角标：Player HAND (248,916 → 1672,1056) -->
-<g stroke="#c89b3c" stroke-width="1.8" fill="none" opacity="0.75">
-  <polyline points="262,918 250,918 250,930"/>   <polyline points="1658,918 1670,918 1670,930"/>
-  <polyline points="1658,1054 1670,1054 1670,1042"/> <polyline points="262,1054 250,1054 250,1042"/>
-</g>
 
 <!-- ═══ BUTTON STRIP (y=1060–1078, 18px) ═══ -->
 <rect x="248" y="1060" width="1424" height="18" fill="#060e18" stroke="#304860" stroke-width="1" rx="2"/>
