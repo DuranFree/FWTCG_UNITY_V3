@@ -4,61 +4,169 @@
       <stop offset="0%"  stop-color="#100c1e"/>
       <stop offset="100%" stop-color="#08081a"/>
     </linearGradient>
-    <linearGradient id="bH" x1="0" y1="0" x2="1" y2="0">
-      <stop offset="0%"  stop-color="#4a2e04"/>
-      <stop offset="30%" stop-color="#d49010"/>
-      <stop offset="50%" stop-color="#f0c030"/>
-      <stop offset="70%" stop-color="#d49010"/>
-      <stop offset="100%" stop-color="#4a2e04"/>
+    <!-- Gold bevel (brighter than hero's bronze) -->
+    <linearGradient id="bvH" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%"  stop-color="#f0d050" stop-opacity="0.8"/>
+      <stop offset="20%" stop-color="#c09018"/>
+      <stop offset="65%" stop-color="#7a5008"/>
+      <stop offset="100%" stop-color="#2e1400"/>
     </linearGradient>
-    <linearGradient id="bV" x1="0" y1="0" x2="0" y2="1">
-      <stop offset="0%"  stop-color="#4a2e04"/>
-      <stop offset="30%" stop-color="#d49010"/>
-      <stop offset="50%" stop-color="#f0c030"/>
-      <stop offset="70%" stop-color="#d49010"/>
-      <stop offset="100%" stop-color="#4a2e04"/>
+    <linearGradient id="bvV" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0%"  stop-color="#f0d050" stop-opacity="0.8"/>
+      <stop offset="20%" stop-color="#c09018"/>
+      <stop offset="65%" stop-color="#7a5008"/>
+      <stop offset="100%" stop-color="#2e1400"/>
+    </linearGradient>
+    <linearGradient id="acH" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0%"   stop-color="#c09020" stop-opacity="0"/>
+      <stop offset="30%"  stop-color="#e0b830" stop-opacity="0.75"/>
+      <stop offset="50%"  stop-color="#f8e060" stop-opacity="0.95"/>
+      <stop offset="70%"  stop-color="#e0b830" stop-opacity="0.75"/>
+      <stop offset="100%" stop-color="#c09020" stop-opacity="0"/>
     </linearGradient>
     <radialGradient id="aura" cx="50%" cy="50%" r="50%">
-      <stop offset="0%"  stop-color="#2a1050" stop-opacity="0.4"/>
+      <stop offset="0%"  stop-color="#2a1050" stop-opacity="0.45"/>
       <stop offset="100%" stop-color="#08081a" stop-opacity="0"/>
     </radialGradient>
-    <filter id="g"><feGaussianBlur stdDeviation="2" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+    <pattern id="dp" x="0" y="0" width="16" height="16" patternUnits="userSpaceOnUse">
+      <path d="M8,0 L16,8 L8,16 L0,8 Z" fill="none" stroke="#18102e" stroke-width="0.45"/>
+    </pattern>
+    <filter id="gg" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur stdDeviation="1.2" result="b"/>
+      <feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+    <filter id="rg" x="-100%" y="-100%" width="300%" height="300%">
+      <feGaussianBlur stdDeviation="2" result="b"/>
+      <feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+    <filter id="pg" x="-80%" y="-80%" width="260%" height="260%">
+      <feGaussianBlur stdDeviation="3" result="b"/>
+      <feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
   </defs>
+
   <rect width="134" height="270" fill="url(#bg)"/>
-  <ellipse cx="67" cy="135" rx="60" ry="125" fill="url(#aura)"/>
-  <!-- Diagonals -->
-  <g stroke="#18102a" stroke-width="0.7" opacity="0.3">
-    <line x1="0" y1="0" x2="134" y2="270"/>
-    <line x1="0" y1="135" x2="67" y2="270"/>
-    <line x1="67" y1="0" x2="134" y2="135"/>
-    <line x1="134" y1="0" x2="0" y2="270"/>
-    <line x1="67" y1="0" x2="0" y2="100"/>
-    <line x1="134" y1="135" x2="34" y2="270"/>
+  <ellipse cx="67" cy="135" rx="58" ry="120" fill="url(#aura)"/>
+  <rect width="134" height="270" fill="url(#dp)" opacity="0.14"/>
+
+  <!-- Center gem (gold-tinted for legend) -->
+  <g filter="url(#pg)" opacity="0.38">
+    <polygon points="67,122 79,130 79,144 67,152 55,144 55,130" fill="none" stroke="#8050c8" stroke-width="1.4"/>
+    <polygon points="67,127 75,133 75,141 67,147 59,141 59,133" fill="#180840" opacity="0.75"/>
+    <line x1="67" y1="122" x2="67" y2="152" stroke="#9060d8" stroke-width="0.7" opacity="0.8"/>
+    <line x1="55" y1="130" x2="79" y2="144" stroke="#9060d8" stroke-width="0.7" opacity="0.8"/>
+    <line x1="79" y1="130" x2="55" y2="144" stroke="#9060d8" stroke-width="0.7" opacity="0.8"/>
+    <circle cx="67" cy="137" r="2.5" fill="#c890f8"/>
   </g>
-  <!-- Gold bars -->
-  <rect x="0" y="0" width="134" height="7" fill="url(#bH)"/>
-  <rect x="0" y="263" width="134" height="7" fill="url(#bH)"/>
-  <rect x="0" y="0" width="7" height="270" fill="url(#bV)"/>
-  <rect x="127" y="0" width="7" height="270" fill="url(#bV)"/>
-  <!-- Inner border -->
-  <rect x="10" y="10" width="114" height="250" rx="1" fill="none" stroke="#a07010" stroke-width="1.2" opacity="0.7"/>
-  <rect x="14" y="14" width="106" height="242" rx="1" fill="none" stroke="#d49010" stroke-width="0.5" opacity="0.3"/>
-  <!-- Corner L-brackets (gold, wider) -->
-  <g stroke="#f0c030" stroke-width="2.5" fill="none" filter="url(#g)">
-    <path d="M10,34 L10,10 L34,10"/>
-    <path d="M100,10 L124,10 L124,34"/>
-    <path d="M10,236 L10,260 L34,260"/>
-    <path d="M100,260 L124,260 L124,236"/>
-  </g>
-  <g fill="#f0c030" filter="url(#g)">
-    <rect x="8" y="8" width="5" height="5"/>
-    <rect x="121" y="8" width="5" height="5"/>
-    <rect x="8" y="257" width="5" height="5"/>
-    <rect x="121" y="257" width="5" height="5"/>
-  </g>
-  <!-- Separators -->
-  <rect x="14" y="56" width="106" height="2" fill="url(#bH)" opacity="0.6"/>
-  <rect x="14" y="214" width="106" height="2" fill="url(#bH)" opacity="0.6"/>
+
+  <!-- BORDER shadow base -->
+  <rect x="0"   y="0"   width="134" height="6" fill="#200e00"/>
+  <rect x="0"   y="264" width="134" height="6" fill="#200e00"/>
+  <rect x="0"   y="0"   width="6"   height="270" fill="#200e00"/>
+  <rect x="128" y="0"   width="6"   height="270" fill="#200e00"/>
+  <!-- BORDER bevel bars (gold) -->
+  <rect x="0"   y="0"   width="134" height="5" fill="url(#bvH)"/>
+  <rect x="0"   y="265" width="134" height="5" fill="url(#bvH)"/>
+  <rect x="0"   y="0"   width="5"   height="270" fill="url(#bvV)"/>
+  <rect x="129" y="0"   width="5"   height="270" fill="url(#bvV)"/>
+
+  <!-- INNER BORDERS (gold tones) -->
+  <rect x="8"  y="8"  width="118" height="254" fill="none" stroke="#806010" stroke-width="1.2" opacity="0.85"/>
+  <rect x="11" y="11" width="112" height="248" fill="none" stroke="#b08818" stroke-width="0.5" opacity="0.45"/>
+  <!-- Inner accent lines -->
+  <rect x="8" y="8"   width="118" height="1" fill="url(#acH)" opacity="0.65"/>
+  <rect x="8" y="261" width="118" height="1" fill="url(#acH)" opacity="0.65"/>
+
   <!-- Legend header fill -->
-  <rect x="10" y="10" width="114" height="46" fill="#1a0e30" opacity="0.35"/>
+  <rect x="8" y="8" width="118" height="47" fill="#1e1030" opacity="0.4"/>
+
+  <!-- ===== CORNER MEDALLIONS (r=28, gold) ===== -->
+  <!-- TL -->
+  <g filter="url(#gg)">
+    <g stroke="#503010" stroke-width="0.6" opacity="0.55">
+      <line x1="8" y1="8" x2="36" y2="8"/>
+      <line x1="8" y1="8" x2="35" y2="15"/>
+      <line x1="8" y1="8" x2="28" y2="28"/>
+      <line x1="8" y1="8" x2="15" y2="35"/>
+      <line x1="8" y1="8" x2="8"  y2="36"/>
+    </g>
+    <path d="M 8,36 A 28,28 0 0 1 36,8" fill="none" stroke="#b08010" stroke-width="2"/>
+    <path d="M 8,27 A 19,19 0 0 1 27,8" fill="none" stroke="#d8a820" stroke-width="1" opacity="0.6"/>
+    <g stroke="#e8c030" stroke-width="1.2" opacity="0.95">
+      <line x1="8"  y1="36" x2="11" y2="30"/>
+      <line x1="28" y1="28" x2="31" y2="22"/>
+      <line x1="36" y1="8"  x2="30" y2="11"/>
+    </g>
+    <rect x="6" y="6" width="5" height="5" fill="#f8d840"/>
+  </g>
+  <!-- TR -->
+  <g filter="url(#gg)">
+    <g stroke="#503010" stroke-width="0.6" opacity="0.55">
+      <line x1="126" y1="8" x2="98"  y2="8"/>
+      <line x1="126" y1="8" x2="99"  y2="15"/>
+      <line x1="126" y1="8" x2="106" y2="28"/>
+      <line x1="126" y1="8" x2="111" y2="35"/>
+      <line x1="126" y1="8" x2="126" y2="36"/>
+    </g>
+    <path d="M 98,8 A 28,28 0 0 1 126,36" fill="none" stroke="#b08010" stroke-width="2"/>
+    <path d="M 107,8 A 19,19 0 0 1 126,27" fill="none" stroke="#d8a820" stroke-width="1" opacity="0.6"/>
+    <g stroke="#e8c030" stroke-width="1.2" opacity="0.95">
+      <line x1="98"  y1="8"  x2="104" y2="11"/>
+      <line x1="106" y1="28" x2="111" y2="22"/>
+      <line x1="126" y1="36" x2="123" y2="30"/>
+    </g>
+    <rect x="123" y="6" width="5" height="5" fill="#f8d840"/>
+  </g>
+  <!-- BL -->
+  <g filter="url(#gg)">
+    <g stroke="#503010" stroke-width="0.6" opacity="0.55">
+      <line x1="8" y1="262" x2="36"  y2="262"/>
+      <line x1="8" y1="262" x2="35"  y2="255"/>
+      <line x1="8" y1="262" x2="28"  y2="242"/>
+      <line x1="8" y1="262" x2="15"  y2="235"/>
+      <line x1="8" y1="262" x2="8"   y2="234"/>
+    </g>
+    <path d="M 36,262 A 28,28 0 0 0 8,234" fill="none" stroke="#b08010" stroke-width="2"/>
+    <path d="M 27,262 A 19,19 0 0 0 8,243" fill="none" stroke="#d8a820" stroke-width="1" opacity="0.6"/>
+    <g stroke="#e8c030" stroke-width="1.2" opacity="0.95">
+      <line x1="36" y1="262" x2="33" y2="256"/>
+      <line x1="8"  y1="234" x2="11" y2="240"/>
+    </g>
+    <rect x="6" y="259" width="5" height="5" fill="#f8d840"/>
+  </g>
+  <!-- BR -->
+  <g filter="url(#gg)">
+    <g stroke="#503010" stroke-width="0.6" opacity="0.55">
+      <line x1="126" y1="262" x2="98"  y2="262"/>
+      <line x1="126" y1="262" x2="99"  y2="255"/>
+      <line x1="126" y1="262" x2="106" y2="242"/>
+      <line x1="126" y1="262" x2="111" y2="235"/>
+      <line x1="126" y1="262" x2="126" y2="234"/>
+    </g>
+    <path d="M 126,234 A 28,28 0 0 1 98,262" fill="none" stroke="#b08010" stroke-width="2"/>
+    <path d="M 126,243 A 19,19 0 0 1 107,262" fill="none" stroke="#d8a820" stroke-width="1" opacity="0.6"/>
+    <g stroke="#e8c030" stroke-width="1.2" opacity="0.95">
+      <line x1="126" y1="234" x2="123" y2="240"/>
+      <line x1="98"  y1="262" x2="104" y2="256"/>
+    </g>
+    <rect x="123" y="259" width="5" height="5" fill="#f8d840"/>
+  </g>
+
+  <!-- RUNE SYMBOLS (purple, brighter for legend) -->
+  <g filter="url(#rg)" stroke="#7848d8" stroke-width="1.2" fill="none">
+    <g transform="translate(17,65)"><line x1="0" y1="-6" x2="0" y2="6"/><line x1="-4" y1="-2" x2="4" y2="-2"/><line x1="-3" y1="3" x2="3" y2="3"/></g>
+    <g transform="translate(17,120)"><polyline points="-3,-6 0,6 3,-6"/><line x1="-3" y1="0" x2="3" y2="0"/></g>
+    <g transform="translate(17,175)"><line x1="-4" y1="-6" x2="4" y2="-6"/><line x1="0" y1="-6" x2="0" y2="6"/><line x1="-2" y1="6" x2="2" y2="6"/></g>
+    <g transform="translate(17,210)"><polyline points="-3,-6 0,-1 3,-6"/><polyline points="-3,2 0,7 3,2"/></g>
+  </g>
+  <g filter="url(#rg)" stroke="#7848d8" stroke-width="1.2" fill="none">
+    <g transform="translate(117,65)"><line x1="0" y1="-6" x2="0" y2="6"/><line x1="-4" y1="-2" x2="4" y2="-2"/><line x1="-3" y1="3" x2="3" y2="3"/></g>
+    <g transform="translate(117,120)"><polyline points="3,-6 0,6 -3,-6"/><line x1="-3" y1="0" x2="3" y2="0"/></g>
+    <g transform="translate(117,175)"><line x1="-4" y1="-6" x2="4" y2="-6"/><line x1="0" y1="-6" x2="0" y2="6"/><line x1="-2" y1="6" x2="2" y2="6"/></g>
+    <g transform="translate(117,210)"><polyline points="-3,-6 0,-1 3,-6"/><polyline points="-3,2 0,7 3,2"/></g>
+  </g>
+
+  <!-- Separator lines (gold) -->
+  <rect x="12" y="55"  width="110" height="1" fill="url(#acH)" opacity="0.55"/>
+  <rect x="12" y="214" width="110" height="1" fill="url(#acH)" opacity="0.55"/>
 </svg>

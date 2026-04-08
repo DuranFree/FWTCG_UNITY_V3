@@ -80,9 +80,9 @@ def generate(prompt: str, filename: str, resolution: str = "1k", aspect_ratio: s
     return poll_and_save(task_id, filename)
 
 
-def poll_and_save(task_id: str, filename: str, max_wait: int = 180):
+def poll_and_save(task_id: str, filename: str, max_wait: int = 600):
     """轮询任务状态直到完成（v2 API 用 /openapi/v2/query）"""
-    print(f"[3/4] 等待生成结果（最多 {max_wait}s）...")
+    print(f"[3/4] 等待生成结果（最多 {max_wait}s，约 {max_wait//60} 分钟）...")
     headers = {
         "Authorization": f"Bearer {API_KEY}",
         "Content-Type": "application/json",

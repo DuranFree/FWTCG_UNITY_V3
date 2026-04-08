@@ -1,85 +1,167 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="749" height="140" viewBox="0 0 749 140">
   <defs>
     <linearGradient id="bg" x1="0" y1="0" x2="0" y2="1">
-      <stop offset="0%"  stop-color="#101828"/>
+      <stop offset="0%"  stop-color="#0e1828"/>
       <stop offset="100%" stop-color="#060c16"/>
     </linearGradient>
-    <linearGradient id="bronzeH" x1="0" y1="0" x2="1" y2="0">
-      <stop offset="0%"  stop-color="#3a2008"/>
-      <stop offset="20%" stop-color="#c88828"/>
-      <stop offset="50%" stop-color="#e8b030"/>
-      <stop offset="80%" stop-color="#c88828"/>
-      <stop offset="100%" stop-color="#3a2008"/>
+    <linearGradient id="bvH" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%"  stop-color="#d0a038" stop-opacity="0.65"/>
+      <stop offset="25%" stop-color="#9a6018"/>
+      <stop offset="70%" stop-color="#5e3408"/>
+      <stop offset="100%" stop-color="#281000"/>
     </linearGradient>
-    <linearGradient id="bronzeV" x1="0" y1="0" x2="0" y2="1">
-      <stop offset="0%"  stop-color="#3a2008"/>
-      <stop offset="30%" stop-color="#c88828"/>
-      <stop offset="50%" stop-color="#e8b030"/>
-      <stop offset="70%" stop-color="#c88828"/>
-      <stop offset="100%" stop-color="#3a2008"/>
+    <linearGradient id="bvV" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0%"  stop-color="#d0a038" stop-opacity="0.65"/>
+      <stop offset="25%" stop-color="#9a6018"/>
+      <stop offset="70%" stop-color="#5e3408"/>
+      <stop offset="100%" stop-color="#281000"/>
+    </linearGradient>
+    <linearGradient id="acH" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0%"   stop-color="#b07818" stop-opacity="0"/>
+      <stop offset="20%"  stop-color="#d09828" stop-opacity="0.65"/>
+      <stop offset="50%"  stop-color="#ecc848" stop-opacity="0.85"/>
+      <stop offset="80%"  stop-color="#d09828" stop-opacity="0.65"/>
+      <stop offset="100%" stop-color="#b07818" stop-opacity="0"/>
     </linearGradient>
     <linearGradient id="centerGlow" x1="0" y1="0" x2="1" y2="0">
       <stop offset="0%"   stop-color="#060c16" stop-opacity="0"/>
-      <stop offset="40%"  stop-color="#1a2e50" stop-opacity="0.3"/>
-      <stop offset="50%"  stop-color="#2a4070" stop-opacity="0.4"/>
-      <stop offset="60%"  stop-color="#1a2e50" stop-opacity="0.3"/>
+      <stop offset="40%"  stop-color="#142038" stop-opacity="0.35"/>
+      <stop offset="50%"  stop-color="#1e3050" stop-opacity="0.45"/>
+      <stop offset="60%"  stop-color="#142038" stop-opacity="0.35"/>
       <stop offset="100%" stop-color="#060c16" stop-opacity="0"/>
     </linearGradient>
-    <filter id="glow"><feGaussianBlur stdDeviation="1.5" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+    <pattern id="dp" x="0" y="0" width="18" height="18" patternUnits="userSpaceOnUse">
+      <path d="M9,0 L18,9 L9,18 L0,9 Z" fill="none" stroke="#0e1828" stroke-width="0.45"/>
+    </pattern>
+    <filter id="gg" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur stdDeviation="1.2" result="b"/>
+      <feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+    <filter id="rg" x="-100%" y="-100%" width="300%" height="300%">
+      <feGaussianBlur stdDeviation="2" result="b"/>
+      <feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
   </defs>
 
   <rect width="749" height="140" fill="url(#bg)"/>
+  <rect width="749" height="140" fill="url(#dp)" opacity="0.16"/>
   <rect width="749" height="140" fill="url(#centerGlow)"/>
 
-  <!-- Subtle diagonals -->
-  <g stroke="#0e1828" stroke-width="0.7" opacity="0.25">
-    <line x1="0" y1="0" x2="749" y2="140"/>
-    <line x1="0" y1="70" x2="679" y2="140"/>
-    <line x1="70" y1="0" x2="749" y2="70"/>
-    <line x1="749" y1="0" x2="0" y2="140"/>
-    <line x1="679" y1="0" x2="0" y2="70"/>
-    <line x1="749" y1="70" x2="70" y2="140"/>
+  <!-- Center emblem (diamond) -->
+  <g filter="url(#rg)" opacity="0.35">
+    <polygon points="374,42 392,60 374,78 356,60" fill="none" stroke="#5040a8" stroke-width="1.2"/>
+    <polygon points="374,50 384,60 374,70 364,60" fill="#100828" opacity="0.7"/>
+    <line x1="374" y1="42" x2="374" y2="78" stroke="#7058c0" stroke-width="0.7" opacity="0.7"/>
+    <line x1="356" y1="60" x2="392" y2="60" stroke="#7058c0" stroke-width="0.7" opacity="0.7"/>
+    <circle cx="374" cy="60" r="2.5" fill="#9878e0"/>
   </g>
 
-  <!-- Bronze bars -->
-  <rect x="0" y="0" width="749" height="6" fill="url(#bronzeH)"/>
-  <rect x="0" y="134" width="749" height="6" fill="url(#bronzeH)"/>
-  <rect x="0" y="0" width="6" height="140" fill="url(#bronzeV)"/>
-  <rect x="743" y="0" width="6" height="140" fill="url(#bronzeV)"/>
+  <!-- BORDER shadow -->
+  <rect x="0"   y="0"   width="749" height="6" fill="#1a0a00"/>
+  <rect x="0"   y="134" width="749" height="6" fill="#1a0a00"/>
+  <rect x="0"   y="0"   width="6"   height="140" fill="#1a0a00"/>
+  <rect x="743" y="0"   width="6"   height="140" fill="#1a0a00"/>
+  <!-- BORDER bevel -->
+  <rect x="0"   y="0"   width="749" height="4" fill="url(#bvH)"/>
+  <rect x="0"   y="136" width="749" height="4" fill="url(#bvH)"/>
+  <rect x="0"   y="0"   width="4"   height="140" fill="url(#bvV)"/>
+  <rect x="745" y="0"   width="4"   height="140" fill="url(#bvV)"/>
 
-  <!-- Inner border -->
-  <rect x="9" y="9" width="731" height="122" rx="1" fill="none" stroke="#8a5c18" stroke-width="1" opacity="0.7"/>
-  <rect x="12" y="12" width="725" height="116" rx="1" fill="none" stroke="#c88828" stroke-width="0.5" opacity="0.3"/>
+  <!-- INNER BORDERS -->
+  <rect x="8"  y="8"  width="733" height="124" fill="none" stroke="#5a3808" stroke-width="1" opacity="0.8"/>
+  <rect x="11" y="11" width="727" height="118" fill="none" stroke="#906015" stroke-width="0.5" opacity="0.4"/>
+  <!-- Inner accent lines -->
+  <rect x="8" y="8"   width="733" height="1" fill="url(#acH)" opacity="0.55"/>
+  <rect x="8" y="131" width="733" height="1" fill="url(#acH)" opacity="0.55"/>
 
-  <!-- Corner L-brackets -->
-  <g stroke="#e8b030" stroke-width="2" fill="none" filter="url(#glow)">
-    <path d="M9,36 L9,9 L36,9"/>
-    <path d="M713,9 L740,9 L740,36"/>
-    <path d="M9,104 L9,131 L36,131"/>
-    <path d="M713,131 L740,131 L740,104"/>
+  <!-- ===== CORNER MEDALLIONS (r=26, fits in 140px height) ===== -->
+  <!-- TL (8,8) -->
+  <g filter="url(#gg)">
+    <g stroke="#3a2008" stroke-width="0.6" opacity="0.5">
+      <line x1="8" y1="8" x2="34" y2="8"/>
+      <line x1="8" y1="8" x2="32" y2="14"/>
+      <line x1="8" y1="8" x2="26" y2="26"/>
+      <line x1="8" y1="8" x2="14" y2="32"/>
+      <line x1="8" y1="8" x2="8"  y2="34"/>
+    </g>
+    <path d="M 8,34 A 26,26 0 0 1 34,8" fill="none" stroke="#9a6018" stroke-width="1.6"/>
+    <path d="M 8,26 A 18,18 0 0 1 26,8" fill="none" stroke="#c08822" stroke-width="0.9" opacity="0.55"/>
+    <g stroke="#cca030" stroke-width="1" opacity="0.9">
+      <line x1="8"  y1="34" x2="11" y2="29"/>
+      <line x1="26" y1="26" x2="29" y2="21"/>
+      <line x1="34" y1="8"  x2="29" y2="11"/>
+    </g>
+    <rect x="6" y="6" width="4" height="4" fill="#e0b840"/>
   </g>
-  <g fill="#e8b030" filter="url(#glow)">
-    <rect x="7" y="7" width="4" height="4"/>
-    <rect x="738" y="7" width="4" height="4"/>
-    <rect x="7" y="129" width="4" height="4"/>
-    <rect x="738" y="129" width="4" height="4"/>
+  <!-- TR (741,8) -->
+  <g filter="url(#gg)">
+    <g stroke="#3a2008" stroke-width="0.6" opacity="0.5">
+      <line x1="741" y1="8" x2="715" y2="8"/>
+      <line x1="741" y1="8" x2="717" y2="14"/>
+      <line x1="741" y1="8" x2="723" y2="26"/>
+      <line x1="741" y1="8" x2="727" y2="32"/>
+      <line x1="741" y1="8" x2="741" y2="34"/>
+    </g>
+    <path d="M 715,8 A 26,26 0 0 1 741,34" fill="none" stroke="#9a6018" stroke-width="1.6"/>
+    <path d="M 723,8 A 18,18 0 0 1 741,26" fill="none" stroke="#c08822" stroke-width="0.9" opacity="0.55"/>
+    <g stroke="#cca030" stroke-width="1" opacity="0.9">
+      <line x1="715" y1="8"  x2="720" y2="11"/>
+      <line x1="723" y1="26" x2="727" y2="21"/>
+      <line x1="741" y1="34" x2="738" y2="29"/>
+    </g>
+    <rect x="739" y="6" width="4" height="4" fill="#e0b840"/>
+  </g>
+  <!-- BL (8,132) -->
+  <g filter="url(#gg)">
+    <g stroke="#3a2008" stroke-width="0.6" opacity="0.5">
+      <line x1="8" y1="132" x2="34"  y2="132"/>
+      <line x1="8" y1="132" x2="32"  y2="126"/>
+      <line x1="8" y1="132" x2="26"  y2="114"/>
+      <line x1="8" y1="132" x2="14"  y2="108"/>
+      <line x1="8" y1="132" x2="8"   y2="106"/>
+    </g>
+    <path d="M 34,132 A 26,26 0 0 0 8,106" fill="none" stroke="#9a6018" stroke-width="1.6"/>
+    <path d="M 26,132 A 18,18 0 0 0 8,114" fill="none" stroke="#c08822" stroke-width="0.9" opacity="0.55"/>
+    <g stroke="#cca030" stroke-width="1" opacity="0.9">
+      <line x1="34" y1="132" x2="31" y2="127"/>
+      <line x1="8"  y1="106" x2="11" y2="111"/>
+    </g>
+    <rect x="6" y="130" width="4" height="4" fill="#e0b840"/>
+  </g>
+  <!-- BR (741,132) -->
+  <g filter="url(#gg)">
+    <g stroke="#3a2008" stroke-width="0.6" opacity="0.5">
+      <line x1="741" y1="132" x2="715" y2="132"/>
+      <line x1="741" y1="132" x2="717" y2="126"/>
+      <line x1="741" y1="132" x2="723" y2="114"/>
+      <line x1="741" y1="132" x2="727" y2="108"/>
+      <line x1="741" y1="132" x2="741" y2="106"/>
+    </g>
+    <path d="M 741,106 A 26,26 0 0 1 715,132" fill="none" stroke="#9a6018" stroke-width="1.6"/>
+    <path d="M 741,114 A 18,18 0 0 1 723,132" fill="none" stroke="#c08822" stroke-width="0.9" opacity="0.55"/>
+    <g stroke="#cca030" stroke-width="1" opacity="0.9">
+      <line x1="741" y1="106" x2="738" y2="111"/>
+      <line x1="715" y1="132" x2="720" y2="127"/>
+    </g>
+    <rect x="739" y="130" width="4" height="4" fill="#e0b840"/>
   </g>
 
-  <!-- HP bar track -->
-  <rect x="40" y="118" width="669" height="8" rx="4" fill="#0a0e18" stroke="#8a5c18" stroke-width="0.8" opacity="0.9"/>
-  <!-- HP bar fill (50%) -->
-  <rect x="42" y="119.5" width="330" height="5" rx="2.5" fill="#208040" opacity="0.8"/>
-
-  <!-- Center diamond (base emblem) -->
-  <g opacity="0.4" filter="url(#glow)">
-    <polygon points="374,40 394,60 374,80 354,60" fill="none" stroke="#c88828" stroke-width="1.2"/>
-    <polygon points="374,50 384,60 374,70 364,60" fill="#8a5c18" opacity="0.5"/>
+  <!-- Vertical section dividers (3 divisions) -->
+  <g stroke="#2a3848" stroke-width="0.8" stroke-dasharray="4,7" opacity="0.4">
+    <line x1="187" y1="13" x2="187" y2="127"/>
+    <line x1="374" y1="13" x2="374" y2="127"/>
+    <line x1="561" y1="13" x2="561" y2="127"/>
   </g>
 
-  <!-- Vertical tick marks (section dividers) -->
-  <g stroke="#c88828" stroke-width="0.6" opacity="0.3">
-    <line x1="187" y1="14" x2="187" y2="110"/>
-    <line x1="374" y1="14" x2="374" y2="110"/>
-    <line x1="561" y1="14" x2="561" y2="110"/>
+  <!-- RUNE SYMBOLS along bottom edge -->
+  <g filter="url(#rg)" stroke="#4858b8" stroke-width="1.1" fill="none">
+    <g transform="translate(95,110)"><line x1="-5" y1="0" x2="5" y2="0"/><polyline points="1,-5 5,0 1,5"/></g>
+    <g transform="translate(280,110)"><line x1="0" y1="-5" x2="0" y2="5"/><line x1="-4" y1="-2" x2="4" y2="-2"/></g>
+    <g transform="translate(469,110)"><polyline points="-4,-5 0,5 4,-5"/><line x1="-3" y1="0" x2="3" y2="0"/></g>
+    <g transform="translate(654,110)"><line x1="-5" y1="0" x2="5" y2="0"/><polyline points="-1,-5 -5,0 -1,5"/></g>
   </g>
+
+  <!-- HP bar -->
+  <rect x="30" y="118" width="689" height="7" rx="3.5" fill="#080e18" stroke="#5a3808" stroke-width="0.8" opacity="0.9"/>
+  <rect x="32" y="119.5" width="340" height="4" rx="2" fill="#1a7030" opacity="0.85"/>
 </svg>

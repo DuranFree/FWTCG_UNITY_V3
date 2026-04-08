@@ -1224,14 +1224,18 @@ namespace FWTCG.Editor
 
             CreateTMPText(go.transform, "PileLabel", label, GameColors.GoldDark, 10, TextAnchor.MiddleCenter);
 
-            // Card back image (colored rect)
+            // Card back image — floats as background, excluded from VLG layout
             var backGO = new GameObject("CardBack");
             backGO.transform.SetParent(go.transform, false);
             var backLE = backGO.AddComponent<LayoutElement>();
-            backLE.preferredWidth = 30f;
-            backLE.preferredHeight = 40f;
+            backLE.ignoreLayout = true;
             var backImg = backGO.AddComponent<Image>();
             backImg.color = GameColors.CardFaceDown;
+            var backRT = backGO.GetComponent<RectTransform>();
+            backRT.anchorMin = new Vector2(0.15f, 0.15f);
+            backRT.anchorMax = new Vector2(0.85f, 0.85f);
+            backRT.offsetMin = Vector2.zero;
+            backRT.offsetMax = Vector2.zero;
 
             countText = CreateTMPText(go.transform, "Count", "0", GameColors.GoldLight, 14, TextAnchor.MiddleCenter);
         }
@@ -1360,23 +1364,42 @@ namespace FWTCG.Editor
             bfBgImg.raycastTarget = false;
             TryApplySvgSprite(bfBgImg, "zone_battlefield", Image.Type.Simple);
 
-            var vlg = panel.AddComponent<VerticalLayoutGroup>();
-            vlg.childControlWidth = true;
-            vlg.childControlHeight = true;
-            vlg.childForceExpandWidth = true;
-            vlg.childForceExpandHeight = false;  // StandbyZone must stay fixed-height
-            vlg.spacing = 2f;
+            // Anchor-based layout — no VLG, so content is always geometrically centred
+            // regardless of panel height.  The SVG hex-gem sits at (50 %, 50 %), so we
+            // pin the LabelRow pivot at y = 50 % and let the unit zones fill above/below.
+            //
+            //   EnemyZone   : anchor y = 0.50 → 1.00,  offsetMin.y = +14  (above label)
+            //   LabelRow    : anchor y = 0.50,  offsetMin.y = -14, offsetMax.y = +14
+            //   PlayerZone  : anchor y = 0.04 → 0.50,  offsetMax.y = -14  (below label)
+            //   StandbyZone : anchor y = 0.00 → 0.04   (bottom strip ≈ 4 %)
 
-            // Enemy units zone
-            CreateHorizontalZone(panel.transform, enemyZoneName);
+            // ── Enemy units zone (upper half) ───────────────────────────────
+            {
+                var go = new GameObject(enemyZoneName);
+                go.transform.SetParent(panel.transform, false);
+                var rt = go.AddComponent<RectTransform>();
+                rt.anchorMin = new Vector2(0f, 0.5f);
+                rt.anchorMax = new Vector2(1f, 1f);
+                rt.offsetMin = new Vector2(0f, 14f);   // 14 px gap → clears label top edge
+                rt.offsetMax = Vector2.zero;
+                var hlg = go.AddComponent<HorizontalLayoutGroup>();
+                // childControlHeight=false: cards keep their own 110px height instead of
+                // stretching to fill the zone (which can be 160-200px, causing distortion).
+                hlg.childControlWidth  = false; hlg.childControlHeight  = false;
+                hlg.childForceExpandWidth = false; hlg.childForceExpandHeight = false;
+                hlg.childAlignment = TextAnchor.MiddleCenter;
+                hlg.spacing = 4f;
+            }
 
-            // Label row with control badge — fixed height, not stretched
+            // Label row with control badge — pinned at panel vertical centre
             var labelRow = new GameObject("LabelRow");
             labelRow.transform.SetParent(panel.transform, false);
-            labelRow.AddComponent<RectTransform>();
-            var labelRowLE = labelRow.AddComponent<LayoutElement>();
-            labelRowLE.preferredHeight = 28f;
-            labelRowLE.flexibleHeight = 0f;
+            var labelRowRT = labelRow.AddComponent<RectTransform>();
+            labelRowRT.anchorMin = new Vector2(0f, 0.5f);
+            labelRowRT.anchorMax = new Vector2(1f, 0.5f);
+            labelRowRT.pivot     = new Vector2(0.5f, 0.5f);
+            labelRowRT.offsetMin = new Vector2(0f, -14f);
+            labelRowRT.offsetMax = new Vector2(0f,  14f);   // height = 28 px
             var labelRowHLG = labelRow.AddComponent<HorizontalLayoutGroup>();
             labelRowHLG.childControlWidth = false;
             labelRowHLG.childControlHeight = false;
@@ -1422,16 +1445,32 @@ namespace FWTCG.Editor
             // Expose BF card art Image for GameUI.UpdateBFCardArt
             bfCardArtImg = bfArtImg;
 
-            // Player units zone
-            CreateHorizontalZone(panel.transform, playerZoneName);
+            // ── Player units zone (lower half, above standby) ───────────────
+            {
+                var go = new GameObject(playerZoneName);
+                go.transform.SetParent(panel.transform, false);
+                var rt = go.AddComponent<RectTransform>();
+                rt.anchorMin = new Vector2(0f, 0.04f);
+                rt.anchorMax = new Vector2(1f, 0.5f);
+                rt.offsetMin = Vector2.zero;
+                rt.offsetMax = new Vector2(0f, -14f);  // 14 px gap → clears label bottom edge
+                var hlg = go.AddComponent<HorizontalLayoutGroup>();
+                // childControlHeight=false: cards keep their own 110px height instead of
+                // stretching to fill the zone (which can be 160-200px, causing distortion).
+                hlg.childControlWidth  = false; hlg.childControlHeight  = false;
+                hlg.childForceExpandWidth = false; hlg.childForceExpandHeight = false;
+                hlg.childAlignment = TextAnchor.MiddleCenter;
+                hlg.spacing = 4f;
+            }
 
-            // DEV-18: Standby zone (face-down cards, compact height)
+            // ── DEV-18: Standby zone — bottom strip (anchor 0 → 4 %) ────────
             var standbyZone = new GameObject("StandbyZone");
             standbyZone.transform.SetParent(panel.transform, false);
-            standbyZone.AddComponent<RectTransform>();
-            var standbyLE = standbyZone.AddComponent<LayoutElement>();
-            standbyLE.preferredHeight = 14f;
-            standbyLE.flexibleHeight = 0f;
+            var standbyRT = standbyZone.AddComponent<RectTransform>();
+            standbyRT.anchorMin = new Vector2(0f, 0f);
+            standbyRT.anchorMax = new Vector2(1f, 0.04f);
+            standbyRT.offsetMin = Vector2.zero;
+            standbyRT.offsetMax = Vector2.zero;
             var standbyHLG = standbyZone.AddComponent<HorizontalLayoutGroup>();
             standbyHLG.childControlWidth = false;
             standbyHLG.childControlHeight = false;
@@ -2222,29 +2261,83 @@ namespace FWTCG.Editor
             vlg.spacing = 28f;
 
             // Title label — DEV-30 V1: alpha=0, animated in by TitleTextEntranceRoutine
-            CreateTMPText(go.transform, "CoinTitle", "掷硬币",
-                new Color(0.78f, 0.67f, 0.43f, 0f), 44, TextAnchor.MiddleCenter);
+            // ignoreLayout=true: must not be controlled by VLG (DOTween fights VLG → wrong position)
+            {
+                var titleText = CreateTMPText(go.transform, "CoinTitle", "掷硬币",
+                    new Color(0.78f, 0.67f, 0.43f, 0f), 44, TextAnchor.MiddleCenter);
+                var titleLE = titleText.gameObject.AddComponent<LayoutElement>();
+                titleLE.ignoreLayout = true;
+                var titleRT = titleText.rectTransform;
+                titleRT.anchorMin = new Vector2(0.5f, 0.5f);
+                titleRT.anchorMax = new Vector2(0.5f, 0.5f);
+                titleRT.pivot    = new Vector2(0.5f, 0.5f);
+                titleRT.sizeDelta = new Vector2(400f, 60f);
+                titleRT.anchoredPosition = new Vector2(0f, 280f); // above coin, clear of VLG content
+            }
 
-            // ── Coin circle + face text ───────────────────────────────────────
+            // ── Coin group: VLG item that wraps coin + face text ─────────────
+            // CoinGroup is the VLG item (160×160). CoinContainer (with Mask) lives
+            // inside it; CoinFaceText is a sibling of CoinContainer — NOT inside the
+            // Mask hierarchy — so it is never clipped by the circular mask.
+            var coinGroup = new GameObject("CoinGroup");
+            coinGroup.transform.SetParent(go.transform, false);
+            var coinGroupRT = coinGroup.AddComponent<RectTransform>();
+            coinGroupRT.sizeDelta = new Vector2(160f, 160f);
+            var coinGroupLE = coinGroup.AddComponent<LayoutElement>();
+            coinGroupLE.preferredWidth  = 160f;
+            coinGroupLE.preferredHeight = 160f;
+
+            // CoinContainer: circular mask clips the dark outer border ring of coin sprites
             var coinContainer = new GameObject("CoinContainer");
-            coinContainer.transform.SetParent(go.transform, false);
+            coinContainer.transform.SetParent(coinGroup.transform, false);
             var coinContRT = coinContainer.AddComponent<RectTransform>();
-            coinContRT.sizeDelta = new Vector2(160f, 160f);
+            coinContRT.anchorMin = Vector2.zero;
+            coinContRT.anchorMax = Vector2.one;
+            coinContRT.offsetMin = Vector2.zero;
+            coinContRT.offsetMax = Vector2.zero;
+            var maskImg = coinContainer.AddComponent<Image>();
+            maskImg.sprite = AssetDatabase.GetBuiltinExtraResource<Sprite>("UI/Skin/Knob.psd");
+            maskImg.color  = Color.white;
+            maskImg.raycastTarget = false;
+            coinContainer.AddComponent<Mask>().showMaskGraphic = false;
 
+            // CoinCircle: the actual coin sprite — slightly oversized so border stays outside mask
             var coinGO = new GameObject("CoinCircle");
             coinGO.transform.SetParent(coinContainer.transform, false);
             var coinRT = coinGO.AddComponent<RectTransform>();
-            coinRT.anchorMin = Vector2.zero;
-            coinRT.anchorMax = Vector2.one;
+            coinRT.anchorMin = new Vector2(-0.07f, -0.07f);
+            coinRT.anchorMax = new Vector2(1.07f,  1.07f);
             coinRT.offsetMin = Vector2.zero;
             coinRT.offsetMax = Vector2.zero;
             coinCircleImage = coinGO.AddComponent<Image>();
-            coinCircleImage.color          = Color.white; // sprite tint — CoinSpinRoutine loads xianshou/houshou sprites at runtime
-            coinCircleImage.preserveAspect = true;
+            coinCircleImage.color          = Color.white;
+            coinCircleImage.preserveAspect = false;
 
-            // Face label on coin (先 / 后 / ?)
-            coinFlipText = CreateTMPText(coinContainer.transform, "CoinFaceText", "?",
+            // CoinEdge: thin vertical strip that simulates the coin's rim/thickness
+            // during the flip animation. Hidden by default; animated in StartupFlowUI.
+            // Lives inside the masked container → top/bottom are rounded by the circle mask.
+            {
+                var edgeGO = new GameObject("CoinEdge");
+                edgeGO.transform.SetParent(coinContainer.transform, false);
+                var edgeRT = edgeGO.AddComponent<RectTransform>();
+                edgeRT.anchorMin = new Vector2(0.5f, 0f);
+                edgeRT.anchorMax = new Vector2(0.5f, 1f);
+                edgeRT.pivot     = new Vector2(0.5f, 0.5f);
+                edgeRT.sizeDelta = new Vector2(12f, 0f); // 12 px wide, full container height
+                var edgeImg = edgeGO.AddComponent<Image>();
+                edgeImg.color = new Color(0.72f, 0.55f, 0.13f, 0f); // dark gold, alpha=0
+            }
+
+            // CoinFaceText: sibling of CoinContainer — NOT clipped by the Mask above
+            coinFlipText = CreateTMPText(coinGroup.transform, "CoinFaceText", "?",
                 new Color(0.10f, 0.07f, 0.02f, 1f), 48, TextAnchor.MiddleCenter);
+            {
+                var faceRT = coinFlipText.rectTransform;
+                faceRT.anchorMin = Vector2.zero;
+                faceRT.anchorMax = Vector2.one;
+                faceRT.offsetMin = Vector2.zero;
+                faceRT.offsetMax = Vector2.zero;
+            }
 
             // ── Result text (hidden initially) ────────────────────────────────
             coinResultText = CreateTMPText(go.transform, "CoinResultText", "",
@@ -4216,19 +4309,24 @@ namespace FWTCG.Editor
 
             var labelGO = new GameObject("ZoneLabel");
             labelGO.transform.SetParent(zone, false);
+
+            // Must ignore layout BEFORE adding Text, so any parent LayoutGroup won't drive this element
+            var le = labelGO.AddComponent<LayoutElement>();
+            le.ignoreLayout = true;
+
             var labelRT = labelGO.AddComponent<RectTransform>();
             labelRT.anchorMin = new Vector2(0f, 1f);
-            labelRT.anchorMax = new Vector2(0.5f, 1f);
-            labelRT.pivot = new Vector2(0f, 1f);
-            labelRT.anchoredPosition = new Vector2(3f, -2f);
-            labelRT.sizeDelta = new Vector2(100f, 16f);
+            labelRT.anchorMax = new Vector2(1f, 1f);
+            labelRT.pivot = new Vector2(0.5f, 1f);
+            labelRT.anchoredPosition = new Vector2(0f, -2f);
+            labelRT.sizeDelta = new Vector2(0f, 16f);
 
             var txt = labelGO.AddComponent<Text>();
             txt.text = labelText;
             txt.color = new Color(GameColors.GoldLight.r, GameColors.GoldLight.g, GameColors.GoldLight.b, 0.7f);
             txt.fontSize = 11;
             txt.fontStyle = FontStyle.Bold;
-            txt.alignment = TextAnchor.UpperLeft;
+            txt.alignment = TextAnchor.UpperCenter;
             txt.raycastTarget = false;
             txt.horizontalOverflow = HorizontalWrapMode.Overflow;
             txt.verticalOverflow = VerticalWrapMode.Overflow;
