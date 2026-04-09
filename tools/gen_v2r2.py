@@ -1,12 +1,12 @@
 """重新生成 layout_v2.svg — v2.3: 手牌大, 符文/基地扩展, 侧栏宽度不变"""
 
-EH_Y, EH_H = 8,   100
-ER_Y, ER_H = 110, 130
+EH_Y, EH_H = 8,   145   # 符文区让出空间，英雄牌更高
+ER_Y, ER_H = 155, 85
 EB_Y, EB_H = 242, 160
 BF_Y, BF_H = 404, 260
 PB_Y, PB_H = 666, 160
-PR_Y, PR_H = 828, 130
-PH_Y, PH_H = 960, 100
+PR_Y, PR_H = 828, 85
+PH_Y, PH_H = 915, 145
 BTN_Y, BTN_H = 1062, 18
 BF_CENTER = BF_Y + BF_H // 2  # 534
 
@@ -28,10 +28,10 @@ PLAYER_PIVOT  = 2050
 ENEMY_CARD_Y  = -90
 ENEMY_PIVOT   = -1100
 
-RUNE_R    = 28
-RUNE_STEP = 34
+RUNE_R    = 24
+RUNE_STEP = 26   # step < 2R = 重叠效果
 RUNE_COUNT = 12
-RUNE_START_CX = MAIN_X + RUNE_R + 10  # 左对齐，只占约1/3宽度
+RUNE_START_CX = MAIN_X + (MAIN_W - ((RUNE_COUNT-1)*RUNE_STEP + 2*RUNE_R)) // 2 + RUNE_R  # 居中
 
 BASE_CARD_W  = 72
 BASE_CARD_GAP = 8
