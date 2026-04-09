@@ -195,18 +195,18 @@
 <rect x="248" y="110" width="1424" height="130" fill="#0c1030" rx="4"/>
 <rect x="248" y="110" width="1424" height="130" fill="none" stroke="url(#purH)" stroke-width="2" rx="4"/>
 <text x="258" y="126" fill="#9070e0" font-size="11" font-family="Arial" font-weight="bold" letter-spacing="2" filter="url(#glow)">RUNES  符文区</text>
-<circle cx="652" cy="175" r="36" fill="#0c0e22" stroke="#7050c0" stroke-width="1.5"/>
-<circle cx="708" cy="175" r="36" fill="#0c0e22" stroke="#7050c0" stroke-width="1.5"/>
-<circle cx="764" cy="175" r="36" fill="#0c0e22" stroke="#7050c0" stroke-width="1.5"/>
-<circle cx="820" cy="175" r="36" fill="#0c0e22" stroke="#7050c0" stroke-width="1.5"/>
-<circle cx="876" cy="175" r="36" fill="#0c0e22" stroke="#7050c0" stroke-width="1.5"/>
-<circle cx="932" cy="175" r="36" fill="#0c0e22" stroke="#7050c0" stroke-width="1.5"/>
-<circle cx="988" cy="175" r="36" fill="#0c0e22" stroke="#7050c0" stroke-width="1.5"/>
-<circle cx="1044" cy="175" r="36" fill="#0c0e22" stroke="#7050c0" stroke-width="1.5"/>
-<circle cx="1100" cy="175" r="36" fill="#0a0c1c" stroke="#403080" stroke-width="1" stroke-dasharray="4,2" opacity="0.5"/>
-<circle cx="1156" cy="175" r="36" fill="#0a0c1c" stroke="#403080" stroke-width="1" stroke-dasharray="4,2" opacity="0.5"/>
-<circle cx="1212" cy="175" r="36" fill="#0a0c1c" stroke="#403080" stroke-width="1" stroke-dasharray="4,2" opacity="0.5"/>
-<circle cx="1268" cy="175" r="36" fill="#0a0c1c" stroke="#403080" stroke-width="1" stroke-dasharray="4,2" opacity="0.5"/>
+<circle cx="286" cy="175" r="28" fill="#0c0e22" stroke="#7050c0" stroke-width="1.5"/>
+<circle cx="320" cy="175" r="28" fill="#0c0e22" stroke="#7050c0" stroke-width="1.5"/>
+<circle cx="354" cy="175" r="28" fill="#0c0e22" stroke="#7050c0" stroke-width="1.5"/>
+<circle cx="388" cy="175" r="28" fill="#0c0e22" stroke="#7050c0" stroke-width="1.5"/>
+<circle cx="422" cy="175" r="28" fill="#0c0e22" stroke="#7050c0" stroke-width="1.5"/>
+<circle cx="456" cy="175" r="28" fill="#0c0e22" stroke="#7050c0" stroke-width="1.5"/>
+<circle cx="490" cy="175" r="28" fill="#0c0e22" stroke="#7050c0" stroke-width="1.5"/>
+<circle cx="524" cy="175" r="28" fill="#0c0e22" stroke="#7050c0" stroke-width="1.5"/>
+<circle cx="558" cy="175" r="28" fill="#0a0c1c" stroke="#403080" stroke-width="1" stroke-dasharray="4,2" opacity="0.5"/>
+<circle cx="592" cy="175" r="28" fill="#0a0c1c" stroke="#403080" stroke-width="1" stroke-dasharray="4,2" opacity="0.5"/>
+<circle cx="626" cy="175" r="28" fill="#0a0c1c" stroke="#403080" stroke-width="1" stroke-dasharray="4,2" opacity="0.5"/>
+<circle cx="660" cy="175" r="28" fill="#0a0c1c" stroke="#403080" stroke-width="1" stroke-dasharray="4,2" opacity="0.5"/>
 
 <!-- ENEMY BASE y=242 h=160 -->
 <rect x="248" y="242" width="1424" height="160" fill="#0e1c28" rx="4"/>
@@ -301,18 +301,18 @@
 <rect x="248" y="828" width="1424" height="130" fill="#0c1030" rx="4"/>
 <rect x="248" y="828" width="1424" height="130" fill="none" stroke="url(#purH)" stroke-width="2" rx="4"/>
 <text x="258" y="844" fill="#9070e0" font-size="11" font-family="Arial" font-weight="bold" letter-spacing="2" filter="url(#glow)">RUNES  符文区</text>
-<circle cx="652" cy="893" r="36" fill="#0c0e22" stroke="#7050c0" stroke-width="1.5"/>
-<circle cx="708" cy="893" r="36" fill="#0c0e22" stroke="#7050c0" stroke-width="1.5"/>
-<circle cx="764" cy="893" r="36" fill="#0c0e22" stroke="#7050c0" stroke-width="1.5"/>
-<circle cx="820" cy="893" r="36" fill="#0c0e22" stroke="#7050c0" stroke-width="1.5"/>
-<circle cx="876" cy="893" r="36" fill="#0c0e22" stroke="#7050c0" stroke-width="1.5"/>
-<circle cx="932" cy="893" r="36" fill="#0c0e22" stroke="#7050c0" stroke-width="1.5"/>
-<circle cx="988" cy="893" r="36" fill="#0c0e22" stroke="#7050c0" stroke-width="1.5"/>
-<circle cx="1044" cy="893" r="36" fill="#0c0e22" stroke="#7050c0" stroke-width="1.5"/>
-<circle cx="1100" cy="893" r="36" fill="#0a0c1c" stroke="#403080" stroke-width="1" stroke-dasharray="4,2" opacity="0.5"/>
-<circle cx="1156" cy="893" r="36" fill="#0a0c1c" stroke="#403080" stroke-width="1" stroke-dasharray="4,2" opacity="0.5"/>
-<circle cx="1212" cy="893" r="36" fill="#0a0c1c" stroke="#403080" stroke-width="1" stroke-dasharray="4,2" opacity="0.5"/>
-<circle cx="1268" cy="893" r="36" fill="#0a0c1c" stroke="#403080" stroke-width="1" stroke-dasharray="4,2" opacity="0.5"/>
+<circle cx="286" cy="893" r="28" fill="#0c0e22" stroke="#7050c0" stroke-width="1.5"/>
+<circle cx="320" cy="893" r="28" fill="#0c0e22" stroke="#7050c0" stroke-width="1.5"/>
+<circle cx="354" cy="893" r="28" fill="#0c0e22" stroke="#7050c0" stroke-width="1.5"/>
+<circle cx="388" cy="893" r="28" fill="#0c0e22" stroke="#7050c0" stroke-width="1.5"/>
+<circle cx="422" cy="893" r="28" fill="#0c0e22" stroke="#7050c0" stroke-width="1.5"/>
+<circle cx="456" cy="893" r="28" fill="#0c0e22" stroke="#7050c0" stroke-width="1.5"/>
+<circle cx="490" cy="893" r="28" fill="#0c0e22" stroke="#7050c0" stroke-width="1.5"/>
+<circle cx="524" cy="893" r="28" fill="#0c0e22" stroke="#7050c0" stroke-width="1.5"/>
+<circle cx="558" cy="893" r="28" fill="#0a0c1c" stroke="#403080" stroke-width="1" stroke-dasharray="4,2" opacity="0.5"/>
+<circle cx="592" cy="893" r="28" fill="#0a0c1c" stroke="#403080" stroke-width="1" stroke-dasharray="4,2" opacity="0.5"/>
+<circle cx="626" cy="893" r="28" fill="#0a0c1c" stroke="#403080" stroke-width="1" stroke-dasharray="4,2" opacity="0.5"/>
+<circle cx="660" cy="893" r="28" fill="#0a0c1c" stroke="#403080" stroke-width="1" stroke-dasharray="4,2" opacity="0.5"/>
 
 <!-- PLAYER HERO ROW y=960 h=100 -->
 <rect x="252" y="964" width="76" height="92" fill="#101828" stroke="#d4a828" stroke-width="2" rx="5" filter="url(#glow)"/>
