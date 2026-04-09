@@ -28,6 +28,9 @@ PLAYER_PIVOT  = 2050
 ENEMY_CARD_Y  = -90
 ENEMY_PIVOT   = -1100
 
+HERO_CARD_W  = 76
+HERO_CARD_H  = int(HERO_CARD_W * CARD_RATIO)  # = 106, 标准比例
+
 RUNE_R    = 24
 RUNE_STEP = 26   # step < 2R = 重叠效果
 RUNE_COUNT = 12
@@ -164,14 +167,15 @@ deck_box(rpb_x, PB_Y+player_deck_h+4, rpb_w, player_deck_h, rcx, "弃牌", "DISC
 L()
 
 L(f'<!-- ENEMY HERO ROW y={EH_Y} h={EH_H} -->')
-hcy = EH_Y + EH_H // 2
+eh_card_y = EH_Y + (EH_H - HERO_CARD_H) // 2  # 垂直居中
+hcy = eh_card_y + HERO_CARD_H // 2
 for hx, lbl, eng, sc in [(MAIN_X+4,"英雄","CHAMPION","#d4a828"),(MAIN_X+92,"传说","LEGEND","#c89b3c")]:
-    L(f'<rect x="{hx}" y="{EH_Y+4}" width="76" height="{EH_H-8}" fill="#101828" stroke="{sc}" stroke-width="2" rx="5" filter="url(#glow)"/>')
-    L(f'<rect x="{hx+4}" y="{EH_Y+8}" width="68" height="{EH_H-16}" fill="#080e1e" stroke="{sc}60" stroke-width="1" rx="3" stroke-dasharray="3,2"/>')
-    L(f'<text x="{hx+38}" y="{hcy-4}" fill="{sc}" font-size="11" font-family="Arial" font-weight="bold" text-anchor="middle">{lbl}</text>')
-    L(f'<text x="{hx+38}" y="{hcy+8}" fill="{sc}90" font-size="8" font-family="Arial" text-anchor="middle">{eng}</text>')
-L(f'<rect x="{MAIN_X+96}" y="{EH_Y+EH_H-14}" width="68" height="10" fill="#201008" stroke="#c89b3c" stroke-width="1" rx="3"/>')
-L(f'<text x="{MAIN_X+130}" y="{EH_Y+EH_H-6}" fill="#c89b3c" font-size="7" text-anchor="middle" font-family="Arial">技 能</text>')
+    L(f'<rect x="{hx}" y="{eh_card_y}" width="{HERO_CARD_W}" height="{HERO_CARD_H}" fill="#101828" stroke="{sc}" stroke-width="2" rx="5" filter="url(#glow)"/>')
+    L(f'<rect x="{hx+4}" y="{eh_card_y+4}" width="{HERO_CARD_W-8}" height="{HERO_CARD_H-8}" fill="#080e1e" stroke="{sc}60" stroke-width="1" rx="3" stroke-dasharray="3,2"/>')
+    L(f'<text x="{hx+HERO_CARD_W//2}" y="{hcy-4}" fill="{sc}" font-size="11" font-family="Arial" font-weight="bold" text-anchor="middle">{lbl}</text>')
+    L(f'<text x="{hx+HERO_CARD_W//2}" y="{hcy+8}" fill="{sc}90" font-size="8" font-family="Arial" text-anchor="middle">{eng}</text>')
+L(f'<rect x="{MAIN_X+96}" y="{eh_card_y+HERO_CARD_H-10}" width="68" height="8" fill="#201008" stroke="#c89b3c" stroke-width="1" rx="3"/>')
+L(f'<text x="{MAIN_X+130}" y="{eh_card_y+HERO_CARD_H-4}" fill="#c89b3c" font-size="7" text-anchor="middle" font-family="Arial">技 能</text>')
 L()
 
 L(f'<!-- ENEMY HAND FAN -->')
@@ -290,14 +294,15 @@ for i in range(RUNE_COUNT):
 L()
 
 L(f'<!-- PLAYER HERO ROW y={PH_Y} h={PH_H} -->')
-pcy = PH_Y + PH_H // 2
+ph_card_y = PH_Y + (PH_H - HERO_CARD_H) // 2  # 垂直居中
+pcy = ph_card_y + HERO_CARD_H // 2
 for hx, lbl, eng, sc in [(MAIN_X+4,"英雄","CHAMPION","#d4a828"),(MAIN_X+92,"传说","LEGEND","#c89b3c")]:
-    L(f'<rect x="{hx}" y="{PH_Y+4}" width="76" height="{PH_H-8}" fill="#101828" stroke="{sc}" stroke-width="2" rx="5" filter="url(#glow)"/>')
-    L(f'<rect x="{hx+4}" y="{PH_Y+8}" width="68" height="{PH_H-16}" fill="#080e1e" stroke="{sc}60" stroke-width="1" rx="3" stroke-dasharray="3,2"/>')
-    L(f'<text x="{hx+38}" y="{pcy-4}" fill="{sc}" font-size="11" font-family="Arial" font-weight="bold" text-anchor="middle">{lbl}</text>')
-    L(f'<text x="{hx+38}" y="{pcy+8}" fill="{sc}90" font-size="8" font-family="Arial" text-anchor="middle">{eng}</text>')
-L(f'<rect x="{MAIN_X+96}" y="{PH_Y+PH_H-14}" width="68" height="10" fill="#201008" stroke="#c89b3c" stroke-width="1" rx="3"/>')
-L(f'<text x="{MAIN_X+130}" y="{PH_Y+PH_H-6}" fill="#c89b3c" font-size="7" text-anchor="middle" font-family="Arial">技 能</text>')
+    L(f'<rect x="{hx}" y="{ph_card_y}" width="{HERO_CARD_W}" height="{HERO_CARD_H}" fill="#101828" stroke="{sc}" stroke-width="2" rx="5" filter="url(#glow)"/>')
+    L(f'<rect x="{hx+4}" y="{ph_card_y+4}" width="{HERO_CARD_W-8}" height="{HERO_CARD_H-8}" fill="#080e1e" stroke="{sc}60" stroke-width="1" rx="3" stroke-dasharray="3,2"/>')
+    L(f'<text x="{hx+HERO_CARD_W//2}" y="{pcy-4}" fill="{sc}" font-size="11" font-family="Arial" font-weight="bold" text-anchor="middle">{lbl}</text>')
+    L(f'<text x="{hx+HERO_CARD_W//2}" y="{pcy+8}" fill="{sc}90" font-size="8" font-family="Arial" text-anchor="middle">{eng}</text>')
+L(f'<rect x="{MAIN_X+96}" y="{ph_card_y+HERO_CARD_H-10}" width="68" height="8" fill="#201008" stroke="#c89b3c" stroke-width="1" rx="3"/>')
+L(f'<text x="{MAIN_X+130}" y="{ph_card_y+HERO_CARD_H-4}" fill="#c89b3c" font-size="7" text-anchor="middle" font-family="Arial">技 能</text>')
 
 btn_y = PH_Y + 4
 L(f'<rect x="1580" y="{btn_y}" width="108" height="34" fill="#0c2240" stroke="#4090d0" stroke-width="2" rx="5" filter="url(#glow)"/>')
