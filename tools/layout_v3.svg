@@ -1,0 +1,392 @@
+<svg width="1920" height="1080" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1920 1080">
+<defs>
+  <radialGradient id="bg" cx="50%" cy="50%" r="70%">
+    <stop offset="0%" stop-color="#0f2035"/>
+    <stop offset="100%" stop-color="#050d18"/>
+  </radialGradient>
+  <linearGradient id="goldH" x1="0" y1="0" x2="1" y2="0">
+    <stop offset="0%" stop-color="#604808"/>
+    <stop offset="35%" stop-color="#c89b3c"/>
+    <stop offset="65%" stop-color="#c89b3c"/>
+    <stop offset="100%" stop-color="#604808"/>
+  </linearGradient>
+  <linearGradient id="purH" x1="0" y1="0" x2="1" y2="0">
+    <stop offset="0%" stop-color="#281050"/>
+    <stop offset="35%" stop-color="#7050c0"/>
+    <stop offset="65%" stop-color="#7050c0"/>
+    <stop offset="100%" stop-color="#281050"/>
+  </linearGradient>
+  <linearGradient id="bf0Grad" x1="0" y1="0" x2="0" y2="1">
+    <stop offset="0%" stop-color="#081828"/>
+    <stop offset="50%" stop-color="#0c2240"/>
+    <stop offset="100%" stop-color="#081828"/>
+  </linearGradient>
+  <linearGradient id="bf1Grad" x1="0" y1="0" x2="0" y2="1">
+    <stop offset="0%" stop-color="#081820"/>
+    <stop offset="50%" stop-color="#0a2030"/>
+    <stop offset="100%" stop-color="#081820"/>
+  </linearGradient>
+  <filter id="glow" x="-20%" y="-20%" width="140%" height="140%">
+    <feGaussianBlur stdDeviation="2.5" result="blur"/>
+    <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+  </filter>
+  <filter id="softglow">
+    <feGaussianBlur stdDeviation="4" result="blur"/>
+    <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+  </filter>
+  <linearGradient id="pillarBorder" x1="0" y1="0" x2="0" y2="1">
+    <stop offset="0%"   stop-color="#c89b3c"/>
+    <stop offset="25%"  stop-color="#7050c0"/>
+    <stop offset="50%"  stop-color="#3070d0"/>
+    <stop offset="75%"  stop-color="#7050c0"/>
+    <stop offset="100%" stop-color="#c89b3c"/>
+  </linearGradient>
+  <linearGradient id="pillarFill" x1="0" y1="1" x2="0" y2="0">
+    <stop offset="0%"   stop-color="#1848c0"/>
+    <stop offset="50%"  stop-color="#6030d0"/>
+    <stop offset="100%" stop-color="#c040f0" stop-opacity="0.4"/>
+  </linearGradient>
+  <clipPath id="pillarClip">
+    <rect x="948" y="284" width="24" height="316"/>
+  </clipPath>
+</defs>
+
+<!-- BACKGROUND -->
+<rect width="1920" height="1080" fill="url(#bg)"/>
+<g opacity="0.04" transform="translate(960,442)">
+  <circle r="260" fill="none" stroke="#4090d0" stroke-width="4"/>
+  <circle r="190" fill="none" stroke="#4090d0" stroke-width="2"/>
+  <circle r="100" fill="none" stroke="#4090d0" stroke-width="1"/>
+  <line x1="-310" y1="0" x2="310" y2="0" stroke="#4090d0" stroke-width="1"/>
+  <line x1="0" y1="-310" x2="0" y2="310" stroke="#4090d0" stroke-width="1"/>
+</g>
+<rect x="1" y="1" width="1918" height="1078" fill="none" stroke="#c89b3c" stroke-width="1" opacity="0.2"/>
+
+<!-- LEFT SCORE STRIP (x=0-44) -->
+<rect x="0" y="0" width="44" height="1080" fill="#040c14"/>
+<line x1="43" y1="0" x2="43" y2="1080" stroke="#c89b3c" stroke-width="1" opacity="0.35"/>
+<text x="22" y="14" fill="#c89b3c" font-size="7" text-anchor="middle" font-family="Arial" opacity="0.4" letter-spacing="1">SCORE</text>
+<line x1="6" y1="442" x2="38" y2="442" stroke="#c89b3c" stroke-width="1" opacity="0.4"/>
+
+<circle cx="22" cy="60" r="14" fill="none" stroke="#c89b3c" stroke-width="2.0" opacity="0.95"/>
+<text   x="22"  y="65"  fill="#c89b3c" font-size="13" text-anchor="middle" font-family="Arial"  font-weight="bold">8</text>
+<circle cx="22" cy="86" r="14" fill="none" stroke="#c89b3c" stroke-width="1.5" opacity="0.88"/>
+<text   x="22"  y="91"  fill="#c89b3c" font-size="12" text-anchor="middle" font-family="Arial"  font-weight="bold">7</text>
+<circle cx="22" cy="112" r="14" fill="none" stroke="#c89b3c" stroke-width="1.5" opacity="0.81"/>
+<text   x="22"  y="117"  fill="#c89b3c" font-size="12" text-anchor="middle" font-family="Arial">6</text>
+<circle cx="22" cy="138" r="14" fill="none" stroke="#c89b3c" stroke-width="1.2" opacity="0.74"/>
+<text   x="22"  y="143"  fill="#c89b3c" font-size="12" text-anchor="middle" font-family="Arial">5</text>
+<circle cx="22" cy="164" r="14" fill="none" stroke="#c89b3c" stroke-width="1.2" opacity="0.67"/>
+<text   x="22"  y="169"  fill="#c89b3c" font-size="12" text-anchor="middle" font-family="Arial">4</text>
+<circle cx="22" cy="190" r="14" fill="none" stroke="#c89b3c" stroke-width="1.2" opacity="0.60"/>
+<text   x="22"  y="195"  fill="#c89b3c" font-size="12" text-anchor="middle" font-family="Arial">3</text>
+<circle cx="22" cy="216" r="14" fill="none" stroke="#c89b3c" stroke-width="1.2" opacity="0.53"/>
+<text   x="22"  y="221"  fill="#c89b3c" font-size="12" text-anchor="middle" font-family="Arial">2</text>
+<circle cx="22" cy="242" r="14" fill="none" stroke="#c89b3c" stroke-width="1.2" opacity="0.46"/>
+<text   x="22"  y="247"  fill="#c89b3c" font-size="12" text-anchor="middle" font-family="Arial">1</text>
+<circle cx="22" cy="268" r="14" fill="#132030" stroke="#c89b3c" stroke-width="1.2" opacity="0.40"/>
+<text   x="22"  y="273"  fill="#c89b3c" font-size="12" text-anchor="middle" font-family="Arial">0</text>
+
+<circle cx="22" cy="624" r="14" fill="none" stroke="#c89b3c" stroke-width="2.0" opacity="0.95" filter="url(#glow)"/>
+<text   x="22"  y="629"  fill="#c89b3c" font-size="13" text-anchor="middle" font-family="Arial"  font-weight="bold">8</text>
+<circle cx="22" cy="650" r="14" fill="none" stroke="#c89b3c" stroke-width="1.5" opacity="0.88"/>
+<text   x="22"  y="655"  fill="#c89b3c" font-size="12" text-anchor="middle" font-family="Arial"  font-weight="bold">7</text>
+<circle cx="22" cy="676" r="14" fill="none" stroke="#c89b3c" stroke-width="1.5" opacity="0.81"/>
+<text   x="22"  y="681"  fill="#c89b3c" font-size="12" text-anchor="middle" font-family="Arial">6</text>
+<circle cx="22" cy="702" r="14" fill="none" stroke="#c89b3c" stroke-width="1.2" opacity="0.74"/>
+<text   x="22"  y="707"  fill="#c89b3c" font-size="12" text-anchor="middle" font-family="Arial">5</text>
+<circle cx="22" cy="728" r="14" fill="none" stroke="#c89b3c" stroke-width="1.2" opacity="0.67"/>
+<text   x="22"  y="733"  fill="#c89b3c" font-size="12" text-anchor="middle" font-family="Arial">4</text>
+<circle cx="22" cy="754" r="14" fill="none" stroke="#c89b3c" stroke-width="1.2" opacity="0.60"/>
+<text   x="22"  y="759"  fill="#c89b3c" font-size="12" text-anchor="middle" font-family="Arial">3</text>
+<circle cx="22" cy="780" r="14" fill="none" stroke="#c89b3c" stroke-width="1.2" opacity="0.53"/>
+<text   x="22"  y="785"  fill="#c89b3c" font-size="12" text-anchor="middle" font-family="Arial">2</text>
+<circle cx="22" cy="806" r="14" fill="none" stroke="#c89b3c" stroke-width="1.2" opacity="0.46"/>
+<text   x="22"  y="811"  fill="#c89b3c" font-size="12" text-anchor="middle" font-family="Arial">1</text>
+<circle cx="22" cy="832" r="14" fill="#132030" stroke="#c89b3c" stroke-width="1.2" opacity="0.40"/>
+<text   x="22"  y="837"  fill="#c89b3c" font-size="12" text-anchor="middle" font-family="Arial">0</text>
+
+<rect x="48" y="40" width="194" height="118" fill="#0c1a28" stroke="#c89b3c" stroke-width="1.5" rx="5"/>
+<rect x="118" y="54" width="54" height="61" fill="#0c1a28" stroke="#c89b3c" stroke-width="1.5" rx="3"/>
+<rect x="122" y="58" width="46" height="53" fill="none" stroke="#c89b3c30" stroke-width="1" rx="2"/>
+<text x="145" y="129" fill="#c89b3c" font-size="11" font-family="Arial" font-weight="bold" text-anchor="middle">主牌堆</text>
+<text x="145" y="140" fill="#c89b3c70" font-size="9" font-family="Arial" text-anchor="middle">MAIN DECK</text>
+<text x="145" y="156" fill="#d4c090" font-size="15" font-family="Arial" font-weight="bold" text-anchor="middle">30</text>
+<rect x="48" y="162" width="194" height="118" fill="#0c1228" stroke="#7050c0" stroke-width="1.5" rx="5"/>
+<rect x="118" y="176" width="54" height="61" fill="#0c1228" stroke="#8060d0" stroke-width="1.5" rx="3"/>
+<rect x="122" y="180" width="46" height="53" fill="none" stroke="#8060d030" stroke-width="1" rx="2"/>
+<text x="145" y="251" fill="#7050c0" font-size="11" font-family="Arial" font-weight="bold" text-anchor="middle">符文堆</text>
+<text x="145" y="262" fill="#7050c070" font-size="9" font-family="Arial" text-anchor="middle">RUNE DECK</text>
+<text x="145" y="278" fill="#b090f0" font-size="15" font-family="Arial" font-weight="bold" text-anchor="middle">10</text>
+<rect x="48" y="604" width="194" height="118" fill="#0c1228" stroke="#7050c0" stroke-width="1.5" rx="5"/>
+<rect x="118" y="618" width="54" height="61" fill="#0c1228" stroke="#8060d0" stroke-width="1.5" rx="3"/>
+<rect x="122" y="622" width="46" height="53" fill="none" stroke="#8060d030" stroke-width="1" rx="2"/>
+<text x="145" y="693" fill="#7050c0" font-size="11" font-family="Arial" font-weight="bold" text-anchor="middle">符文堆</text>
+<text x="145" y="704" fill="#7050c070" font-size="9" font-family="Arial" text-anchor="middle">RUNE DECK</text>
+<text x="145" y="720" fill="#b090f0" font-size="15" font-family="Arial" font-weight="bold" text-anchor="middle">10</text>
+<rect x="48" y="726" width="194" height="118" fill="#0c1a28" stroke="#c89b3c" stroke-width="1.5" rx="5"/>
+<rect x="118" y="740" width="54" height="61" fill="#0c1a28" stroke="#c89b3c" stroke-width="1.5" rx="3"/>
+<rect x="122" y="744" width="46" height="53" fill="none" stroke="#c89b3c30" stroke-width="1" rx="2"/>
+<text x="145" y="815" fill="#c89b3c" font-size="11" font-family="Arial" font-weight="bold" text-anchor="middle">主牌堆</text>
+<text x="145" y="826" fill="#c89b3c70" font-size="9" font-family="Arial" text-anchor="middle">MAIN DECK</text>
+<text x="145" y="842" fill="#d4c090" font-size="15" font-family="Arial" font-weight="bold" text-anchor="middle">30</text>
+
+<rect x="1676" y="40" width="194" height="118" fill="#0c1a28" stroke="#c89b3c" stroke-width="1.5" rx="5"/>
+<rect x="1746" y="54" width="54" height="61" fill="#0c1a28" stroke="#c89b3c" stroke-width="1.5" rx="3"/>
+<rect x="1750" y="58" width="46" height="53" fill="none" stroke="#c89b3c30" stroke-width="1" rx="2"/>
+<text x="1773" y="129" fill="#c89b3c" font-size="11" font-family="Arial" font-weight="bold" text-anchor="middle">弃牌</text>
+<text x="1773" y="140" fill="#c89b3c70" font-size="9" font-family="Arial" text-anchor="middle">DISCARD</text>
+<text x="1773" y="156" fill="#d4c090" font-size="15" font-family="Arial" font-weight="bold" text-anchor="middle">0</text>
+<rect x="1676" y="162" width="194" height="118" fill="#0a1420" stroke="#c89b3c" stroke-width="1.5" rx="5"/>
+<rect x="1746" y="176" width="54" height="61" fill="#0a1420" stroke="#c89b3c" stroke-width="1.5" rx="3"/>
+<rect x="1750" y="180" width="46" height="53" fill="none" stroke="#c89b3c30" stroke-width="1" rx="2"/>
+<text x="1773" y="251" fill="#c89b3c" font-size="11" font-family="Arial" font-weight="bold" text-anchor="middle">放逐区</text>
+<text x="1773" y="262" fill="#c89b3c70" font-size="9" font-family="Arial" text-anchor="middle">EXILE</text>
+<text x="1773" y="278" fill="#d4c090" font-size="15" font-family="Arial" font-weight="bold" text-anchor="middle">0</text>
+<rect x="1676" y="604" width="194" height="118" fill="#0a1420" stroke="#c89b3c" stroke-width="1.5" rx="5"/>
+<rect x="1746" y="618" width="54" height="61" fill="#0a1420" stroke="#c89b3c" stroke-width="1.5" rx="3"/>
+<rect x="1750" y="622" width="46" height="53" fill="none" stroke="#c89b3c30" stroke-width="1" rx="2"/>
+<text x="1773" y="693" fill="#c89b3c" font-size="11" font-family="Arial" font-weight="bold" text-anchor="middle">放逐区</text>
+<text x="1773" y="704" fill="#c89b3c70" font-size="9" font-family="Arial" text-anchor="middle">EXILE</text>
+<text x="1773" y="720" fill="#d4c090" font-size="15" font-family="Arial" font-weight="bold" text-anchor="middle">0</text>
+<rect x="1676" y="726" width="194" height="118" fill="#0c1a28" stroke="#c89b3c" stroke-width="1.5" rx="5"/>
+<rect x="1746" y="740" width="54" height="61" fill="#0c1a28" stroke="#c89b3c" stroke-width="1.5" rx="3"/>
+<rect x="1750" y="744" width="46" height="53" fill="none" stroke="#c89b3c30" stroke-width="1" rx="2"/>
+<text x="1773" y="815" fill="#c89b3c" font-size="11" font-family="Arial" font-weight="bold" text-anchor="middle">弃牌</text>
+<text x="1773" y="826" fill="#c89b3c70" font-size="9" font-family="Arial" text-anchor="middle">DISCARD</text>
+<text x="1773" y="842" fill="#d4c090" font-size="15" font-family="Arial" font-weight="bold" text-anchor="middle">0</text>
+
+<!-- ENEMY HERO ROW (y=40, h=100) -->
+<rect x="252" y="44" width="76" height="90" fill="#101828" stroke="#d4a828" stroke-width="2" rx="5" filter="url(#glow)"/>
+<rect x="256" y="48" width="68" height="82" fill="#080e1e" stroke="#d4a82860" stroke-width="1" rx="3" stroke-dasharray="3,2"/>
+<text x="290" y="85" fill="#d4a828" font-size="11" font-family="Arial" font-weight="bold" text-anchor="middle">英雄</text>
+<text x="290" y="97" fill="#d4a82890" font-size="8" font-family="Arial" text-anchor="middle">CHAMPION</text>
+<rect x="336" y="44" width="76" height="90" fill="#101828" stroke="#c89b3c" stroke-width="1.5" rx="5"/>
+<rect x="340" y="48" width="68" height="82" fill="#080e1e" stroke="#c89b3c60" stroke-width="1" rx="3" stroke-dasharray="3,2"/>
+<text x="374" y="85" fill="#c89b3c" font-size="11" font-family="Arial" font-weight="bold" text-anchor="middle">传说</text>
+<text x="374" y="97" fill="#c89b3c90" font-size="8" font-family="Arial" text-anchor="middle">LEGEND</text>
+<rect x="340" y="126" width="68" height="10" fill="#201008" stroke="#c89b3c" stroke-width="1" rx="3"/>
+<text x="374" y="134" fill="#c89b3c" font-size="7" text-anchor="middle" font-family="Arial">技 能</text>
+
+<!-- ENEMY HAND FAN (pivot 960,-905) -->
+<text x="960" y="34" fill="#c89b3c" font-size="9" text-anchor="middle" font-family="Arial" opacity="0.45" letter-spacing="2">HAND · 敌方手牌</text>
+<g transform="rotate(12, 960, -905)">
+  <rect x="922" y="-31" width="76" height="116" fill="#0c1624" stroke="#c89b3c50" stroke-width="1.2" rx="3"/>
+</g>
+<g transform="rotate(-12, 960, -905)">
+  <rect x="922" y="-31" width="76" height="116" fill="#0c1624" stroke="#c89b3c50" stroke-width="1.2" rx="3"/>
+</g>
+<g transform="rotate(8, 960, -905)">
+  <rect x="922" y="-31" width="76" height="116" fill="#0c1624" stroke="#c89b3c60" stroke-width="1.2" rx="3"/>
+</g>
+<g transform="rotate(-8, 960, -905)">
+  <rect x="922" y="-31" width="76" height="116" fill="#0c1624" stroke="#c89b3c60" stroke-width="1.2" rx="3"/>
+</g>
+<g transform="rotate(4, 960, -905)">
+  <rect x="922" y="-31" width="76" height="116" fill="#0c1624" stroke="#c89b3c75" stroke-width="1.3" rx="3"/>
+</g>
+<g transform="rotate(-4, 960, -905)">
+  <rect x="922" y="-31" width="76" height="116" fill="#0c1624" stroke="#c89b3c75" stroke-width="1.3" rx="3"/>
+</g>
+<g transform="rotate(0, 960, -905)">
+  <rect x="922" y="-31" width="76" height="116" fill="#0c1624" stroke="#c89b3cff" stroke-width="1.5" rx="3"/>
+</g>
+
+<!-- ENEMY RUNES (y=144, h=52) -->
+<rect x="248" y="144" width="1424" height="52" fill="#0c1030" rx="4"/>
+<rect x="248" y="144" width="1424" height="52" fill="none" stroke="url(#purH)" stroke-width="2" rx="4"/>
+<text x="258" y="157" fill="#9070e0" font-size="10" font-family="Arial" font-weight="bold" letter-spacing="2" filter="url(#glow)">RUNES  符文区</text>
+<circle cx="642" cy="170" r="20" fill="#0c0e22" stroke="#7050c0" stroke-width="1.2"/>
+<circle cx="700" cy="170" r="20" fill="#0c0e22" stroke="#7050c0" stroke-width="1.2"/>
+<circle cx="758" cy="170" r="20" fill="#0c0e22" stroke="#7050c0" stroke-width="1.2"/>
+<circle cx="816" cy="170" r="20" fill="#0c0e22" stroke="#7050c0" stroke-width="1.2"/>
+<circle cx="874" cy="170" r="20" fill="#0c0e22" stroke="#7050c0" stroke-width="1.2"/>
+<circle cx="932" cy="170" r="20" fill="#0c0e22" stroke="#7050c0" stroke-width="1.2"/>
+<circle cx="990" cy="170" r="20" fill="#0c0e22" stroke="#7050c0" stroke-width="1.2"/>
+<circle cx="1048" cy="170" r="20" fill="#0c0e22" stroke="#7050c0" stroke-width="1.2"/>
+<circle cx="1106" cy="170" r="20" fill="#0a0c1c" stroke="#403080" stroke-width="1" stroke-dasharray="4,2" opacity="0.5"/>
+<circle cx="1164" cy="170" r="20" fill="#0a0c1c" stroke="#403080" stroke-width="1" stroke-dasharray="4,2" opacity="0.5"/>
+<circle cx="1222" cy="170" r="20" fill="#0a0c1c" stroke="#403080" stroke-width="1" stroke-dasharray="4,2" opacity="0.5"/>
+<circle cx="1280" cy="170" r="20" fill="#0a0c1c" stroke="#403080" stroke-width="1" stroke-dasharray="4,2" opacity="0.5"/>
+
+<!-- ENEMY BASE (y=200, h=80) -->
+<rect x="248" y="200" width="1424" height="80" fill="#0e1c28" rx="4"/>
+<rect x="248" y="200" width="1424" height="80" fill="none" stroke="url(#goldH)" stroke-width="2" rx="4"/>
+<text x="258" y="213" fill="#c89b3c" font-size="10" font-family="Arial" font-weight="bold" letter-spacing="2" filter="url(#glow)">BASE  基地</text>
+<rect x="692" y="207" width="60" height="66" fill="#0a1620" stroke="#c89b3c" stroke-width="1" rx="3" stroke-dasharray="4,2"/>
+<rect x="760" y="207" width="60" height="66" fill="#0a1620" stroke="#c89b3c" stroke-width="1" rx="3" stroke-dasharray="4,2"/>
+<rect x="828" y="207" width="60" height="66" fill="#0a1620" stroke="#c89b3c" stroke-width="1" rx="3" stroke-dasharray="4,2"/>
+<rect x="896" y="207" width="60" height="66" fill="#0a1620" stroke="#c89b3c" stroke-width="1" rx="3" stroke-dasharray="4,2"/>
+<rect x="964" y="207" width="60" height="66" fill="#0a1620" stroke="#c89b3c" stroke-width="1" rx="3" stroke-dasharray="4,2"/>
+<rect x="1032" y="207" width="60" height="66" fill="#0a1620" stroke="#c89b3c" stroke-width="1" rx="3" stroke-dasharray="4,2"/>
+<rect x="1100" y="207" width="60" height="66" fill="#0a1620" stroke="#c89b3c" stroke-width="1" rx="3" stroke-dasharray="4,2"/>
+<rect x="1168" y="207" width="60" height="66" fill="#0a1028" stroke="#4060a0" stroke-width="1.5" rx="3" stroke-dasharray="3,2"/>
+<text x="1198" y="243" fill="#4060a0" font-size="8" text-anchor="middle" font-family="Arial" opacity="0.8">待命</text>
+
+<!-- BATTLEFIELD (y=284, h=316, center=442) -->
+<rect x="48" y="284" width="896" height="316" fill="url(#bf0Grad)" rx="6"/>
+<rect x="48" y="284" width="896" height="316" fill="none" stroke="#4080b0" stroke-width="2.5" rx="6" filter="url(#glow)"/>
+<rect x="976" y="284" width="894" height="316" fill="url(#bf1Grad)" rx="6"/>
+<rect x="976" y="284" width="894" height="316" fill="none" stroke="#3070a0" stroke-width="2.5" rx="6" filter="url(#glow)"/>
+
+<text x="889" y="320" fill="#4080b0" font-size="13" text-anchor="middle" font-family="Arial" font-weight="bold" filter="url(#softglow)">战场 ①</text>
+<rect x="853" y="326" width="72" height="50" fill="#0c1828" stroke="#c89b3c" stroke-width="1.5" rx="3"/>
+<rect x="858" y="330" width="62" height="42" fill="none" stroke="#c89b3c40" stroke-width="1" rx="2"/>
+<text x="1031" y="320" fill="#3070a0" font-size="13" text-anchor="middle" font-family="Arial" font-weight="bold" filter="url(#softglow)">战场 ②</text>
+<rect x="995" y="326" width="72" height="50" fill="#0c1828" stroke="#c89b3c" stroke-width="1.5" rx="3"/>
+<rect x="1000" y="330" width="62" height="42" fill="none" stroke="#c89b3c40" stroke-width="1" rx="2"/>
+
+<rect x="853" y="462" width="72" height="106" fill="#0a0e1c" stroke="#4060a0" stroke-width="1.5" rx="3"/>
+<rect x="857" y="466" width="64" height="98" fill="none" stroke="#4060a060" stroke-width="1" rx="2" stroke-dasharray="3,2"/>
+<text x="889" y="510" fill="#4060a0" font-size="10" text-anchor="middle" font-family="Arial" font-weight="bold">待命区</text>
+<text x="889" y="522" fill="#4060a080" font-size="8" text-anchor="middle" font-family="Arial">STANDBY</text>
+<rect x="995" y="462" width="72" height="106" fill="#0a0e1c" stroke="#4060a0" stroke-width="1.5" rx="3"/>
+<rect x="999" y="466" width="64" height="98" fill="none" stroke="#4060a060" stroke-width="1" rx="2" stroke-dasharray="3,2"/>
+<text x="1031" y="510" fill="#4060a0" font-size="10" text-anchor="middle" font-family="Arial" font-weight="bold">待命区</text>
+<text x="1031" y="522" fill="#4060a080" font-size="8" text-anchor="middle" font-family="Arial">STANDBY</text>
+
+<line x1="56" y1="446" x2="830" y2="446" stroke="#2a5888" stroke-width="1.5" stroke-dasharray="20,8" opacity="0.7"/>
+<line x1="1090" y1="446" x2="1862" y2="446" stroke="#2a5888" stroke-width="1.5" stroke-dasharray="20,8" opacity="0.7"/>
+
+<rect x="94" y="318" width="76" height="116" fill="#091828" stroke="#3a6090" stroke-width="1" rx="3" stroke-dasharray="4,2"/>
+<rect x="186" y="318" width="76" height="116" fill="#091828" stroke="#3a6090" stroke-width="1" rx="3" stroke-dasharray="4,2"/>
+<rect x="278" y="318" width="76" height="116" fill="#091828" stroke="#3a6090" stroke-width="1" rx="3" stroke-dasharray="4,2"/>
+<rect x="370" y="318" width="76" height="116" fill="#091828" stroke="#3a6090" stroke-width="1" rx="3" stroke-dasharray="4,2"/>
+<rect x="462" y="318" width="76" height="116" fill="#091828" stroke="#3a6090" stroke-width="1" rx="3" stroke-dasharray="4,2"/>
+<rect x="554" y="318" width="76" height="116" fill="#091828" stroke="#3a6090" stroke-width="1" rx="3" stroke-dasharray="4,2"/>
+<rect x="646" y="318" width="76" height="116" fill="#091828" stroke="#3a6090" stroke-width="1" rx="3" stroke-dasharray="4,2"/>
+<rect x="738" y="318" width="76" height="116" fill="#091828" stroke="#3a6090" stroke-width="1" rx="3" stroke-dasharray="4,2"/>
+<rect x="94" y="458" width="76" height="116" fill="#0a1c2c" stroke="#4090b0" stroke-width="1" rx="3" stroke-dasharray="4,2"/>
+<rect x="186" y="458" width="76" height="116" fill="#0a1c2c" stroke="#4090b0" stroke-width="1" rx="3" stroke-dasharray="4,2"/>
+<rect x="278" y="458" width="76" height="116" fill="#0a1c2c" stroke="#4090b0" stroke-width="1" rx="3" stroke-dasharray="4,2"/>
+<rect x="370" y="458" width="76" height="116" fill="#0a1c2c" stroke="#4090b0" stroke-width="1" rx="3" stroke-dasharray="4,2"/>
+<rect x="462" y="458" width="76" height="116" fill="#0a1c2c" stroke="#4090b0" stroke-width="1" rx="3" stroke-dasharray="4,2"/>
+<rect x="554" y="458" width="76" height="116" fill="#0a1c2c" stroke="#4090b0" stroke-width="1" rx="3" stroke-dasharray="4,2"/>
+<rect x="646" y="458" width="76" height="116" fill="#0a1c2c" stroke="#4090b0" stroke-width="1" rx="3" stroke-dasharray="4,2"/>
+<rect x="738" y="458" width="76" height="116" fill="#0a1c2c" stroke="#4090b0" stroke-width="1" rx="3" stroke-dasharray="4,2"/>
+<rect x="1104" y="318" width="76" height="116" fill="#091828" stroke="#3a6090" stroke-width="1" rx="3" stroke-dasharray="4,2"/>
+<rect x="1196" y="318" width="76" height="116" fill="#091828" stroke="#3a6090" stroke-width="1" rx="3" stroke-dasharray="4,2"/>
+<rect x="1288" y="318" width="76" height="116" fill="#091828" stroke="#3a6090" stroke-width="1" rx="3" stroke-dasharray="4,2"/>
+<rect x="1380" y="318" width="76" height="116" fill="#091828" stroke="#3a6090" stroke-width="1" rx="3" stroke-dasharray="4,2"/>
+<rect x="1472" y="318" width="76" height="116" fill="#091828" stroke="#3a6090" stroke-width="1" rx="3" stroke-dasharray="4,2"/>
+<rect x="1564" y="318" width="76" height="116" fill="#091828" stroke="#3a6090" stroke-width="1" rx="3" stroke-dasharray="4,2"/>
+<rect x="1656" y="318" width="76" height="116" fill="#091828" stroke="#3a6090" stroke-width="1" rx="3" stroke-dasharray="4,2"/>
+<rect x="1748" y="318" width="76" height="116" fill="#091828" stroke="#3a6090" stroke-width="1" rx="3" stroke-dasharray="4,2"/>
+<rect x="1104" y="458" width="76" height="116" fill="#0a1c2c" stroke="#4090b0" stroke-width="1" rx="3" stroke-dasharray="4,2"/>
+<rect x="1196" y="458" width="76" height="116" fill="#0a1c2c" stroke="#4090b0" stroke-width="1" rx="3" stroke-dasharray="4,2"/>
+<rect x="1288" y="458" width="76" height="116" fill="#0a1c2c" stroke="#4090b0" stroke-width="1" rx="3" stroke-dasharray="4,2"/>
+<rect x="1380" y="458" width="76" height="116" fill="#0a1c2c" stroke="#4090b0" stroke-width="1" rx="3" stroke-dasharray="4,2"/>
+<rect x="1472" y="458" width="76" height="116" fill="#0a1c2c" stroke="#4090b0" stroke-width="1" rx="3" stroke-dasharray="4,2"/>
+<rect x="1564" y="458" width="76" height="116" fill="#0a1c2c" stroke="#4090b0" stroke-width="1" rx="3" stroke-dasharray="4,2"/>
+<rect x="1656" y="458" width="76" height="116" fill="#0a1c2c" stroke="#4090b0" stroke-width="1" rx="3" stroke-dasharray="4,2"/>
+<rect x="1748" y="458" width="76" height="116" fill="#0a1c2c" stroke="#4090b0" stroke-width="1" rx="3" stroke-dasharray="4,2"/>
+
+<!-- 魔法符纹能量柱 (x=944-976, bf center=442) -->
+<rect x="944" y="284" width="32" height="316" fill="#030810"/>
+<polygon points="952,284 968,284 976,292 960,300 944,292" fill="#120c20" stroke="url(#pillarBorder)" stroke-width="1"/>
+<polygon points="952,600 968,600 976,592 960,584 944,592" fill="#120c20" stroke="url(#pillarBorder)" stroke-width="1"/>
+<rect x="944" y="292" width="32" height="300" fill="none" stroke="url(#pillarBorder)" stroke-width="1.5"/>
+<rect x="948" y="362" width="24" height="160" fill="url(#pillarFill)" clip-path="url(#pillarClip)" opacity="0.8" rx="2"/>
+<rect x="944" y="359" width="32" height="5" fill="#5090ff" opacity="0.7" rx="1" filter="url(#glow)"/>
+<text x="960" y="314" fill="#c89b3c" font-size="9" text-anchor="middle" font-family="Arial" opacity="0.5">✦</text>
+<text x="960" y="447" fill="#7090c0" font-size="7" text-anchor="middle" font-family="Arial" opacity="0.6">⬟</text>
+<text x="960" y="582" fill="#5080d0" font-size="9" text-anchor="middle" font-family="Arial" opacity="0.7">✦</text>
+<text x="960" y="279" fill="#c84040" font-size="6.5" text-anchor="middle" font-family="Arial" opacity="0.7" letter-spacing="1">对方 ↓</text>
+<text x="960" y="610" fill="#40c070" font-size="6.5" text-anchor="middle" font-family="Arial" opacity="0.7" letter-spacing="1">我方 ↑</text>
+
+<!-- PLAYER BASE (y=604, h=80) -->
+<rect x="248" y="604" width="1424" height="80" fill="#0e1c28" rx="4"/>
+<rect x="248" y="604" width="1424" height="80" fill="none" stroke="url(#goldH)" stroke-width="2" rx="4"/>
+<text x="258" y="617" fill="#c89b3c" font-size="10" font-family="Arial" font-weight="bold" letter-spacing="2" filter="url(#glow)">BASE  基地</text>
+<rect x="692" y="611" width="60" height="66" fill="#0a1620" stroke="#c89b3c" stroke-width="1" rx="3" stroke-dasharray="4,2"/>
+<rect x="760" y="611" width="60" height="66" fill="#0a1620" stroke="#c89b3c" stroke-width="1" rx="3" stroke-dasharray="4,2"/>
+<rect x="828" y="611" width="60" height="66" fill="#0a1620" stroke="#c89b3c" stroke-width="1" rx="3" stroke-dasharray="4,2"/>
+<rect x="896" y="611" width="60" height="66" fill="#0a1620" stroke="#c89b3c" stroke-width="1" rx="3" stroke-dasharray="4,2"/>
+<rect x="964" y="611" width="60" height="66" fill="#0a1620" stroke="#c89b3c" stroke-width="1" rx="3" stroke-dasharray="4,2"/>
+<rect x="1032" y="611" width="60" height="66" fill="#0a1620" stroke="#c89b3c" stroke-width="1" rx="3" stroke-dasharray="4,2"/>
+<rect x="1100" y="611" width="60" height="66" fill="#0a1620" stroke="#c89b3c" stroke-width="1" rx="3" stroke-dasharray="4,2"/>
+<rect x="1168" y="611" width="60" height="66" fill="#0a1028" stroke="#4060a0" stroke-width="1.5" rx="3" stroke-dasharray="3,2"/>
+<text x="1198" y="647" fill="#4060a0" font-size="8" text-anchor="middle" font-family="Arial" opacity="0.8">待命</text>
+
+<!-- PLAYER RUNES (y=688, h=52) -->
+<rect x="248" y="688" width="1424" height="52" fill="#0c1030" rx="4"/>
+<rect x="248" y="688" width="1424" height="52" fill="none" stroke="url(#purH)" stroke-width="2" rx="4"/>
+<text x="258" y="701" fill="#9070e0" font-size="10" font-family="Arial" font-weight="bold" letter-spacing="2" filter="url(#glow)">RUNES  符文区</text>
+<circle cx="642" cy="714" r="20" fill="#0c0e22" stroke="#7050c0" stroke-width="1.2"/>
+<circle cx="700" cy="714" r="20" fill="#0c0e22" stroke="#7050c0" stroke-width="1.2"/>
+<circle cx="758" cy="714" r="20" fill="#0c0e22" stroke="#7050c0" stroke-width="1.2"/>
+<circle cx="816" cy="714" r="20" fill="#0c0e22" stroke="#7050c0" stroke-width="1.2"/>
+<circle cx="874" cy="714" r="20" fill="#0c0e22" stroke="#7050c0" stroke-width="1.2"/>
+<circle cx="932" cy="714" r="20" fill="#0c0e22" stroke="#7050c0" stroke-width="1.2"/>
+<circle cx="990" cy="714" r="20" fill="#0c0e22" stroke="#7050c0" stroke-width="1.2"/>
+<circle cx="1048" cy="714" r="20" fill="#0c0e22" stroke="#7050c0" stroke-width="1.2"/>
+<circle cx="1106" cy="714" r="20" fill="#0a0c1c" stroke="#403080" stroke-width="1" stroke-dasharray="4,2" opacity="0.5"/>
+<circle cx="1164" cy="714" r="20" fill="#0a0c1c" stroke="#403080" stroke-width="1" stroke-dasharray="4,2" opacity="0.5"/>
+<circle cx="1222" cy="714" r="20" fill="#0a0c1c" stroke="#403080" stroke-width="1" stroke-dasharray="4,2" opacity="0.5"/>
+<circle cx="1280" cy="714" r="20" fill="#0a0c1c" stroke="#403080" stroke-width="1" stroke-dasharray="4,2" opacity="0.5"/>
+
+<!-- PLAYER HERO ROW (y=744, h=100) -->
+<rect x="366" y="748" width="76" height="90" fill="#101828" stroke="#d4a828" stroke-width="2" rx="5" filter="url(#glow)"/>
+<rect x="370" y="752" width="68" height="82" fill="#080e1e" stroke="#d4a82860" stroke-width="1" rx="3" stroke-dasharray="3,2"/>
+<text x="404" y="789" fill="#d4a828" font-size="11" font-family="Arial" font-weight="bold" text-anchor="middle">英雄</text>
+<text x="404" y="801" fill="#d4a82890" font-size="8" font-family="Arial" text-anchor="middle">CHAMPION</text>
+<rect x="450" y="748" width="76" height="90" fill="#101828" stroke="#c89b3c" stroke-width="1.5" rx="5"/>
+<rect x="454" y="752" width="68" height="82" fill="#080e1e" stroke="#c89b3c60" stroke-width="1" rx="3" stroke-dasharray="3,2"/>
+<text x="488" y="789" fill="#c89b3c" font-size="11" font-family="Arial" font-weight="bold" text-anchor="middle">传说</text>
+<text x="488" y="801" fill="#c89b3c90" font-size="8" font-family="Arial" text-anchor="middle">LEGEND</text>
+<rect x="454" y="830" width="68" height="10" fill="#201008" stroke="#c89b3c" stroke-width="1" rx="3"/>
+<text x="488" y="838" fill="#c89b3c" font-size="7" text-anchor="middle" font-family="Arial">技 能</text>
+
+<!-- PLAYER HAND FAN (pivot 960,1860) -->
+<text x="960" y="844" fill="#c89b3c" font-size="9" text-anchor="middle" font-family="Arial" opacity="0.45" letter-spacing="2">HAND · 我方手牌</text>
+<g transform="rotate(-12, 960, 1860)">
+  <rect x="922" y="878" width="76" height="116" fill="#0c1624" stroke="#c89b3c55" stroke-width="1.2" rx="3"/>
+</g>
+<g transform="rotate(-8, 960, 1860)">
+  <rect x="922" y="878" width="76" height="116" fill="#0c1624" stroke="#c89b3c65" stroke-width="1.2" rx="3"/>
+</g>
+<g transform="rotate(-4, 960, 1860)">
+  <rect x="922" y="878" width="76" height="116" fill="#0c1624" stroke="#c89b3c80" stroke-width="1.3" rx="3"/>
+</g>
+<g transform="rotate(0, 960, 1860)">
+  <rect x="922" y="878" width="76" height="116" fill="#0c1624" stroke="#c89b3cff" stroke-width="1.5" rx="3"/>
+</g>
+<g transform="rotate(4, 960, 1860)">
+  <rect x="922" y="878" width="76" height="116" fill="#0c1624" stroke="#c89b3c80" stroke-width="1.3" rx="3"/>
+</g>
+<g transform="rotate(8, 960, 1860)">
+  <rect x="922" y="878" width="76" height="116" fill="#0c1624" stroke="#c89b3c65" stroke-width="1.2" rx="3"/>
+</g>
+<g transform="rotate(12, 960, 1860)">
+  <rect x="922" y="878" width="76" height="116" fill="#0c1624" stroke="#c89b3c55" stroke-width="1.2" rx="3"/>
+</g>
+
+<!-- 内边框 -->
+<rect x="252" y="44" width="1416" height="92" fill="none" stroke="#c89b3c" stroke-width="0.6" rx="3" opacity="0.22"/>
+<rect x="252" y="148" width="1416" height="44" fill="none" stroke="#9070e0" stroke-width="0.6" rx="3" opacity="0.22"/>
+<rect x="252" y="204" width="1416" height="72" fill="none" stroke="#c89b3c" stroke-width="0.6" rx="3" opacity="0.22"/>
+<rect x="252" y="608" width="1416" height="72" fill="none" stroke="#c89b3c" stroke-width="0.6" rx="3" opacity="0.22"/>
+<rect x="252" y="692" width="1416" height="44" fill="none" stroke="#9070e0" stroke-width="0.6" rx="3" opacity="0.22"/>
+
+<!-- 操作按钮组 -->
+<rect x="1446" y="748" width="108" height="34" fill="#0c2240" stroke="#4090d0" stroke-width="2" rx="5" filter="url(#glow)"/>
+<rect x="1450" y="752" width="100" height="26" fill="none" stroke="#4090d030" stroke-width="0.8" rx="4"/>
+<text x="1500" y="763" fill="#60b0f0" font-size="13" text-anchor="middle" font-family="Arial" font-weight="bold" filter="url(#glow)">结束回合</text>
+<text x="1500" y="775" fill="#4090d070" font-size="7" text-anchor="middle" font-family="Arial" letter-spacing="2">END TURN</text>
+<rect x="1450" y="790" width="100" height="28" fill="#080e1c" stroke="#2a5888" stroke-width="1.2" rx="4"/>
+<text x="1500" y="806" fill="#3878b0" font-size="10" text-anchor="middle" font-family="Arial" font-weight="bold">召回单位</text>
+<rect x="1446" y="826" width="108" height="28" fill="#080e1c" stroke="#2a5888" stroke-width="1.2" rx="4"/>
+<text x="1500" y="842" fill="#3878b0" font-size="10" text-anchor="middle" font-family="Arial" font-weight="bold">查看弃牌堆</text>
+
+<!-- BUTTON STRIP (y=848, h=18) -->
+<rect x="248" y="848" width="1424" height="18" fill="#060e18" stroke="#304860" stroke-width="1" rx="2"/>
+<text x="680"  y="861" fill="#506878" font-size="8" font-family="Arial" text-anchor="middle">法力: 3/3</text>
+<text x="820"  y="861" fill="#506878" font-size="8" font-family="Arial" text-anchor="middle">符能: 2/2</text>
+<text x="960"  y="861" fill="#506878" font-size="8" font-family="Arial" text-anchor="middle">阶段: 行动</text>
+<text x="1100" y="861" fill="#506878" font-size="8" font-family="Arial" text-anchor="middle">回合: 第 3 回合</text>
+<text x="1240" y="861" fill="#506878" font-size="8" font-family="Arial" text-anchor="middle">先手: 玩家</text>
+
+<text x="960" y="1079" fill="#c89b3c" font-size="6" text-anchor="middle" font-family="Arial" opacity="0.2">
+  FWTCG PC Layout v3.0  |  1920×1080  |  英雄100+符文52+基地80+战场316+基地80+符文52+英雄100+按钮18 = 862px  |  手牌866~1080
+</text>
+</svg>
