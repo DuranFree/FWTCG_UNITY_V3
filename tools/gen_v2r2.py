@@ -1,4 +1,4 @@
-"""重新生成 layout_v2.svg — v2.3: 手牌大, 牌堆窄贴边, 符文/基地扩展"""
+"""重新生成 layout_v2.svg — v2.3: 手牌大, 符文/基地扩展, 侧栏宽度不变"""
 
 EH_Y, EH_H = 8,   100
 ER_Y, ER_H = 110, 130
@@ -10,15 +10,18 @@ PH_Y, PH_H = 960, 100
 BTN_Y, BTN_H = 1062, 18
 BF_CENTER = BF_Y + BF_H // 2  # 534
 
-SCORE_W  = 26
-DECK_X_L = 28
-DECK_X_R = 1792
-DECK_W   = 100
-MAIN_X   = DECK_X_L + DECK_W + 4   # 132
-MAIN_END = DECK_X_R - 4             # 1788
-MAIN_W   = MAIN_END - MAIN_X        # 1656
+CARD_RATIO = 1.4  # 标准卡牌高宽比 h/w (TCG 63×88mm)
 
-HAND_W, HAND_H = 110, 170
+# 侧栏宽度保持原来不变
+SCORE_W  = 44
+DECK_X_L = 48
+DECK_X_R = 1676
+DECK_W   = 194
+MAIN_X   = 248
+MAIN_END = 1672
+MAIN_W   = MAIN_END - MAIN_X   # 1424
+
+HAND_W, HAND_H = 110, int(110 * CARD_RATIO)  # = 154，标准卡牌比例
 HAND_CARD_X = 960 - HAND_W // 2    # 905
 PLAYER_CARD_Y = 908
 PLAYER_PIVOT  = 2050
@@ -132,20 +135,32 @@ def deck_box(x, y, w, h, cx, title, subtitle, count, border_c, fill_c, card_c, n
 
 deck_h = (EB_Y + EB_H - EH_Y - 4) // 2
 player_deck_h = (PH_Y + PH_H - PB_Y - 4) // 2
-lcx = DECK_X_L + DECK_W // 2
-rcx = DECK_X_R + DECK_W // 2
+
+def card_box(col_x, col_w, h):
+    """按卡牌比例1:1.4计算牌堆框尺寸，居中于列宽内。返回(x, w)"""
+    ch = h - 16  # 内框高度
+    bw = int(ch / CARD_RATIO) + 12  # 外框宽度
+    bw = min(bw, col_w)
+    return col_x + (col_w - bw) // 2, bw
+
+lb_x, lb_w = card_box(DECK_X_L, DECK_W, deck_h)
+rb_x, rb_w = card_box(DECK_X_R, DECK_W, deck_h)
+lpb_x, lpb_w = card_box(DECK_X_L, DECK_W, player_deck_h)
+rpb_x, rpb_w = card_box(DECK_X_R, DECK_W, player_deck_h)
+lcx = lb_x + lb_w // 2
+rcx = rb_x + rb_w // 2
 
 L('<!-- LEFT DECKS -->')
-deck_box(DECK_X_L, EH_Y,              DECK_W, deck_h,        lcx, "主牌堆", "MAIN DECK", "30", "#c89b3c", "#081420", "#c89b3c")
-deck_box(DECK_X_L, EH_Y+deck_h+4,    DECK_W, deck_h,        lcx, "符文堆", "RUNE DECK", "10", "#7050c0", "#080e20", "#8060d0", "#b090f0")
-deck_box(DECK_X_L, PB_Y,              DECK_W, player_deck_h, lcx, "符文堆", "RUNE DECK", "10", "#7050c0", "#080e20", "#8060d0", "#b090f0")
-deck_box(DECK_X_L, PB_Y+player_deck_h+4, DECK_W, player_deck_h, lcx, "主牌堆", "MAIN DECK", "30", "#c89b3c", "#081420", "#c89b3c")
+deck_box(lb_x, EH_Y,              lb_w, deck_h,        lcx, "主牌堆", "MAIN DECK", "30", "#c89b3c", "#081420", "#c89b3c")
+deck_box(lb_x, EH_Y+deck_h+4,    lb_w, deck_h,        lcx, "符文堆", "RUNE DECK", "10", "#7050c0", "#080e20", "#8060d0", "#b090f0")
+deck_box(lpb_x, PB_Y,              lpb_w, player_deck_h, lcx, "符文堆", "RUNE DECK", "10", "#7050c0", "#080e20", "#8060d0", "#b090f0")
+deck_box(lpb_x, PB_Y+player_deck_h+4, lpb_w, player_deck_h, lcx, "主牌堆", "MAIN DECK", "30", "#c89b3c", "#081420", "#c89b3c")
 L()
 L('<!-- RIGHT DECKS -->')
-deck_box(DECK_X_R, EH_Y,              DECK_W, deck_h,        rcx, "弃牌",   "DISCARD",   "0",  "#c89b3c", "#081420", "#c89b3c")
-deck_box(DECK_X_R, EH_Y+deck_h+4,    DECK_W, deck_h,        rcx, "放逐区", "EXILE",      "0",  "#c89b3c", "#0a1420", "#c89b3c")
-deck_box(DECK_X_R, PB_Y,              DECK_W, player_deck_h, rcx, "放逐区", "EXILE",      "0",  "#c89b3c", "#0a1420", "#c89b3c")
-deck_box(DECK_X_R, PB_Y+player_deck_h+4, DECK_W, player_deck_h, rcx, "弃牌", "DISCARD",  "0",  "#c89b3c", "#081420", "#c89b3c")
+deck_box(rb_x, EH_Y,              rb_w, deck_h,        rcx, "弃牌",   "DISCARD",   "0",  "#c89b3c", "#081420", "#c89b3c")
+deck_box(rb_x, EH_Y+deck_h+4,    rb_w, deck_h,        rcx, "放逐区", "EXILE",      "0",  "#c89b3c", "#0a1420", "#c89b3c")
+deck_box(rpb_x, PB_Y,              rpb_w, player_deck_h, rcx, "放逐区", "EXILE",      "0",  "#c89b3c", "#0a1420", "#c89b3c")
+deck_box(rpb_x, PB_Y+player_deck_h+4, rpb_w, player_deck_h, rcx, "弃牌", "DISCARD",  "0",  "#c89b3c", "#081420", "#c89b3c")
 L()
 
 L(f'<!-- ENEMY HERO ROW y={EH_Y} h={EH_H} -->')
@@ -188,8 +203,8 @@ L(f'<!-- ENEMY BASE y={EB_Y} h={EB_H} -->')
 L(f'<rect x="{MAIN_X}" y="{EB_Y}" width="{MAIN_W}" height="{EB_H}" fill="#0e1c28" rx="4"/>')
 L(f'<rect x="{MAIN_X}" y="{EB_Y}" width="{MAIN_W}" height="{EB_H}" fill="none" stroke="url(#goldH)" stroke-width="2" rx="4"/>')
 L(f'<text x="{MAIN_X+10}" y="{EB_Y+16}" fill="#c89b3c" font-size="11" font-family="Arial" font-weight="bold" letter-spacing="2" filter="url(#glow)">BASE  基地</text>')
-bc_h = EB_H - 20
-bc_y = EB_Y + 10
+bc_h = int(BASE_CARD_W * CARD_RATIO)  # = 100, 等比例标准卡牌比例
+bc_y = EB_Y + (EB_H - bc_h) // 2  # 垂直居中
 for i in range(7):
     bx = BASE_START_X + i*(BASE_CARD_W+BASE_CARD_GAP)
     L(f'<rect x="{bx}" y="{bc_y}" width="{BASE_CARD_W}" height="{bc_h}" fill="#0a1620" stroke="#c89b3c" stroke-width="1" rx="3" stroke-dasharray="4,2"/>')
@@ -199,36 +214,40 @@ L(f'<text x="{bx+BASE_CARD_W//2}" y="{bc_y+bc_h//2+4}" fill="#4060a0" font-size=
 L()
 
 L(f'<!-- BATTLEFIELD y={BF_Y} h={BF_H} center={BF_CENTER} -->')
-L(f'<rect x="{MAIN_X}" y="{BF_Y}" width="808" height="{BF_H}" fill="url(#bf0Grad)" rx="6"/>')
-L(f'<rect x="{MAIN_X}" y="{BF_Y}" width="808" height="{BF_H}" fill="none" stroke="#4080b0" stroke-width="2.5" rx="6" filter="url(#glow)"/>')
-L(f'<rect x="980" y="{BF_Y}" width="808" height="{BF_H}" fill="url(#bf1Grad)" rx="6"/>')
-L(f'<rect x="980" y="{BF_Y}" width="808" height="{BF_H}" fill="none" stroke="#3070a0" stroke-width="2.5" rx="6" filter="url(#glow)"/>')
+# 战场延伸到侧栏下面（与原v2一致）
+L(f'<rect x="48" y="{BF_Y}" width="896" height="{BF_H}" fill="url(#bf0Grad)" rx="6"/>')
+L(f'<rect x="48" y="{BF_Y}" width="896" height="{BF_H}" fill="none" stroke="#4080b0" stroke-width="2.5" rx="6" filter="url(#glow)"/>')
+L(f'<rect x="976" y="{BF_Y}" width="894" height="{BF_H}" fill="url(#bf1Grad)" rx="6"/>')
+L(f'<rect x="976" y="{BF_Y}" width="894" height="{BF_H}" fill="none" stroke="#3070a0" stroke-width="2.5" rx="6" filter="url(#glow)"/>')
 
-for slot_cx, label, stroke in [(900,"战场 ①","#4080b0"),(1020,"战场 ②","#3070a0")]:
+for slot_cx, label, stroke in [(889,"战场 ①","#4080b0"),(1031,"战场 ②","#3070a0")]:
     L(f'<text x="{slot_cx}" y="{BF_Y+28}" fill="{stroke}" font-size="13" text-anchor="middle" font-family="Arial" font-weight="bold" filter="url(#softglow)">{label}</text>')
     L(f'<rect x="{slot_cx-36}" y="{BF_Y+34}" width="72" height="52" fill="#0c1828" stroke="#c89b3c" stroke-width="1.5" rx="3"/>')
 
+STDBY_W = 72
+STDBY_H = int(STDBY_W * CARD_RATIO)  # = 100, 标准卡牌比例
 sb_y = BF_CENTER + 18
-for slot_cx in [900, 1020]:
-    L(f'<rect x="{slot_cx-36}" y="{sb_y}" width="72" height="96" fill="#0a0e1c" stroke="#4060a0" stroke-width="1.5" rx="3"/>')
-    L(f'<rect x="{slot_cx-32}" y="{sb_y+4}" width="64" height="88" fill="none" stroke="#4060a060" stroke-width="1" rx="2" stroke-dasharray="3,2"/>')
-    L(f'<text x="{slot_cx}" y="{sb_y+44}" fill="#4060a0" font-size="10" text-anchor="middle" font-family="Arial" font-weight="bold">待命区</text>')
+for slot_cx in [889, 1031]:
+    L(f'<rect x="{slot_cx-STDBY_W//2}" y="{sb_y}" width="{STDBY_W}" height="{STDBY_H}" fill="#0a0e1c" stroke="#4060a0" stroke-width="1.5" rx="3"/>')
+    L(f'<rect x="{slot_cx-STDBY_W//2+4}" y="{sb_y+4}" width="{STDBY_W-8}" height="{STDBY_H-8}" fill="none" stroke="#4060a060" stroke-width="1" rx="2" stroke-dasharray="3,2"/>')
+    L(f'<text x="{slot_cx}" y="{sb_y+STDBY_H//2+4}" fill="#4060a0" font-size="10" text-anchor="middle" font-family="Arial" font-weight="bold">待命区</text>')
 
 cd_y = BF_CENTER + 4
-L(f'<line x1="{MAIN_X+8}" y1="{cd_y}" x2="836" y2="{cd_y}" stroke="#2a5888" stroke-width="1.5" stroke-dasharray="20,8" opacity="0.7"/>')
-L(f'<line x1="1084" y1="{cd_y}" x2="{MAIN_END-8}" y2="{cd_y}" stroke="#2a5888" stroke-width="1.5" stroke-dasharray="20,8" opacity="0.7"/>')
+L(f'<line x1="56" y1="{cd_y}" x2="830" y2="{cd_y}" stroke="#2a5888" stroke-width="1.5" stroke-dasharray="20,8" opacity="0.7"/>')
+L(f'<line x1="1090" y1="{cd_y}" x2="1862" y2="{cd_y}" stroke="#2a5888" stroke-width="1.5" stroke-dasharray="20,8" opacity="0.7"/>')
 
-CARD_H_BF = BF_H // 2 - 42
-ec_y = BF_Y + 22
-pc_y = BF_CENTER + 14
+BF_SLOT_W = 76
+BF_SLOT_H = int(BF_SLOT_W * CARD_RATIO)  # = 106, 标准卡牌比例
+ec_y = BF_Y + (BF_H // 2 - BF_SLOT_H) // 2
+pc_y = BF_CENTER + (BF_H // 2 - BF_SLOT_H) // 2
 for i in range(8):
-    cx = MAIN_X + 6 + i * 92
-    L(f'<rect x="{cx}" y="{ec_y}" width="76" height="{CARD_H_BF}" fill="#091828" stroke="#3a6090" stroke-width="1" rx="3" stroke-dasharray="4,2"/>')
-    L(f'<rect x="{cx}" y="{pc_y}" width="76" height="{CARD_H_BF}" fill="#0a1c2c" stroke="#4090b0" stroke-width="1" rx="3" stroke-dasharray="4,2"/>')
+    cx = 94 + i * 92   # 原始卡槽x起点
+    L(f'<rect x="{cx}" y="{ec_y}" width="{BF_SLOT_W}" height="{BF_SLOT_H}" fill="#091828" stroke="#3a6090" stroke-width="1" rx="3" stroke-dasharray="4,2"/>')
+    L(f'<rect x="{cx}" y="{pc_y}" width="{BF_SLOT_W}" height="{BF_SLOT_H}" fill="#0a1c2c" stroke="#4090b0" stroke-width="1" rx="3" stroke-dasharray="4,2"/>')
 for i in range(8):
     cx = 988 + i * 92
-    L(f'<rect x="{cx}" y="{ec_y}" width="76" height="{CARD_H_BF}" fill="#091828" stroke="#3a6090" stroke-width="1" rx="3" stroke-dasharray="4,2"/>')
-    L(f'<rect x="{cx}" y="{pc_y}" width="76" height="{CARD_H_BF}" fill="#0a1c2c" stroke="#4090b0" stroke-width="1" rx="3" stroke-dasharray="4,2"/>')
+    L(f'<rect x="{cx}" y="{ec_y}" width="{BF_SLOT_W}" height="{BF_SLOT_H}" fill="#091828" stroke="#3a6090" stroke-width="1" rx="3" stroke-dasharray="4,2"/>')
+    L(f'<rect x="{cx}" y="{pc_y}" width="{BF_SLOT_W}" height="{BF_SLOT_H}" fill="#0a1c2c" stroke="#4090b0" stroke-width="1" rx="3" stroke-dasharray="4,2"/>')
 L()
 
 L(f'<rect x="944" y="{BF_Y}" width="32" height="{BF_H}" fill="#030810"/>')
@@ -248,7 +267,7 @@ L(f'<!-- PLAYER BASE y={PB_Y} h={PB_H} -->')
 L(f'<rect x="{MAIN_X}" y="{PB_Y}" width="{MAIN_W}" height="{PB_H}" fill="#0e1c28" rx="4"/>')
 L(f'<rect x="{MAIN_X}" y="{PB_Y}" width="{MAIN_W}" height="{PB_H}" fill="none" stroke="url(#goldH)" stroke-width="2" rx="4"/>')
 L(f'<text x="{MAIN_X+10}" y="{PB_Y+16}" fill="#c89b3c" font-size="11" font-family="Arial" font-weight="bold" letter-spacing="2" filter="url(#glow)">BASE  基地</text>')
-pb_y = PB_Y + 10
+pb_y = PB_Y + (PB_H - bc_h) // 2  # 垂直居中
 for i in range(7):
     bx = BASE_START_X + i*(BASE_CARD_W+BASE_CARD_GAP)
     L(f'<rect x="{bx}" y="{pb_y}" width="{BASE_CARD_W}" height="{bc_h}" fill="#0a1620" stroke="#c89b3c" stroke-width="1" rx="3" stroke-dasharray="4,2"/>')
