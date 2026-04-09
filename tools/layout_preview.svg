@@ -1,0 +1,513 @@
+<svg width="1920" height="1080" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1920 1080">
+<defs>
+  <radialGradient id="bg" cx="50%" cy="50%" r="70%">
+    <stop offset="0%" stop-color="#0f2035"/>
+    <stop offset="100%" stop-color="#050d18"/>
+  </radialGradient>
+  <linearGradient id="goldH" x1="0" y1="0" x2="1" y2="0">
+    <stop offset="0%" stop-color="#604808"/>
+    <stop offset="35%" stop-color="#c89b3c"/>
+    <stop offset="65%" stop-color="#c89b3c"/>
+    <stop offset="100%" stop-color="#604808"/>
+  </linearGradient>
+  <linearGradient id="purH" x1="0" y1="0" x2="1" y2="0">
+    <stop offset="0%" stop-color="#281050"/>
+    <stop offset="35%" stop-color="#7050c0"/>
+    <stop offset="65%" stop-color="#7050c0"/>
+    <stop offset="100%" stop-color="#281050"/>
+  </linearGradient>
+  <linearGradient id="bf0Grad" x1="0" y1="0" x2="0" y2="1">
+    <stop offset="0%" stop-color="#081828"/>
+    <stop offset="50%" stop-color="#0c2240"/>
+    <stop offset="100%" stop-color="#081828"/>
+  </linearGradient>
+  <linearGradient id="bf1Grad" x1="0" y1="0" x2="0" y2="1">
+    <stop offset="0%" stop-color="#081820"/>
+    <stop offset="50%" stop-color="#0a2030"/>
+    <stop offset="100%" stop-color="#081820"/>
+  </linearGradient>
+  <filter id="glow" x="-20%" y="-20%" width="140%" height="140%">
+    <feGaussianBlur stdDeviation="2.5" result="blur"/>
+    <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+  </filter>
+  <filter id="softglow">
+    <feGaussianBlur stdDeviation="4" result="blur"/>
+    <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+  </filter>
+  <!-- 能量符纹柱渐变 -->
+  <linearGradient id="pillarBorder" x1="0" y1="0" x2="0" y2="1">
+    <stop offset="0%"   stop-color="#c89b3c"/>
+    <stop offset="25%"  stop-color="#7050c0"/>
+    <stop offset="50%"  stop-color="#3070d0"/>
+    <stop offset="75%"  stop-color="#7050c0"/>
+    <stop offset="100%" stop-color="#c89b3c"/>
+  </linearGradient>
+  <linearGradient id="pillarFill" x1="0" y1="1" x2="0" y2="0">
+    <stop offset="0%"   stop-color="#1848c0"/>
+    <stop offset="50%"  stop-color="#6030d0"/>
+    <stop offset="100%" stop-color="#c040f0" stop-opacity="0.4"/>
+  </linearGradient>
+  <clipPath id="pillarClip">
+    <rect x="948" y="374" width="24" height="316"/>
+  </clipPath>
+</defs>
+
+<!-- ═══ BACKGROUND ═══ -->
+<image href="../Assets/Resources/UI/Generated/bg_game_main.png" x="0" y="0" width="1920" height="1080" preserveAspectRatio="xMidYMid slice"/>
+<g opacity="0.04" transform="translate(960,532)">
+  <circle r="260" fill="none" stroke="#4090d0" stroke-width="4"/>
+  <circle r="190" fill="none" stroke="#4090d0" stroke-width="2"/>
+  <circle r="100" fill="none" stroke="#4090d0" stroke-width="1"/>
+  <line x1="-310" y1="0" x2="310" y2="0" stroke="#4090d0" stroke-width="1"/>
+  <line x1="0" y1="-310" x2="0" y2="310" stroke="#4090d0" stroke-width="1"/>
+</g>
+<rect x="1" y="1" width="1918" height="1078" fill="none" stroke="#c89b3c" stroke-width="1" opacity="0.2"/>
+
+<!-- ═══════════════════════════════════════════
+     区域布局（严格上下对称，中心 y=532）
+
+     敌方（上）：y=8~370
+       英雄行  y=8~148   (140px)
+       符文区  y=152~244  (92px)
+       基地    y=248~370  (122px)
+     战场      y=374~532  /  y=532~690  (158px × 2)
+     我方（下）：y=694~1056
+       基地    y=694~816  (122px)
+       符文区  y=820~912  (92px)
+       英雄+手牌 y=916~1056 (140px)
+     按钮条    y=1060~1078 (18px)
+═══════════════════════════════════════════ -->
+
+<!-- ═══ LEFT SCORE STRIP (x=0–44) ═══ -->
+<rect x="0" y="0" width="44" height="1080" fill="#040c14"/>
+<line x1="43" y1="0" x2="43" y2="1080" stroke="#c89b3c" stroke-width="1" opacity="0.35"/>
+<text x="22" y="14" fill="#c89b3c" font-size="7" text-anchor="middle" font-family="Arial" opacity="0.4" letter-spacing="1">SCORE</text>
+<line x1="6" y1="532" x2="38" y2="532" stroke="#c89b3c" stroke-width="1" opacity="0.4"/>
+
+<!-- Enemy score: 8→0 压缩到敌方区域 (cy=40~344, step=38) -->
+<circle cx="22" cy="40"  r="15" fill="none"    stroke="#c89b3c" stroke-width="1.5" opacity="0.85"/>
+<text   x="22"  y="45"  fill="#c89b3c" font-size="13" text-anchor="middle" font-family="Arial" font-weight="bold">8</text>
+<circle cx="22" cy="78"  r="15" fill="none"    stroke="#c89b3c" stroke-width="1.5" opacity="0.75"/>
+<text   x="22"  y="83"  fill="#c89b3c" font-size="13" text-anchor="middle" font-family="Arial" font-weight="bold">7</text>
+<circle cx="22" cy="116" r="14" fill="none"    stroke="#c89b3c" stroke-width="1.2" opacity="0.6"/>
+<text   x="22"  y="121" fill="#c89b3c" font-size="12" text-anchor="middle" font-family="Arial">6</text>
+<circle cx="22" cy="154" r="14" fill="none"    stroke="#c89b3c" stroke-width="1.2" opacity="0.5"/>
+<text   x="22"  y="159" fill="#c89b3c" font-size="12" text-anchor="middle" font-family="Arial">5</text>
+<circle cx="22" cy="192" r="14" fill="none"    stroke="#c89b3c" stroke-width="1.2" opacity="0.45"/>
+<text   x="22"  y="197" fill="#c89b3c" font-size="12" text-anchor="middle" font-family="Arial">4</text>
+<circle cx="22" cy="230" r="14" fill="none"    stroke="#c89b3c" stroke-width="1.2" opacity="0.4"/>
+<text   x="22"  y="235" fill="#c89b3c" font-size="12" text-anchor="middle" font-family="Arial">3</text>
+<circle cx="22" cy="268" r="14" fill="none"    stroke="#c89b3c" stroke-width="1.2" opacity="0.4"/>
+<text   x="22"  y="273" fill="#c89b3c" font-size="12" text-anchor="middle" font-family="Arial">2</text>
+<circle cx="22" cy="306" r="14" fill="none"    stroke="#c89b3c" stroke-width="1.2" opacity="0.4"/>
+<text   x="22"  y="311" fill="#c89b3c" font-size="12" text-anchor="middle" font-family="Arial">1</text>
+<circle cx="22" cy="344" r="14" fill="#132030" stroke="#c89b3c" stroke-width="1.5" opacity="0.5"/>
+<text   x="22"  y="349" fill="#c89b3c" font-size="12" text-anchor="middle" font-family="Arial">0</text>
+
+<!-- Player score: 8→0 压缩到玩家区域 (cy=720~1024, step=38) -->
+<circle cx="22" cy="720" r="16" fill="none"    stroke="#c89b3c" stroke-width="2"   opacity="0.95" filter="url(#glow)"/>
+<text   x="22"  y="725" fill="#c89b3c" font-size="14" text-anchor="middle" font-family="Arial" font-weight="bold">8</text>
+<circle cx="22" cy="758" r="15" fill="none"    stroke="#c89b3c" stroke-width="1.5" opacity="0.85"/>
+<text   x="22"  y="763" fill="#c89b3c" font-size="13" text-anchor="middle" font-family="Arial" font-weight="bold">7</text>
+<circle cx="22" cy="796" r="15" fill="none"    stroke="#c89b3c" stroke-width="1.5" opacity="0.75"/>
+<text   x="22"  y="801" fill="#c89b3c" font-size="13" text-anchor="middle" font-family="Arial" font-weight="bold">6</text>
+<circle cx="22" cy="834" r="14" fill="none"    stroke="#c89b3c" stroke-width="1.2" opacity="0.6"/>
+<text   x="22"  y="839" fill="#c89b3c" font-size="12" text-anchor="middle" font-family="Arial">5</text>
+<circle cx="22" cy="872" r="14" fill="none"    stroke="#c89b3c" stroke-width="1.2" opacity="0.5"/>
+<text   x="22"  y="877" fill="#c89b3c" font-size="12" text-anchor="middle" font-family="Arial">4</text>
+<circle cx="22" cy="910" r="14" fill="none"    stroke="#c89b3c" stroke-width="1.2" opacity="0.45"/>
+<text   x="22"  y="915" fill="#c89b3c" font-size="12" text-anchor="middle" font-family="Arial">3</text>
+<circle cx="22" cy="948" r="14" fill="none"    stroke="#c89b3c" stroke-width="1.2" opacity="0.4"/>
+<text   x="22"  y="953" fill="#c89b3c" font-size="12" text-anchor="middle" font-family="Arial">2</text>
+<circle cx="22" cy="986" r="14" fill="none"    stroke="#c89b3c" stroke-width="1.2" opacity="0.4"/>
+<text   x="22"  y="991" fill="#c89b3c" font-size="12" text-anchor="middle" font-family="Arial">1</text>
+<circle cx="22" cy="1024" r="14" fill="#132030" stroke="#c89b3c" stroke-width="1.5" opacity="0.5"/>
+<text   x="22"  y="1029" fill="#c89b3c" font-size="12" text-anchor="middle" font-family="Arial">0</text>
+
+<!-- ═══ LEFT UTIL COLUMN (x=48–244) ═══
+     统一内部布局（以 140px 框为基准）：
+       外框背景
+       卡牌模样  60×84px, 水平居中(x=115), 距顶8px
+       标题      居中，卡底+10px
+       副标题    居中，标题+13px
+       数字      居中，副标题+16px
+     218px 框额外在数字下加说明文字
+═══ -->
+
+<!-- Enemy Main Deck (y=8, h=179) -->
+<rect x="48"  y="8"   width="194" height="179" fill="#0c1a28" stroke="#c89b3c" stroke-width="1.5" rx="5"/>
+<rect x="118" y="35"  width="54"  height="76"  fill="#081420" stroke="#c89b3c" stroke-width="1.5" rx="3"/>
+<rect x="122" y="39"  width="46"  height="68"  fill="none"    stroke="#c89b3c30" stroke-width="1" rx="2"/>
+<text x="145" y="125" fill="#c89b3c"   font-size="12" font-family="Arial" font-weight="bold" text-anchor="middle">主牌堆</text>
+<text x="145" y="136" fill="#c89b3c70" font-size="9"  font-family="Arial" text-anchor="middle">MAIN DECK</text>
+<text x="145" y="154" fill="#d4c090"   font-size="16" font-family="Arial" font-weight="bold" text-anchor="middle">30</text>
+
+<!-- Enemy Rune Deck (y=191, h=179) -->
+<rect x="48"  y="191" width="194" height="179" fill="#0c1228" stroke="#7050c0" stroke-width="1.5" rx="5"/>
+<rect x="118" y="218" width="54"  height="76"  fill="#080e20" stroke="#8060d0" stroke-width="1.5" rx="3"/>
+<rect x="122" y="222" width="46"  height="68"  fill="none"    stroke="#8060d030" stroke-width="1" rx="2"/>
+<text x="145" y="308" fill="#9070e0"   font-size="12" font-family="Arial" font-weight="bold" text-anchor="middle">符文堆</text>
+<text x="145" y="319" fill="#9070e070" font-size="9"  font-family="Arial" text-anchor="middle">RUNE DECK</text>
+<text x="145" y="337" fill="#b090f0"   font-size="16" font-family="Arial" font-weight="bold" text-anchor="middle">10</text>
+
+<!-- Player Rune Deck (y=694, h=179) -->
+<rect x="48"  y="694" width="194" height="179" fill="#0c1228" stroke="#7050c0" stroke-width="1.5" rx="5"/>
+<rect x="118" y="721" width="54"  height="76"  fill="#080e20" stroke="#8060d0" stroke-width="1.5" rx="3"/>
+<rect x="122" y="725" width="46"  height="68"  fill="none"    stroke="#8060d030" stroke-width="1" rx="2"/>
+<text x="145" y="811" fill="#9070e0"   font-size="12" font-family="Arial" font-weight="bold" text-anchor="middle">符文堆</text>
+<text x="145" y="822" fill="#9070e070" font-size="9"  font-family="Arial" text-anchor="middle">RUNE DECK</text>
+<text x="145" y="840" fill="#b090f0"   font-size="16" font-family="Arial" font-weight="bold" text-anchor="middle">10</text>
+
+<!-- Player Main Deck (y=877, h=179) -->
+<rect x="48"  y="877" width="194" height="179" fill="#0c1a28" stroke="#c89b3c" stroke-width="1.5" rx="5"/>
+<rect x="118" y="904" width="54"  height="76"  fill="#081420" stroke="#c89b3c" stroke-width="1.5" rx="3"/>
+<rect x="122" y="908" width="46"  height="68"  fill="none"    stroke="#c89b3c30" stroke-width="1" rx="2"/>
+<text x="145" y="994" fill="#c89b3c"   font-size="12" font-family="Arial" font-weight="bold" text-anchor="middle">主牌堆</text>
+<text x="145" y="1005" fill="#c89b3c70" font-size="9"  font-family="Arial" text-anchor="middle">MAIN DECK</text>
+<text x="145" y="1023" fill="#d4c090"   font-size="16" font-family="Arial" font-weight="bold" text-anchor="middle">30</text>
+
+<!-- ═══ RIGHT UTIL COLUMN (x=1676–1870, 中心=1773) ═══ -->
+
+<!-- Enemy Discard (y=8, h=179) -->
+<rect x="1676" y="8"   width="194" height="179" fill="#0c1a28" stroke="#c89b3c" stroke-width="1.5" rx="5"/>
+<rect x="1746" y="35"  width="54"  height="76"  fill="#081420" stroke="#c89b3c" stroke-width="1.5" rx="3"/>
+<rect x="1750" y="39"  width="46"  height="68"  fill="none"    stroke="#c89b3c30" stroke-width="1" rx="2"/>
+<text x="1773" y="125" fill="#c89b3c"   font-size="11" font-family="Arial" font-weight="bold" text-anchor="middle">弃牌</text>
+<text x="1773" y="136" fill="#c89b3c70" font-size="9"  font-family="Arial" text-anchor="middle">DISCARD</text>
+<text x="1773" y="154" fill="#d4c090"   font-size="16" font-family="Arial" font-weight="bold" text-anchor="middle">0</text>
+
+<!-- Enemy Exile (y=191, h=179) -->
+<rect x="1676" y="191" width="194" height="179" fill="#0a1420" stroke="#c89b3c" stroke-width="1.5" rx="5"/>
+<rect x="1746" y="218" width="54"  height="76"  fill="#081420" stroke="#c89b3c" stroke-width="1.5" rx="3"/>
+<rect x="1750" y="222" width="46"  height="68"  fill="none"    stroke="#c89b3c30" stroke-width="1" rx="2"/>
+<text x="1773" y="308" fill="#c89b3c"   font-size="11" font-family="Arial" font-weight="bold" text-anchor="middle">放逐区</text>
+<text x="1773" y="319" fill="#c89b3c70" font-size="9"  font-family="Arial" text-anchor="middle">EXILE</text>
+<text x="1773" y="337" fill="#d4c090"   font-size="16" font-family="Arial" font-weight="bold" text-anchor="middle">0</text>
+
+<!-- Player Exile (y=694, h=179) -->
+<rect x="1676" y="694" width="194" height="179" fill="#0a1420" stroke="#c89b3c" stroke-width="1.5" rx="5"/>
+<rect x="1746" y="721" width="54"  height="76"  fill="#081420" stroke="#c89b3c" stroke-width="1.5" rx="3"/>
+<rect x="1750" y="725" width="46"  height="68"  fill="none"    stroke="#c89b3c30" stroke-width="1" rx="2"/>
+<text x="1773" y="811" fill="#c89b3c"   font-size="11" font-family="Arial" font-weight="bold" text-anchor="middle">放逐区</text>
+<text x="1773" y="822" fill="#c89b3c70" font-size="9"  font-family="Arial" text-anchor="middle">EXILE</text>
+<text x="1773" y="840" fill="#d4c090"   font-size="16" font-family="Arial" font-weight="bold" text-anchor="middle">0</text>
+
+<!-- Player Discard (y=877, h=179) -->
+<rect x="1676" y="877" width="194" height="179" fill="#0c1a28" stroke="#c89b3c" stroke-width="1.5" rx="5"/>
+<rect x="1746" y="904" width="54"  height="76"  fill="#081420" stroke="#c89b3c" stroke-width="1.5" rx="3"/>
+<rect x="1750" y="908" width="46"  height="68"  fill="none"    stroke="#c89b3c30" stroke-width="1" rx="2"/>
+<text x="1773" y="994" fill="#c89b3c"   font-size="11" font-family="Arial" font-weight="bold" text-anchor="middle">弃牌</text>
+<text x="1773" y="1005" fill="#c89b3c70" font-size="9"  font-family="Arial" text-anchor="middle">DISCARD</text>
+<text x="1773" y="1023" fill="#d4c090"   font-size="16" font-family="Arial" font-weight="bold" text-anchor="middle">0</text>
+
+<!-- ═══ ENEMY HERO ROW (y=8–148, 140px) ═══ -->
+<!-- Hero slot: 76×116 (比例0.655, 与战场槽一致) -->
+<rect x="252" y="12" width="76" height="116" fill="#101828" stroke="#d4a828" stroke-width="2" rx="5" filter="url(#glow)"/>
+<rect x="256" y="16" width="68" height="108" fill="#080e1e" stroke="#d4a82860" stroke-width="1" rx="3" stroke-dasharray="3,2"/>
+<text x="290" y="62" fill="#d4a828" font-size="11" font-family="Arial" font-weight="bold" text-anchor="middle">英雄</text>
+<text x="290" y="75" fill="#d4a82890" font-size="8"  font-family="Arial" text-anchor="middle">CHAMPION</text>
+
+<!-- Legend slot: 76×116, 同比例 -->
+<rect x="336" y="12" width="76" height="116" fill="#101828" stroke="#c89b3c" stroke-width="1.5" rx="5"/>
+<rect x="340" y="16" width="68" height="108" fill="#080e1e" stroke="#c89b3c60" stroke-width="1" rx="3" stroke-dasharray="3,2"/>
+<text x="374" y="62" fill="#c89b3c" font-size="11" font-family="Arial" font-weight="bold" text-anchor="middle">传说</text>
+<text x="374" y="75" fill="#c89b3c90" font-size="8"  font-family="Arial" text-anchor="middle">LEGEND</text>
+<!-- 技能按钮在卡牌下方 -->
+<rect x="340" y="132" width="68" height="12" fill="#201008" stroke="#c89b3c" stroke-width="1" rx="3"/>
+<text x="374" y="142" fill="#c89b3c" font-size="8" text-anchor="middle" font-family="Arial">技 能</text>
+
+<!-- ═══ ENEMY HAND FAN (扇形手牌，旋转基点 960,-905，7张卡背) ═══ -->
+<!-- 基准位置 x=922 y=-31 w=76 h=116，顶部约31px嵌出屏幕，与玩家底部对称 -->
+<!-- 绘制顺序：两边→中间，中心牌在最上层 -->
+<text x="960" y="90" fill="#c89b3c" font-size="9" text-anchor="middle" font-family="Arial" opacity="0.45" letter-spacing="2">HAND · 敌方手牌</text>
+<g transform="rotate(12, 960, -905)">
+  <rect x="922" y="-31" width="76" height="116" fill="#0c1624" stroke="#c89b3c50" stroke-width="1.2" rx="3"/>
+  <line x1="937" y1="-15" x2="977" y2="57" stroke="#c89b3c15" stroke-width="1"/>
+  <line x1="977" y1="-15" x2="937" y2="57" stroke="#c89b3c15" stroke-width="1"/>
+</g>
+<g transform="rotate(-12, 960, -905)">
+  <rect x="922" y="-31" width="76" height="116" fill="#0c1624" stroke="#c89b3c50" stroke-width="1.2" rx="3"/>
+  <line x1="937" y1="-15" x2="977" y2="57" stroke="#c89b3c15" stroke-width="1"/>
+  <line x1="977" y1="-15" x2="937" y2="57" stroke="#c89b3c15" stroke-width="1"/>
+</g>
+<g transform="rotate(8, 960, -905)">
+  <rect x="922" y="-31" width="76" height="116" fill="#0c1624" stroke="#c89b3c60" stroke-width="1.2" rx="3"/>
+  <line x1="937" y1="-15" x2="977" y2="57" stroke="#c89b3c18" stroke-width="1"/>
+  <line x1="977" y1="-15" x2="937" y2="57" stroke="#c89b3c18" stroke-width="1"/>
+</g>
+<g transform="rotate(-8, 960, -905)">
+  <rect x="922" y="-31" width="76" height="116" fill="#0c1624" stroke="#c89b3c60" stroke-width="1.2" rx="3"/>
+  <line x1="937" y1="-15" x2="977" y2="57" stroke="#c89b3c18" stroke-width="1"/>
+  <line x1="977" y1="-15" x2="937" y2="57" stroke="#c89b3c18" stroke-width="1"/>
+</g>
+<g transform="rotate(4, 960, -905)">
+  <rect x="922" y="-31" width="76" height="116" fill="#0c1624" stroke="#c89b3c75" stroke-width="1.3" rx="3"/>
+  <line x1="937" y1="-15" x2="977" y2="57" stroke="#c89b3c22" stroke-width="1"/>
+  <line x1="977" y1="-15" x2="937" y2="57" stroke="#c89b3c22" stroke-width="1"/>
+</g>
+<g transform="rotate(-4, 960, -905)">
+  <rect x="922" y="-31" width="76" height="116" fill="#0c1624" stroke="#c89b3c75" stroke-width="1.3" rx="3"/>
+  <line x1="937" y1="-15" x2="977" y2="57" stroke="#c89b3c22" stroke-width="1"/>
+  <line x1="977" y1="-15" x2="937" y2="57" stroke="#c89b3c22" stroke-width="1"/>
+</g>
+<g transform="rotate(0, 960, -905)">
+  <rect x="922" y="-31" width="76" height="116" fill="#0c1624" stroke="#c89b3c" stroke-width="1.5" rx="3"/>
+  <line x1="937" y1="-15" x2="977" y2="57" stroke="#c89b3c28" stroke-width="1"/>
+  <line x1="977" y1="-15" x2="937" y2="57" stroke="#c89b3c28" stroke-width="1"/>
+</g>
+
+<!-- ═══ ENEMY RUNES (y=152–244, 92px) ═══ -->
+<rect x="248" y="152" width="1424" height="92" fill="#0c1030" rx="4"/>
+<rect x="248" y="152" width="1424" height="92" fill="none" stroke="url(#purH)" stroke-width="2" rx="4"/>
+<text x="258" y="165" fill="#9070e0" font-size="11" font-family="Arial" font-weight="bold" letter-spacing="2" filter="url(#glow)">RUNES  符文区</text>
+<image href="../Assets/Resources/UI/Generated/zone_rune.png" x="248" y="152" width="1424" height="92" preserveAspectRatio="xMidYMid slice" opacity="0.88"/>
+<!-- 12 rune slots — 圆形 (cx step=58, cy=198, r=26) -->
+<circle cx="642"  cy="198" r="26" fill="#0c0e22" stroke="#7050c0" stroke-width="1.2"/>
+<circle cx="700"  cy="198" r="26" fill="#0c0e22" stroke="#7050c0" stroke-width="1.2"/>
+<circle cx="758"  cy="198" r="26" fill="#0c0e22" stroke="#7050c0" stroke-width="1.2"/>
+<circle cx="816"  cy="198" r="26" fill="#0c0e22" stroke="#7050c0" stroke-width="1.2"/>
+<circle cx="874"  cy="198" r="26" fill="#0c0e22" stroke="#7050c0" stroke-width="1.2"/>
+<circle cx="932"  cy="198" r="26" fill="#0c0e22" stroke="#7050c0" stroke-width="1.2"/>
+<circle cx="990"  cy="198" r="26" fill="#0c0e22" stroke="#7050c0" stroke-width="1.2"/>
+<circle cx="1048" cy="198" r="26" fill="#0c0e22" stroke="#7050c0" stroke-width="1.2"/>
+<circle cx="1106" cy="198" r="26" fill="#0a0c1c" stroke="#403080" stroke-width="1" stroke-dasharray="4,2" opacity="0.5"/>
+<circle cx="1164" cy="198" r="26" fill="#0a0c1c" stroke="#403080" stroke-width="1" stroke-dasharray="4,2" opacity="0.5"/>
+<circle cx="1222" cy="198" r="26" fill="#0a0c1c" stroke="#403080" stroke-width="1" stroke-dasharray="4,2" opacity="0.5"/>
+<circle cx="1280" cy="198" r="26" fill="#0a0c1c" stroke="#403080" stroke-width="1" stroke-dasharray="4,2" opacity="0.5"/>
+
+<!-- ═══ ENEMY BASE (y=248–370, 122px) ═══ -->
+<rect x="248" y="248" width="1424" height="122" fill="#0e1c28" rx="4"/>
+<rect x="248" y="248" width="1424" height="122" fill="none" stroke="url(#goldH)" stroke-width="2" rx="4"/>
+<text x="258" y="261" fill="#c89b3c" font-size="11" font-family="Arial" font-weight="bold" letter-spacing="2" filter="url(#glow)">BASE  基地</text>
+<image href="../Assets/Resources/UI/Generated/zone_base.png" x="248" y="248" width="1424" height="122" preserveAspectRatio="xMidYMid slice" opacity="0.88"/>
+<!-- 8 base card slots 居中: zone宽1424, 8×68+7×8=600, 左边距=412, 第一张x=660 -->
+<rect x="660"  y="256" width="68" height="106" fill="#0a1620" stroke="#c89b3c" stroke-width="1" rx="3" stroke-dasharray="4,2"/>
+<rect x="736"  y="256" width="68" height="106" fill="#0a1620" stroke="#c89b3c" stroke-width="1" rx="3" stroke-dasharray="4,2"/>
+<rect x="812"  y="256" width="68" height="106" fill="#0a1620" stroke="#c89b3c" stroke-width="1" rx="3" stroke-dasharray="4,2"/>
+<rect x="888"  y="256" width="68" height="106" fill="#0a1620" stroke="#c89b3c" stroke-width="1" rx="3" stroke-dasharray="4,2"/>
+<rect x="964"  y="256" width="68" height="106" fill="#0a1620" stroke="#c89b3c" stroke-width="1" rx="3" stroke-dasharray="4,2"/>
+<rect x="1040" y="256" width="68" height="106" fill="#0a1620" stroke="#c89b3c" stroke-width="1" rx="3" stroke-dasharray="4,2"/>
+<rect x="1116" y="256" width="68" height="106" fill="#0a1620" stroke="#c89b3c" stroke-width="1" rx="3" stroke-dasharray="4,2"/>
+<!-- standby slot (face-down) x=1192 -->
+<rect x="1192" y="256" width="68" height="106" fill="#0a1028" stroke="#4060a0" stroke-width="1.5" rx="3" stroke-dasharray="3,2"/>
+<text x="1226" y="302" fill="#4060a0" font-size="8" text-anchor="middle" font-family="Arial" opacity="0.8">待命</text>
+<text x="1226" y="314" fill="#4060a0" font-size="7" text-anchor="middle" font-family="Arial" opacity="0.6">面朝下</text>
+
+<!-- ═══ BATTLEFIELD (y=374~532 / 532~690, 158px × 2) ═══ -->
+<!-- BF[0] left -->
+<rect x="48" y="374" width="896" height="316" fill="url(#bf0Grad)" rx="6"/>
+<rect x="48" y="374" width="896" height="316" fill="none" stroke="#4080b0" stroke-width="2.5" rx="6" filter="url(#glow)"/>
+<!-- BF[1] right -->
+<rect x="976" y="374" width="894" height="316" fill="url(#bf1Grad)" rx="6"/>
+<rect x="976" y="374" width="894" height="316" fill="none" stroke="#3070a0" stroke-width="2.5" rx="6" filter="url(#glow)"/>
+
+<image href="../Assets/Resources/UI/Generated/zone_battlefield.png" x="48" y="374" width="896" height="316" preserveAspectRatio="xMidYMid slice" opacity="0.82"/>
+<!-- BF[0] 右侧栏：标题+战场牌 (center x=889) -->
+<text x="889" y="422" fill="#4080b0" font-size="14" text-anchor="middle" font-family="Arial" font-weight="bold" filter="url(#softglow)">战场 ①</text>
+<rect x="853" y="428" width="72" height="50" fill="#0c1828" stroke="#c89b3c" stroke-width="1.5" rx="3"/>
+<rect x="858" y="432" width="62" height="42" fill="none" stroke="#c89b3c40" stroke-width="1" rx="2"/>
+<image href="../Assets/Resources/UI/Generated/zone_battlefield.png" x="976" y="374" width="894" height="316" preserveAspectRatio="xMidYMid slice" opacity="0.82"/>
+<!-- BF[1] 左侧栏：标题+战场牌 (center x=1031) -->
+<text x="1031" y="422" fill="#3070a0" font-size="14" text-anchor="middle" font-family="Arial" font-weight="bold" filter="url(#softglow)">战场 ②</text>
+<rect x="995" y="428" width="72" height="50" fill="#0c1828" stroke="#c89b3c" stroke-width="1.5" rx="3"/>
+<rect x="1000" y="432" width="62" height="42" fill="none" stroke="#c89b3c40" stroke-width="1" rx="2"/>
+
+<!-- BF[0] 待命区（我方半区, center x=889） -->
+<rect x="853" y="552" width="72" height="110" fill="#0a0e1c" stroke="#4060a0" stroke-width="1.5" rx="3"/>
+<rect x="857" y="556" width="64" height="102" fill="none" stroke="#4060a060" stroke-width="1" rx="2" stroke-dasharray="3,2"/>
+<text x="889" y="600" fill="#4060a0" font-size="11" text-anchor="middle" font-family="Arial" font-weight="bold">待命区</text>
+<text x="889" y="612" fill="#4060a080" font-size="8" text-anchor="middle" font-family="Arial">STANDBY</text>
+<!-- BF[1] 待命区（我方半区, center x=1031） -->
+<rect x="995" y="552" width="72" height="110" fill="#0a0e1c" stroke="#4060a0" stroke-width="1.5" rx="3"/>
+<rect x="999" y="556" width="64" height="102" fill="none" stroke="#4060a060" stroke-width="1" rx="2" stroke-dasharray="3,2"/>
+<text x="1031" y="600" fill="#4060a0" font-size="11" text-anchor="middle" font-family="Arial" font-weight="bold">待命区</text>
+<text x="1031" y="612" fill="#4060a080" font-size="8" text-anchor="middle" font-family="Arial">STANDBY</text>
+
+<!-- Center divider: 虚线，y=536 -->
+<line x1="56"   y1="536" x2="830"  y2="536" stroke="#2a5888" stroke-width="1.5" stroke-dasharray="20,8" opacity="0.7"/>
+<line x1="1090" y1="536" x2="1862" y2="536" stroke="#2a5888" stroke-width="1.5" stroke-dasharray="20,8" opacity="0.7"/>
+
+<!-- BF[0] enemy card slots (右移30px: x=94起, step=92) -->
+<rect x="94"  y="408" width="76" height="116" fill="#091828" stroke="#3a6090" stroke-width="1" rx="3" stroke-dasharray="4,2"/>
+<rect x="186" y="408" width="76" height="116" fill="#091828" stroke="#3a6090" stroke-width="1" rx="3" stroke-dasharray="4,2"/>
+<rect x="278" y="408" width="76" height="116" fill="#091828" stroke="#3a6090" stroke-width="1" rx="3" stroke-dasharray="4,2"/>
+<rect x="370" y="408" width="76" height="116" fill="#091828" stroke="#3a6090" stroke-width="1" rx="3" stroke-dasharray="4,2"/>
+<rect x="462" y="408" width="76" height="116" fill="#091828" stroke="#3a6090" stroke-width="1" rx="3" stroke-dasharray="4,2"/>
+<rect x="554" y="408" width="76" height="116" fill="#091828" stroke="#3a6090" stroke-width="1" rx="3" stroke-dasharray="4,2"/>
+<rect x="646" y="408" width="76" height="116" fill="#091828" stroke="#3a6090" stroke-width="1" rx="3" stroke-dasharray="4,2"/>
+<rect x="738" y="408" width="76" height="116" fill="#091828" stroke="#3a6090" stroke-width="1" rx="3" stroke-dasharray="4,2"/>
+<!-- BF[0] player card slots -->
+<rect x="94"  y="548" width="76" height="116" fill="#0a1c2c" stroke="#4090b0" stroke-width="1" rx="3" stroke-dasharray="4,2"/>
+<rect x="186" y="548" width="76" height="116" fill="#0a1c2c" stroke="#4090b0" stroke-width="1" rx="3" stroke-dasharray="4,2"/>
+<rect x="278" y="548" width="76" height="116" fill="#0a1c2c" stroke="#4090b0" stroke-width="1" rx="3" stroke-dasharray="4,2"/>
+<rect x="370" y="548" width="76" height="116" fill="#0a1c2c" stroke="#4090b0" stroke-width="1" rx="3" stroke-dasharray="4,2"/>
+<rect x="462" y="548" width="76" height="116" fill="#0a1c2c" stroke="#4090b0" stroke-width="1" rx="3" stroke-dasharray="4,2"/>
+<rect x="554" y="548" width="76" height="116" fill="#0a1c2c" stroke="#4090b0" stroke-width="1" rx="3" stroke-dasharray="4,2"/>
+<rect x="646" y="548" width="76" height="116" fill="#0a1c2c" stroke="#4090b0" stroke-width="1" rx="3" stroke-dasharray="4,2"/>
+<rect x="738" y="548" width="76" height="116" fill="#0a1c2c" stroke="#4090b0" stroke-width="1" rx="3" stroke-dasharray="4,2"/>
+<!-- BF[1] enemy card slots (左移30px: x=1104起, step=92) -->
+<rect x="1104" y="408" width="76" height="116" fill="#091828" stroke="#3a6090" stroke-width="1" rx="3" stroke-dasharray="4,2"/>
+<rect x="1196" y="408" width="76" height="116" fill="#091828" stroke="#3a6090" stroke-width="1" rx="3" stroke-dasharray="4,2"/>
+<rect x="1288" y="408" width="76" height="116" fill="#091828" stroke="#3a6090" stroke-width="1" rx="3" stroke-dasharray="4,2"/>
+<rect x="1380" y="408" width="76" height="116" fill="#091828" stroke="#3a6090" stroke-width="1" rx="3" stroke-dasharray="4,2"/>
+<rect x="1472" y="408" width="76" height="116" fill="#091828" stroke="#3a6090" stroke-width="1" rx="3" stroke-dasharray="4,2"/>
+<rect x="1564" y="408" width="76" height="116" fill="#091828" stroke="#3a6090" stroke-width="1" rx="3" stroke-dasharray="4,2"/>
+<rect x="1656" y="408" width="76" height="116" fill="#091828" stroke="#3a6090" stroke-width="1" rx="3" stroke-dasharray="4,2"/>
+<rect x="1748" y="408" width="76" height="116" fill="#091828" stroke="#3a6090" stroke-width="1" rx="3" stroke-dasharray="4,2"/>
+<!-- BF[1] player card slots -->
+<rect x="1104" y="548" width="76" height="116" fill="#0a1c2c" stroke="#4090b0" stroke-width="1" rx="3" stroke-dasharray="4,2"/>
+<rect x="1196" y="548" width="76" height="116" fill="#0a1c2c" stroke="#4090b0" stroke-width="1" rx="3" stroke-dasharray="4,2"/>
+<rect x="1288" y="548" width="76" height="116" fill="#0a1c2c" stroke="#4090b0" stroke-width="1" rx="3" stroke-dasharray="4,2"/>
+<rect x="1380" y="548" width="76" height="116" fill="#0a1c2c" stroke="#4090b0" stroke-width="1" rx="3" stroke-dasharray="4,2"/>
+<rect x="1472" y="548" width="76" height="116" fill="#0a1c2c" stroke="#4090b0" stroke-width="1" rx="3" stroke-dasharray="4,2"/>
+<rect x="1564" y="548" width="76" height="116" fill="#0a1c2c" stroke="#4090b0" stroke-width="1" rx="3" stroke-dasharray="4,2"/>
+<rect x="1656" y="548" width="76" height="116" fill="#0a1c2c" stroke="#4090b0" stroke-width="1" rx="3" stroke-dasharray="4,2"/>
+<rect x="1748" y="548" width="76" height="116" fill="#0a1c2c" stroke="#4090b0" stroke-width="1" rx="3" stroke-dasharray="4,2"/>
+
+<!-- ═══ 魔法符纹能量柱 (x=944-976) ═══ -->
+<rect x="944" y="374" width="32" height="316" fill="#030810"/>
+<polygon points="952,374 968,374 976,382 960,390 944,382" fill="#120c20" stroke="url(#pillarBorder)" stroke-width="1"/>
+<polygon points="952,690 968,690 976,682 960,674 944,682" fill="#120c20" stroke="url(#pillarBorder)" stroke-width="1"/>
+<rect x="944" y="382" width="32" height="300" fill="none" stroke="url(#pillarBorder)" stroke-width="1.5"/>
+<rect x="948" y="502" width="24" height="180" fill="url(#pillarFill)" clip-path="url(#pillarClip)" opacity="0.8" rx="2"/>
+<rect x="944" y="499" width="32" height="5" fill="#5090ff" opacity="0.7" rx="1" filter="url(#glow)"/>
+<line x1="944" y1="442" x2="951" y2="442" stroke="#c89b3c" stroke-width="1" opacity="0.5"/>
+<line x1="944" y1="502" x2="951" y2="502" stroke="#c89b3c" stroke-width="1.5" opacity="0.8"/>
+<line x1="944" y1="562" x2="951" y2="562" stroke="#c89b3c" stroke-width="1" opacity="0.5"/>
+<line x1="944" y1="622" x2="951" y2="622" stroke="#c89b3c" stroke-width="1" opacity="0.5"/>
+<line x1="969" y1="442" x2="976" y2="442" stroke="#c89b3c" stroke-width="1" opacity="0.5"/>
+<line x1="969" y1="502" x2="976" y2="502" stroke="#c89b3c" stroke-width="1.5" opacity="0.8"/>
+<line x1="969" y1="562" x2="976" y2="562" stroke="#c89b3c" stroke-width="1" opacity="0.5"/>
+<line x1="969" y1="622" x2="976" y2="622" stroke="#c89b3c" stroke-width="1" opacity="0.5"/>
+<text x="960" y="437" fill="#c89b3c" font-size="9" text-anchor="middle" font-family="Arial" opacity="0.5">✦</text>
+<text x="960" y="535" fill="#7090c0" font-size="7" text-anchor="middle" font-family="Arial" opacity="0.6">⬟</text>
+<text x="960" y="630" fill="#5080d0" font-size="9" text-anchor="middle" font-family="Arial" opacity="0.7">✦</text>
+<text x="960" y="371" fill="#c84040" font-size="6.5" text-anchor="middle" font-family="Arial" opacity="0.7" letter-spacing="1">对方 ↓</text>
+<text x="960" y="698" fill="#40c070" font-size="6.5" text-anchor="middle" font-family="Arial" opacity="0.7" letter-spacing="1">我方 ↑</text>
+
+
+<!-- ═══ PLAYER BASE (y=694–816, 122px) ═══ -->
+<rect x="248" y="694" width="1424" height="122" fill="#0e1c28" rx="4"/>
+<rect x="248" y="694" width="1424" height="122" fill="none" stroke="url(#goldH)" stroke-width="2" rx="4"/>
+<text x="258" y="707" fill="#c89b3c" font-size="11" font-family="Arial" font-weight="bold" letter-spacing="2" filter="url(#glow)">BASE  基地</text>
+<image href="../Assets/Resources/UI/Generated/zone_base.png" x="248" y="694" width="1424" height="122" preserveAspectRatio="xMidYMid slice" opacity="0.88" transform="scale(1,-1) translate(0,-1538)"/>
+<!-- 8 base card slots 居中: zone宽1424, 8×68+7×8=600, 左边距=412, 第一张x=660 -->
+<rect x="660"  y="702" width="68" height="106" fill="#0a1620" stroke="#c89b3c" stroke-width="1" rx="3" stroke-dasharray="4,2"/>
+<rect x="736"  y="702" width="68" height="106" fill="#0a1620" stroke="#c89b3c" stroke-width="1" rx="3" stroke-dasharray="4,2"/>
+<rect x="812"  y="702" width="68" height="106" fill="#0a1620" stroke="#c89b3c" stroke-width="1" rx="3" stroke-dasharray="4,2"/>
+<rect x="888"  y="702" width="68" height="106" fill="#0a1620" stroke="#c89b3c" stroke-width="1" rx="3" stroke-dasharray="4,2"/>
+<rect x="964"  y="702" width="68" height="106" fill="#0a1620" stroke="#c89b3c" stroke-width="1" rx="3" stroke-dasharray="4,2"/>
+<rect x="1040" y="702" width="68" height="106" fill="#0a1620" stroke="#c89b3c" stroke-width="1" rx="3" stroke-dasharray="4,2"/>
+<rect x="1116" y="702" width="68" height="106" fill="#0a1620" stroke="#c89b3c" stroke-width="1" rx="3" stroke-dasharray="4,2"/>
+<rect x="1192" y="702" width="68" height="106" fill="#0a1028" stroke="#4060a0" stroke-width="1.5" rx="3" stroke-dasharray="3,2"/>
+<text x="1226" y="748" fill="#4060a0" font-size="8" text-anchor="middle" font-family="Arial" opacity="0.8">待命</text>
+
+<!-- ═══ PLAYER RUNES (y=820–912, 92px) ═══ -->
+<rect x="248" y="820" width="1424" height="92" fill="#0c1030" rx="4"/>
+<rect x="248" y="820" width="1424" height="92" fill="none" stroke="url(#purH)" stroke-width="2" rx="4"/>
+<text x="258" y="833" fill="#9070e0" font-size="11" font-family="Arial" font-weight="bold" letter-spacing="2" filter="url(#glow)">RUNES  符文区</text>
+<image href="../Assets/Resources/UI/Generated/zone_rune.png" x="248" y="820" width="1424" height="92" preserveAspectRatio="xMidYMid slice" opacity="0.88" transform="scale(1,-1) translate(0,-1734)"/>
+<!-- 12 rune slots — 圆形 (cx step=58, cy=866, r=26) -->
+<circle cx="642"  cy="866" r="26" fill="#0c0e22" stroke="#7050c0" stroke-width="1.2"/>
+<circle cx="700"  cy="866" r="26" fill="#0c0e22" stroke="#7050c0" stroke-width="1.2"/>
+<circle cx="758"  cy="866" r="26" fill="#0c0e22" stroke="#7050c0" stroke-width="1.2"/>
+<circle cx="816"  cy="866" r="26" fill="#0c0e22" stroke="#7050c0" stroke-width="1.2"/>
+<circle cx="874"  cy="866" r="26" fill="#0c0e22" stroke="#7050c0" stroke-width="1.2"/>
+<circle cx="932"  cy="866" r="26" fill="#0c0e22" stroke="#7050c0" stroke-width="1.2"/>
+<circle cx="990"  cy="866" r="26" fill="#0c0e22" stroke="#7050c0" stroke-width="1.2"/>
+<circle cx="1048" cy="866" r="26" fill="#0c0e22" stroke="#7050c0" stroke-width="1.2"/>
+<circle cx="1106" cy="866" r="26" fill="#0a0c1c" stroke="#403080" stroke-width="1" stroke-dasharray="4,2" opacity="0.5"/>
+<circle cx="1164" cy="866" r="26" fill="#0a0c1c" stroke="#403080" stroke-width="1" stroke-dasharray="4,2" opacity="0.5"/>
+<circle cx="1222" cy="866" r="26" fill="#0a0c1c" stroke="#403080" stroke-width="1" stroke-dasharray="4,2" opacity="0.5"/>
+<circle cx="1280" cy="866" r="26" fill="#0a0c1c" stroke="#403080" stroke-width="1" stroke-dasharray="4,2" opacity="0.5"/>
+
+<!-- ═══ PLAYER HERO + HAND ROW (y=916–1056, 140px) ═══ -->
+<!-- Hero slot: 76×116 (比例0.655) -->
+<rect x="366" y="920" width="76" height="116" fill="#101828" stroke="#d4a828" stroke-width="2" rx="5" filter="url(#glow)"/>
+<rect x="370" y="924" width="68" height="108" fill="#080e1e" stroke="#d4a82860" stroke-width="1" rx="3" stroke-dasharray="3,2"/>
+<text x="404" y="970" fill="#d4a828" font-size="11" font-family="Arial" font-weight="bold" text-anchor="middle">英雄</text>
+<text x="404" y="983" fill="#d4a82890" font-size="8"  font-family="Arial" text-anchor="middle">CHAMPION</text>
+
+<!-- Legend slot: 76×116, 同比例 -->
+<rect x="450" y="920" width="76" height="116" fill="#101828" stroke="#c89b3c" stroke-width="1.5" rx="5"/>
+<rect x="454" y="924" width="68" height="108" fill="#080e1e" stroke="#c89b3c60" stroke-width="1" rx="3" stroke-dasharray="3,2"/>
+<text x="488" y="970" fill="#c89b3c" font-size="11" font-family="Arial" font-weight="bold" text-anchor="middle">传说</text>
+<text x="488" y="983" fill="#c89b3c90" font-size="8"  font-family="Arial" text-anchor="middle">LEGEND</text>
+<!-- 技能按钮在卡牌下方 -->
+<rect x="454" y="1040" width="68" height="12" fill="#201008" stroke="#c89b3c" stroke-width="1" rx="3"/>
+<text x="488" y="1050" fill="#c89b3c" font-size="8" text-anchor="middle" font-family="Arial">技 能</text>
+
+<!-- ═══ PLAYER HAND FAN (扇形手牌，旋转基点 960,1900，7张卡背) ═══ -->
+<!-- 基准位置 x=922 y=975 w=76 h=116，底部超出按钮条被遮住 -->
+<text x="960" y="968" fill="#c89b3c" font-size="9" text-anchor="middle" font-family="Arial" opacity="0.45" letter-spacing="2">HAND · 我方手牌</text>
+<g transform="rotate(-12, 960, 1955)">
+  <rect x="922" y="975" width="76" height="116" fill="#0c1624" stroke="#c89b3c55" stroke-width="1.2" rx="3"/>
+  <line x1="937" y1="991" x2="977" y2="1063" stroke="#c89b3c15" stroke-width="1"/>
+  <line x1="977" y1="991" x2="937" y2="1063" stroke="#c89b3c15" stroke-width="1"/>
+</g>
+<g transform="rotate(-8, 960, 1955)">
+  <rect x="922" y="975" width="76" height="116" fill="#0c1624" stroke="#c89b3c65" stroke-width="1.2" rx="3"/>
+  <line x1="937" y1="991" x2="977" y2="1063" stroke="#c89b3c18" stroke-width="1"/>
+  <line x1="977" y1="991" x2="937" y2="1063" stroke="#c89b3c18" stroke-width="1"/>
+</g>
+<g transform="rotate(-4, 960, 1955)">
+  <rect x="922" y="975" width="76" height="116" fill="#0c1624" stroke="#c89b3c80" stroke-width="1.3" rx="3"/>
+  <line x1="937" y1="991" x2="977" y2="1063" stroke="#c89b3c22" stroke-width="1"/>
+  <line x1="977" y1="991" x2="937" y2="1063" stroke="#c89b3c22" stroke-width="1"/>
+</g>
+<g transform="rotate(0, 960, 1955)">
+  <rect x="922" y="975" width="76" height="116" fill="#0c1624" stroke="#c89b3c" stroke-width="1.5" rx="3"/>
+  <line x1="937" y1="991" x2="977" y2="1063" stroke="#c89b3c28" stroke-width="1"/>
+  <line x1="977" y1="991" x2="937" y2="1063" stroke="#c89b3c28" stroke-width="1"/>
+</g>
+<g transform="rotate(4, 960, 1955)">
+  <rect x="922" y="975" width="76" height="116" fill="#0c1624" stroke="#c89b3c80" stroke-width="1.3" rx="3"/>
+  <line x1="937" y1="991" x2="977" y2="1063" stroke="#c89b3c22" stroke-width="1"/>
+  <line x1="977" y1="991" x2="937" y2="1063" stroke="#c89b3c22" stroke-width="1"/>
+</g>
+<g transform="rotate(8, 960, 1955)">
+  <rect x="922" y="975" width="76" height="116" fill="#0c1624" stroke="#c89b3c65" stroke-width="1.2" rx="3"/>
+  <line x1="937" y1="991" x2="977" y2="1063" stroke="#c89b3c18" stroke-width="1"/>
+  <line x1="977" y1="991" x2="937" y2="1063" stroke="#c89b3c18" stroke-width="1"/>
+</g>
+<g transform="rotate(12, 960, 1955)">
+  <rect x="922" y="975" width="76" height="116" fill="#0c1624" stroke="#c89b3c55" stroke-width="1.2" rx="3"/>
+  <line x1="937" y1="991" x2="977" y2="1063" stroke="#c89b3c15" stroke-width="1"/>
+  <line x1="977" y1="991" x2="937" y2="1063" stroke="#c89b3c15" stroke-width="1"/>
+</g>
+
+<!-- 内边框：所有主区域双边框效果 -->
+<rect x="252" y="12"  width="1416" height="132" fill="none" stroke="#c89b3c" stroke-width="0.6" rx="3" opacity="0.22"/>
+<rect x="252" y="156" width="1416" height="84"  fill="none" stroke="#9070e0" stroke-width="0.6" rx="3" opacity="0.22"/>
+<rect x="252" y="252" width="1416" height="114" fill="none" stroke="#c89b3c" stroke-width="0.6" rx="3" opacity="0.22"/>
+<rect x="252" y="698" width="1416" height="114" fill="none" stroke="#c89b3c" stroke-width="0.6" rx="3" opacity="0.22"/>
+<rect x="252" y="824" width="1416" height="84"  fill="none" stroke="#9070e0" stroke-width="0.6" rx="3" opacity="0.22"/>
+
+<!-- ═══ 操作按钮组（右下空旷区，x=1400-1620, y=934-1054） ═══ -->
+<!-- 结束回合 — 主操作 -->
+<rect x="1446" y="934" width="108" height="40" fill="#0c2240" stroke="#4090d0" stroke-width="2" rx="5" filter="url(#glow)"/>
+<rect x="1450" y="938" width="100" height="32" fill="none" stroke="#4090d030" stroke-width="0.8" rx="4"/>
+<text x="1500" y="951" fill="#60b0f0" font-size="14" text-anchor="middle" font-family="Arial" font-weight="bold" filter="url(#glow)">结束回合</text>
+<text x="1500" y="965" fill="#4090d070" font-size="7.5" text-anchor="middle" font-family="Arial" letter-spacing="2">END TURN</text>
+<!-- 召回单位 -->
+<rect x="1450" y="982" width="100" height="32" fill="#080e1c" stroke="#2a5888" stroke-width="1.2" rx="4"/>
+<rect x="1454" y="986" width="92" height="24" fill="none" stroke="#2a588828" stroke-width="0.7" rx="3"/>
+<text x="1500" y="1002" fill="#3878b0" font-size="11" text-anchor="middle" font-family="Arial" font-weight="bold">召回单位</text>
+<text x="1500" y="1011" fill="#3070a050" font-size="7" text-anchor="middle" font-family="Arial" letter-spacing="2">RECALL UNIT</text>
+<!-- 查看弃牌堆 -->
+<rect x="1446" y="1022" width="108" height="32" fill="#080e1c" stroke="#2a5888" stroke-width="1.2" rx="4"/>
+<rect x="1450" y="1026" width="100" height="24" fill="none" stroke="#2a588828" stroke-width="0.7" rx="3"/>
+<text x="1500" y="1042" fill="#3878b0" font-size="11" text-anchor="middle" font-family="Arial" font-weight="bold">查看弃牌堆</text>
+<text x="1500" y="1051" fill="#3070a050" font-size="7" text-anchor="middle" font-family="Arial" letter-spacing="2">VIEW DISCARD</text>
+
+<!-- ═══ BUTTON STRIP (y=1060–1078, 18px) 状态信息栏 ═══ -->
+<rect x="248" y="1060" width="1424" height="18" fill="#060e18" stroke="#304860" stroke-width="1" rx="2"/>
+<text x="680"  y="1073" fill="#506878" font-size="8" font-family="Arial" text-anchor="middle">法力: 3/3</text>
+<text x="820"  y="1073" fill="#506878" font-size="8" font-family="Arial" text-anchor="middle">符能: 2/2</text>
+<text x="960"  y="1073" fill="#506878" font-size="8" font-family="Arial" text-anchor="middle">阶段: 行动</text>
+<text x="1100" y="1073" fill="#506878" font-size="8" font-family="Arial" text-anchor="middle">回合: 第 3 回合</text>
+<text x="1240" y="1073" fill="#506878" font-size="8" font-family="Arial" text-anchor="middle">先手: 玩家</text>
+
+<!-- version label -->
+<text x="960" y="1079" fill="#c89b3c" font-size="6" text-anchor="middle" font-family="Arial" opacity="0.2">FWTCG PC Layout v2.2  |  1920×1080  |  对称布局 战场158×2 | AI无手牌条/信息区 | 0在底</text>
+</svg>
