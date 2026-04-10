@@ -25,8 +25,8 @@ HAND_W, HAND_H = 110, int(110 * CARD_RATIO)  # = 154，标准卡牌比例
 HAND_CARD_X = 960 - HAND_W // 2    # 905
 PLAYER_CARD_Y = 908
 PLAYER_PIVOT  = 2050
-ENEMY_CARD_Y  = -90
-ENEMY_PIVOT   = -1100
+ENEMY_CARD_Y  = 18    # 对称：牌底=172=1080-908，与己方镜像
+ENEMY_PIVOT   = -970  # 对称：距牌中心1065px，与己方pivot距离一致
 
 HERO_CARD_W  = 76
 HERO_CARD_H  = int(HERO_CARD_W * CARD_RATIO)  # = 106, 标准比例
@@ -209,12 +209,9 @@ L(f'<rect x="{MAIN_X}" y="{EB_Y}" width="{MAIN_W}" height="{EB_H}" fill="none" s
 L(f'<text x="{MAIN_X+10}" y="{EB_Y+16}" fill="#c89b3c" font-size="11" font-family="Arial" font-weight="bold" letter-spacing="2" filter="url(#glow)">BASE  基地</text>')
 bc_h = int(BASE_CARD_W * CARD_RATIO)  # = 100, 等比例标准卡牌比例
 bc_y = EB_Y + (EB_H - bc_h) // 2  # 垂直居中
-for i in range(7):
+for i in range(8):  # 8格全部统一，无待命区
     bx = BASE_START_X + i*(BASE_CARD_W+BASE_CARD_GAP)
     L(f'<rect x="{bx}" y="{bc_y}" width="{BASE_CARD_W}" height="{bc_h}" fill="#0a1620" stroke="#c89b3c" stroke-width="1" rx="3" stroke-dasharray="4,2"/>')
-bx = BASE_START_X + 7*(BASE_CARD_W+BASE_CARD_GAP)
-L(f'<rect x="{bx}" y="{bc_y}" width="{BASE_CARD_W}" height="{bc_h}" fill="#0a1028" stroke="#4060a0" stroke-width="1.5" rx="3" stroke-dasharray="3,2"/>')
-L(f'<text x="{bx+BASE_CARD_W//2}" y="{bc_y+bc_h//2+4}" fill="#4060a0" font-size="9" text-anchor="middle" font-family="Arial" opacity="0.8">待命</text>')
 L()
 
 L(f'<!-- BATTLEFIELD y={BF_Y} h={BF_H} center={BF_CENTER} -->')
@@ -224,9 +221,9 @@ L(f'<rect x="48" y="{BF_Y}" width="896" height="{BF_H}" fill="none" stroke="#408
 L(f'<rect x="976" y="{BF_Y}" width="894" height="{BF_H}" fill="url(#bf1Grad)" rx="6"/>')
 L(f'<rect x="976" y="{BF_Y}" width="894" height="{BF_H}" fill="none" stroke="#3070a0" stroke-width="2.5" rx="6" filter="url(#glow)"/>')
 
-for slot_cx, label, stroke in [(889,"战场 ①","#4080b0"),(1031,"战场 ②","#3070a0")]:
-    L(f'<text x="{slot_cx}" y="{BF_Y+28}" fill="{stroke}" font-size="13" text-anchor="middle" font-family="Arial" font-weight="bold" filter="url(#softglow)">{label}</text>')
-    L(f'<rect x="{slot_cx-36}" y="{BF_Y+34}" width="72" height="52" fill="#0c1828" stroke="#c89b3c" stroke-width="1.5" rx="3"/>')
+# 战场标签只用文字，不用矩形框（矩形会遮挡卡槽）
+L(f'<text x="550" y="{BF_Y+16}" fill="#4080b050" font-size="11" font-family="Arial" letter-spacing="2">战场 ①</text>')
+L(f'<text x="1100" y="{BF_Y+16}" fill="#3070a050" font-size="11" font-family="Arial" letter-spacing="2">战场 ②</text>')
 
 STDBY_W = 72
 STDBY_H = int(STDBY_W * CARD_RATIO)  # = 100, 标准卡牌比例
@@ -272,12 +269,9 @@ L(f'<rect x="{MAIN_X}" y="{PB_Y}" width="{MAIN_W}" height="{PB_H}" fill="#0e1c28
 L(f'<rect x="{MAIN_X}" y="{PB_Y}" width="{MAIN_W}" height="{PB_H}" fill="none" stroke="url(#goldH)" stroke-width="2" rx="4"/>')
 L(f'<text x="{MAIN_X+10}" y="{PB_Y+16}" fill="#c89b3c" font-size="11" font-family="Arial" font-weight="bold" letter-spacing="2" filter="url(#glow)">BASE  基地</text>')
 pb_y = PB_Y + (PB_H - bc_h) // 2  # 垂直居中
-for i in range(7):
+for i in range(8):  # 8格全部统一，无待命区
     bx = BASE_START_X + i*(BASE_CARD_W+BASE_CARD_GAP)
     L(f'<rect x="{bx}" y="{pb_y}" width="{BASE_CARD_W}" height="{bc_h}" fill="#0a1620" stroke="#c89b3c" stroke-width="1" rx="3" stroke-dasharray="4,2"/>')
-bx = BASE_START_X + 7*(BASE_CARD_W+BASE_CARD_GAP)
-L(f'<rect x="{bx}" y="{pb_y}" width="{BASE_CARD_W}" height="{bc_h}" fill="#0a1028" stroke="#4060a0" stroke-width="1.5" rx="3" stroke-dasharray="3,2"/>')
-L(f'<text x="{bx+BASE_CARD_W//2}" y="{pb_y+bc_h//2+4}" fill="#4060a0" font-size="9" text-anchor="middle" font-family="Arial" opacity="0.8">待命</text>')
 L()
 
 L(f'<!-- PLAYER RUNES y={PR_Y} h={PR_H} -->')
