@@ -23,10 +23,10 @@ MAIN_W   = MAIN_END - MAIN_X   # 1424
 
 HAND_W, HAND_H = 110, int(110 * CARD_RATIO)  # = 154，标准卡牌比例
 HAND_CARD_X = 960 - HAND_W // 2    # 905
-PLAYER_CARD_Y = 908
-PLAYER_PIVOT  = 2050
-ENEMY_CARD_Y  = 18    # 对称：牌底=172=1080-908，与己方镜像
-ENEMY_PIVOT   = -970  # 对称：距牌中心1065px，与己方pivot距离一致
+PLAYER_CARD_Y = 958    # 推向底边：牌底=1112，裁切约32px
+PLAYER_PIVOT  = 2100   # pivot随牌位移，保持扇形展开距离
+ENEMY_CARD_Y  = -32    # 推向顶边：牌顶=-32，裁切约32px（与玩家对称）
+ENEMY_PIVOT   = -1020  # 对称调整
 
 HERO_CARD_W  = 76
 HERO_CARD_H  = int(HERO_CARD_W * CARD_RATIO)  # = 106, 标准比例
@@ -227,11 +227,6 @@ L(f'<text x="1100" y="{BF_Y+16}" fill="#3070a050" font-size="11" font-family="Ar
 
 STDBY_W = 72
 STDBY_H = int(STDBY_W * CARD_RATIO)  # = 100, 标准卡牌比例
-sb_y = BF_CENTER + 18
-for slot_cx in [889, 1031]:
-    L(f'<rect x="{slot_cx-STDBY_W//2}" y="{sb_y}" width="{STDBY_W}" height="{STDBY_H}" fill="#0a0e1c" stroke="#4060a0" stroke-width="1.5" rx="3"/>')
-    L(f'<rect x="{slot_cx-STDBY_W//2+4}" y="{sb_y+4}" width="{STDBY_W-8}" height="{STDBY_H-8}" fill="none" stroke="#4060a060" stroke-width="1" rx="2" stroke-dasharray="3,2"/>')
-    L(f'<text x="{slot_cx}" y="{sb_y+STDBY_H//2+4}" fill="#4060a0" font-size="10" text-anchor="middle" font-family="Arial" font-weight="bold">待命区</text>')
 
 cd_y = BF_CENTER + 4
 L(f'<line x1="56" y1="{cd_y}" x2="830" y2="{cd_y}" stroke="#2a5888" stroke-width="1.5" stroke-dasharray="20,8" opacity="0.7"/>')
@@ -249,6 +244,28 @@ for i in range(8):
     cx = 1106 + i * 92  # 镜像BF[0]：1920-814=1106，待命区(995-1067)在柱子与第一格之间
     L(f'<rect x="{cx}" y="{ec_y}" width="{BF_SLOT_W}" height="{BF_SLOT_H}" fill="#091828" stroke="#3a6090" stroke-width="1" rx="3" stroke-dasharray="4,2"/>')
     L(f'<rect x="{cx}" y="{pc_y}" width="{BF_SLOT_W}" height="{BF_SLOT_H}" fill="#0a1c2c" stroke="#4090b0" stroke-width="1" rx="3" stroke-dasharray="4,2"/>')
+# 内侧竖排区块：[战场牌名]+[横置卡槽]+[待命区] 占满战场全高
+# 横置卡牌：宽=BF_SLOT_H(106), 高=BF_SLOT_W(76)
+LAND_W = BF_SLOT_H   # 106
+LAND_H = BF_SLOT_W   # 76
+GAP = 8  # 横置槽与待命槽间距
+# 两个槽总高，垂直居中于战场
+INNER_TOTAL = LAND_H + GAP + STDBY_H  # 76+8+100=184
+inner_start = BF_Y + (BF_H - INNER_TOTAL) // 2  # 垂直居中
+
+land_y = inner_start          # 横置槽 y
+sb_y   = land_y + LAND_H + GAP  # 待命槽 y
+
+for slot_cx in [889, 1031]:
+    lx = slot_cx - LAND_W // 2
+    sx = slot_cx - STDBY_W // 2
+    # 横置卡槽（文字居中写在槽内）
+    L(f'<rect x="{lx}" y="{land_y}" width="{LAND_W}" height="{LAND_H}" fill="#091828" stroke="#c89b3c" stroke-width="1.5" rx="3" stroke-dasharray="4,2"/>')
+    L(f'<text x="{slot_cx}" y="{land_y + LAND_H//2 + 4}" fill="#c89b3c" font-size="9" text-anchor="middle" font-family="Arial" opacity="0.7">战场牌名</text>')
+    # 待命槽（文字居中写在槽内）
+    L(f'<rect x="{sx}" y="{sb_y}" width="{STDBY_W}" height="{STDBY_H}" fill="#0a0e1c" stroke="#4060a0" stroke-width="1.5" rx="3"/>')
+    L(f'<rect x="{sx+4}" y="{sb_y+4}" width="{STDBY_W-8}" height="{STDBY_H-8}" fill="none" stroke="#4060a060" stroke-width="1" rx="2" stroke-dasharray="3,2"/>')
+    L(f'<text x="{slot_cx}" y="{sb_y + STDBY_H//2 + 4}" fill="#6080c0" font-size="9" text-anchor="middle" font-family="Arial" font-weight="bold">待命区</text>')
 L()
 
 L(f'<rect x="944" y="{BF_Y}" width="32" height="{BF_H}" fill="#030810"/>')
