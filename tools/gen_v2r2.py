@@ -246,7 +246,7 @@ for i in range(8):
     L(f'<rect x="{cx}" y="{ec_y}" width="{BF_SLOT_W}" height="{BF_SLOT_H}" fill="#091828" stroke="#3a6090" stroke-width="1" rx="3" stroke-dasharray="4,2"/>')
     L(f'<rect x="{cx}" y="{pc_y}" width="{BF_SLOT_W}" height="{BF_SLOT_H}" fill="#0a1c2c" stroke="#4090b0" stroke-width="1" rx="3" stroke-dasharray="4,2"/>')
 for i in range(8):
-    cx = 988 + i * 92
+    cx = 1106 + i * 92  # 镜像BF[0]：1920-814=1106，待命区(995-1067)在柱子与第一格之间
     L(f'<rect x="{cx}" y="{ec_y}" width="{BF_SLOT_W}" height="{BF_SLOT_H}" fill="#091828" stroke="#3a6090" stroke-width="1" rx="3" stroke-dasharray="4,2"/>')
     L(f'<rect x="{cx}" y="{pc_y}" width="{BF_SLOT_W}" height="{BF_SLOT_H}" fill="#0a1c2c" stroke="#4090b0" stroke-width="1" rx="3" stroke-dasharray="4,2"/>')
 L()
