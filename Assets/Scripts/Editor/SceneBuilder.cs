@@ -212,24 +212,25 @@ namespace FWTCG.Editor
             var topBar = CreateTopBar(canvasGO.transform,
                 out var enemyRuneInfoText, out var enemyDeckInfoText);
 
-            // ── Enemy hand (Pencil: x=644-1276, y=242-402 — actual enemy hand label area) ──
+            // ── Enemy hand (Pencil: cards at y=-48 to y=106, peek from top edge)
+            // Unity anchor: yMin=0.902(=1-106/1080), yMax=1.0 — cards overflow top, fan visible
             var enemyHandZone = new GameObject("EnemyHandZone");
             enemyHandZone.transform.SetParent(canvasGO.transform, false);
             {
                 var ehRT = enemyHandZone.AddComponent<RectTransform>();
-                ehRT.anchorMin = new Vector2(644f/1920f, 1f-402f/1080f);
-                ehRT.anchorMax = new Vector2(1276f/1920f, 1f-242f/1080f);
+                ehRT.anchorMin = new Vector2(524f/1920f, 1f-140f/1080f); // wider & lower so cards show
+                ehRT.anchorMax = new Vector2(1396f/1920f, 1.04f);        // slightly above canvas top
                 ehRT.offsetMin = Vector2.zero;
                 ehRT.offsetMax = Vector2.zero;
 
                 var ehHLG = enemyHandZone.AddComponent<HorizontalLayoutGroup>();
                 ehHLG.childControlWidth = false;
-                ehHLG.childControlHeight = true;
+                ehHLG.childControlHeight = false;
                 ehHLG.childForceExpandWidth = false;
-                ehHLG.childForceExpandHeight = true;
-                ehHLG.childAlignment = TextAnchor.MiddleCenter;
-                ehHLG.spacing = 4f;
-                ehHLG.padding = new RectOffset(10, 10, 4, 4);
+                ehHLG.childForceExpandHeight = false;
+                ehHLG.childAlignment = TextAnchor.LowerCenter;
+                ehHLG.spacing = -20f;  // overlap cards like a fan
+                ehHLG.padding = new RectOffset(0, 0, 0, 0);
             }
 
             // ── BoardWrapper (main game board, full canvas) ──────────────────
@@ -256,24 +257,25 @@ namespace FWTCG.Editor
                 out var bf1CardArt, out var bf2CardArt,
                 out var bf1Glow, out var bf2Glow);
 
-            // ── Player hand (Pencil: x=644-1276, y=666-826 — actual hand cards narrow center strip) ──
+            // ── Player hand (Pencil: cards at y=952 to y=1106, peek from bottom edge)
+            // Unity anchor: yMin=0, yMax=0.12(=1-952/1080) — cards overflow bottom, fan visible
             var playerHandZone = new GameObject("PlayerHandZone");
             playerHandZone.transform.SetParent(canvasGO.transform, false);
             {
                 var phRT = playerHandZone.AddComponent<RectTransform>();
-                phRT.anchorMin = new Vector2(644f/1920f, 1f-826f/1080f);
-                phRT.anchorMax = new Vector2(1276f/1920f, 1f-666f/1080f);
+                phRT.anchorMin = new Vector2(524f/1920f, -0.04f);        // slightly below canvas bottom
+                phRT.anchorMax = new Vector2(1396f/1920f, 1f-913f/1080f); // top of player rune strip
                 phRT.offsetMin = Vector2.zero;
                 phRT.offsetMax = Vector2.zero;
 
                 var phHLG = playerHandZone.AddComponent<HorizontalLayoutGroup>();
                 phHLG.childControlWidth = false;
-                phHLG.childControlHeight = true;
+                phHLG.childControlHeight = false;
                 phHLG.childForceExpandWidth = false;
-                phHLG.childForceExpandHeight = true;
-                phHLG.childAlignment = TextAnchor.MiddleCenter;
-                phHLG.spacing = 4f;
-                phHLG.padding = new RectOffset(10, 10, 6, 4);
+                phHLG.childForceExpandHeight = false;
+                phHLG.childAlignment = TextAnchor.UpperCenter;
+                phHLG.spacing = -20f;  // overlap cards like a fan
+                phHLG.padding = new RectOffset(0, 0, 0, 0);
             }
 
             // ── BottomBar (PlayerInfoStrip + ActionPanel) ─────────────────
@@ -3398,6 +3400,9 @@ namespace FWTCG.Editor
             // No layout — circle fills root
 
             // ── Circular rune image (tap button) ──
+            // Use built-in Knob sprite so mask is truly circular
+            var knobSprite = Resources.GetBuiltinResource<Sprite>("UI/Skin/Knob.psd");
+
             var circleGO = new GameObject("RuneCircle");
             circleGO.transform.SetParent(root.transform, false);
             var circleRT = circleGO.AddComponent<RectTransform>();
@@ -3406,10 +3411,12 @@ namespace FWTCG.Editor
             circleRT.offsetMin = new Vector2(2f, 2f);
             circleRT.offsetMax = new Vector2(-2f, -2f);
 
-            // Circular mask
+            // Circular mask — Knob sprite gives true circle shape
             var mask = circleGO.AddComponent<Mask>();
             mask.showMaskGraphic = true;
             var circleImg = circleGO.AddComponent<Image>();
+            circleImg.sprite = knobSprite;
+            circleImg.type = Image.Type.Simple;
             circleImg.color = new Color(0.4f, 0.6f, 0.3f, 1f); // default green tint, overridden at runtime
 
             // Art image inside circle (filled by runtime based on rune type)
@@ -4477,17 +4484,22 @@ namespace FWTCG.Editor
             hlg.childAlignment = TextAnchor.MiddleCenter;
             hlg.spacing = 6f;
 
+            // Use Knob sprite for true circular shape (matches Pencil ellipse rune slots)
+            var knob = Resources.GetBuiltinResource<Sprite>("UI/Skin/Knob.psd");
             for (int i = 0; i < count; i++)
             {
                 var slot = new GameObject($"RuneSlot{i}");
                 slot.transform.SetParent(row.transform, false);
                 var slotImg = slot.AddComponent<Image>();
-                slotImg.color = new Color(0.565f, 0.439f, 0.125f, 0.25f); // gold dim
+                slotImg.sprite = knob;
+                slotImg.type = Image.Type.Simple;
+                slotImg.color = new Color(0.031f, 0.063f, 0.102f, 1f); // #08101a dark fill (Pencil)
                 var slotOL = slot.AddComponent<Outline>();
-                slotOL.effectColor = new Color(0.565f, 0.439f, 0.125f, 0.5f);
+                slotOL.effectColor = new Color(0.565f, 0.439f, 0.125f, 0.7f); // #907020 gold border
                 slotOL.effectDistance = new Vector2(1f, -1f);
                 var slotLE = slot.AddComponent<LayoutElement>();
-                slotLE.preferredWidth = 24f;
+                slotLE.preferredWidth = 22f; // Pencil: 22×22 ellipse
+                slotLE.preferredHeight = 22f;
             }
         }
 

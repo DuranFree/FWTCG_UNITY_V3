@@ -981,6 +981,38 @@ namespace FWTCG.UI
                             _onCardHoverEnter, _onCardHoverExit, playEnterAnim: true);
             // Enemy hand (face-down — show count only)
             RefreshEnemyHand(_enemyHandContainer, gs.EHand.Count);
+
+            // Apply fan rotation to both hands (Pencil design: cards arc ±14°)
+            ApplyHandFan(_playerHandContainer, isPlayer: true);
+            ApplyHandFan(_enemyHandContainer, isPlayer: false);
+        }
+
+        /// <summary>
+        /// Applies Pencil-style fan rotation to hand cards.
+        /// Player: leftmost card tilts +14° (CCW), rightmost -14° (CW).
+        /// Enemy: mirrored (face-down, so left=-14°, right=+14°).
+        /// Max 14° for 7 cards; scales linearly for fewer cards.
+        /// </summary>
+        private static void ApplyHandFan(Transform container, bool isPlayer)
+        {
+            if (container == null) return;
+            int n = container.childCount;
+            if (n == 0) return;
+
+            // Max angle scales from 0 (1 card) to 14° (7+ cards)
+            float maxAngle = Mathf.Min(14f, 14f * n / 7f);
+
+            for (int i = 0; i < n; i++)
+            {
+                var rt = container.GetChild(i).GetComponent<RectTransform>();
+                if (rt == null) continue;
+
+                // t: -1 (leftmost) to +1 (rightmost)
+                float t = n == 1 ? 0f : (2f * i / (n - 1)) - 1f;
+                // Player: left tilt = positive Z; Enemy: mirrored
+                float zAngle = isPlayer ? -t * maxAngle : t * maxAngle;
+                rt.localEulerAngles = new Vector3(0f, 0f, zAngle);
+            }
         }
 
 

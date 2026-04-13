@@ -11,12 +11,13 @@ namespace FWTCG.UI
     {
         public enum CardBackVariant
         {
-            Default = 0,   // card_back_01 (geometric overlay — current fallback)
-            Back01  = 1,   // card_back_01.png sprite
+            Default   = 0,   // geometric overlay fallback
+            Back01    = 1,   // card_back_01.png (original)
+            BackPencil = 2,  // card_back_pencil.png (Pencil design — default)
         }
 
         private const string PREF_KEY = "FWTCG_CardBack";
-        private static CardBackVariant _current = CardBackVariant.Back01;
+        private static CardBackVariant _current = CardBackVariant.BackPencil;
         private static bool _loaded;
         private static Sprite _cachedSprite;
 
@@ -49,7 +50,8 @@ namespace FWTCG.UI
 
             string path = _current switch
             {
-                CardBackVariant.Back01 => "CardArt/card_back_01",
+                CardBackVariant.Back01    => "CardArt/card_back_01",
+                CardBackVariant.BackPencil => "UI/Generated/card_back_pencil",
                 _ => null
             };
 
@@ -62,8 +64,8 @@ namespace FWTCG.UI
         private static void Load()
         {
             _loaded = true;
-            // Always use Back01 sprite — ignore PlayerPrefs legacy value
-            _current = CardBackVariant.Back01;
+            // Always use Pencil card back — ignore PlayerPrefs legacy value
+            _current = CardBackVariant.BackPencil;
         }
 
         /// <summary>Test hook: reset cached state to Default variant.</summary>
