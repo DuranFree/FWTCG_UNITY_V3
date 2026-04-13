@@ -134,6 +134,7 @@ namespace FWTCG.UI
         [SerializeField] private Image _timerFill;
         [SerializeField] private Text _timerText;
         [SerializeField] private GameObject _timerDisplay;
+        [SerializeField] private CountdownRingUI _countdownRingUI;
         private Tween _timerTween;
         private Tween _timerPulseTween; // VFX-7f
         private int _timerSeconds;
@@ -2107,7 +2108,9 @@ namespace FWTCG.UI
             _onTimerExpired = onExpired;
             _timerSeconds = 30;
 
-            if (_timerDisplay != null) _timerDisplay.SetActive(true);
+            // Old visual display is hidden; countdown ring drives the visual
+            if (_timerDisplay != null) _timerDisplay.SetActive(false);
+            _countdownRingUI?.ResetRing();
             UpdateTimerDisplay();
 
             TweenHelper.KillSafe(ref _timerTween);
@@ -2134,6 +2137,7 @@ namespace FWTCG.UI
             TweenHelper.KillSafe(ref _timerTween);
             TweenHelper.KillSafe(ref _timerPulseTween);
             if (_timerDisplay != null) _timerDisplay.SetActive(false);
+            _countdownRingUI?.ResetRing();
             _onTimerExpired = null;
         }
 
@@ -2143,6 +2147,9 @@ namespace FWTCG.UI
                 _timerText.text = _timerSeconds.ToString();
 
             float pct = _timerSeconds / 30f;
+
+            // Drive the Pencil countdown ring (0=start, 1=expired)
+            _countdownRingUI?.SetProgress(1f - pct);
 
             // Color gradient: green → yellow → red
             Color timerColor;

@@ -44,9 +44,13 @@ namespace FWTCG.Editor
         {
             _font = LoadFont();
 
-            // 0. 保存当前场景（若有未保存修改），防止 NewScene 触发保存弹窗卡住 MCP
+            // 0. 静默保存当前场景，防止 NewScene 触发保存弹窗卡住 MCP
+            // 用 SaveCurrentModifiedScenesIfUserWantsTo=false 等价：直接强制保存，不弹窗
             var active = UnityEngine.SceneManagement.SceneManager.GetActiveScene();
-            if (active.isDirty) EditorSceneManager.SaveScene(active);
+            if (active.isDirty && !string.IsNullOrEmpty(active.path))
+                EditorSceneManager.SaveScene(active);
+            // 若场景没有路径（Untitled），直接丢弃，不弹 SaveAs 对话框
+            // NewSceneMode.Single 会替换掉它
 
             // 1. Create a new empty scene
             var scene = EditorSceneManager.NewScene(NewSceneSetup.EmptyScene, NewSceneMode.Single);
@@ -85,7 +89,8 @@ namespace FWTCG.Editor
                 {
                     bgImg.sprite = bgMenuSpr;
                     bgImg.color = Color.white;
-                    bgImg.preserveAspect = false;
+                    bgImg.type = Image.Type.Simple;
+                    bgImg.preserveAspect = false; // stretch to fill full canvas regardless of source resolution
                 }
                 else
                 {
@@ -120,12 +125,11 @@ namespace FWTCG.Editor
                 img.raycastTarget = false;
             }
 
-            // ── DEV-23: Decorative ambient layer (behind all game UI) ─────────
+            // ── Decorative ambient layer (Pencil: countdown ring 423×423 at center) ──
             var decorLayerGO = new GameObject("DecorLayer");
             decorLayerGO.transform.SetParent(canvasGO.transform, false);
             SceneryUI _scenery;
-            Image _spinOuter, _spinInner, _sigilOuter, _sigilInner, _dividerOrb;
-            Image[] _cornerGems;
+            CountdownRingUI _countdownRingUI;
             {
                 var dlRT = decorLayerGO.AddComponent<RectTransform>();
                 dlRT.anchorMin = Vector2.zero;
@@ -134,68 +138,89 @@ namespace FWTCG.Editor
                 dlRT.offsetMax = Vector2.zero;
                 _scenery = decorLayerGO.AddComponent<SceneryUI>();
 
-                // SVG-gen sprites for decor elements
-                var sigilSpr  = AssetDatabase.LoadAssetAtPath<Sprite>("Assets/Resources/UI/Generated/deco_sigil_ring.png");
-                var orbSpr    = AssetDatabase.LoadAssetAtPath<Sprite>("Assets/Resources/UI/Generated/deco_divider_orb.png");
+                // ── Countdown Ring (Pencil: Thvkj x=747, y=322, 423×423) ─────────
+                // 3 layers: base (time01) + blue fill (time02) + red fill (time03)
+                var ringGO = new GameObject("CountdownRing");
+                ringGO.transform.SetParent(decorLayerGO.transform, false);
+                var ringRT = ringGO.AddComponent<RectTransform>();
+                ringRT.anchorMin = new Vector2(747f/1920f, 1f-(322f+423f)/1080f);
+                ringRT.anchorMax = new Vector2((747f+423f)/1920f, 1f-322f/1080f);
+                ringRT.offsetMin = Vector2.zero;
+                ringRT.offsetMax = Vector2.zero;
 
-                // Center spinning rings (on top of each other at canvas center)
-                _spinOuter  = CreateDecorDisc(decorLayerGO.transform, "SpinOuter",  180f, new Color(GameColors.BlueSpell.r, GameColors.BlueSpell.g, GameColors.BlueSpell.b, 0.12f));
-                if (sigilSpr != null) { _spinOuter.sprite = sigilSpr; _spinOuter.color = new Color(0.4f, 0.7f, 1f, 0.12f); }
-                _spinInner  = CreateDecorDisc(decorLayerGO.transform, "SpinInner",  120f, new Color(GameColors.Teal.r, GameColors.Teal.g, GameColors.Teal.b, 0.10f));
-                if (sigilSpr != null) { _spinInner.sprite = sigilSpr; _spinInner.color = new Color(0.4f, 0.9f, 0.9f, 0.10f); }
+                // Layer 0: base ring — time01 (always visible)
+                var baseGO = new GameObject("RingBase", typeof(RectTransform), typeof(Image));
+                baseGO.transform.SetParent(ringGO.transform, false);
+                StretchRect(baseGO.GetComponent<RectTransform>());
+                var baseImg = baseGO.GetComponent<Image>();
+                var baseSpr = AssetDatabase.LoadAssetAtPath<Sprite>("Assets/Resources/UI/Generated/countdown_empty.png");
+                if (baseSpr != null) { baseImg.sprite = baseSpr; baseImg.color = Color.white; }
+                baseImg.raycastTarget = false;
 
-                // Sigil rotation layers (larger, slower)
-                _sigilOuter = CreateDecorDisc(decorLayerGO.transform, "SigilOuter", 280f, new Color(GameColors.Gold.r, GameColors.Gold.g, GameColors.Gold.b, 0.06f));
-                if (sigilSpr != null) { _sigilOuter.sprite = sigilSpr; _sigilOuter.color = new Color(1f, 0.85f, 0.3f, 0.06f); }
-                _sigilInner = CreateDecorDisc(decorLayerGO.transform, "SigilInner", 190f, new Color(GameColors.GoldLight.r, GameColors.GoldLight.g, GameColors.GoldLight.b, 0.08f));
-                if (sigilSpr != null) { _sigilInner.sprite = sigilSpr; _sigilInner.color = new Color(1f, 0.92f, 0.5f, 0.08f); }
+                // Layer 1: blue fill — time02, Radial360
+                var blueGO = new GameObject("RingBlueFill", typeof(RectTransform), typeof(Image));
+                blueGO.transform.SetParent(ringGO.transform, false);
+                StretchRect(blueGO.GetComponent<RectTransform>());
+                var blueImg = blueGO.GetComponent<Image>();
+                var blueSpr = AssetDatabase.LoadAssetAtPath<Sprite>("Assets/Resources/UI/Generated/countdown_blue.png");
+                if (blueSpr != null) { blueImg.sprite = blueSpr; blueImg.color = Color.white; }
+                blueImg.type = Image.Type.Filled;
+                blueImg.fillMethod = Image.FillMethod.Radial360;
+                blueImg.fillOrigin = (int)Image.Origin360.Top;
+                blueImg.fillClockwise = true;
+                blueImg.fillAmount = 0f;
+                blueImg.raycastTarget = false;
+                blueGO.SetActive(false);
 
-                // Divider energy orb (small glowing disc at canvas center)
-                _dividerOrb = CreateDecorDisc(decorLayerGO.transform, "DividerOrb",  18f, new Color(GameColors.BlueSpell.r, GameColors.BlueSpell.g, GameColors.BlueSpell.b, 0.75f));
-                if (orbSpr != null) { _dividerOrb.sprite = orbSpr; _dividerOrb.color = new Color(0.4f, 0.7f, 1f, 0.85f); }
+                // Layer 2: red fill — time03, Radial360
+                var redGO = new GameObject("RingRedFill", typeof(RectTransform), typeof(Image));
+                redGO.transform.SetParent(ringGO.transform, false);
+                StretchRect(redGO.GetComponent<RectTransform>());
+                var redImg = redGO.GetComponent<Image>();
+                var redSpr = AssetDatabase.LoadAssetAtPath<Sprite>("Assets/Resources/UI/Generated/countdown_red.png");
+                if (redSpr != null) { redImg.sprite = redSpr; redImg.color = Color.white; }
+                redImg.type = Image.Type.Filled;
+                redImg.fillMethod = Image.FillMethod.Radial360;
+                redImg.fillOrigin = (int)Image.Origin360.Top;
+                redImg.fillClockwise = true;
+                redImg.fillAmount = 0f;
+                redImg.raycastTarget = false;
+                redGO.SetActive(false);
 
-                // Corner gems — one per corner of the canvas
-                _cornerGems = new Image[4];
-                float gemSz = 48f;
-                var cornerGemSpr = AssetDatabase.LoadAssetAtPath<Sprite>("Assets/Resources/UI/Generated/deco_corner_gem.png");
-                Vector2[] cAnch = { new Vector2(0,1), new Vector2(1,1), new Vector2(0,0), new Vector2(1,0) };
-                Vector2[] cOff  = { new Vector2(16,-16), new Vector2(-16,-16), new Vector2(16,16), new Vector2(-16,16) };
-                for (int ci = 0; ci < 4; ci++)
-                {
-                    var gemGO = new GameObject($"CornerGem{ci}", typeof(RectTransform), typeof(Image));
-                    gemGO.transform.SetParent(decorLayerGO.transform, false);
-                    var gemRT = gemGO.GetComponent<RectTransform>();
-                    gemRT.anchorMin = cAnch[ci]; gemRT.anchorMax = cAnch[ci];
-                    gemRT.pivot = Vector2.one * 0.5f;
-                    gemRT.anchoredPosition = cOff[ci];
-                    gemRT.sizeDelta = Vector2.one * gemSz;
-                    var gemImg = gemGO.GetComponent<Image>();
-                    if (cornerGemSpr != null) { gemImg.sprite = cornerGemSpr; gemImg.color = new Color(1f, 1f, 1f, SceneryUI.CORNER_GEM_ALPHA_MIN); }
-                    else gemImg.color = new Color(GameColors.Gold.r, GameColors.Gold.g, GameColors.Gold.b, SceneryUI.CORNER_GEM_ALPHA_MIN);
-                    gemImg.raycastTarget = false;
-                    _cornerGems[ci] = gemImg;
-                }
+                _countdownRingUI = ringGO.AddComponent<CountdownRingUI>();
+                _countdownRingUI.baseRing = baseImg;
+                _countdownRingUI.blueFill = blueImg;
+                _countdownRingUI.redFill  = redImg;
+
+                // ── Logo (Pencil: 0c05h group at x=817, y=489, ~282×97) — above ring ──
+                var logoGO = new GameObject("Logo", typeof(RectTransform), typeof(Image));
+                logoGO.transform.SetParent(decorLayerGO.transform, false);
+                var logoRT = logoGO.GetComponent<RectTransform>();
+                logoRT.anchorMin = new Vector2(814f/1920f, 1f-(489f+92f)/1080f);
+                logoRT.anchorMax = new Vector2((814f+270f)/1920f, 1f-489f/1080f);
+                logoRT.offsetMin = Vector2.zero;
+                logoRT.offsetMax = Vector2.zero;
+                var logoImg = logoGO.GetComponent<Image>();
+                var logoSpr = AssetDatabase.LoadAssetAtPath<Sprite>("Assets/Resources/UI/Generated/logo_fwtcg.png");
+                if (logoSpr != null) { logoImg.sprite = logoSpr; logoImg.color = Color.white; }
+                else logoImg.color = Color.clear;
+                logoImg.preserveAspect = true;
+                logoImg.raycastTarget = false;
             }
 
             // ── TopBar / EnemyInfoStrip ──────────────────────────────────────
             var topBar = CreateTopBar(canvasGO.transform,
                 out var enemyRuneInfoText, out var enemyDeckInfoText);
 
-            // ── Enemy hand (below info strip, full width, ~50px) ─────────
+            // ── Enemy hand (Pencil: x=644-1276, y=242-402 — actual enemy hand label area) ──
             var enemyHandZone = new GameObject("EnemyHandZone");
             enemyHandZone.transform.SetParent(canvasGO.transform, false);
             {
                 var ehRT = enemyHandZone.AddComponent<RectTransform>();
-                ehRT.anchorMin = new Vector2(0f, 1f);
-                ehRT.anchorMax = new Vector2(1f, 1f);
-                ehRT.pivot = new Vector2(0.5f, 1f);
-                ehRT.offsetMin = new Vector2(0f, -86f);  // 36 (top bar) + 50
-                ehRT.offsetMax = new Vector2(-200f, -36f);
-
-                // CSS: .hand-zone bg linear-gradient(135deg, rgba(3,14,25,0.85), rgba(1,10,19,0.9))
-                var ehImg = enemyHandZone.AddComponent<Image>();
-                ehImg.color = new Color(2f/255f, 12f/255f, 22f/255f, 0.87f);
-                TryApplySvgSprite(ehImg, "zone_hand", Image.Type.Simple);
+                ehRT.anchorMin = new Vector2(644f/1920f, 1f-402f/1080f);
+                ehRT.anchorMax = new Vector2(1276f/1920f, 1f-242f/1080f);
+                ehRT.offsetMin = Vector2.zero;
+                ehRT.offsetMax = Vector2.zero;
 
                 var ehHLG = enemyHandZone.AddComponent<HorizontalLayoutGroup>();
                 ehHLG.childControlWidth = false;
@@ -203,19 +228,19 @@ namespace FWTCG.Editor
                 ehHLG.childForceExpandWidth = false;
                 ehHLG.childForceExpandHeight = true;
                 ehHLG.childAlignment = TextAnchor.MiddleCenter;
-                ehHLG.spacing = 4f; // CSS: gap 4px
-                ehHLG.padding = new RectOffset(10, 10, 4, 4); // CSS: padding 6px 10px
+                ehHLG.spacing = 4f;
+                ehHLG.padding = new RectOffset(10, 10, 4, 4);
             }
 
-            // ── BoardWrapper (main game board) ──────────────────────────────
+            // ── BoardWrapper (main game board, full canvas) ──────────────────
             var boardWrapper = new GameObject("BoardWrapperOuter");
             boardWrapper.transform.SetParent(canvasGO.transform, false);
             {
                 var bwRT = boardWrapper.AddComponent<RectTransform>();
-                bwRT.anchorMin = new Vector2(0f, 0f);
-                bwRT.anchorMax = new Vector2(1f, 1f);
-                bwRT.offsetMin = new Vector2(0f, 200f);   // above bottom (player hand 120 + bottom bar 80)
-                bwRT.offsetMax = new Vector2(-200f, -86f); // below enemy hand
+                bwRT.anchorMin = Vector2.zero;
+                bwRT.anchorMax = Vector2.one;
+                bwRT.offsetMin = Vector2.zero;
+                bwRT.offsetMax = Vector2.zero;
             }
             var mainArea = CreateBoardWrapper(boardWrapper.transform,
                 out var playerScoreCircleImages, out var enemyScoreCircleImages,
@@ -231,24 +256,15 @@ namespace FWTCG.Editor
                 out var bf1CardArt, out var bf2CardArt,
                 out var bf1Glow, out var bf2Glow);
 
-            // ── Player hand (below board, full width, ~120px) ────────────
+            // ── Player hand (Pencil: x=644-1276, y=666-826 — actual hand cards narrow center strip) ──
             var playerHandZone = new GameObject("PlayerHandZone");
             playerHandZone.transform.SetParent(canvasGO.transform, false);
             {
                 var phRT = playerHandZone.AddComponent<RectTransform>();
-                phRT.anchorMin = new Vector2(0f, 0f);
-                phRT.anchorMax = new Vector2(1f, 0f);
-                phRT.pivot = new Vector2(0.5f, 0f);
-                phRT.offsetMin = new Vector2(0f, 80f);    // above bottom bar
-                phRT.offsetMax = new Vector2(-200f, 200f); // 80 + 120
-
-                // CSS: .hand-zone bg + border
-                var phImg = playerHandZone.AddComponent<Image>();
-                phImg.color = new Color(2f/255f, 12f/255f, 22f/255f, 0.87f);
-                TryApplySvgSprite(phImg, "zone_hand", Image.Type.Simple);
-                var phOutline = playerHandZone.AddComponent<Outline>();
-                phOutline.effectColor = new Color(200f/255f, 170f/255f, 110f/255f, 0.2f);
-                phOutline.effectDistance = new Vector2(1f, -1f);
+                phRT.anchorMin = new Vector2(644f/1920f, 1f-826f/1080f);
+                phRT.anchorMax = new Vector2(1276f/1920f, 1f-666f/1080f);
+                phRT.offsetMin = Vector2.zero;
+                phRT.offsetMax = Vector2.zero;
 
                 var phHLG = playerHandZone.AddComponent<HorizontalLayoutGroup>();
                 phHLG.childControlWidth = false;
@@ -256,8 +272,8 @@ namespace FWTCG.Editor
                 phHLG.childForceExpandWidth = false;
                 phHLG.childForceExpandHeight = true;
                 phHLG.childAlignment = TextAnchor.MiddleCenter;
-                phHLG.spacing = 4f; // CSS: gap 4px
-                phHLG.padding = new RectOffset(10, 10, 6, 4); // CSS: padding 6px 10px
+                phHLG.spacing = 4f;
+                phHLG.padding = new RectOffset(10, 10, 6, 4);
             }
 
             // ── BottomBar (PlayerInfoStrip + ActionPanel) ─────────────────
@@ -270,6 +286,7 @@ namespace FWTCG.Editor
 
             // ── MessagePanel ──────────────────────────────────────────────────
             var messagePanel = CreateMessagePanel(canvasGO.transform, out var messageText);
+            messagePanel.SetActive(false); // Pencil 中无此区域
 
             // ── GameOverPanel ─────────────────────────────────────────────────
             var gameOverPanel = CreateGameOverPanel(canvasGO.transform,
@@ -341,6 +358,7 @@ namespace FWTCG.Editor
                 logToggleText.alignment = TextAnchor.MiddleCenter;
                 if (_font != null) logToggleText.font = _font;
             }
+            logToggleGO.SetActive(false); // Pencil 中无此区域
             var logToggleBtn = logToggleGO.GetComponent<Button>();
             var logToggleTxt = logToggleGO.GetComponentInChildren<Text>();
 
@@ -402,36 +420,78 @@ namespace FWTCG.Editor
             var bf2LabelText    = bf2Label != null ? bf2Label.GetComponent<Text>() : null;
             var bf2PlayerUnits  = bf2Panel.Find("BF2PlayerUnits");
 
+            // ── Pencil: BF Field Card & Standby zones (center gap, Canvas-absolute) ──
+            // BF0FieldCard: Pencil x=679,y=436,w=106,h=76
+            var bf0FieldCard = CreateAnchoredZone(mainArea.transform, "BF0FieldCard",
+                679f/1920f, 785f/1920f, 1f-512f/1080f, 1f-436f/1080f);
+            {
+                var img = bf0FieldCard.AddComponent<Image>();
+                img.color = new Color(0.031f, 0.063f, 0.102f, 0.9f); // #08101a
+                var ol = bf0FieldCard.AddComponent<Outline>();
+                ol.effectColor = new Color(0.565f, 0.439f, 0.125f, 1f); // #907020
+                ol.effectDistance = new Vector2(1f, -1f);
+                CreateTwoLineLabel(bf0FieldCard.transform, "战场牌名", "FIELD CARD");
+            }
+
+            // BF0Standby: Pencil x=696,y=546,w=72,h=100
+            var bf0Standby = CreateAnchoredZone(mainArea.transform, "BF0Standby",
+                696f/1920f, 768f/1920f, 1f-646f/1080f, 1f-546f/1080f);
+            {
+                var img = bf0Standby.AddComponent<Image>();
+                img.color = new Color(0.031f, 0.063f, 0.102f, 0.9f);
+                var ol = bf0Standby.AddComponent<Outline>();
+                ol.effectColor = new Color(0.565f, 0.439f, 0.125f, 1f);
+                ol.effectDistance = new Vector2(1f, -1f);
+                CreateTwoLineLabel(bf0Standby.transform, "待命区", "STANDBY");
+            }
+
+            // BF1FieldCard: Pencil x=1135,y=436,w=106,h=76
+            var bf1FieldCard = CreateAnchoredZone(mainArea.transform, "BF1FieldCard",
+                1135f/1920f, 1241f/1920f, 1f-512f/1080f, 1f-436f/1080f);
+            {
+                var img = bf1FieldCard.AddComponent<Image>();
+                img.color = new Color(0.031f, 0.063f, 0.102f, 0.9f);
+                var ol = bf1FieldCard.AddComponent<Outline>();
+                ol.effectColor = new Color(0.565f, 0.439f, 0.125f, 1f);
+                ol.effectDistance = new Vector2(1f, -1f);
+                CreateTwoLineLabel(bf1FieldCard.transform, "战场牌名", "FIELD CARD");
+            }
+
+            // BF1Standby: Pencil x=1152,y=546,w=72,h=100
+            var bf1Standby = CreateAnchoredZone(mainArea.transform, "BF1Standby",
+                1152f/1920f, 1224f/1920f, 1f-646f/1080f, 1f-546f/1080f);
+            {
+                var img = bf1Standby.AddComponent<Image>();
+                img.color = new Color(0.031f, 0.063f, 0.102f, 0.9f);
+                var ol = bf1Standby.AddComponent<Outline>();
+                ol.effectColor = new Color(0.565f, 0.439f, 0.125f, 1f);
+                ol.effectDistance = new Vector2(1f, -1f);
+                CreateTwoLineLabel(bf1Standby.transform, "待命区", "STANDBY");
+            }
+
             // Hand zones (outside board)
             var enemyHand       = enemyHandZone.transform;
             var playerHand      = playerHandZone.transform;
 
             // ── DEV-10: Zone labels + borders ──────────────────────────────────
-            AddZoneLabel(playerBase, "BASE");
-            AddZoneLabel(enemyBase, "BASE");
-            AddZoneLabel(playerRunes, "RUNES");
-            AddZoneLabel(enemyRunes, "RUNES");
-            AddZoneLabel(playerHeroContainer, "HERO");
-            AddZoneLabel(enemyHeroContainer, "HERO");
+            // Note: playerBase, enemyBase, playerRunes, enemyRunes removed (Pencil layout)
+            if (playerHeroContainer != null) AddZoneLabel(playerHeroContainer, "HERO");
+            if (enemyHeroContainer != null) AddZoneLabel(enemyHeroContainer, "HERO");
 
             // Legend zones
             var pLegendZone = mainArea.transform.Find("PlayerLegendZone");
             var eLegendZone = mainArea.transform.Find("EnemyLegendZone");
-            AddZoneLabel(pLegendZone, "LEGEND");
-            AddZoneLabel(eLegendZone, "LEGEND");
+            if (pLegendZone != null) AddZoneLabel(pLegendZone, "LEGEND");
+            if (eLegendZone != null) AddZoneLabel(eLegendZone, "LEGEND");
 
-            // Discard/Exile zone labels
-            var pDiscardExile = mainArea.transform.Find("PlayerDiscardExile");
-            var eDiscardExile = mainArea.transform.Find("EnemyDiscardExile");
-            AddZoneLabel(pDiscardExile, "TRASH/EXILE");
-            AddZoneLabel(eDiscardExile, "TRASH/EXILE");
+            // Discard/Exile zone labels (now separate piles)
+            var pDiscardExile = mainArea.transform.Find("PlayerDiscardPile");
+            var eDiscardExile = mainArea.transform.Find("EnemyDiscardPile");
+            if (pDiscardExile != null) AddZoneLabel(pDiscardExile, "DISCARD");
+            if (eDiscardExile != null) AddZoneLabel(eDiscardExile, "DISCARD");
 
             // Borders on all zones
             Color borderColor = GameColors.GoldDark;
-            AddZoneBorder(playerBase, borderColor);
-            AddZoneBorder(enemyBase, borderColor);
-            AddZoneBorder(playerRunes, borderColor);
-            AddZoneBorder(enemyRunes, borderColor);
             if (playerHeroContainer != null) AddZoneBorder(playerHeroContainer.parent, borderColor);
             if (enemyHeroContainer != null) AddZoneBorder(enemyHeroContainer.parent, borderColor);
             if (pLegendZone != null) AddZoneBorder(pLegendZone, borderColor);
@@ -441,12 +501,12 @@ namespace FWTCG.Editor
             Image _playerLegendGlow = null;
             Image _enemyLegendGlow  = null;
 
-            _scenery.spinOuter        = _spinOuter;
-            _scenery.spinInner        = _spinInner;
-            _scenery.sigilOuter       = _sigilOuter;
-            _scenery.sigilInner       = _sigilInner;
-            _scenery.dividerOrb       = _dividerOrb;
-            _scenery.cornerGems       = _cornerGems;
+            _scenery.spinOuter        = null;
+            _scenery.spinInner        = null;
+            _scenery.sigilOuter       = null;
+            _scenery.sigilInner       = null;
+            _scenery.dividerOrb       = null;
+            _scenery.cornerGems       = null;
             _scenery.playerLegendGlow = _playerLegendGlow;
             _scenery.enemyLegendGlow  = _enemyLegendGlow;
 
@@ -471,6 +531,7 @@ namespace FWTCG.Editor
                 out var debugUnitBtn, out var debugReactiveBtn, out var debugManaBtn,
                 out var debugSchBtn, out var debugFloatBtn,
                 out var debugDmgInput, out var debugTakeHitBtn, out var debugDealHitBtn);
+            debugPanel.SetActive(false); // Pencil 中无此区域
 
             // ── Reactive Window Panel ─────────────────────────────────────────
             var reactivePanel = CreateReactiveWindowPanel(canvasGO.transform,
@@ -568,7 +629,8 @@ namespace FWTCG.Editor
                 playerHandZone.GetComponent<RectTransform>(),
                 enemyHandZone.GetComponent<RectTransform>(),
                 // DEV-18 additions
-                bf1Glow, bf2Glow, bf1CardArt, bf2CardArt, boardFlashImg);
+                bf1Glow, bf2Glow, bf1CardArt, bf2CardArt, boardFlashImg,
+                _countdownRingUI);
 
             WireGameManager(gameMgr, turnMgr, combatSys, scoreMgr, simpleAI, gameUI,
                             entryEffects, deathwish, spellSys, reactiveSys,
@@ -815,10 +877,7 @@ namespace FWTCG.Editor
             rt.offsetMin = new Vector2(0f, -36f);
             rt.offsetMax = new Vector2(0f, 0f);
 
-            var img = go.AddComponent<Image>();
-            img.color = GameColors.InfoStripBg;
-            TryApplySvgSprite(img, "ui_phase_round");
-
+            // Pencil has no top bar — make background transparent, keep text refs for game logic
             var hlg = go.AddComponent<HorizontalLayoutGroup>();
             hlg.childControlWidth = true;
             hlg.childControlHeight = true;
@@ -827,11 +886,13 @@ namespace FWTCG.Editor
             hlg.padding = new RectOffset(10, 10, 2, 2);
             hlg.spacing = 10f;
 
-            CreateTMPText(go.transform, "EnemyScore", "AI: 0/8", GameColors.EnemyRed, 16, TextAnchor.MiddleLeft);
-            CreateTMPText(go.transform, "RoundInfo", "回合 1 · 你的回合", GameColors.GoldLight, 16, TextAnchor.MiddleCenter);
-            enemyRuneInfoText = CreateTMPText(go.transform, "EnemyRuneInfo", "符文:0/12", GameColors.GoldDark, 14, TextAnchor.MiddleRight);
-            enemyDeckInfoText = CreateTMPText(go.transform, "EnemyDeckInfo", "牌库:0", GameColors.GoldDark, 14, TextAnchor.MiddleRight);
-            CreateTMPText(go.transform, "PlayerScore", "玩家: 0/8", GameColors.PlayerGreen, 16, TextAnchor.MiddleRight);
+            var eScore = CreateTMPText(go.transform, "EnemyScore", "AI: 0/8", GameColors.EnemyRed, 13, TextAnchor.MiddleLeft);
+            eScore.color = new Color(1f, 0.3f, 0.3f, 0.75f);
+            CreateTMPText(go.transform, "RoundInfo", "回合 1", GameColors.GoldLight, 13, TextAnchor.MiddleCenter);
+            enemyRuneInfoText = CreateTMPText(go.transform, "EnemyRuneInfo", "", GameColors.GoldDark, 12, TextAnchor.MiddleRight);
+            enemyDeckInfoText = CreateTMPText(go.transform, "EnemyDeckInfo", "", GameColors.GoldDark, 12, TextAnchor.MiddleRight);
+            var pScore = CreateTMPText(go.transform, "PlayerScore", "玩家: 0/8", GameColors.PlayerGreen, 13, TextAnchor.MiddleRight);
+            pScore.color = new Color(0.3f, 1f, 0.5f, 0.75f);
 
             return go;
         }
@@ -886,81 +947,172 @@ namespace FWTCG.Editor
             // SCORES: C1 R3-5 = Player | C7 R1-3 = Enemy
             // ════════════════════════════════════════════════════════════
 
-            // ── Score tracks ──
+            // ── Score tracks (Pencil: left x=47 w=22, y=446-820; right x=1854 w=22, y=260-634) ──
+            // Pencil: Player circles at x=47, y=446-798 (9×44px spacing), bottom=820
             playerScoreCircleImages = new Image[9];
             CreateScoreTrack(go.transform, "PlayerScoreTrack", true,
-                0.00f, 0.045f, 0.00f, 0.75f, playerScoreCircleImages);
+                47f/1920f, 69f/1920f, 1f-820f/1080f, 1f-446f/1080f, playerScoreCircleImages);
 
+            // Pencil: Enemy circles at x=1854, y=260-612 (9×44px spacing), bottom=634
             enemyScoreCircleImages = new Image[9];
             CreateScoreTrack(go.transform, "EnemyScoreTrack", false,
-                0.955f, 1.00f, 0.25f, 1.00f, enemyScoreCircleImages);
+                1854f/1920f, 1876f/1920f, 1f-634f/1080f, 1f-260f/1080f, enemyScoreCircleImages);
 
-            // ── ENEMY SIDE (top) ──
+            // ── ENEMY SIDE (top) — Pencil: 传说E(391,-48,118×154), 英雄E(262,-48,118×154) ──
             var enemyLegendZone = CreatePlayerLegendZone(go.transform, "EnemyLegendZone",
-                false, 0.075f, 0.145f, 0.75f, 1.00f,
+                false, 391f/1920f, 509f/1920f, 1f-106f/1080f, 1f+48f/1080f,
                 out enemyLegendText, out _);
 
             CreateHeroZone(go.transform, "EnemyHeroZone",
-                0.205f, 0.275f, 0.75f, 1.00f, out enemyHeroContainer);
+                262f/1920f, 380f/1920f, 1f-106f/1080f, 1f+48f/1080f, out enemyHeroContainer);
 
-            CreateHorizontalZoneAnchored(go.transform, "EnemyBase",
-                0.305f, 0.695f, 0.87f, 1.00f);
-
-            CreateDiscardExileZone(go.transform, "Enemy",
-                0.695f, 0.955f, 0.87f, 1.00f,
-                out enemyDiscardCount, out enemyExileCount);
-
-            CreateHorizontalZoneAnchored(go.transform, "EnemyRunes",
-                0.305f, 0.695f, 0.75f, 0.87f);
-
+            // ── ENEMY DECK PILES (Pencil positions) ──
+            // 符文堆E (left top): 92,73,138×195
             CreateDeckPile(go.transform, "EnemyRunePile", "符文堆",
-                0.695f, 0.825f, 0.75f, 0.87f, out enemyRunePileCount);
+                92f/1920f, 230f/1920f, 1f-268f/1080f, 1f-73f/1080f, out enemyRunePileCount);
 
+            // 弃牌E (right top): 1689,73,139×195
+            CreateDeckPile(go.transform, "EnemyDiscardPile", "弃牌",
+                1689f/1920f, 1828f/1920f, 1f-268f/1080f, 1f-73f/1080f, out enemyDiscardCount);
+
+            // 主牌堆E (right 2nd): 1689,274,139×195
             CreateDeckPile(go.transform, "EnemyMainPile", "主牌堆",
-                0.825f, 0.955f, 0.75f, 0.87f, out enemyDeckCount);
+                1689f/1920f, 1828f/1920f, 1f-469f/1080f, 1f-274f/1080f, out enemyDeckCount);
 
-            // ── PLAYER SIDE (bottom) — diagonal mirror ──
-            // CSS: #p-main-pile { grid-column: 2; grid-row: 5; }
-            CreateDeckPile(go.transform, "PlayerMainPile", "主牌堆",
-                0.045f, 0.175f, 0.00f, 0.12f, out playerDeckCount);
+            // 放逐区E (left 2nd): 92,274,139×195
+            CreateDeckPile(go.transform, "EnemyExilePile", "放逐区",
+                92f/1920f, 231f/1920f, 1f-469f/1080f, 1f-274f/1080f, out enemyExileCount);
 
-            // CSS: #p-rune-pile { grid-column: 3; grid-row: 5; }
-            CreateDeckPile(go.transform, "PlayerRunePile", "符文堆",
-                0.175f, 0.305f, 0.00f, 0.12f, out playerRunePileCount);
-
-            // CSS: #pdiscard-exile-wrap { grid-column: 2/4; grid-row: 4; }
-            CreateDiscardExileZone(go.transform, "Player",
-                0.045f, 0.305f, 0.12f, 0.25f,
-                out playerDiscardCount, out playerExileCount);
-
-            CreateHorizontalZoneAnchored(go.transform, "PlayerRunes",
-                0.305f, 0.695f, 0.13f, 0.25f);
-
-            CreateHorizontalZoneAnchored(go.transform, "PlayerBase",
-                0.305f, 0.695f, 0.00f, 0.13f);
-
+            // ── PLAYER SIDE (bottom) — Pencil: 英雄P(262,974,118×154), 传说P(391,974,118×154) ──
             CreateHeroZone(go.transform, "PlayerHeroZone",
-                0.725f, 0.795f, 0.00f, 0.25f, out playerHeroContainer);
+                262f/1920f, 380f/1920f, 1f-1128f/1080f, 1f-974f/1080f, out playerHeroContainer);
 
             var playerLegendZone = CreatePlayerLegendZone(go.transform, "PlayerLegendZone",
-                true, 0.855f, 0.925f, 0.00f, 0.25f,
+                true, 391f/1920f, 509f/1920f, 1f-1128f/1080f, 1f-974f/1080f,
                 out playerLegendText, out legendSkillBtn);
 
-            // ── Battlefields: col 2-6, row 3 (center) ──
-            var bfArea = CreateAnchoredZone(go.transform, "BattlefieldsArea",
-                0.045f, 0.955f, 0.25f, 0.75f);
-            {
-                var hlg = bfArea.AddComponent<HorizontalLayoutGroup>();
-                hlg.childControlWidth = true;
-                hlg.childControlHeight = true;
-                hlg.childForceExpandWidth = true;
-                hlg.childForceExpandHeight = true;
-                hlg.spacing = 5f;
+            // ── PLAYER DECK PILES (Pencil positions) ──
+            // 主牌堆P (right 3rd): 1689,616,139×195
+            CreateDeckPile(go.transform, "PlayerMainPile", "主牌堆",
+                1689f/1920f, 1828f/1920f, 1f-811f/1080f, 1f-616f/1080f, out playerDeckCount);
 
+            // 符文堆P (left bottom): 92,820,138×195
+            CreateDeckPile(go.transform, "PlayerRunePile", "符文堆",
+                92f/1920f, 230f/1920f, 1f-1015f/1080f, 1f-820f/1080f, out playerRunePileCount);
+
+            // 弃牌P (right bottom): 1689,820,139×195
+            CreateDeckPile(go.transform, "PlayerDiscardPile", "弃牌",
+                1689f/1920f, 1828f/1920f, 1f-1015f/1080f, 1f-820f/1080f, out playerDiscardCount);
+
+            // 放逐区P (left 3rd): 92,616,139×195
+            CreateDeckPile(go.transform, "PlayerExilePile", "放逐区",
+                92f/1920f, 231f/1920f, 1f-811f/1080f, 1f-616f/1080f, out playerExileCount);
+
+            // ── Pencil: EnemyRunes 条带 (y=155-240, x=248-1672) ────────────────
+            var enemyRunesZone = CreateAnchoredZone(go.transform, "EnemyRunes",
+                248f/1920f, 1672f/1920f, 1f-240f/1080f, 1f-155f/1080f);
+            {
+                var img = enemyRunesZone.AddComponent<Image>();
+                img.color = new Color(0.02f, 0.06f, 0.10f, 0.75f); // #041328 semi
+                // RUNES 左标签 (Pencil: "RUNES  符文区", 11pt bold, #c7ae87)
+                var lbl = new GameObject("RunesLabel");
+                lbl.transform.SetParent(enemyRunesZone.transform, false);
+                var lblTxt = lbl.AddComponent<Text>();
+                lblTxt.text = "RUNES  符文区";
+                lblTxt.color = GameColors.GoldMid;
+                lblTxt.fontSize = 11; lblTxt.fontStyle = FontStyle.Bold;
+                lblTxt.alignment = TextAnchor.MiddleLeft;
+                lblTxt.raycastTarget = false;
+                if (_font != null) lblTxt.font = _font;
+                var lblRT = lbl.GetComponent<RectTransform>();
+                if (lblRT != null) { lblRT.anchorMin = new Vector2(0f, 0f); lblRT.anchorMax = new Vector2(0.1f, 1f); lblRT.offsetMin = new Vector2(4f, 0f); lblRT.offsetMax = Vector2.zero; }
+                // 圆形符文槽 (12个，均匀分布在中间)
+                CreateRuneSlotRow(enemyRunesZone.transform, 12, false);
+            }
+
+            // ── Pencil: EnemyBase 区域 (y=242-402, x=248-1672) ───────────────
+            var enemyBaseZone = CreateAnchoredZone(go.transform, "EnemyBase",
+                248f/1920f, 1672f/1920f, 1f-402f/1080f, 1f-242f/1080f);
+            {
+                var img = enemyBaseZone.AddComponent<Image>();
+                img.color = new Color(0.02f, 0.06f, 0.10f, 0.55f);
+                // BASE 左标签 (Pencil: "BASE  基地", 11pt bold, #c7ae87)
+                var lbl = new GameObject("BaseLabel");
+                lbl.transform.SetParent(enemyBaseZone.transform, false);
+                var lblTxt = lbl.AddComponent<Text>();
+                lblTxt.text = "BASE  基地";
+                lblTxt.color = GameColors.GoldMid;
+                lblTxt.fontSize = 11; lblTxt.fontStyle = FontStyle.Bold;
+                lblTxt.alignment = TextAnchor.UpperLeft;
+                lblTxt.raycastTarget = false;
+                if (_font != null) lblTxt.font = _font;
+                var lblRT = lbl.GetComponent<RectTransform>();
+                if (lblRT != null) { lblRT.anchorMin = new Vector2(0f, 0.8f); lblRT.anchorMax = new Vector2(0.1f, 1f); lblRT.offsetMin = new Vector2(4f, 0f); lblRT.offsetMax = Vector2.zero; }
+                // 4个卡槽列（左侧 x=248-644，不覆盖手牌区 x=644-1276，右侧 x=1276-1672）
+                CreateBaseCardSlots(enemyBaseZone.transform, true);
+            }
+
+            // ── Pencil: PlayerBase 区域 (y=666-826, x=248-1672) ──────────────
+            var playerBaseZone = CreateAnchoredZone(go.transform, "PlayerBase",
+                248f/1920f, 1672f/1920f, 1f-826f/1080f, 1f-666f/1080f);
+            {
+                var img = playerBaseZone.AddComponent<Image>();
+                img.color = new Color(0.02f, 0.06f, 0.10f, 0.55f);
+                var lbl = new GameObject("BaseLabel");
+                lbl.transform.SetParent(playerBaseZone.transform, false);
+                var lblTxt = lbl.AddComponent<Text>();
+                lblTxt.text = "BASE  基地";
+                lblTxt.color = GameColors.GoldMid;
+                lblTxt.fontSize = 11; lblTxt.fontStyle = FontStyle.Bold;
+                lblTxt.alignment = TextAnchor.LowerLeft;
+                lblTxt.raycastTarget = false;
+                if (_font != null) lblTxt.font = _font;
+                var lblRT = lbl.GetComponent<RectTransform>();
+                if (lblRT != null) { lblRT.anchorMin = new Vector2(0f, 0f); lblRT.anchorMax = new Vector2(0.1f, 0.2f); lblRT.offsetMin = new Vector2(4f, 0f); lblRT.offsetMax = Vector2.zero; }
+                CreateBaseCardSlots(playerBaseZone.transform, false);
+            }
+
+            // ── Pencil: PlayerRunes 条带 (y=828-913, x=248-1672) ─────────────
+            var playerRunesZone = CreateAnchoredZone(go.transform, "PlayerRunes",
+                248f/1920f, 1672f/1920f, 1f-913f/1080f, 1f-828f/1080f);
+            {
+                var img = playerRunesZone.AddComponent<Image>();
+                img.color = new Color(0.016f, 0.047f, 0.078f, 0.5f);
+                var lbl = new GameObject("RunesLabel");
+                lbl.transform.SetParent(playerRunesZone.transform, false);
+                var lblTxt = lbl.AddComponent<Text>();
+                lblTxt.text = "RUNES  符文区";
+                lblTxt.color = GameColors.GoldMid;
+                lblTxt.fontSize = 11; lblTxt.fontStyle = FontStyle.Bold;
+                lblTxt.alignment = TextAnchor.MiddleLeft;
+                lblTxt.raycastTarget = false;
+                if (_font != null) lblTxt.font = _font;
+                var lblRT = lbl.GetComponent<RectTransform>();
+                if (lblRT != null) { lblRT.anchorMin = new Vector2(0f, 0f); lblRT.anchorMax = new Vector2(0.1f, 1f); lblRT.offsetMin = new Vector2(4f, 0f); lblRT.offsetMax = Vector2.zero; }
+                CreateRuneSlotRow(playerRunesZone.transform, 12, true);
+            }
+
+            // ── Battlefields (Pencil: BF0 x=280-632, BF1 x=1288-1640, y=416-652) ──
+            // Pencil: BF0 x=280-632, BF1 x=1288-1640, gap=656px in center for ring visibility
+            // BattlefieldsArea spans x=280-1640 (total 1360px). Each panel uses absolute anchors.
+            var bfArea = CreateAnchoredZone(go.transform, "BattlefieldsArea",
+                280f/1920f, 1640f/1920f, 1f-652f/1080f, 1f-416f/1080f);
+            {
+                // BF1Panel = left (Pencil BF0: x=280-632, relative xMin=0, xMax=352/1360)
                 CreateBattlefieldPanel(bfArea.transform, "BF1Panel", "BF1EnemyUnits", "战场1", "BF1Label", "BF1PlayerUnits",
                     out bf1CtrlBadge, out bf1CtrlBadgeText, out bf1CardArt, out bf1Glow);
+                var bf1RT = bfArea.transform.Find("BF1Panel").GetComponent<RectTransform>();
+                bf1RT.anchorMin = new Vector2(0f, 0f);
+                bf1RT.anchorMax = new Vector2(352f/1360f, 1f);
+                bf1RT.offsetMin = Vector2.zero; bf1RT.offsetMax = Vector2.zero;
+
+                // BF2Panel = right (Pencil BF1: x=1288-1640, relative xMin=1008/1360, xMax=1)
                 CreateBattlefieldPanel(bfArea.transform, "BF2Panel", "BF2EnemyUnits", "战场2", "BF2Label", "BF2PlayerUnits",
                     out bf2CtrlBadge, out bf2CtrlBadgeText, out bf2CardArt, out bf2Glow);
+                var bf2RT = bfArea.transform.Find("BF2Panel").GetComponent<RectTransform>();
+                bf2RT.anchorMin = new Vector2(1008f/1360f, 0f);
+                bf2RT.anchorMax = new Vector2(1f, 1f);
+                bf2RT.offsetMin = Vector2.zero; bf2RT.offsetMax = Vector2.zero;
             }
 
             return go;
@@ -1007,6 +1159,15 @@ namespace FWTCG.Editor
             var le = go.AddComponent<LayoutElement>();
             le.flexibleWidth = 1f;
             le.flexibleHeight = 1f;
+        }
+
+        // ── Stretch rect helper (fills parent) ──────────────────────────────
+        private static void StretchRect(RectTransform rt)
+        {
+            rt.anchorMin = Vector2.zero;
+            rt.anchorMax = Vector2.one;
+            rt.offsetMin = Vector2.zero;
+            rt.offsetMax = Vector2.zero;
         }
 
         // ── Anchored zone helper (DEV-9) ─────────────────────────────────────
@@ -1200,44 +1361,64 @@ namespace FWTCG.Editor
         }
 
         // ── Deck pile (DEV-9) ────────────────────────────────────────────────
+        // Pencil layout: card_back_03.png fills entire pile, label text at y≈31,
+        // count text at y≈137 (out of 195px height). No VLG — absolute overlay.
 
         private static void CreateDeckPile(Transform parent, string name, string label,
             float xMin, float xMax, float yMin, float yMax, out Text countText)
         {
             var go = CreateAnchoredZone(parent, name, xMin, xMax, yMin, yMax);
 
-            // CSS: rgba(3,14,26,0.88), border 1px solid rgba(200,155,60,0.18)
+            // Background: card back texture fills entire pile area (Pencil: 贴图层)
             var img = go.AddComponent<Image>();
-            img.color = ZoneBgDefault;
-            var outline = go.AddComponent<Outline>();
-            outline.effectColor = ZoneBorderColor;
-            outline.effectDistance = new Vector2(1f, -1f);
+            var cardBackSprite = AssetDatabase.LoadAssetAtPath<Sprite>(
+                "Assets/Resources/UI/Generated/card_back_pencil.png");
+            if (cardBackSprite != null)
+            {
+                img.sprite = cardBackSprite;
+                img.type = Image.Type.Simple;
+                img.preserveAspect = false;
+                img.color = Color.white;
+            }
+            else
+            {
+                // Fallback: solid dark blue
+                img.color = GameColors.CardFaceDown;
+            }
 
-            var vlg = go.AddComponent<VerticalLayoutGroup>();
-            vlg.childControlWidth = true;
-            vlg.childControlHeight = true;
-            vlg.childForceExpandWidth = true;
-            vlg.childForceExpandHeight = false;
-            vlg.childAlignment = TextAnchor.MiddleCenter;
-            vlg.spacing = 1f;
-            vlg.padding = new RectOffset(3, 3, 3, 3);
+            // Pile label — top region, Pencil: y=31/195 → yMax≈0.84, 20pt bold #c7ae87
+            var labelGO = new GameObject("PileLabel");
+            labelGO.transform.SetParent(go.transform, false);
+            var labelRT = labelGO.AddComponent<RectTransform>();
+            labelRT.anchorMin = new Vector2(0f, 0.72f);
+            labelRT.anchorMax = new Vector2(1f, 0.90f);
+            labelRT.offsetMin = Vector2.zero;
+            labelRT.offsetMax = Vector2.zero;
+            var labelTxt = labelGO.AddComponent<Text>();
+            labelTxt.text = label;
+            labelTxt.font = _font;
+            labelTxt.fontSize = 20;
+            labelTxt.fontStyle = FontStyle.Bold;
+            labelTxt.color = GameColors.GoldMid;
+            labelTxt.alignment = TextAnchor.MiddleCenter;
+            labelTxt.resizeTextForBestFit = false;
 
-            CreateTMPText(go.transform, "PileLabel", label, GameColors.GoldDark, 10, TextAnchor.MiddleCenter);
-
-            // Card back image — floats as background, excluded from VLG layout
-            var backGO = new GameObject("CardBack");
-            backGO.transform.SetParent(go.transform, false);
-            var backLE = backGO.AddComponent<LayoutElement>();
-            backLE.ignoreLayout = true;
-            var backImg = backGO.AddComponent<Image>();
-            backImg.color = GameColors.CardFaceDown;
-            var backRT = backGO.GetComponent<RectTransform>();
-            backRT.anchorMin = new Vector2(0.15f, 0.15f);
-            backRT.anchorMax = new Vector2(0.85f, 0.85f);
-            backRT.offsetMin = Vector2.zero;
-            backRT.offsetMax = Vector2.zero;
-
-            countText = CreateTMPText(go.transform, "Count", "0", GameColors.GoldLight, 14, TextAnchor.MiddleCenter);
+            // Count text — lower region, Pencil: y=137/195 → yMax≈0.30, 30pt bold #c7ae87
+            var countGO = new GameObject("Count");
+            countGO.transform.SetParent(go.transform, false);
+            var countRT = countGO.AddComponent<RectTransform>();
+            countRT.anchorMin = new Vector2(0f, 0.08f);
+            countRT.anchorMax = new Vector2(1f, 0.32f);
+            countRT.offsetMin = Vector2.zero;
+            countRT.offsetMax = Vector2.zero;
+            countText = countGO.AddComponent<Text>();
+            countText.text = "0";
+            countText.font = _font;
+            countText.fontSize = 30;
+            countText.fontStyle = FontStyle.Bold;
+            countText.color = GameColors.GoldMid;
+            countText.alignment = TextAnchor.MiddleCenter;
+            countText.resizeTextForBestFit = false;
         }
 
         // ── Legend zone (DEV-9, grid-positioned) ─────────────────────────────
@@ -1373,33 +1554,31 @@ namespace FWTCG.Editor
             //   PlayerZone  : anchor y = 0.04 → 0.50,  offsetMax.y = -14  (below label)
             //   StandbyZone : anchor y = 0.00 → 0.04   (bottom strip ≈ 4 %)
 
-            // ── Enemy units zone (upper half) ───────────────────────────────
+            // ── Enemy units zone (Pencil: top 44.9%, y=0→106 of 236) ──────────
+            // Unity Y: 55.1% → 100% (0.551 → 1.0)
             {
                 var go = new GameObject(enemyZoneName);
                 go.transform.SetParent(panel.transform, false);
                 var rt = go.AddComponent<RectTransform>();
-                rt.anchorMin = new Vector2(0f, 0.5f);
+                rt.anchorMin = new Vector2(0f, 0.551f);
                 rt.anchorMax = new Vector2(1f, 1f);
-                rt.offsetMin = new Vector2(0f, 14f);   // 14 px gap → clears label top edge
+                rt.offsetMin = Vector2.zero;
                 rt.offsetMax = Vector2.zero;
                 var hlg = go.AddComponent<HorizontalLayoutGroup>();
-                // childControlHeight=false: cards keep their own 110px height instead of
-                // stretching to fill the zone (which can be 160-200px, causing distortion).
                 hlg.childControlWidth  = false; hlg.childControlHeight  = false;
                 hlg.childForceExpandWidth = false; hlg.childForceExpandHeight = false;
                 hlg.childAlignment = TextAnchor.MiddleCenter;
                 hlg.spacing = 4f;
             }
 
-            // Label row with control badge — pinned at panel vertical centre
+            // Label row — hidden (Pencil has no visible BF label; keeps refs for GameUI)
             var labelRow = new GameObject("LabelRow");
             labelRow.transform.SetParent(panel.transform, false);
             var labelRowRT = labelRow.AddComponent<RectTransform>();
-            labelRowRT.anchorMin = new Vector2(0f, 0.5f);
-            labelRowRT.anchorMax = new Vector2(1f, 0.5f);
-            labelRowRT.pivot     = new Vector2(0.5f, 0.5f);
-            labelRowRT.offsetMin = new Vector2(0f, -14f);
-            labelRowRT.offsetMax = new Vector2(0f,  14f);   // height = 28 px
+            labelRowRT.anchorMin = new Vector2(0f, 0.449f);
+            labelRowRT.anchorMax = new Vector2(1f, 0.551f);
+            labelRowRT.offsetMin = Vector2.zero;
+            labelRowRT.offsetMax = Vector2.zero;
             var labelRowHLG = labelRow.AddComponent<HorizontalLayoutGroup>();
             labelRowHLG.childControlWidth = false;
             labelRowHLG.childControlHeight = false;
@@ -1407,6 +1586,7 @@ namespace FWTCG.Editor
             labelRowHLG.childForceExpandHeight = false;
             labelRowHLG.spacing = 4f;
             labelRowHLG.childAlignment = TextAnchor.MiddleCenter;
+            labelRow.SetActive(false); // Pencil has no BF label overlay
 
             // Control badge (small colored dot, fixed 20×20)
             var badgeGO = new GameObject("CtrlBadge");
@@ -1445,15 +1625,16 @@ namespace FWTCG.Editor
             // Expose BF card art Image for GameUI.UpdateBFCardArt
             bfCardArtImg = bfArtImg;
 
-            // ── Player units zone (lower half, above standby) ───────────────
+            // ── Player units zone (Pencil: bottom 44.9%, y=130→236 of 236) ───
+            // Unity Y: 0% → 44.9% (0.0 → 0.449)
             {
                 var go = new GameObject(playerZoneName);
                 go.transform.SetParent(panel.transform, false);
                 var rt = go.AddComponent<RectTransform>();
-                rt.anchorMin = new Vector2(0f, 0.04f);
-                rt.anchorMax = new Vector2(1f, 0.5f);
+                rt.anchorMin = new Vector2(0f, 0f);
+                rt.anchorMax = new Vector2(1f, 0.449f);
                 rt.offsetMin = Vector2.zero;
-                rt.offsetMax = new Vector2(0f, -14f);  // 14 px gap → clears label bottom edge
+                rt.offsetMax = Vector2.zero;
                 var hlg = go.AddComponent<HorizontalLayoutGroup>();
                 // childControlHeight=false: cards keep their own 110px height instead of
                 // stretching to fill the zone (which can be 160-200px, causing distortion).
@@ -1463,27 +1644,8 @@ namespace FWTCG.Editor
                 hlg.spacing = 4f;
             }
 
-            // ── DEV-18: Standby zone — bottom strip (anchor 0 → 4 %) ────────
-            var standbyZone = new GameObject("StandbyZone");
-            standbyZone.transform.SetParent(panel.transform, false);
-            var standbyRT = standbyZone.AddComponent<RectTransform>();
-            standbyRT.anchorMin = new Vector2(0f, 0f);
-            standbyRT.anchorMax = new Vector2(1f, 0.04f);
-            standbyRT.offsetMin = Vector2.zero;
-            standbyRT.offsetMax = Vector2.zero;
-            var standbyHLG = standbyZone.AddComponent<HorizontalLayoutGroup>();
-            standbyHLG.childControlWidth = false;
-            standbyHLG.childControlHeight = false;
-            standbyHLG.childForceExpandWidth = false;
-            standbyHLG.childForceExpandHeight = false;
-            standbyHLG.spacing = 2f;
-            standbyHLG.childAlignment = TextAnchor.MiddleCenter;
-            var standbyBg = standbyZone.AddComponent<Image>();
-            standbyBg.color = new Color(0.05f, 0.05f, 0.15f, 0.25f);
-            var standbyLabel = CreateTMPText(standbyZone.transform, "StandbyLabel", "待命区",
-                new Color(0.78f, 0.67f, 0.43f, 0.9f), 11, TextAnchor.MiddleCenter);
-            var standbyLabelLE = standbyLabel.gameObject.AddComponent<LayoutElement>();
-            standbyLabelLE.minWidth = 30f;
+            // StandbyZone removed — Pencil standby positions are in the center gap (FlFzE/9wu6n)
+            // No visible standby strip inside BF panel
 
             // DEV-18: Ambient breathe overlay (full-panel, pointer pass-through)
             var ambientGO = new GameObject("AmbientOverlay");
@@ -1551,71 +1713,58 @@ namespace FWTCG.Editor
             var go = new GameObject("BottomBar");
             go.transform.SetParent(parent, false);
 
+            // Pencil: action buttons at bottom-right (x=1538-1646, y=926-999)
             var rt = go.AddComponent<RectTransform>();
-            rt.anchorMin = new Vector2(0f, 0f);
-            rt.anchorMax = new Vector2(1f, 0f);
-            rt.pivot = new Vector2(0.5f, 0f);
-            rt.offsetMin = new Vector2(0f, 0f);
-            rt.offsetMax = new Vector2(-200f, 80f);
+            rt.anchorMin = new Vector2(1538f/1920f, 1f - 999f/1080f);
+            rt.anchorMax = new Vector2(1646f/1920f, 1f - 921f/1080f);
+            rt.offsetMin = Vector2.zero;
+            rt.offsetMax = Vector2.zero;
 
-            var vlg = go.AddComponent<VerticalLayoutGroup>();
-            vlg.childControlWidth = true;
-            vlg.childControlHeight = true;
-            vlg.childForceExpandWidth = true;
-            vlg.childForceExpandHeight = true;
-            vlg.spacing = 2f;
-
-            // ── Player info strip (top half) ──
+            // Hidden info strip — no visual, keeps GameUI refs
             var infoStrip = new GameObject("PlayerInfoStrip");
             infoStrip.transform.SetParent(go.transform, false);
-            infoStrip.AddComponent<RectTransform>();
-            var infoLE = infoStrip.AddComponent<LayoutElement>();
-            infoLE.flexibleHeight = 1f;
-            var infoImg = infoStrip.AddComponent<Image>();
-            infoImg.color = GameColors.InfoStripBg;
-            TryApplySvgSprite(infoImg, "ui_phase_round");
+            var infoRT = infoStrip.AddComponent<RectTransform>();
+            infoRT.anchorMin = Vector2.zero; infoRT.anchorMax = Vector2.zero;
+            infoRT.sizeDelta = Vector2.zero;
 
-            var infoHLG = infoStrip.AddComponent<HorizontalLayoutGroup>();
-            infoHLG.childControlWidth = true;
-            infoHLG.childControlHeight = true;
-            infoHLG.childForceExpandWidth = true;
-            infoHLG.childForceExpandHeight = true;
-            infoHLG.padding = new RectOffset(10, 10, 2, 2);
-            infoHLG.spacing = 10f;
+            manaDisplay = CreateTMPText(infoStrip.transform, "ManaDisplay", "", GameColors.PlayerGreen, 12, TextAnchor.MiddleLeft);
+            schDisplay  = CreateTMPText(infoStrip.transform, "SchDisplay", "", GameColors.GoldLight, 12, TextAnchor.MiddleLeft);
+            playerRuneInfoText = CreateTMPText(infoStrip.transform, "PlayerRuneInfo", "", GameColors.GoldDark, 12, TextAnchor.MiddleCenter);
+            playerDeckInfoText = CreateTMPText(infoStrip.transform, "PlayerDeckInfo", "", GameColors.GoldDark, 12, TextAnchor.MiddleCenter);
 
-            manaDisplay = CreateTMPText(infoStrip.transform, "ManaDisplay", "法力: 0", GameColors.PlayerGreen, 16, TextAnchor.MiddleLeft);
-            schDisplay  = CreateTMPText(infoStrip.transform, "SchDisplay", "符能: -", GameColors.GoldLight, 14, TextAnchor.MiddleLeft);
-            playerRuneInfoText = CreateTMPText(infoStrip.transform, "PlayerRuneInfo", "符文:0/12", GameColors.GoldDark, 14, TextAnchor.MiddleCenter);
-            playerDeckInfoText = CreateTMPText(infoStrip.transform, "PlayerDeckInfo", "牌库:0", GameColors.GoldDark, 14, TextAnchor.MiddleCenter);
-
-            // ── Action panel (bottom half) ──
+            // ── Action panel — full width, semi-transparent ──
             var actionPanel = new GameObject("ActionPanel");
             actionPanel.transform.SetParent(go.transform, false);
-            actionPanel.AddComponent<RectTransform>();
-            var actionLE = actionPanel.AddComponent<LayoutElement>();
-            actionLE.flexibleHeight = 1f;
-            var actionImg = actionPanel.AddComponent<Image>();
-            actionImg.color = new Color(0.02f, 0.05f, 0.1f, 0.85f);
-            TryApplySvgSprite(actionImg, "ui_event_banner");
+            var actionRT = actionPanel.AddComponent<RectTransform>();
+            actionRT.anchorMin = Vector2.zero; actionRT.anchorMax = Vector2.one;
+            actionRT.offsetMin = Vector2.zero; actionRT.offsetMax = Vector2.zero;
 
-            var actionHLG = actionPanel.AddComponent<HorizontalLayoutGroup>();
-            actionHLG.childControlWidth = true;
-            actionHLG.childControlHeight = true;
-            actionHLG.childForceExpandWidth = false;
-            actionHLG.childForceExpandHeight = true;
-            actionHLG.padding = new RectOffset(6, 6, 2, 2);
-            actionHLG.spacing = 6f;
-            actionHLG.childAlignment = TextAnchor.MiddleCenter;
+            // Pencil: VLG — 结束回合 (top, 108×34) then 查看弃牌堆 (bottom, 77×24)
+            var actionVLG = actionPanel.AddComponent<VerticalLayoutGroup>();
+            actionVLG.childControlWidth = true;
+            actionVLG.childControlHeight = true;   // must be true so preferredHeight is respected
+            actionVLG.childForceExpandWidth = true;
+            actionVLG.childForceExpandHeight = false;
+            actionVLG.padding = new RectOffset(0, 0, 0, 0);
+            actionVLG.spacing = 5f;
+            actionVLG.childAlignment = TextAnchor.UpperCenter;
 
-            phaseDisplay = CreateTMPText(actionPanel.transform, "PhaseDisplay", "阶段: -", GameColors.GoldLight, 14, TextAnchor.MiddleCenter);
-            var phaseLEComp = phaseDisplay.gameObject.AddComponent<LayoutElement>();
-            phaseLEComp.flexibleWidth = 1f;
-
+            // Hidden contextual refs (not visible by default, kept for GameUI wiring)
+            phaseDisplay = CreateTMPText(actionPanel.transform, "PhaseDisplay", "", GameColors.GoldLight, 11, TextAnchor.MiddleCenter);
+            phaseDisplay.gameObject.SetActive(false);
             tapAllRunesBtn = CreateActionButton(actionPanel.transform, "TapAllRunesBtn", "全部横置", GameColors.ActionBtnSecondary);
+            tapAllRunesBtn.gameObject.SetActive(false);
             cancelRunesBtn = CreateActionButton(actionPanel.transform, "CancelRunesBtn", "取消", GameColors.ActionBtnDanger);
+            cancelRunesBtn.gameObject.SetActive(false);
             confirmRunesBtn = CreateActionButton(actionPanel.transform, "ConfirmRunesBtn", "确认符文操作", GameColors.ActionBtnPrimary);
+            confirmRunesBtn.gameObject.SetActive(false);
             skipReactionBtn = CreateActionButton(actionPanel.transform, "SkipReactionBtn", "跳过响应", GameColors.ActionBtnSecondary);
-            endTurnButton = CreateActionButton(actionPanel.transform, "EndTurnButton", "结束行动", GameColors.ActionBtnPrimary);
+            skipReactionBtn.gameObject.SetActive(false);
+
+            // 结束回合 — Pencil: 108×34
+            endTurnButton = CreateActionButton(actionPanel.transform, "EndTurnButton", "结束回合", GameColors.ActionBtnPrimary);
+            var endLE = endTurnButton.gameObject.GetComponent<LayoutElement>() ?? endTurnButton.gameObject.AddComponent<LayoutElement>();
+            endLE.preferredHeight = 34f;
             // VFX-7d / SVG-gen: apply EndTurn button sprite if available
             var endTurnSpr = AssetDatabase.LoadAssetAtPath<Sprite>("Assets/Resources/UI/Generated/btn_end_turn.png")
                 ?? AssetDatabase.LoadAssetAtPath<Sprite>("Assets/Sprites/UI/button_endturn.png");
@@ -1626,7 +1775,10 @@ namespace FWTCG.Editor
                 endImg.type = Image.Type.Simple;
                 endImg.color = Color.white;
             }
-            reactBtn = CreateActionButton(actionPanel.transform, "ReactButton", "反应", new Color(1f, 0.55f, 0f, 1f));
+            // 查看弃牌堆 — Pencil: 77×24, below 结束回合
+            reactBtn = CreateActionButton(actionPanel.transform, "ReactButton", "查看弃牌堆", new Color(0.2f, 0.16f, 0.08f, 0.9f));
+            var reactLE = reactBtn.gameObject.GetComponent<LayoutElement>() ?? reactBtn.gameObject.AddComponent<LayoutElement>();
+            reactLE.preferredHeight = 24f;
 
             // DEV-19: ButtonCharge hover sweep on key buttons
             AddButtonCharge(endTurnButton.gameObject);
@@ -3700,7 +3852,9 @@ namespace FWTCG.Editor
             // DEV-18 additions
             BattlefieldGlow bf1Glow, BattlefieldGlow bf2Glow,
             Image bf1CardArt, Image bf2CardArt,
-            Image boardFlashOverlay)
+            Image boardFlashOverlay,
+            // Pencil countdown ring
+            CountdownRingUI countdownRingUI)
         {
             var so = new SerializedObject(gameUI);
 
@@ -3818,9 +3972,10 @@ namespace FWTCG.Editor
             so.FindProperty("_viewerCloseBtn").objectReferenceValue     = viewerCloseBtn;
 
             // ── DEV-10: Timer ──
-            so.FindProperty("_timerDisplay").objectReferenceValue = timerDisplay;
-            so.FindProperty("_timerFill").objectReferenceValue    = timerFill;
-            so.FindProperty("_timerText").objectReferenceValue    = timerText;
+            so.FindProperty("_timerDisplay").objectReferenceValue   = timerDisplay;
+            so.FindProperty("_timerFill").objectReferenceValue      = timerFill;
+            so.FindProperty("_timerText").objectReferenceValue      = timerText;
+            so.FindProperty("_countdownRingUI").objectReferenceValue = countdownRingUI;
 
             // ── DEV-10: Hand zone RTs (for log toggle animation) ──
             so.FindProperty("_playerHandZoneRT").objectReferenceValue = playerHandZoneRT;
@@ -4301,6 +4456,110 @@ namespace FWTCG.Editor
             return go;
         }
 
+        // ── Pencil: RUNES 条带圆形槽位行 ────────────────────────────────────
+        private static void CreateRuneSlotRow(Transform parent, int count, bool isPlayer)
+        {
+            // 居中容器，留出左侧标签空间
+            var row = new GameObject("RuneSlotRow");
+            row.transform.SetParent(parent, false);
+            var rowTxt = row.AddComponent<Text>(); // dummy to get RT
+            rowTxt.enabled = false;
+            var rowRT = row.GetComponent<RectTransform>();
+            if (rowRT != null)
+            {
+                rowRT.anchorMin = new Vector2(0.1f, 0f);
+                rowRT.anchorMax = new Vector2(0.95f, 1f);
+                rowRT.offsetMin = Vector2.zero; rowRT.offsetMax = Vector2.zero;
+            }
+            var hlg = row.AddComponent<HorizontalLayoutGroup>();
+            hlg.childControlWidth = false; hlg.childControlHeight = true;
+            hlg.childForceExpandWidth = false; hlg.childForceExpandHeight = true;
+            hlg.childAlignment = TextAnchor.MiddleCenter;
+            hlg.spacing = 6f;
+
+            for (int i = 0; i < count; i++)
+            {
+                var slot = new GameObject($"RuneSlot{i}");
+                slot.transform.SetParent(row.transform, false);
+                var slotImg = slot.AddComponent<Image>();
+                slotImg.color = new Color(0.565f, 0.439f, 0.125f, 0.25f); // gold dim
+                var slotOL = slot.AddComponent<Outline>();
+                slotOL.effectColor = new Color(0.565f, 0.439f, 0.125f, 0.5f);
+                slotOL.effectDistance = new Vector2(1f, -1f);
+                var slotLE = slot.AddComponent<LayoutElement>();
+                slotLE.preferredWidth = 24f;
+            }
+        }
+
+        // ── Pencil: BASE 区域左右卡槽框（跳过中间手牌区 x=644-1276）──────────
+        private static void CreateBaseCardSlots(Transform parent, bool isEnemy)
+        {
+            // LEFT slots: x=248-644 (within BASE zone, relative xMin=0, xMax=(644-248)/(1672-248)=396/1424=0.278)
+            var leftSlots = new GameObject("BaseLeftSlots");
+            leftSlots.transform.SetParent(parent, false);
+            var lsTxt = leftSlots.AddComponent<Text>(); lsTxt.enabled = false;
+            var lsRT = leftSlots.GetComponent<RectTransform>();
+            if (lsRT != null) { lsRT.anchorMin = new Vector2(0f, 0f); lsRT.anchorMax = new Vector2(396f/1424f, 1f); lsRT.offsetMin = Vector2.zero; lsRT.offsetMax = Vector2.zero; }
+            var lsHLG = leftSlots.AddComponent<HorizontalLayoutGroup>();
+            lsHLG.childControlWidth = true; lsHLG.childControlHeight = true;
+            lsHLG.childForceExpandWidth = true; lsHLG.childForceExpandHeight = true;
+            lsHLG.spacing = 4f; lsHLG.padding = new RectOffset(4, 4, 4, 4);
+            lsHLG.childAlignment = TextAnchor.MiddleCenter;
+            for (int i = 0; i < 4; i++) CreateBaseSlot(leftSlots.transform, $"LS{i}");
+
+            // RIGHT slots: x=1276-1672 (relative xMin=(1276-248)/1424=1028/1424=0.722, xMax=1)
+            var rightSlots = new GameObject("BaseRightSlots");
+            rightSlots.transform.SetParent(parent, false);
+            var rsTxt = rightSlots.AddComponent<Text>(); rsTxt.enabled = false;
+            var rsRT = rightSlots.GetComponent<RectTransform>();
+            if (rsRT != null) { rsRT.anchorMin = new Vector2(1028f/1424f, 0f); rsRT.anchorMax = new Vector2(1f, 1f); rsRT.offsetMin = Vector2.zero; rsRT.offsetMax = Vector2.zero; }
+            var rsHLG = rightSlots.AddComponent<HorizontalLayoutGroup>();
+            rsHLG.childControlWidth = true; rsHLG.childControlHeight = true;
+            rsHLG.childForceExpandWidth = true; rsHLG.childForceExpandHeight = true;
+            rsHLG.spacing = 4f; rsHLG.padding = new RectOffset(4, 4, 4, 4);
+            rsHLG.childAlignment = TextAnchor.MiddleCenter;
+            for (int i = 0; i < 4; i++) CreateBaseSlot(rightSlots.transform, $"RS{i}");
+        }
+
+        private static void CreateBaseSlot(Transform parent, string name)
+        {
+            var go = new GameObject($"BaseSlot_{name}");
+            go.transform.SetParent(parent, false);
+            var img = go.AddComponent<Image>();
+            img.color = new Color(0.031f, 0.063f, 0.102f, 0.7f); // #08101a
+            var ol = go.AddComponent<Outline>();
+            ol.effectColor = new Color(0.565f, 0.439f, 0.125f, 0.7f); // #907020
+            ol.effectDistance = new Vector2(1f, -1f);
+        }
+
+        // ── Pencil: 浮动区域标签（Canvas绝对坐标，左侧区域说明文字）──────────
+
+        private static void AddFloatingAreaLabel(Transform parent, string text,
+            float xCenter, float yMin, float yMax)
+        {
+            var go = new GameObject("FloatLabel_" + text.Replace(" ", "_"));
+            go.transform.SetParent(parent, false);
+            var txt = go.AddComponent<Text>();
+            txt.text = text;
+            txt.color = new Color(0.78f, 0.682f, 0.529f, 0.55f); // #c7ae87 semi-transparent
+            txt.fontSize = 9;
+            txt.fontStyle = FontStyle.Normal;
+            txt.alignment = TextAnchor.MiddleCenter;
+            txt.raycastTarget = false;
+            txt.horizontalOverflow = HorizontalWrapMode.Overflow;
+            txt.verticalOverflow = VerticalWrapMode.Overflow;
+            if (_font != null) txt.font = _font;
+            var rt = go.GetComponent<RectTransform>();
+            if (rt != null)
+            {
+                // xCenter ± 40px, yMin/yMax as provided
+                rt.anchorMin = new Vector2(Mathf.Max(0f, xCenter - 40f/1920f), yMin);
+                rt.anchorMax = new Vector2(Mathf.Min(1f, xCenter + 40f/1920f), yMax);
+                rt.offsetMin = Vector2.zero;
+                rt.offsetMax = Vector2.zero;
+            }
+        }
+
         // ── DEV-10: Zone label helper ────────────────────────────────────────
 
         private static void AddZoneLabel(Transform zone, string labelText)
@@ -4314,7 +4573,9 @@ namespace FWTCG.Editor
             var le = labelGO.AddComponent<LayoutElement>();
             le.ignoreLayout = true;
 
-            var labelRT = labelGO.AddComponent<RectTransform>();
+            // SetParent to a RectTransform parent auto-converts Transform → RectTransform,
+            // so GetComponent is safer than AddComponent here.
+            var labelRT = labelGO.GetComponent<RectTransform>() ?? labelGO.AddComponent<RectTransform>();
             labelRT.anchorMin = new Vector2(0f, 1f);
             labelRT.anchorMax = new Vector2(1f, 1f);
             labelRT.pivot = new Vector2(0.5f, 1f);
@@ -4336,6 +4597,57 @@ namespace FWTCG.Editor
             var shadow = labelGO.AddComponent<Shadow>();
             shadow.effectColor = new Color(0f, 0f, 0f, 0.8f);
             shadow.effectDistance = new Vector2(1f, -1f);
+        }
+
+        // ── Pencil: Two-line zone label (bold top line + small bottom line) ──
+
+        private static void CreateTwoLineLabel(Transform parent, string topText, string bottomText)
+        {
+            // Add Text first so Unity auto-creates RectTransform, then configure RT
+
+            // Top line (Chinese, bold) — upper half
+            var topGO = new GameObject("LabelTop");
+            topGO.transform.SetParent(parent, false);
+            var topTxt = topGO.AddComponent<Text>();
+            topTxt.text = topText;
+            topTxt.color = new Color(0.78f, 0.682f, 0.529f, 1f); // #c7ae87
+            topTxt.fontSize = 11;
+            topTxt.fontStyle = FontStyle.Bold;
+            topTxt.alignment = TextAnchor.LowerCenter;
+            topTxt.raycastTarget = false;
+            topTxt.horizontalOverflow = HorizontalWrapMode.Overflow;
+            topTxt.verticalOverflow = VerticalWrapMode.Overflow;
+            if (_font != null) topTxt.font = _font;
+            var topRT = topGO.GetComponent<RectTransform>();
+            if (topRT != null)
+            {
+                topRT.anchorMin = new Vector2(0f, 0.5f);
+                topRT.anchorMax = new Vector2(1f, 1f);
+                topRT.offsetMin = Vector2.zero;
+                topRT.offsetMax = Vector2.zero;
+            }
+
+            // Bottom line (English, normal) — lower half
+            var botGO = new GameObject("LabelBot");
+            botGO.transform.SetParent(parent, false);
+            var botTxt = botGO.AddComponent<Text>();
+            botTxt.text = bottomText;
+            botTxt.color = new Color(0.78f, 0.682f, 0.529f, 0.7f); // #c7ae87 dimmer
+            botTxt.fontSize = 9;
+            botTxt.fontStyle = FontStyle.Normal;
+            botTxt.alignment = TextAnchor.UpperCenter;
+            botTxt.raycastTarget = false;
+            botTxt.horizontalOverflow = HorizontalWrapMode.Overflow;
+            botTxt.verticalOverflow = VerticalWrapMode.Overflow;
+            if (_font != null) botTxt.font = _font;
+            var botRT = botGO.GetComponent<RectTransform>();
+            if (botRT != null)
+            {
+                botRT.anchorMin = new Vector2(0f, 0f);
+                botRT.anchorMax = new Vector2(1f, 0.5f);
+                botRT.offsetMin = Vector2.zero;
+                botRT.offsetMax = Vector2.zero;
+            }
         }
 
         // ── DEV-10: Zone border helper ───────────────────────────────────────

@@ -13,6 +13,7 @@ namespace FWTCG.UI
         public static readonly Color Gold       = Hex("#c8aa6e"); // primary gold
         public static readonly Color GoldLight  = Hex("#f0e6d2"); // light gold / warm white
         public static readonly Color GoldDark   = Hex("#785a28"); // dark gold / muted
+        public static readonly Color GoldMid    = Hex("#c7ae87"); // Pencil text gold (#c7ae87)
 
         // ── Teal palette (Hextech cyan) ───────────────────────────────────────
         public static readonly Color Teal       = Hex("#0ac8b9"); // hextech teal

@@ -2,6 +2,51 @@
 
 ---
 
+## DEV-30：Pencil → Unity 布局全面对齐 — 2026-04-13
+
+**Status**: ✅ Completed
+**Files**: SceneBuilder.cs, GameUI.cs, CountdownRingUI.cs, bg_game_main.png
+
+### 实现内容
+
+**SceneBuilder.cs — 隐藏非 Pencil UI 元素**：
+- `messagePanel.SetActive(false)` — Pencil 设计中无消息面板
+- `logToggleGO.SetActive(false)` — Pencil 设计中无日志折叠按钮
+- `debugPanel.SetActive(false)` — Pencil 设计中无调试面板
+
+**SceneBuilder.cs — 新增中间区域（BF FieldCard + Standby）**：
+- BF0FieldCard: Pencil x=679,y=436,w=106,h=76 → Unity 锚点 (0.354,0.409,0.426,0.596)
+- BF0Standby: Pencil x=696,y=546,w=72,h=100 → Unity 锚点 (0.363,0.400,0.402,0.495)
+- BF1FieldCard/BF1Standby 对称镜像
+- 样式：暗色背景 #08101a + 金色描边 + CreateTwoLineLabel 双行文字
+
+**SceneBuilder.cs — RUNES + BASE 区域**（CreateBoardWrapper 内）：
+- EnemyRunes 条带: y=155-240，12个符文圆圈槽位，HLG 排列
+- EnemyBase 区域: y=242-402，左右各4个基地卡槽
+- PlayerBase 区域: y=666-826（对称）
+- PlayerRunes 条带: y=828-913（对称）
+
+**SceneBuilder.cs — 结束回合按钮定位**：
+- Pencil: x=1538,y=926,w=108,h=34 → Unity 锚点 (0.801,0.857,0.111,0.143)
+- BottomBar VLG `childControlHeight=true` 修复（防止 btn_react sprite 溢出）
+- 上下文按钮默认隐藏（phaseDisplay/tapAllRunesBtn/cancelRunesBtn/confirmRunesBtn/skipReactionBtn）
+
+**SceneBuilder.cs — 手牌区宽度修正**：
+- 原: 全宽 (x=248-1672)；修正: 中间区域 (x=644-1276) 对齐 Pencil 设计
+- EnemyHand/PlayerHand anchorMin/Max 从 Pencil 坐标精确换算
+
+**bg_game_main.png 替换**：
+- 从 Pencil new5.pen bg_texture 节点（2062×1277）导出
+- `preserveAspect=false` 拉伸铺满整个 Canvas（包含左右计分板区域）
+
+### 审查结果（Claude 自身审查）
+- SetActive(false) 元素在 WireGameUI 中均有 null-guard 保护 ✅
+- CreateTwoLineLabel Text→RT 创建顺序正确 ✅
+- VLG childControlHeight=true 防止按钮溢出 ✅
+- 手牌区宽度变更不影响 GameUI 运行时逻辑 ✅
+
+---
+
 ## DOT-8：DOTween 视效强化（17个新效果）— 2026-04-07
 
 **Status**: ✅ Completed
