@@ -174,8 +174,9 @@ for hx, lbl, eng, sc in [(MAIN_X+4,"英雄","CHAMPION","#d4a828"),(MAIN_X+92,"�
     L(f'<rect x="{hx+4}" y="{eh_card_y+4}" width="{HERO_CARD_W-8}" height="{HERO_CARD_H-8}" fill="#080e1e" stroke="{sc}60" stroke-width="1" rx="3" stroke-dasharray="3,2"/>')
     L(f'<text x="{hx+HERO_CARD_W//2}" y="{hcy-4}" fill="{sc}" font-size="11" font-family="Arial" font-weight="bold" text-anchor="middle">{lbl}</text>')
     L(f'<text x="{hx+HERO_CARD_W//2}" y="{hcy+8}" fill="{sc}90" font-size="8" font-family="Arial" text-anchor="middle">{eng}</text>')
-L(f'<rect x="{MAIN_X+96}" y="{eh_card_y+HERO_CARD_H-10}" width="68" height="8" fill="#201008" stroke="#c89b3c" stroke-width="1" rx="3"/>')
-L(f'<text x="{MAIN_X+130}" y="{eh_card_y+HERO_CARD_H-4}" fill="#c89b3c" font-size="7" text-anchor="middle" font-family="Arial">技 能</text>')
+L(f'<rect x="{MAIN_X+96}" y="{eh_card_y+HERO_CARD_H-14}" width="68" height="14" fill="#201008" stroke="#c89b3c" stroke-width="1" rx="3"/>')
+L(f'<text x="{MAIN_X+130}" y="{eh_card_y+HERO_CARD_H-7}" fill="#c89b3c" font-size="6.5" text-anchor="middle" font-family="Arial" font-weight="bold">技 能</text>')
+L(f'<text x="{MAIN_X+130}" y="{eh_card_y+HERO_CARD_H-1}" fill="#c89b3c" font-size="5" text-anchor="middle" font-family="Arial" opacity="0.7">SKILL</text>')
 L()
 
 L(f'<!-- ENEMY HAND FAN -->')
@@ -197,10 +198,7 @@ L(f'<text x="{MAIN_X+10}" y="{ER_Y+16}" fill="#9070e0" font-size="11" font-famil
 er_cy = ER_Y + ER_H // 2
 for i in range(RUNE_COUNT):
     cx = RUNE_START_CX + i * RUNE_STEP
-    if i < 8:
-        L(f'<circle cx="{cx}" cy="{er_cy}" r="{RUNE_R}" fill="#0c0e22" stroke="#7050c0" stroke-width="1.5"/>')
-    else:
-        L(f'<circle cx="{cx}" cy="{er_cy}" r="{RUNE_R}" fill="#0a0c1c" stroke="#403080" stroke-width="1" stroke-dasharray="4,2" opacity="0.5"/>')
+    L(f'<circle cx="{cx}" cy="{er_cy}" r="{RUNE_R}" fill="#0c0e22" stroke="#7050c0" stroke-width="1.5"/>')
 L()
 
 L(f'<!-- ENEMY BASE y={EB_Y} h={EB_H} -->')
@@ -261,11 +259,13 @@ for slot_cx in [889, 1031]:
     sx = slot_cx - STDBY_W // 2
     # 横置卡槽（文字居中写在槽内）
     L(f'<rect x="{lx}" y="{land_y}" width="{LAND_W}" height="{LAND_H}" fill="#091828" stroke="#c89b3c" stroke-width="1.5" rx="3" stroke-dasharray="4,2"/>')
-    L(f'<text x="{slot_cx}" y="{land_y + LAND_H//2 + 4}" fill="#c89b3c" font-size="9" text-anchor="middle" font-family="Arial" opacity="0.7">战场牌名</text>')
+    L(f'<text x="{slot_cx}" y="{land_y + LAND_H//2}" fill="#c89b3c" font-size="9" text-anchor="middle" font-family="Arial" font-weight="bold" opacity="0.7">战场牌名</text>')
+    L(f'<text x="{slot_cx}" y="{land_y + LAND_H//2 + 11}" fill="#c89b3c" font-size="7" text-anchor="middle" font-family="Arial" opacity="0.5">FIELD CARD</text>')
     # 待命槽（文字居中写在槽内）
     L(f'<rect x="{sx}" y="{sb_y}" width="{STDBY_W}" height="{STDBY_H}" fill="#0a0e1c" stroke="#4060a0" stroke-width="1.5" rx="3"/>')
     L(f'<rect x="{sx+4}" y="{sb_y+4}" width="{STDBY_W-8}" height="{STDBY_H-8}" fill="none" stroke="#4060a060" stroke-width="1" rx="2" stroke-dasharray="3,2"/>')
-    L(f'<text x="{slot_cx}" y="{sb_y + STDBY_H//2 + 4}" fill="#6080c0" font-size="9" text-anchor="middle" font-family="Arial" font-weight="bold">待命区</text>')
+    L(f'<text x="{slot_cx}" y="{sb_y + STDBY_H//2}" fill="#6080c0" font-size="9" text-anchor="middle" font-family="Arial" font-weight="bold">待命区</text>')
+    L(f'<text x="{slot_cx}" y="{sb_y + STDBY_H//2 + 11}" fill="#6080c0" font-size="7" text-anchor="middle" font-family="Arial" opacity="0.7">STANDBY</text>')
 L()
 
 L(f'<rect x="944" y="{BF_Y}" width="32" height="{BF_H}" fill="#030810"/>')
@@ -298,10 +298,7 @@ L(f'<text x="{MAIN_X+10}" y="{PR_Y+16}" fill="#9070e0" font-size="11" font-famil
 pr_cy = PR_Y + PR_H // 2
 for i in range(RUNE_COUNT):
     cx = RUNE_START_CX + i * RUNE_STEP
-    if i < 8:
-        L(f'<circle cx="{cx}" cy="{pr_cy}" r="{RUNE_R}" fill="#0c0e22" stroke="#7050c0" stroke-width="1.5"/>')
-    else:
-        L(f'<circle cx="{cx}" cy="{pr_cy}" r="{RUNE_R}" fill="#0a0c1c" stroke="#403080" stroke-width="1" stroke-dasharray="4,2" opacity="0.5"/>')
+    L(f'<circle cx="{cx}" cy="{pr_cy}" r="{RUNE_R}" fill="#0c0e22" stroke="#7050c0" stroke-width="1.5"/>')
 L()
 
 L(f'<!-- PLAYER HERO ROW y={PH_Y} h={PH_H} -->')
@@ -312,8 +309,9 @@ for hx, lbl, eng, sc in [(MAIN_X+4,"英雄","CHAMPION","#d4a828"),(MAIN_X+92,"�
     L(f'<rect x="{hx+4}" y="{ph_card_y+4}" width="{HERO_CARD_W-8}" height="{HERO_CARD_H-8}" fill="#080e1e" stroke="{sc}60" stroke-width="1" rx="3" stroke-dasharray="3,2"/>')
     L(f'<text x="{hx+HERO_CARD_W//2}" y="{pcy-4}" fill="{sc}" font-size="11" font-family="Arial" font-weight="bold" text-anchor="middle">{lbl}</text>')
     L(f'<text x="{hx+HERO_CARD_W//2}" y="{pcy+8}" fill="{sc}90" font-size="8" font-family="Arial" text-anchor="middle">{eng}</text>')
-L(f'<rect x="{MAIN_X+96}" y="{ph_card_y+HERO_CARD_H-10}" width="68" height="8" fill="#201008" stroke="#c89b3c" stroke-width="1" rx="3"/>')
-L(f'<text x="{MAIN_X+130}" y="{ph_card_y+HERO_CARD_H-4}" fill="#c89b3c" font-size="7" text-anchor="middle" font-family="Arial">技 能</text>')
+L(f'<rect x="{MAIN_X+96}" y="{ph_card_y+HERO_CARD_H-14}" width="68" height="14" fill="#201008" stroke="#c89b3c" stroke-width="1" rx="3"/>')
+L(f'<text x="{MAIN_X+130}" y="{ph_card_y+HERO_CARD_H-7}" fill="#c89b3c" font-size="6.5" text-anchor="middle" font-family="Arial" font-weight="bold">技 能</text>')
+L(f'<text x="{MAIN_X+130}" y="{ph_card_y+HERO_CARD_H-1}" fill="#c89b3c" font-size="5" text-anchor="middle" font-family="Arial" opacity="0.7">SKILL</text>')
 
 btn_y = PH_Y + 4
 L(f'<rect x="1580" y="{btn_y}" width="108" height="34" fill="#0c2240" stroke="#4090d0" stroke-width="2" rx="5" filter="url(#glow)"/>')
