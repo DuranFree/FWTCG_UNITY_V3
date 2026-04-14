@@ -224,15 +224,7 @@ namespace FWTCG.Editor
                 ehRT.anchorMax = new Vector2(1285f/1920f, 1f + 115f/1080f);
                 ehRT.offsetMin = Vector2.zero;
                 ehRT.offsetMax = Vector2.zero;
-
-                var ehHLG = enemyHandZone.AddComponent<HorizontalLayoutGroup>();
-                ehHLG.childControlWidth = false;
-                ehHLG.childControlHeight = false;
-                ehHLG.childForceExpandWidth = false;
-                ehHLG.childForceExpandHeight = false;
-                ehHLG.childAlignment = TextAnchor.LowerCenter;
-                ehHLG.spacing = -20f;  // overlap cards like a fan
-                ehHLG.padding = new RectOffset(0, 0, 0, 0);
+                // Fan layout is driven by HandFanLayout / ApplyHandFan — no HLG needed
             }
 
             // ── BoardWrapper (main game board, full canvas) ──────────────────
@@ -271,15 +263,7 @@ namespace FWTCG.Editor
                 phRT.anchorMax = new Vector2(1285f/1920f, 1f - 952f/1080f);
                 phRT.offsetMin = Vector2.zero;
                 phRT.offsetMax = Vector2.zero;
-
-                var phHLG = playerHandZone.AddComponent<HorizontalLayoutGroup>();
-                phHLG.childControlWidth = false;
-                phHLG.childControlHeight = false;
-                phHLG.childForceExpandWidth = false;
-                phHLG.childForceExpandHeight = false;
-                phHLG.childAlignment = TextAnchor.UpperCenter;
-                phHLG.spacing = -20f;  // overlap cards like a fan
-                phHLG.padding = new RectOffset(0, 0, 0, 0);
+                // Fan layout is driven by HandFanLayout / ApplyHandFan — no HLG needed
             }
 
             // ── BottomBar (PlayerInfoStrip + ActionPanel) ─────────────────

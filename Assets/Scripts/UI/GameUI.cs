@@ -993,26 +993,41 @@ namespace FWTCG.UI
             int n = container.childCount;
             if (n == 0) return;
 
-            // Step 1: Clear existing fan locks so HLG can fully reset positions
-            for (int i = 0; i < n; i++)
-                container.GetChild(i).GetComponent<FWTCG.UI.CardView>()?.ClearHandFanAngle();
+            // Ensure rect dimensions are computed before reading width/height.
+            // (Without HLG, no ForceRebuildLayoutImmediate is called; this replaces it.)
+            Canvas.ForceUpdateCanvases();
 
-            // Step 2: HLG recalculates all positions with clean slate
-            var containerRT = container.GetComponent<RectTransform>();
-            if (containerRT != null)
-                LayoutRebuilder.ForceRebuildLayoutImmediate(containerRT);
+            // ── Card dimensions ──────────────────────────────────────────────────
+            // Card width: read from first child's rect; fall back to Pencil design value (110px).
+            float cardWidth = 110f;
+            var firstRT = container.GetChild(0).GetComponent<RectTransform>();
+            if (firstRT != null && firstRT.rect.width > 1f)
+                cardWidth = firstRT.rect.width;
 
-            // Step 3: Read stable baseY from HLG (all cards share same Y after rebuild)
+            // Card height via Pencil aspect ratio (110×154).
+            float cardHeight = cardWidth * (154f / 110f);
+
+            // ── Base Y: replaces HLG UpperCenter (player) / LowerCenter (enemy) ──
+            // With HLG removed, we manually position the center card at the edge of
+            // the zone where cards peek from screen edge (player = top of zone, enemy = bottom).
             float baseY = 0f;
-            for (int i = 0; i < n; i++)
+            var containerRT = container.GetComponent<RectTransform>();
+            if (containerRT != null && containerRT.rect.height > 1f)
             {
-                var rt0 = container.GetChild(i).GetComponent<RectTransform>();
-                if (rt0 != null) { baseY = rt0.anchoredPosition.y; break; }
+                float halfZone = containerRT.rect.height / 2f;
+                float halfCard = cardHeight / 2f;
+                // Player: UpperCenter → center card near top of zone (positive Y in local space)
+                // Enemy:  LowerCenter → center card near bottom of zone (negative Y)
+                baseY = isPlayer ? halfZone - halfCard : -(halfZone - halfCard);
             }
 
-            // Pencil design (new5.pen, 7-card reference):
+            // ── Horizontal spacing: overlap cards (equivalent to old HLG spacing=-20) ──
+            const float OVERLAP = 20f;
+            float step = cardWidth - OVERLAP;
+
+            // ── Fan angles & parabolic arc (Pencil design, 7-card reference) ────
             //   Rotation: ±14° max (left/right edge), linear per position
-            //   Y arc:    center highest, edges drop ~56px (parabolic)
+            //   Y arc:    center highest, edges drop ~56px
             //   Formula:  t = i - (n-1)/2  → symmetric, center card at t=0
             float countHalf   = (n - 1) / 2f;
             float cardAngle   = countHalf > 0f ? 14f / countHalf : 0f;
@@ -1025,8 +1040,8 @@ namespace FWTCG.UI
                 if (rt == null) continue;
 
                 float t       = i - countHalf;
-                float targetX = rt.anchoredPosition.x;         // HLG controls horizontal
-                float targetY = baseY + t * t * -cardOffsetY;  // stable base + parabolic arc
+                float targetX = t * step;                       // centered, overlapping fan
+                float targetY = baseY + t * t * -cardOffsetY;  // baseY + parabolic arc
                 float zAngle  = t * -cardAngle;
                 if (!isPlayer) zAngle = -zAngle;               // AI hand: mirror rotation
 
