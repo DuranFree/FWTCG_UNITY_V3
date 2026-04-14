@@ -254,7 +254,7 @@
 - [x] 状态粒子 FX（眩晕→ElectricFX / 休眠→Zzz，状态结束时自动销毁）— VFX-7o
 - [x] MouseLineFX 点链瞄准线（12 点均匀间距，合法绿色/非法红色）— VFX-7p
 - [x] AimTargetFX 准星光环（48px target.png，alpha 0.4↔0.8 2Hz 脉冲）— VFX-7q
-- ❌ 手牌扇形展开 — 用户确认不需要，保留水平排列 — VFX-7r REMOVED
+- [x] 手牌扇形展开（Pencil new5.pen 对齐：±14°旋转、~56px Y弧、对称t公式）— VFX-7r
 
 ### VFX-8 — 投射物系统
 - [x] 法术/装备卡投射物弧线飞行（0.4s 二次贝塞尔弧线，手牌区→目标位置）— VFX-8

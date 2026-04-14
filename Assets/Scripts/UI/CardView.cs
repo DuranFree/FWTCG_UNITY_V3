@@ -163,6 +163,43 @@ namespace FWTCG.UI
         private const float TILT_MAX   = 10f; // max degrees each axis
         private const float TILT_SPEED = 9f;  // lerp speed
 
+        // ── Hand fan (set by ApplyHandFan, enforced every LateUpdate) ──────────
+        // ── Hand fan (TCG Engine style: absolute position + rotation, lerped every frame) ─
+        private float   _handFanAngle;      // target Z rotation
+        private float   _handFanTargetX;    // absolute target anchoredPosition.x
+        private float   _handFanTargetY;    // absolute target anchoredPosition.y
+        private bool    _handFanEnabled;
+        private float   _handFanCurrentAngle;
+        private float   _handFanCurrentX;
+        private float   _handFanCurrentY;
+        private const float FAN_LERP_SPEED = 10f;
+
+        /// <summary>
+        /// Called by ApplyHandFan. targetX/Y are ABSOLUTE anchoredPosition (not offsets).
+        /// Mirrors TCG Engine HandCard.deck_position / deck_angle.
+        /// </summary>
+        public void SetHandFan(float angle, float targetX, float targetY)
+        {
+            _handFanAngle   = angle;
+            _handFanTargetX = targetX;
+            _handFanTargetY = targetY;
+            if (!_handFanEnabled)
+            {
+                // First time: snap current to target so there's no wild lerp from origin
+                _handFanCurrentAngle = angle;
+                _handFanCurrentX     = targetX;
+                _handFanCurrentY     = targetY;
+            }
+            _handFanEnabled = true;
+        }
+
+        public void ClearHandFanAngle()
+        {
+            _handFanEnabled      = false;
+            _handFanAngle        = 0f;
+            _handFanCurrentAngle = 0f;
+        }
+
         // ── DOT-8: Stat roll counter ──────────────────────────────────────────
         private Tween _statRollTween;
         private int   _displayedHp  = int.MinValue;
@@ -334,11 +371,35 @@ namespace FWTCG.UI
 
             if (_isTiltActive || _tiltCurrent.sqrMagnitude > 0.001f)
             {
+                // Always base tilt on the fan angle so rotation stays consistent
+                _preTiltRotation = _handFanEnabled
+                    ? Quaternion.Euler(0f, 0f, _handFanAngle)
+                    : _preTiltRotation;
                 _tiltCurrent = Vector3.Lerp(_tiltCurrent, _tiltTarget, TILT_SPEED * Time.deltaTime);
                 transform.localRotation = _preTiltRotation * Quaternion.Euler(_tiltCurrent);
                 if (!_isTiltActive && _tiltCurrent.sqrMagnitude < 0.001f)
                     transform.localRotation = _preTiltRotation; // snap when fully returned
             }
+        }
+
+        private void LateUpdate()
+        {
+            if (!_handFanEnabled) return;
+
+            // Exact TCG Engine HandCard.Update() translation:
+            //   anchoredPosition = Lerp(current, deck_position, dt * move_speed)
+            //   localRotation    = Slerp(current, Euler(0,0,deck_angle), dt * move_speed)
+            float dt = Time.deltaTime;
+            _handFanCurrentAngle = Mathf.LerpAngle(_handFanCurrentAngle, _handFanAngle,   dt * FAN_LERP_SPEED);
+            _handFanCurrentX     = Mathf.Lerp     (_handFanCurrentX,     _handFanTargetX, dt * FAN_LERP_SPEED);
+            _handFanCurrentY     = Mathf.Lerp     (_handFanCurrentY,     _handFanTargetY, dt * FAN_LERP_SPEED);
+
+            var rt = (RectTransform)transform;
+            rt.anchoredPosition = new Vector2(_handFanCurrentX, _handFanCurrentY);
+
+            // Rotation: only apply when tilt is not active (tilt system uses _preTiltRotation as base)
+            if (!_isTiltActive && _tiltCurrent.sqrMagnitude < 0.001f)
+                transform.localEulerAngles = new Vector3(0f, 0f, _handFanCurrentAngle);
         }
 
         /// <summary>VFX-7k: Set glow overlay target. Color: green for ally, red for enemy.</summary>
@@ -410,7 +471,9 @@ namespace FWTCG.UI
             {
                 ShowGlow(); // VFX-7k
                 StartHandSpread();           // DOT-8: push neighbors apart
-                _preTiltRotation = transform.localRotation;
+                _preTiltRotation = _handFanEnabled
+                    ? Quaternion.Euler(0f, 0f, _handFanAngle)
+                    : transform.localRotation;
                 _isTiltActive    = true;     // DOT-8: enable 3D tilt
                 _tiltCurrent     = Vector3.zero;
                 _onHoverEnter?.Invoke(_unit);
@@ -1597,11 +1660,10 @@ namespace FWTCG.UI
             Vector2 endPos   = rt.anchoredPosition;
 
             rt.anchoredPosition = startPos;
-            rt.localEulerAngles = new Vector3(0f, 0f, -4f); // slight tilt for drop-in feel
+            // Do NOT touch rotation here — fan angle is managed by ApplyHandFan.
             _enterAnimSeq = DOTween.Sequence()
                 .Append(rt.DOAnchorPos(endPos, ENTER_ANIM_DURATION).SetEase(Ease.OutCubic))
                 .Join(transform.DOScale(Vector3.one, ENTER_ANIM_DURATION).SetEase(Ease.OutCubic))
-                .Join(rt.DOLocalRotate(Vector3.zero, ENTER_ANIM_DURATION).SetEase(Ease.OutQuad))
                 .SetTarget(gameObject)
                 .OnComplete(() =>
                 {
@@ -2023,6 +2085,7 @@ namespace FWTCG.UI
             _idleFXSpawned = false;
             _bfVisualsApplied = false;
             if (_shadowImage != null) { SafeDestroy(_shadowImage); _shadowImage = null; }
+            ClearHandFanAngle(); // card leaving hand/field, no more fan lock
             transform.localRotation = Quaternion.identity;
         }
     }

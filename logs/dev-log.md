@@ -2271,3 +2271,32 @@
 - 测试用 `SendMessage("Update")` 触发 Unity `ShouldRunBehaviour()` 断言 → 改为直接测试 API 调用
 
 **Tests**: 492/492 EditMode 全绿（含 VFX3DissolveTests 10项）
+
+---
+
+## VFX-7r：手牌扇形展开 — 2026-04-14
+
+**Status**: ✅ Completed
+
+**What was done**:
+- GameUI.cs `ApplyHandFan` 全面重写，以 Pencil new5.pen 设计数据为基准：
+  - **对称索引**：`countHalf = (n-1)/2f`，中心牌 t=0，两侧均等展开（原 n/2f 有偏移）
+  - **动态旋转**：`cardAngle = 14f / countHalf`，无论手牌数量上限始终 ±14°（原 10° × tmax=4 = 40°）
+  - **Y弧系数**：`cardOffsetY = 56f / (countHalf²)`，两端下落约 56px（来自 Pencil 实测）
+  - **消除叠加 bug**：每次调用先 `ClearHandFanAngle` → `ForceRebuildLayoutImmediate` → 读稳定 baseY → 写绝对 `baseY + t² × -cardOffsetY`（原代码以 LateUpdate 已移动后的 Y 为基础累积偏移）
+  - 去掉全部 `Debug.Log`
+- CardView.cs `SetHandFan` / `ClearHandFanAngle` / `LateUpdate` 逻辑保持，无需修改
+
+**Decisions made**:
+- Pencil 设计 7 张参考牌：旋转 ±5° 每步、Y 弧 ~56px、间距 ~90px
+- 参数动态缩放（14f/countHalf、56f/countHalf²）确保任意牌数下视觉比例一致
+- AI 手牌旋转方向镜像（`!isPlayer` 时 zAngle 取反），与玩家手牌对称
+
+**Technical debt**: 无新增
+
+**Problems encountered**:
+- 旋转最大 40°（原 cardAngle=10 × tmax=4），远超 Pencil ±14°
+- Y 叠加：每次 ApplyHandFan 以 LateUpdate 已移动后的 Y 为基，反复调用后牌越降越低
+- countHalf = n/2f 导致 t 不对称（8 张牌 t 范围 -4~3 而非 ±3.5）
+
+**Tests**: 编译通过（1 warning，无关），场景重建成功，Play Mode 无报错

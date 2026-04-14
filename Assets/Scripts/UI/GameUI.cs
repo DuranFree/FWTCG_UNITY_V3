@@ -987,31 +987,54 @@ namespace FWTCG.UI
             ApplyHandFan(_enemyHandContainer, isPlayer: false);
         }
 
-        /// <summary>
-        /// Applies Pencil-style fan rotation to hand cards.
-        /// Player: leftmost card tilts +14° (CCW), rightmost -14° (CW).
-        /// Enemy: mirrored (face-down, so left=-14°, right=+14°).
-        /// Max 14° for 7 cards; scales linearly for fewer cards.
-        /// </summary>
         private static void ApplyHandFan(Transform container, bool isPlayer)
         {
             if (container == null) return;
             int n = container.childCount;
             if (n == 0) return;
 
-            // Max angle scales from 0 (1 card) to 14° (7+ cards)
-            float maxAngle = Mathf.Min(14f, 14f * n / 7f);
+            // Step 1: Clear existing fan locks so HLG can fully reset positions
+            for (int i = 0; i < n; i++)
+                container.GetChild(i).GetComponent<FWTCG.UI.CardView>()?.ClearHandFanAngle();
+
+            // Step 2: HLG recalculates all positions with clean slate
+            var containerRT = container.GetComponent<RectTransform>();
+            if (containerRT != null)
+                LayoutRebuilder.ForceRebuildLayoutImmediate(containerRT);
+
+            // Step 3: Read stable baseY from HLG (all cards share same Y after rebuild)
+            float baseY = 0f;
+            for (int i = 0; i < n; i++)
+            {
+                var rt0 = container.GetChild(i).GetComponent<RectTransform>();
+                if (rt0 != null) { baseY = rt0.anchoredPosition.y; break; }
+            }
+
+            // Pencil design (new5.pen, 7-card reference):
+            //   Rotation: ±14° max (left/right edge), linear per position
+            //   Y arc:    center highest, edges drop ~56px (parabolic)
+            //   Formula:  t = i - (n-1)/2  → symmetric, center card at t=0
+            float countHalf   = (n - 1) / 2f;
+            float cardAngle   = countHalf > 0f ? 14f / countHalf : 0f;
+            float cardOffsetY = countHalf > 0f ? 56f / (countHalf * countHalf) : 0f;
 
             for (int i = 0; i < n; i++)
             {
-                var rt = container.GetChild(i).GetComponent<RectTransform>();
+                var child = container.GetChild(i);
+                var rt    = child.GetComponent<RectTransform>();
                 if (rt == null) continue;
 
-                // t: -1 (leftmost) to +1 (rightmost)
-                float t = n == 1 ? 0f : (2f * i / (n - 1)) - 1f;
-                // Player: left tilt = positive Z; Enemy: mirrored
-                float zAngle = isPlayer ? -t * maxAngle : t * maxAngle;
-                rt.localEulerAngles = new Vector3(0f, 0f, zAngle);
+                float t       = i - countHalf;
+                float targetX = rt.anchoredPosition.x;         // HLG controls horizontal
+                float targetY = baseY + t * t * -cardOffsetY;  // stable base + parabolic arc
+                float zAngle  = t * -cardAngle;
+                if (!isPlayer) zAngle = -zAngle;               // AI hand: mirror rotation
+
+                var cv = child.GetComponent<FWTCG.UI.CardView>();
+                if (cv != null)
+                    cv.SetHandFan(zAngle, targetX, targetY);
+                else
+                    rt.localEulerAngles = new Vector3(0f, 0f, zAngle);
             }
         }
 
@@ -1463,12 +1486,21 @@ namespace FWTCG.UI
             if (container == null) return;
             if (units == null) units = new List<UnitInstance>();
 
-            int existing = container.childCount;
+            // Collect only CardView children (skip structural children: borders, labels, slot groups)
+            var cardChildren = new List<Transform>();
+            for (int i = 0; i < container.childCount; i++)
+            {
+                var child = container.GetChild(i);
+                if (child.GetComponent<FWTCG.UI.CardView>() != null)
+                    cardChildren.Add(child);
+            }
+
+            int existing = cardChildren.Count;
             int needed = units.Count;
 
-            // Remove excess children from the end
+            // Remove excess CardView children
             for (int i = existing - 1; i >= needed; i--)
-                Destroy(container.GetChild(i).gameObject);
+                Destroy(cardChildren[i].gameObject);
 
             // Add missing children
             for (int i = existing; i < needed; i++)
@@ -1477,10 +1509,19 @@ namespace FWTCG.UI
                     Instantiate(_cardViewPrefab, container);
             }
 
-            // Update all children in-place (no destroy/recreate flicker)
-            for (int i = 0; i < needed; i++)
+            // Re-collect CardView children after add/remove
+            cardChildren.Clear();
+            for (int i = 0; i < container.childCount; i++)
             {
-                CardView cv = container.GetChild(i).GetComponent<CardView>();
+                var child = container.GetChild(i);
+                if (child.GetComponent<FWTCG.UI.CardView>() != null)
+                    cardChildren.Add(child);
+            }
+
+            // Update all CardView children in-place
+            for (int i = 0; i < needed && i < cardChildren.Count; i++)
+            {
+                CardView cv = cardChildren[i].GetComponent<CardView>();
                 if (cv != null)
                 {
                     UnitInstance u = units[i];
@@ -1524,11 +1565,19 @@ namespace FWTCG.UI
         {
             if (container == null) return;
 
-            int existing = container.childCount;
+            // Only count CardView children (skip structural: borders, labels)
+            var cardChildren = new List<Transform>();
+            for (int c = 0; c < container.childCount; c++)
+            {
+                var ch = container.GetChild(c);
+                if (ch.GetComponent<FWTCG.UI.CardView>() != null)
+                    cardChildren.Add(ch);
+            }
+            int existing = cardChildren.Count;
 
-            // Remove excess
+            // Remove excess CardView children
             for (int i = existing - 1; i >= count; i--)
-                Destroy(container.GetChild(i).gameObject);
+                Destroy(cardChildren[i].gameObject);
 
             // Add missing
             for (int i = existing; i < count; i++)
@@ -1540,10 +1589,17 @@ namespace FWTCG.UI
                 }
             }
 
-            // Update all in-place
-            for (int i = 0; i < count; i++)
+            // Re-collect and update CardView children
+            cardChildren.Clear();
+            for (int c = 0; c < container.childCount; c++)
             {
-                CardView cv = container.GetChild(i).GetComponent<CardView>();
+                var ch = container.GetChild(c);
+                if (ch.GetComponent<FWTCG.UI.CardView>() != null)
+                    cardChildren.Add(ch);
+            }
+            for (int i = 0; i < count && i < cardChildren.Count; i++)
+            {
+                CardView cv = cardChildren[i].GetComponent<CardView>();
                 if (cv != null)
                     cv.SetFaceDown(true);
             }
@@ -1579,12 +1635,21 @@ namespace FWTCG.UI
             if (container == null) return;
             if (runes == null) runes = new List<RuneInstance>();
 
-            int existing = container.childCount;
+            // Count only rune children (skip structural: borders, labels, RuneRow)
+            var runeChildren = new List<Transform>();
+            for (int c = 0; c < container.childCount; c++)
+            {
+                var ch = container.GetChild(c);
+                // Rune prefabs have a "RuneCircle" child; structural elements don't
+                if (ch.Find("RuneCircle") != null || ch.GetComponent<FWTCG.UI.CardView>() != null)
+                    runeChildren.Add(ch);
+            }
+            int existing = runeChildren.Count;
             int needed = runes.Count;
 
-            // Remove excess rune objects from end
+            // Remove excess rune objects
             for (int i = existing - 1; i >= needed; i--)
-                Destroy(container.GetChild(i).gameObject);
+                Destroy(runeChildren[i].gameObject);
 
             // Add missing rune objects
             for (int i = existing; i < needed; i++)
@@ -1603,12 +1668,21 @@ namespace FWTCG.UI
                 EnsureRuneCircle(newGo);
             }
 
+            // Re-collect rune children after add/remove
+            runeChildren.Clear();
+            for (int c = 0; c < container.childCount; c++)
+            {
+                var ch = container.GetChild(c);
+                if (ch.Find("RuneCircle") != null)
+                    runeChildren.Add(ch);
+            }
+
             // Update all rune objects in-place
-            for (int i = 0; i < needed; i++)
+            for (int i = 0; i < needed && i < runeChildren.Count; i++)
             {
                 int idx = i;
                 RuneInstance r = runes[i];
-                GameObject go = container.GetChild(i).gameObject;
+                GameObject go = runeChildren[i].gameObject;
                 go.name = $"Rune_{r.RuneType}_{i}";
 
                 Transform circleT = go.transform.Find("RuneCircle");

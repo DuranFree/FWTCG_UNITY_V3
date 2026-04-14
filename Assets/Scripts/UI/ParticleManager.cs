@@ -309,7 +309,7 @@ namespace FWTCG.UI
             _mistSpeed = new float[MIST_COUNT];
 
             float[] yOffsets = { 30f, 60f, 90f, 120f };
-            float[] alphas   = { 0.25f, 0.20f, 0.14f, 0.09f };
+            float[] alphas   = { 0f, 0f, 0f, 0f };  // hidden: teal mist removed
             Color cyanBase   = new Color(0.04f, 0.78f, 0.73f, 1f);
 
             for (int i = 0; i < MIST_COUNT; i++)
