@@ -1002,15 +1002,19 @@ namespace FWTCG.Editor
             var enemyRunesZone = CreateAnchoredZone(go.transform, "EnemyRunes",
                 248f/1920f, 1672f/1920f, 1f-240f/1080f, 1f-155f/1080f);
             {
+                // Dark background matching Pencil design
+                var erImg = enemyRunesZone.AddComponent<Image>();
+                erImg.color = ZoneBgDefault;
+                erImg.raycastTarget = false;
                 CreateZoneBorderFrame(enemyRunesZone.transform, ZoneBorderColor);
-                // RUNES 左标签 (Pencil: x=258, y=162, "RUNES  符文区", 11pt bold, #c7ae87)
+                // RUNES 左标签 (Pencil: x=258, y=162, "RUNES  符文区", 13pt bold, #c7ae87)
                 var lbl = new GameObject("RunesLabel");
                 lbl.transform.SetParent(enemyRunesZone.transform, false);
                 lbl.AddComponent<LayoutElement>().ignoreLayout = true;
                 var lblTxt = lbl.AddComponent<Text>();
                 lblTxt.text = "RUNES  符文区";
                 lblTxt.color = GameColors.GoldMid;
-                lblTxt.fontSize = 11; lblTxt.fontStyle = FontStyle.Bold;
+                lblTxt.fontSize = 13; lblTxt.fontStyle = FontStyle.Bold;
                 lblTxt.alignment = TextAnchor.MiddleLeft;
                 lblTxt.raycastTarget = false;
                 lblTxt.horizontalOverflow = HorizontalWrapMode.Overflow;
@@ -1028,15 +1032,18 @@ namespace FWTCG.Editor
             var enemyBaseZone = CreateAnchoredZone(go.transform, "EnemyBase",
                 248f/1920f, 1672f/1920f, 1f-402f/1080f, 1f-242f/1080f);
             {
+                var ebImg = enemyBaseZone.AddComponent<Image>();
+                ebImg.color = ZoneBgBase;
+                ebImg.raycastTarget = false;
                 CreateZoneBorderFrame(enemyBaseZone.transform, ZoneBorderColor);
-                // BASE 左标签 (Pencil: x=258, y=248, "BASE  基地", 11pt bold, #c7ae87)
+                // BASE 左标签 (Pencil: x=258, y=248, "BASE  基地", 13pt bold, #c7ae87)
                 var lbl = new GameObject("BaseLabel");
                 lbl.transform.SetParent(enemyBaseZone.transform, false);
                 lbl.AddComponent<LayoutElement>().ignoreLayout = true;
                 var lblTxt = lbl.AddComponent<Text>();
                 lblTxt.text = "BASE  基地";
                 lblTxt.color = GameColors.GoldMid;
-                lblTxt.fontSize = 11; lblTxt.fontStyle = FontStyle.Bold;
+                lblTxt.fontSize = 13; lblTxt.fontStyle = FontStyle.Bold;
                 lblTxt.alignment = TextAnchor.UpperLeft;
                 lblTxt.raycastTarget = false;
                 lblTxt.horizontalOverflow = HorizontalWrapMode.Overflow;
@@ -1053,6 +1060,9 @@ namespace FWTCG.Editor
             var playerBaseZone = CreateAnchoredZone(go.transform, "PlayerBase",
                 248f/1920f, 1672f/1920f, 1f-826f/1080f, 1f-666f/1080f);
             {
+                var pbImg = playerBaseZone.AddComponent<Image>();
+                pbImg.color = ZoneBgBase;
+                pbImg.raycastTarget = false;
                 CreateZoneBorderFrame(playerBaseZone.transform, ZoneBorderColor);
                 var lbl = new GameObject("BaseLabel");
                 lbl.transform.SetParent(playerBaseZone.transform, false);
@@ -1060,7 +1070,7 @@ namespace FWTCG.Editor
                 var lblTxt = lbl.AddComponent<Text>();
                 lblTxt.text = "BASE  基地";
                 lblTxt.color = GameColors.GoldMid;
-                lblTxt.fontSize = 11; lblTxt.fontStyle = FontStyle.Bold;
+                lblTxt.fontSize = 13; lblTxt.fontStyle = FontStyle.Bold;
                 lblTxt.alignment = TextAnchor.LowerLeft;
                 lblTxt.raycastTarget = false;
                 lblTxt.horizontalOverflow = HorizontalWrapMode.Overflow;
@@ -1077,6 +1087,9 @@ namespace FWTCG.Editor
             var playerRunesZone = CreateAnchoredZone(go.transform, "PlayerRunes",
                 248f/1920f, 1672f/1920f, 1f-913f/1080f, 1f-828f/1080f);
             {
+                var prImg = playerRunesZone.AddComponent<Image>();
+                prImg.color = ZoneBgDefault;
+                prImg.raycastTarget = false;
                 CreateZoneBorderFrame(playerRunesZone.transform, ZoneBorderColor);
                 var lbl = new GameObject("RunesLabel");
                 lbl.transform.SetParent(playerRunesZone.transform, false);
@@ -1084,7 +1097,7 @@ namespace FWTCG.Editor
                 var lblTxt = lbl.AddComponent<Text>();
                 lblTxt.text = "RUNES  符文区";
                 lblTxt.color = GameColors.GoldMid;
-                lblTxt.fontSize = 11; lblTxt.fontStyle = FontStyle.Bold;
+                lblTxt.fontSize = 13; lblTxt.fontStyle = FontStyle.Bold;
                 lblTxt.alignment = TextAnchor.MiddleLeft;
                 lblTxt.raycastTarget = false;
                 lblTxt.horizontalOverflow = HorizontalWrapMode.Overflow;
@@ -1230,10 +1243,11 @@ namespace FWTCG.Editor
         {
             var go = CreateAnchoredZone(parent, name, xMin, xMax, yMin, yMax);
 
-            // Score track background
+            // Pencil: no background frame — score dots sit directly on board
+            // (removed ui_score_frame which was rendering gold/yellow via TryApplySvgSprite)
             var trackBg = go.AddComponent<Image>();
-            trackBg.color = new Color(0.03f, 0.08f, 0.15f, 0.85f);
-            TryApplySvgSprite(trackBg, "ui_score_frame");
+            trackBg.color = Color.clear;
+            trackBg.raycastTarget = false;
 
             var vlg = go.AddComponent<VerticalLayoutGroup>();
             vlg.childControlWidth = true;
@@ -1245,7 +1259,8 @@ namespace FWTCG.Editor
             // Diagonal: player circles cluster at BOTTOM-left, enemy at TOP-right
             vlg.childAlignment = isPlayer ? TextAnchor.LowerCenter : TextAnchor.UpperCenter;
 
-            // Player: 8 at top, 0 at bottom (reversed). Enemy: 0 at top, 8 at bottom
+            // Pencil: 22×22 circles, fill=#ffffff00 (transparent) + gold stroke
+            var knob = AssetDatabase.GetBuiltinExtraResource<Sprite>("UI/Skin/Knob.psd");
             for (int raw = 0; raw < 9; raw++)
             {
                 int num = isPlayer ? (8 - raw) : raw;
@@ -1254,15 +1269,21 @@ namespace FWTCG.Editor
                 circleGO.transform.SetParent(go.transform, false);
 
                 var le = circleGO.AddComponent<LayoutElement>();
-                le.preferredWidth = 28f;  // CSS: max-width 28px
-                le.preferredHeight = 28f;
+                le.preferredWidth  = 22f; // Pencil: 22×22
+                le.preferredHeight = 22f;
 
+                // Transparent circular background (Pencil: fill=#ffffff00)
                 var img = circleGO.AddComponent<Image>();
-                img.color = GameColors.ScoreCircleInactive;
-                TryApplySvgSprite(img, "deco_divider_orb");
+                img.sprite = knob;
+                img.type   = Image.Type.Simple;
+                img.color  = new Color(0.031f, 0.063f, 0.102f, 0.5f); // #08101a semi-transparent
+                // Gold circular outline (Pencil: stroke #907020)
+                var ol = circleGO.AddComponent<Outline>();
+                ol.effectColor    = ZoneBorderColor;
+                ol.effectDistance = new Vector2(1f, -1f);
 
                 var numText = CreateTMPText(circleGO.transform, "Num", num.ToString(),
-                    GameColors.GoldLight, 12, TextAnchor.MiddleCenter);
+                    GameColors.GoldLight, 10, TextAnchor.MiddleCenter);
                 var numRT = numText.GetComponent<RectTransform>();
                 numRT.anchorMin = Vector2.zero;
                 numRT.anchorMax = Vector2.one;
@@ -1990,8 +2011,9 @@ namespace FWTCG.Editor
             bg.color = new Color(0f, 0f, 0f, 0.72f);
             TryApplySvgSprite(bg, "panel_spell_showcase");
 
-            // CanvasGroup for alpha animation
+            // CanvasGroup for alpha animation — start fully hidden
             var cg = go.AddComponent<CanvasGroup>();
+            cg.alpha = 0f;
             cg.interactable = false;
             cg.blocksRaycasts = false; // don't block input during showcase
 
@@ -2117,6 +2139,9 @@ namespace FWTCG.Editor
             var bdImg = backdrop.AddComponent<Image>();
             bdImg.color = new Color(0f, 0f, 0f, 0.65f);
             var bdCG = backdrop.AddComponent<CanvasGroup>();
+            bdCG.alpha = 0f;
+            bdCG.interactable = false;
+            bdCG.blocksRaycasts = false;
 
             // Centered panel box
             var box = new GameObject("PopupBox");
@@ -3394,7 +3419,7 @@ namespace FWTCG.Editor
 
             // ── Circular rune image (tap button) ──
             // Use built-in Knob sprite so mask is truly circular
-            var knobSprite = Resources.GetBuiltinResource<Sprite>("UI/Skin/Knob.psd");
+            var knobSprite = AssetDatabase.GetBuiltinExtraResource<Sprite>("UI/Skin/Knob.psd");
 
             var circleGO = new GameObject("RuneCircle");
             circleGO.transform.SetParent(root.transform, false);
@@ -4475,10 +4500,11 @@ namespace FWTCG.Editor
             hlg.childControlWidth = false; hlg.childControlHeight = true;
             hlg.childForceExpandWidth = false; hlg.childForceExpandHeight = true;
             hlg.childAlignment = TextAnchor.MiddleCenter;
-            hlg.spacing = 6f;
+            // Pencil: ellipses step=26px, width=48px → overlap=22px → spacing=-22
+            hlg.spacing = -22f;
 
             // Use Knob sprite for true circular shape (matches Pencil ellipse rune slots)
-            var knob = Resources.GetBuiltinResource<Sprite>("UI/Skin/Knob.psd");
+            var knob = AssetDatabase.GetBuiltinExtraResource<Sprite>("UI/Skin/Knob.psd");
             for (int i = 0; i < count; i++)
             {
                 var slot = new GameObject($"RuneSlot{i}");

@@ -2300,3 +2300,29 @@
 - countHalf = n/2f 导致 t 不对称（8 张牌 t 范围 -4~3 而非 ±3.5）
 
 **Tests**: 编译通过（1 warning，无关），场景重建成功，Play Mode 无报错
+
+
+---
+
+## DEV-30c：Pencil 视觉细节修复 — 2026-04-14
+
+**Status**: ✅ Completed
+
+**What was done**:
+- SceneBuilder.cs：EnemyRunes/EnemyBase/PlayerBase/PlayerRunes 各区域新增深海军蓝半透明 Image 背景（ZoneBgDefault/ZoneBgBase，alpha=0.4），消除黄色底色视觉 bug
+- SceneBuilder.cs：SpellShowcasePanel CanvasGroup.alpha = 0f + interactable=false + blocksRaycasts=false，初始完全隐藏（之前 CanvasGroup alpha 默认 1，面板可见）
+- SceneBuilder.cs：SpellTargetPopup（backdrop）CanvasGroup 同上，初始隐藏
+- SceneBuilder.cs：RunesLabel/BaseLabel 字体大小 11→13，区域标签可读性改善
+- SceneBuilder.cs：全部 3 处 Knob 精灵加载统一改为 `AssetDatabase.GetBuiltinExtraResource<Sprite>`（原 `Resources.GetBuiltinResource` 在某些 Unity 版本 Editor 下 Knob.psd 路径失效）
+
+**Decisions made**:
+- GameOverPanel 保留 SetActive(false)，无需 alpha=0（已有 active 状态控制，不走 DOTween fade-in）
+- 区域背景使用 raycastTarget=false，不干扰卡槽点击
+
+**Technical debt**: 无新增
+
+**Problems encountered**:
+- 初次重建未生效：SceneBuilder 编译旧代码，需先 recompile_scripts 再重建
+- Knob.psd 加载失败：Editor 脚本应用 AssetDatabase API，Resources.GetBuiltinResource 在编辑器批量构建下可能返回 null
+
+**Tests**: 编译 0 error 0 warning，场景重建成功，MCP 验证 RuneSlot0.Image.m_Sprite="Knob" / RunesLabel.fontSize=13

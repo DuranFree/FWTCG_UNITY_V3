@@ -282,3 +282,9 @@
 - [x] 洗牌动画（Mulligan 前 4 张幽灵卡交叉飞行 + 淡出）— DOT-8
 - [x] Mulligan 翻转（点击换牌 DOScaleX 0→1，0.11s×2 翻转）— DOT-8
 - [x] 传奇技能特写（LegendSkillShowcase：全屏变暗 + 卡牌面板 0.4→1.08→1 弹入 → hold 0.8s → 缩出）— DOT-8
+
+### DEV-30c — Pencil 视觉细节修复
+- [x] 区域背景色（EnemyRunes/EnemyBase/PlayerBase/PlayerRunes 深海军蓝半透明 Image，消除黄色底色）— DEV-30c
+- [x] SpellShowcasePanel / SpellTargetPopup 初始隐藏（CanvasGroup alpha=0，非 SetActive）— DEV-30c
+- [x] 区域标签字体放大（RunesLabel/BaseLabel fontSize 11→13）— DEV-30c
+- [x] 符文槽圆形精灵修复（Resources.GetBuiltinResource → AssetDatabase.GetBuiltinExtraResource，全部 3 处统一）— DEV-30c

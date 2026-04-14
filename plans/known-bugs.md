@@ -28,3 +28,5 @@
 - ✅ _statusTooltip 泄漏（CardView 销毁）— 已修复：CardView.OnDestroy 销毁 _statusTooltip — 发现于 DEV-22 Codex H-3
 - ✅ Mulligan 面板中 PlayableSparkRoutine 报 "Coroutine couldn't be started because the game object is inactive" — 已修复：CardView.Refresh 加 `gameObject.activeInHierarchy` 守卫，Mulligan 面板隐藏时不启动协程 — 发现于 DEV-31
 - ✅ WaitForReaction await 无 OperationCanceledException 保护，ReactiveWindowUI 被禁用时 _reactionWindowActive 永久卡死 — 已修复：GameManager try/catch OperationCanceledException — 发现于 DEV-31 Codex HIGH
+- ✅ EnemyRunes/EnemyBase/PlayerBase/PlayerRunes 显示黄色底色 — 已修复：各区域缺少 Image 背景组件，已补加深海军蓝半透明 Image — 发现于 DEV-30c
+- ✅ SpellShowcasePanel / SpellTargetPopup 初始可见（CanvasGroup alpha=1）— 已修复：SceneBuilder 创建时设 alpha=0，不再一帧闪现 — 发现于 DEV-30c
