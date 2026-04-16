@@ -189,8 +189,7 @@ namespace FWTCG.Editor
 
                 _countdownRingUI = ringGO.AddComponent<CountdownRingUI>();
                 _countdownRingUI.baseRing = baseImg;
-                _countdownRingUI.blueFill = blueImg;
-                _countdownRingUI.redFill  = redImg;
+                // 注：blueFill / redFill 已废弃（v4 起改为 12 个 per-segment Images，由 Awake 动态创建）
 
                 // ── Logo (Pencil: 0c05h group at x=817, y=489, ~282×97) — above ring ──
                 var logoGO = new GameObject("Logo", typeof(RectTransform), typeof(Image));
@@ -274,9 +273,8 @@ namespace FWTCG.Editor
                 out var tapAllRunesBtn, out var cancelRunesBtn,
                 out var confirmRunesBtn, out var skipReactionBtn);
 
-            // ── MessagePanel ──────────────────────────────────────────────────
-            var messagePanel = CreateMessagePanel(canvasGO.transform, out var messageText);
-            messagePanel.SetActive(false); // Pencil 中无此区域
+            // MessagePanel removed — not in Pencil design, GameUI handles null gracefully
+            GameObject messagePanel = null;
 
             // ── GameOverPanel ─────────────────────────────────────────────────
             var gameOverPanel = CreateGameOverPanel(canvasGO.transform,
@@ -313,44 +311,9 @@ namespace FWTCG.Editor
                 out var askCardContainer, out var askConfirmBtn, out var askCancelBtn,
                 out var askConfirmBtnText, out var askCancelBtnText);
 
-            // ── DEV-10: LogToggleButton (anchored to right side, above message panel) ──
-            var logToggleGO = new GameObject("LogToggleBtn");
-            logToggleGO.transform.SetParent(canvasGO.transform, false);
-            {
-                var ltRT = logToggleGO.AddComponent<RectTransform>();
-                // Position at the left edge of the message panel (right 200px strip)
-                ltRT.anchorMin = new Vector2(1f, 0.4f);
-                ltRT.anchorMax = new Vector2(1f, 0.6f);
-                ltRT.pivot = new Vector2(1f, 0.5f);
-                ltRT.anchoredPosition = new Vector2(-196f, 0f); // just left of the 200px log panel
-                ltRT.sizeDelta = new Vector2(28f, 80f);
-                var ltImg = logToggleGO.AddComponent<Image>();
-                ltImg.color = new Color(0.2f, 0.15f, 0.35f, 0.95f);
-                logToggleGO.AddComponent<Button>();
-
-                // Add outline for visibility
-                var ltOutline = logToggleGO.AddComponent<Outline>();
-                ltOutline.effectColor = new Color(GameColors.GoldDark.r, GameColors.GoldDark.g, GameColors.GoldDark.b, 0.6f);
-                ltOutline.effectDistance = new Vector2(1f, -1f);
-
-                var ltTextGO = new GameObject("LogToggleText");
-                ltTextGO.transform.SetParent(logToggleGO.transform, false);
-                var ltTextRT = ltTextGO.AddComponent<RectTransform>();
-                ltTextRT.anchorMin = Vector2.zero;
-                ltTextRT.anchorMax = Vector2.one;
-                ltTextRT.offsetMin = Vector2.zero;
-                ltTextRT.offsetMax = Vector2.zero;
-                var logToggleText = ltTextGO.AddComponent<Text>();
-                logToggleText.text = "<";
-                logToggleText.color = GameColors.GoldLight;
-                logToggleText.fontSize = 18;
-                logToggleText.fontStyle = FontStyle.Bold;
-                logToggleText.alignment = TextAnchor.MiddleCenter;
-                if (_font != null) logToggleText.font = _font;
-            }
-            logToggleGO.SetActive(false); // Pencil 中无此区域
-            var logToggleBtn = logToggleGO.GetComponent<Button>();
-            var logToggleTxt = logToggleGO.GetComponentInChildren<Text>();
+            // LogToggleButton removed — not in Pencil design, GameUI handles null gracefully
+            Button logToggleBtn = null;
+            Text logToggleTxt = null;
 
             // ── DEV-10: ViewerPanel (discard/exile viewer) ───────────────────
             var viewerPanel = CreateViewerPanel(canvasGO.transform,
@@ -417,22 +380,17 @@ namespace FWTCG.Editor
             {
                 var img = bf0FieldCard.AddComponent<Image>();
                 img.color = new Color(0.031f, 0.063f, 0.102f, 0.9f); // #08101a
-                var ol = bf0FieldCard.AddComponent<Outline>();
-                ol.effectColor = new Color(0.565f, 0.439f, 0.125f, 1f); // #907020
-                ol.effectDistance = new Vector2(1f, -1f);
+                // Use border frame instead of Outline to avoid gold bleed-through on semi-transparent Image
                 CreateTwoLineLabel(bf0FieldCard.transform, "战场牌名", "FIELD CARD");
+                CreateZoneBorderFrame(bf0FieldCard.transform, new Color(0.565f, 0.439f, 0.125f, 1f), 1f);
             }
 
             // BF0Standby: Pencil x=696,y=546,w=72,h=100
             var bf0Standby = CreateAnchoredZone(mainArea.transform, "BF0Standby",
                 696f/1920f, 768f/1920f, 1f-646f/1080f, 1f-546f/1080f);
             {
-                var img = bf0Standby.AddComponent<Image>();
-                img.color = new Color(0.031f, 0.063f, 0.102f, 0.9f);
-                var ol = bf0Standby.AddComponent<Outline>();
-                ol.effectColor = new Color(0.565f, 0.439f, 0.125f, 1f);
-                ol.effectDistance = new Vector2(1f, -1f);
                 CreateTwoLineLabel(bf0Standby.transform, "待命区", "STANDBY");
+                CreateZoneBorderFrame(bf0Standby.transform, ZoneBorderColor);
             }
 
             // BF1FieldCard: Pencil x=1135,y=436,w=106,h=76
@@ -441,51 +399,28 @@ namespace FWTCG.Editor
             {
                 var img = bf1FieldCard.AddComponent<Image>();
                 img.color = new Color(0.031f, 0.063f, 0.102f, 0.9f);
-                var ol = bf1FieldCard.AddComponent<Outline>();
-                ol.effectColor = new Color(0.565f, 0.439f, 0.125f, 1f);
-                ol.effectDistance = new Vector2(1f, -1f);
                 CreateTwoLineLabel(bf1FieldCard.transform, "战场牌名", "FIELD CARD");
+                CreateZoneBorderFrame(bf1FieldCard.transform, new Color(0.565f, 0.439f, 0.125f, 1f), 1f);
             }
 
             // BF1Standby: Pencil x=1152,y=546,w=72,h=100
             var bf1Standby = CreateAnchoredZone(mainArea.transform, "BF1Standby",
                 1152f/1920f, 1224f/1920f, 1f-646f/1080f, 1f-546f/1080f);
             {
-                var img = bf1Standby.AddComponent<Image>();
-                img.color = new Color(0.031f, 0.063f, 0.102f, 0.9f);
-                var ol = bf1Standby.AddComponent<Outline>();
-                ol.effectColor = new Color(0.565f, 0.439f, 0.125f, 1f);
-                ol.effectDistance = new Vector2(1f, -1f);
                 CreateTwoLineLabel(bf1Standby.transform, "待命区", "STANDBY");
+                CreateZoneBorderFrame(bf1Standby.transform, ZoneBorderColor);
             }
 
             // Hand zones (outside board)
             var enemyHand       = enemyHandZone.transform;
             var playerHand      = playerHandZone.transform;
 
-            // ── DEV-10: Zone labels + borders ──────────────────────────────────
-            // Note: playerBase, enemyBase, playerRunes, enemyRunes removed (Pencil layout)
-            if (playerHeroContainer != null) AddZoneLabel(playerHeroContainer, "HERO");
-            if (enemyHeroContainer != null) AddZoneLabel(enemyHeroContainer, "HERO");
-
-            // Legend zones
+            // ZoneLabel overlay removed — not in Pencil design, no runtime reference
             var pLegendZone = mainArea.transform.Find("PlayerLegendZone");
             var eLegendZone = mainArea.transform.Find("EnemyLegendZone");
-            if (pLegendZone != null) AddZoneLabel(pLegendZone, "LEGEND");
-            if (eLegendZone != null) AddZoneLabel(eLegendZone, "LEGEND");
 
-            // Discard/Exile zone labels (now separate piles)
-            var pDiscardExile = mainArea.transform.Find("PlayerDiscardPile");
-            var eDiscardExile = mainArea.transform.Find("EnemyDiscardPile");
-            if (pDiscardExile != null) AddZoneLabel(pDiscardExile, "DISCARD");
-            if (eDiscardExile != null) AddZoneLabel(eDiscardExile, "DISCARD");
-
-            // Borders on all zones — Pencil: #907020 solid gold
-            Color borderColor = ZoneBorderColor;
-            if (playerHeroContainer != null) AddZoneBorder(playerHeroContainer.parent, borderColor);
-            if (enemyHeroContainer != null) AddZoneBorder(enemyHeroContainer.parent, borderColor);
-            if (pLegendZone != null) AddZoneBorder(pLegendZone, borderColor);
-            if (eLegendZone != null) AddZoneBorder(eLegendZone, borderColor);
+            // Borders already applied via CreateZoneBorderFrame inside CreateHeroZone / CreatePlayerLegendZone
+            // (AddZoneBorder with Outline removed — Outline on semi-transparent Image causes gold bleed-through)
 
             // ── VFX-7: Legend glow overlays removed (gold frame replaces breathing glow) ──
             Image _playerLegendGlow = null;
@@ -515,13 +450,11 @@ namespace FWTCG.Editor
                 out var mulliganTitleText, out var mulliganCardContainer,
                 out var mulliganConfirmButton, out var mulliganConfirmLabel);
 
-            // ── Debug Panel ───────────────────────────────────────────────────
-            var debugPanel = CreateDebugPanel(canvasGO.transform,
-                out var debugSpellBtn, out var debugEquipBtn,
-                out var debugUnitBtn, out var debugReactiveBtn, out var debugManaBtn,
-                out var debugSchBtn, out var debugFloatBtn,
-                out var debugDmgInput, out var debugTakeHitBtn, out var debugDealHitBtn);
-            debugPanel.SetActive(false); // Pencil 中无此区域
+            // DebugPanel removed — not in Pencil design, GameManager handles null gracefully
+            Button debugSpellBtn = null, debugEquipBtn = null, debugUnitBtn = null;
+            Button debugReactiveBtn = null, debugManaBtn = null, debugSchBtn = null, debugFloatBtn = null;
+            Button debugTakeHitBtn = null, debugDealHitBtn = null;
+            InputField debugDmgInput = null;
 
             // ── Reactive Window Panel ─────────────────────────────────────────
             var reactivePanel = CreateReactiveWindowPanel(canvasGO.transform,
@@ -589,10 +522,12 @@ namespace FWTCG.Editor
                 bf1PlayerUnits, bf1EnemyUnits,
                 bf2PlayerUnits, bf2EnemyUnits,
                 bf1LabelText, bf2LabelText,
-                playerRunes, enemyRunes,
+                // Wire to RuneSlotRow (HLG container) so rune prefabs lay out correctly
+                playerRunes.Find("RuneSlotRow") ?? playerRunes,
+                enemyRunes.Find("RuneSlotRow")  ?? enemyRunes,
                 endTurnButton,
-                messagePanel.transform,
-                messageText,
+                null, // messageContainer — removed (not in Pencil design)
+                null, // messageTextPrefab — removed
                 gameOverPanel,
                 resultText,
                 restartButton,
@@ -669,12 +604,11 @@ namespace FWTCG.Editor
                 gmSO.ApplyModifiedPropertiesWithoutUndo();
             }
 
-            // Wire debug panel toggle into GameUI (DEV-10)
+            // Wire combat result + misc into GameUI (debugPanel removed from Pencil design)
             {
                 var guiSO2 = new SerializedObject(gameUI);
-                guiSO2.FindProperty("_debugPanel").objectReferenceValue = debugPanel;
-                var debugTitleBtn = debugPanel.transform.Find("DebugTitle")?.GetComponent<Button>();
-                guiSO2.FindProperty("_debugToggleBtn").objectReferenceValue = debugTitleBtn;
+                guiSO2.FindProperty("_debugPanel").objectReferenceValue = null;
+                guiSO2.FindProperty("_debugToggleBtn").objectReferenceValue = null;
 
                 // Combat result panel
                 guiSO2.FindProperty("_combatResultPanel").objectReferenceValue = combatResultPanel;
@@ -821,7 +755,13 @@ namespace FWTCG.Editor
         {
             var go = new GameObject("Canvas");
             var canvas = go.AddComponent<Canvas>();
-            canvas.renderMode = RenderMode.ScreenSpaceOverlay;
+
+            // Screen Space - Camera 模式：让 Canvas 经过相机渲染管线，URP Bloom 才能作用于 UI
+            // Overlay 模式在后期处理之后直接渲染到屏幕，Bloom 完全无效
+            canvas.renderMode = RenderMode.ScreenSpaceCamera;
+            var mainCam = GameObject.FindObjectOfType<Camera>();
+            if (mainCam != null) canvas.worldCamera = mainCam;
+            canvas.planeDistance = 1f;
 
             var scaler = go.AddComponent<CanvasScaler>();
             scaler.uiScaleMode = CanvasScaler.ScaleMode.ScaleWithScreenSize;
@@ -1002,10 +942,7 @@ namespace FWTCG.Editor
             var enemyRunesZone = CreateAnchoredZone(go.transform, "EnemyRunes",
                 248f/1920f, 1672f/1920f, 1f-240f/1080f, 1f-155f/1080f);
             {
-                // Dark background matching Pencil design
-                var erImg = enemyRunesZone.AddComponent<Image>();
-                erImg.color = ZoneBgDefault;
-                erImg.raycastTarget = false;
+                // Pencil: no background — gold border only (Image component not needed)
                 CreateZoneBorderFrame(enemyRunesZone.transform, ZoneBorderColor);
                 // RUNES 左标签 (Pencil: x=258, y=162, "RUNES  符文区", 13pt bold, #c7ae87)
                 var lbl = new GameObject("RunesLabel");
@@ -1014,7 +951,7 @@ namespace FWTCG.Editor
                 var lblTxt = lbl.AddComponent<Text>();
                 lblTxt.text = "RUNES  符文区";
                 lblTxt.color = GameColors.GoldMid;
-                lblTxt.fontSize = 13; lblTxt.fontStyle = FontStyle.Bold;
+                lblTxt.fontSize = 16; lblTxt.fontStyle = FontStyle.Bold;
                 lblTxt.alignment = TextAnchor.MiddleLeft;
                 lblTxt.raycastTarget = false;
                 lblTxt.horizontalOverflow = HorizontalWrapMode.Overflow;
@@ -1022,7 +959,7 @@ namespace FWTCG.Editor
                 if (_font != null) lblTxt.font = _font;
                 lbl.AddComponent<Shadow>().effectColor = new Color(0f, 0f, 0f, 0.8f);
                 var lblRT = lbl.GetComponent<RectTransform>();
-                if (lblRT != null) { lblRT.anchorMin = new Vector2(0f, 0f); lblRT.anchorMax = new Vector2(0.15f, 1f); lblRT.offsetMin = new Vector2(4f, 0f); lblRT.offsetMax = Vector2.zero; }
+                if (lblRT != null) { lblRT.anchorMin = new Vector2(0f, 0f); lblRT.anchorMax = new Vector2(0.15f, 1f); lblRT.offsetMin = new Vector2(4f, -27f); lblRT.offsetMax = new Vector2(0f, -27f); }
                 lbl.transform.SetAsLastSibling();
                 // 圆形符文槽 (12个，均匀分布在中间)
                 CreateRuneSlotRow(enemyRunesZone.transform, 12, false);
@@ -1032,9 +969,7 @@ namespace FWTCG.Editor
             var enemyBaseZone = CreateAnchoredZone(go.transform, "EnemyBase",
                 248f/1920f, 1672f/1920f, 1f-402f/1080f, 1f-242f/1080f);
             {
-                var ebImg = enemyBaseZone.AddComponent<Image>();
-                ebImg.color = ZoneBgBase;
-                ebImg.raycastTarget = false;
+                // Pencil: no background — gold border only (Image component not needed)
                 CreateZoneBorderFrame(enemyBaseZone.transform, ZoneBorderColor);
                 // BASE 左标签 (Pencil: x=258, y=248, "BASE  基地", 13pt bold, #c7ae87)
                 var lbl = new GameObject("BaseLabel");
@@ -1043,7 +978,7 @@ namespace FWTCG.Editor
                 var lblTxt = lbl.AddComponent<Text>();
                 lblTxt.text = "BASE  基地";
                 lblTxt.color = GameColors.GoldMid;
-                lblTxt.fontSize = 13; lblTxt.fontStyle = FontStyle.Bold;
+                lblTxt.fontSize = 16; lblTxt.fontStyle = FontStyle.Bold;
                 lblTxt.alignment = TextAnchor.UpperLeft;
                 lblTxt.raycastTarget = false;
                 lblTxt.horizontalOverflow = HorizontalWrapMode.Overflow;
@@ -1051,8 +986,7 @@ namespace FWTCG.Editor
                 if (_font != null) lblTxt.font = _font;
                 lbl.AddComponent<Shadow>().effectColor = new Color(0f, 0f, 0f, 0.8f);
                 var lblRT = lbl.GetComponent<RectTransform>();
-                if (lblRT != null) { lblRT.anchorMin = new Vector2(0f, 0.85f); lblRT.anchorMax = new Vector2(0.15f, 1f); lblRT.offsetMin = new Vector2(4f, 0f); lblRT.offsetMax = Vector2.zero; }
-                CreateBaseCardSlots(enemyBaseZone.transform, true);
+                if (lblRT != null) { lblRT.anchorMin = new Vector2(0f, 0.85f); lblRT.anchorMax = new Vector2(0.15f, 1f); lblRT.offsetMin = new Vector2(4f, -134f); lblRT.offsetMax = new Vector2(0f, -134f); }
                 lbl.transform.SetAsLastSibling();
             }
 
@@ -1060,9 +994,7 @@ namespace FWTCG.Editor
             var playerBaseZone = CreateAnchoredZone(go.transform, "PlayerBase",
                 248f/1920f, 1672f/1920f, 1f-826f/1080f, 1f-666f/1080f);
             {
-                var pbImg = playerBaseZone.AddComponent<Image>();
-                pbImg.color = ZoneBgBase;
-                pbImg.raycastTarget = false;
+                // Pencil: no background — gold border only (Image component not needed)
                 CreateZoneBorderFrame(playerBaseZone.transform, ZoneBorderColor);
                 var lbl = new GameObject("BaseLabel");
                 lbl.transform.SetParent(playerBaseZone.transform, false);
@@ -1070,7 +1002,7 @@ namespace FWTCG.Editor
                 var lblTxt = lbl.AddComponent<Text>();
                 lblTxt.text = "BASE  基地";
                 lblTxt.color = GameColors.GoldMid;
-                lblTxt.fontSize = 13; lblTxt.fontStyle = FontStyle.Bold;
+                lblTxt.fontSize = 16; lblTxt.fontStyle = FontStyle.Bold;
                 lblTxt.alignment = TextAnchor.LowerLeft;
                 lblTxt.raycastTarget = false;
                 lblTxt.horizontalOverflow = HorizontalWrapMode.Overflow;
@@ -1078,8 +1010,7 @@ namespace FWTCG.Editor
                 if (_font != null) lblTxt.font = _font;
                 lbl.AddComponent<Shadow>().effectColor = new Color(0f, 0f, 0f, 0.8f);
                 var lblRT = lbl.GetComponent<RectTransform>();
-                if (lblRT != null) { lblRT.anchorMin = new Vector2(0f, 0f); lblRT.anchorMax = new Vector2(0.15f, 0.15f); lblRT.offsetMin = new Vector2(4f, 0f); lblRT.offsetMax = Vector2.zero; }
-                CreateBaseCardSlots(playerBaseZone.transform, false);
+                if (lblRT != null) { lblRT.anchorMin = new Vector2(0f, 0f); lblRT.anchorMax = new Vector2(0.15f, 0.15f); lblRT.offsetMin = new Vector2(13f, 134f); lblRT.offsetMax = new Vector2(9f, 134f); }
                 lbl.transform.SetAsLastSibling();
             }
 
@@ -1087,9 +1018,7 @@ namespace FWTCG.Editor
             var playerRunesZone = CreateAnchoredZone(go.transform, "PlayerRunes",
                 248f/1920f, 1672f/1920f, 1f-913f/1080f, 1f-828f/1080f);
             {
-                var prImg = playerRunesZone.AddComponent<Image>();
-                prImg.color = ZoneBgDefault;
-                prImg.raycastTarget = false;
+                // Pencil: no background — gold border only (Image component not needed)
                 CreateZoneBorderFrame(playerRunesZone.transform, ZoneBorderColor);
                 var lbl = new GameObject("RunesLabel");
                 lbl.transform.SetParent(playerRunesZone.transform, false);
@@ -1097,7 +1026,7 @@ namespace FWTCG.Editor
                 var lblTxt = lbl.AddComponent<Text>();
                 lblTxt.text = "RUNES  符文区";
                 lblTxt.color = GameColors.GoldMid;
-                lblTxt.fontSize = 13; lblTxt.fontStyle = FontStyle.Bold;
+                lblTxt.fontSize = 16; lblTxt.fontStyle = FontStyle.Bold;
                 lblTxt.alignment = TextAnchor.MiddleLeft;
                 lblTxt.raycastTarget = false;
                 lblTxt.horizontalOverflow = HorizontalWrapMode.Overflow;
@@ -1105,7 +1034,7 @@ namespace FWTCG.Editor
                 if (_font != null) lblTxt.font = _font;
                 lbl.AddComponent<Shadow>().effectColor = new Color(0f, 0f, 0f, 0.8f);
                 var lblRT = lbl.GetComponent<RectTransform>();
-                if (lblRT != null) { lblRT.anchorMin = new Vector2(0f, 0f); lblRT.anchorMax = new Vector2(0.15f, 1f); lblRT.offsetMin = new Vector2(4f, 0f); lblRT.offsetMax = Vector2.zero; }
+                if (lblRT != null) { lblRT.anchorMin = new Vector2(0f, 0f); lblRT.anchorMax = new Vector2(0.15f, 1f); lblRT.offsetMin = new Vector2(10f, 27f); lblRT.offsetMax = new Vector2(6f, 27f); }
                 CreateRuneSlotRow(playerRunesZone.transform, 12, true);
                 lbl.transform.SetAsLastSibling();
             }
@@ -1209,10 +1138,10 @@ namespace FWTCG.Editor
         // Base zones: rgba(4,16,28,0.9)  |  Other zones: rgba(3,14,26,0.88)
         // All zone border: 1px solid rgba(200,155,60,0.18)
         // Sub-zone backgrounds (BF card slots, etc.) — slight darkening over board BG
-        private static readonly Color ZoneBgBase = new Color(0.031f, 0.063f, 0.102f, 0.4f);
-        private static readonly Color ZoneBgDefault = new Color(0.012f, 0.055f, 0.102f, 0.4f);
+        private static readonly Color ZoneBgBase    = new Color(0.016f, 0.063f, 0.110f, 0.90f); // CSS rgba(4,16,28,0.9)
+        private static readonly Color ZoneBgDefault = new Color(0.012f, 0.055f, 0.102f, 0.88f); // CSS rgba(3,14,26,0.88)
         // Pencil: stroke #907020 (solid gold) — was 0.18 alpha, now matching Pencil design
-        private static readonly Color ZoneBorderColor = new Color(0x90/255f, 0x70/255f, 0x20/255f, 1f);
+        private static readonly Color ZoneBorderColor = new Color(0x90/255f, 0x70/255f, 0x20/255f, 0.5f);
 
         private static void CreateHorizontalZoneAnchored(Transform parent, string name,
             float xMin, float xMax, float yMin, float yMax)
@@ -1276,8 +1205,8 @@ namespace FWTCG.Editor
                 var img = circleGO.AddComponent<Image>();
                 img.sprite = knob;
                 img.type   = Image.Type.Simple;
-                img.color  = new Color(0.031f, 0.063f, 0.102f, 0.5f); // #08101a semi-transparent
-                // Gold circular outline (Pencil: stroke #907020)
+                img.color  = new Color(0f, 0f, 0f, 0f); // Pencil: fill=transparent → gold Outline ring shows fully
+                // Gold circular outline (Pencil: stroke #907020) — works correctly on alpha=0 image
                 var ol = circleGO.AddComponent<Outline>();
                 ol.effectColor    = ZoneBorderColor;
                 ol.effectDistance = new Vector2(1f, -1f);
@@ -1633,10 +1562,8 @@ namespace FWTCG.Editor
             var bfArtImg = bfArtGO.AddComponent<Image>();
             bfArtImg.color = new Color(0.15f, 0.2f, 0.3f, 0.6f); // placeholder
             bfArtImg.preserveAspect = true;
-            // Border on slot
-            var bfArtOutline = bfArtGO.AddComponent<Outline>();
-            bfArtOutline.effectColor = new Color(0.47f, 0.35f, 0.16f, 0.5f);
-            bfArtOutline.effectDistance = new Vector2(1f, -1f);
+            // Border frame instead of Outline (avoids gold bleed-through on semi-transparent Image)
+            CreateZoneBorderFrame(bfArtGO.transform, new Color(0.47f, 0.35f, 0.16f, 0.5f), 1f);
 
             // Expose BF card art Image for GameUI.UpdateBFCardArt
             bfCardArtImg = bfArtImg;
@@ -2029,9 +1956,8 @@ namespace FWTCG.Editor
             var cpImg = cardPanelGO.AddComponent<Image>();
             cpImg.color = new Color(0.02f, 0.06f, 0.14f, 0.95f);
             cardPanelGO.AddComponent<FWTCG.UI.GlassPanelFX>();  // DEV-25 glass effect
-            var cpOutline = cardPanelGO.AddComponent<Outline>();
-            cpOutline.effectColor = new Color(200f/255f, 170f/255f, 110f/255f, 0.8f);
-            cpOutline.effectDistance = new Vector2(2f, -2f);
+            // Border frame instead of Outline (avoids gold bleed-through on semi-transparent Image)
+            CreateZoneBorderFrame(cardPanelGO.transform, new Color(200f/255f, 170f/255f, 110f/255f, 0.8f), 2f);
 
             // Owner label (top of card panel)
             var ownerLabel = CreateTMPText(cardPanelGO.transform, "OwnerLabel", "玩家",
@@ -2086,9 +2012,8 @@ namespace FWTCG.Editor
 
             var gpImg = groupPanelGO.AddComponent<Image>();
             gpImg.color = new Color(0.02f, 0.06f, 0.14f, 0.92f);
-            var gpOutline = groupPanelGO.AddComponent<Outline>();
-            gpOutline.effectColor = new Color(200f/255f, 170f/255f, 110f/255f, 0.7f);
-            gpOutline.effectDistance = new Vector2(2f, -2f);
+            // Border frame instead of Outline (avoids gold bleed-through on semi-transparent Image)
+            CreateZoneBorderFrame(groupPanelGO.transform, new Color(200f/255f, 170f/255f, 110f/255f, 0.7f), 2f);
 
             // SlotsRoot: HLG row, centered inside GroupPanel
             var slotsRootGO = new GameObject("SlotsRoot");
@@ -3413,21 +3338,36 @@ namespace FWTCG.Editor
         {
             var root = new GameObject("RunePrefab");
             var rootRT = root.AddComponent<RectTransform>();
-            rootRT.sizeDelta = new Vector2(46f, 46f); // just the circle, label is overlay
+            rootRT.sizeDelta = new Vector2(46f, 46f);
 
-            // No layout — circle fills root
-
-            // ── Circular rune image (tap button) ──
-            // Use built-in Knob sprite so mask is truly circular
             var knobSprite = AssetDatabase.GetBuiltinExtraResource<Sprite>("UI/Skin/Knob.psd");
 
+            // ── Gold ring — FIRST child (renders behind RuneCircle) ──
+            // Extends 4px outside root on all sides → visible ring around the art circle.
+            // NOT a child of RuneCircle → not clipped by its Mask.
+            var ringGO = new GameObject("RuneRing");
+            ringGO.transform.SetParent(root.transform, false);
+            var ringRT = ringGO.AddComponent<RectTransform>();
+            ringRT.anchorMin = Vector2.zero;
+            ringRT.anchorMax = Vector2.one;
+            ringRT.offsetMin = new Vector2(-6f, -6f); // extends 6px outside root → clearly visible ring
+            ringRT.offsetMax = new Vector2( 6f,  6f);
+            var ringImg = ringGO.AddComponent<Image>();
+            ringImg.sprite = knobSprite;
+            ringImg.type   = Image.Type.Simple;
+            // Same hue as zone border (#907020), but alpha 0.85 so ring is clearly visible
+            ringImg.color  = new Color(ZoneBorderColor.r, ZoneBorderColor.g, ZoneBorderColor.b, 0.85f);
+            ringImg.raycastTarget = false;
+
+            // ── RuneCircle — SECOND child (renders on top of ring) ──
+            // Fills root exactly → ring peeks out 4px on all sides around this circle.
             var circleGO = new GameObject("RuneCircle");
             circleGO.transform.SetParent(root.transform, false);
             var circleRT = circleGO.AddComponent<RectTransform>();
             circleRT.anchorMin = Vector2.zero;
             circleRT.anchorMax = Vector2.one;
-            circleRT.offsetMin = new Vector2(2f, 2f);
-            circleRT.offsetMax = new Vector2(-2f, -2f);
+            circleRT.offsetMin = Vector2.zero;
+            circleRT.offsetMax = Vector2.zero;
 
             // Circular mask — Knob sprite gives true circle shape
             var mask = circleGO.AddComponent<Mask>();
@@ -4245,10 +4185,8 @@ namespace FWTCG.Editor
 
             var img = go.AddComponent<Image>();
             img.color = new Color(0.02f, 0.06f, 0.12f, 0.92f);
-
-            var outline = go.AddComponent<Outline>();
-            outline.effectColor = new Color(0.78f, 0.67f, 0.43f, 0.6f);
-            outline.effectDistance = new Vector2(2f, -2f);
+            // Border frame instead of Outline (avoids gold bleed-through on semi-transparent Image)
+            CreateZoneBorderFrame(go.transform, new Color(0.78f, 0.67f, 0.43f, 0.6f), 2f);
 
             // BF name (top)
             bfNameText = CreateTMPText(go.transform, "CRBFName", "战场", GameColors.Gold, 16, TextAnchor.MiddleCenter);
@@ -4498,28 +4436,12 @@ namespace FWTCG.Editor
             }
             var hlg = row.AddComponent<HorizontalLayoutGroup>();
             hlg.childControlWidth = false; hlg.childControlHeight = true;
-            hlg.childForceExpandWidth = false; hlg.childForceExpandHeight = true;
+            hlg.childForceExpandWidth = false; hlg.childForceExpandHeight = false; // false→每槽按 LE preferredHeight=48，不拉伸成椭圆
             hlg.childAlignment = TextAnchor.MiddleCenter;
-            // Pencil: ellipses step=26px, width=48px → overlap=22px → spacing=-22
-            hlg.spacing = -22f;
+            hlg.spacing = -22f; // Pencil: step=26px, width=48px → overlap=22px
 
-            // Use Knob sprite for true circular shape (matches Pencil ellipse rune slots)
-            var knob = AssetDatabase.GetBuiltinExtraResource<Sprite>("UI/Skin/Knob.psd");
-            for (int i = 0; i < count; i++)
-            {
-                var slot = new GameObject($"RuneSlot{i}");
-                slot.transform.SetParent(row.transform, false);
-                var slotImg = slot.AddComponent<Image>();
-                slotImg.sprite = knob;
-                slotImg.type = Image.Type.Simple;
-                slotImg.color = new Color(0.031f, 0.063f, 0.102f, 1f); // #08101a dark fill (Pencil)
-                var slotOL = slot.AddComponent<Outline>();
-                slotOL.effectColor = ZoneBorderColor; // Pencil: #907020 solid
-                slotOL.effectDistance = new Vector2(1f, -1f);
-                var slotLE = slot.AddComponent<LayoutElement>();
-                slotLE.preferredWidth = 48f; // Pencil: 48×48 ellipse
-                slotLE.preferredHeight = 48f;
-            }
+            // No static slot circles — rune prefabs are added dynamically by RefreshRuneZone.
+            // The HLG on this row positions them automatically.
         }
 
         // ── Pencil: BASE 区域左右卡槽框（跳过中间手牌区 x=644-1276）──────────
@@ -4556,11 +4478,10 @@ namespace FWTCG.Editor
         {
             var go = new GameObject($"BaseSlot_{name}");
             go.transform.SetParent(parent, false);
+            // Pencil: no visible slot grid inside Base zone — keep GO for runtime card placement, but fully transparent
             var img = go.AddComponent<Image>();
-            img.color = new Color(0.031f, 0.063f, 0.102f, 0.7f); // #08101a
-            var ol = go.AddComponent<Outline>();
-            ol.effectColor = ZoneBorderColor; // Pencil: #907020 solid
-            ol.effectDistance = new Vector2(1f, -1f);
+            img.color = new Color(0f, 0f, 0f, 0f);
+            img.raycastTarget = false;
         }
 
         // ── Pencil: 浮动区域标签（Canvas绝对坐标，左侧区域说明文字）──────────
@@ -4690,7 +4611,6 @@ namespace FWTCG.Editor
             rightImg.color = borderColor;
             rightImg.raycastTarget = false;
         }
-
         // ── Pencil: Two-line zone label (bold top line + small bottom line) ──
 
         private static void CreateTwoLineLabel(Transform parent, string topText, string bottomText)
@@ -4859,19 +4779,29 @@ namespace FWTCG.Editor
                 urpCamData = cameraGO.AddComponent<UniversalAdditionalCameraData>();
             urpCamData.renderPostProcessing = true;
 
-            // Create Volume Profile asset
+            // ── 创建 VolumeProfile 资产 ──────────────────────────────────────
             EnsureDirectory("Assets/Settings");
-            var profile = ScriptableObject.CreateInstance<VolumeProfile>();
+            string profilePath = "Assets/Settings/PostProcessProfile.asset";
 
-            // Bloom
+            // 删除旧的，避免 sub-asset 污染
+            AssetDatabase.DeleteAsset(profilePath);
+
+            var profile = ScriptableObject.CreateInstance<VolumeProfile>();
+            profile.name = "PostProcessProfile";
+
+            // Bloom — 低阈值 + 高强度 + 宽散射 → 产生"灯光雾溢出"感
             var bloom = profile.Add<Bloom>(true);
-            bloom.threshold.value = 1.2f;
-            bloom.intensity.value = 0.8f;
+            bloom.threshold.value            = 0.5f;    // 低阈值：更多像素参与 bloom
+            bloom.intensity.value            = 5.0f;    // 高强度：光雾更浓（加强以获得 LoL 级别扩散感）
+            bloom.scatter.value              = 0.92f;   // 宽散射：光雾扩散更远（越接近 1 扩散越广）
+            bloom.tint.value                 = Color.white;
+            bloom.highQualityFiltering.value = true;
+            bloom.maxIterations.value        = 8;       // 增加迭代次数让 bloom 扩散到更大范围
 
             // Color Adjustments
             var colorAdj = profile.Add<ColorAdjustments>(true);
             colorAdj.postExposure.value = 0.1f;
-            colorAdj.contrast.value = 10f;
+            colorAdj.contrast.value     = 10f;
 
             // Vignette
             var vignette = profile.Add<Vignette>(true);
@@ -4881,14 +4811,27 @@ namespace FWTCG.Editor
             var filmGrain = profile.Add<FilmGrain>(true);
             filmGrain.intensity.value = 0.1f;
 
-            string profilePath = "Assets/Settings/PostProcessProfile.asset";
+            // 先存主 asset
             AssetDatabase.CreateAsset(profile, profilePath);
 
-            // Create Volume GameObject
+            // ⚠️ VolumeProfile.Add<T>() 创建的子对象必须单独 AddObjectToAsset，否则序列化丢失
+            foreach (var comp in profile.components)
+                if (comp != null)
+                    AssetDatabase.AddObjectToAsset(comp, profilePath);
+
+            AssetDatabase.SaveAssets();
+            AssetDatabase.Refresh();
+
+            // ── 创建 PostProcessVolume GameObject ────────────────────────────
             var volumeGO = new GameObject("PostProcessVolume");
-            var volume = volumeGO.AddComponent<Volume>();
-            volume.isGlobal = true;
-            volume.profile = AssetDatabase.LoadAssetAtPath<VolumeProfile>(profilePath);
+            var volume   = volumeGO.AddComponent<Volume>();
+            volume.isGlobal    = true;
+            volume.sharedProfile = AssetDatabase.LoadAssetAtPath<VolumeProfile>(profilePath);
+
+            if (volume.sharedProfile == null)
+                Debug.LogError("[SceneBuilder] PostProcessProfile 加载失败，请检查 Assets/Settings/PostProcessProfile.asset");
+            else
+                Debug.Log("[SceneBuilder] PostProcessProfile 已挂载，Bloom 已启用");
         }
 
         private static Color HexColor(string hex)

@@ -987,69 +987,86 @@ namespace FWTCG.UI
             ApplyHandFan(_enemyHandContainer, isPlayer: false);
         }
 
+        // ── Fan reference positions from GameBoard_Pencil scene ────────────────
+        // 7 slots: L14 → L9 → L5 → Center → R5 → R9 → R14
+        // zone-local anchoredPosition (px) measured at 1920×1080 canvas.
+        // Player hand: bottom of screen, cards peek upward.
+        // Derived from new5.pen card centers converted to PlayerHandZone local space.
+        private static readonly Vector2[] s_PlayerFanPos =
+        {
+            new Vector2(-261f, -28f),  // L14
+            new Vector2(-167f,   1f),  // L9
+            new Vector2( -93f,  19f),  // L5
+            new Vector2(   0f,  29f),  // Center
+            new Vector2(  92f,  27f),  // R5
+            new Vector2( 166f,  18f),  // R9
+            new Vector2( 257f,  -1f),  // R14
+        };
+        private static readonly float[] s_PlayerFanRot = { 14f, 9f, 5f, 0f, -5f, -9f, -14f };
+
+        // Enemy hand: top of screen, cards peek downward (zone center above canvas).
+        private static readonly Vector2[] s_EnemyFanPos =
+        {
+            new Vector2(-255f,  34f),  // L14
+            new Vector2(-163f,   2f),  // L9
+            new Vector2( -87f, -20f),  // L5
+            new Vector2(   6f, -34f),  // Center
+            new Vector2(  99f, -30f),  // R5
+            new Vector2( 167f, -13f),  // R9
+            new Vector2( 258f,   7f),  // R14
+        };
+        private static readonly float[] s_EnemyFanRot = { -14f, -9f, -5f, 0f, 5f, 9f, 14f };
+
         private static void ApplyHandFan(Transform container, bool isPlayer)
         {
             if (container == null) return;
-            int n = container.childCount;
+
+            // Collect only CardView children (skip structural elements)
+            var cards = new List<Transform>();
+            for (int i = 0; i < container.childCount; i++)
+            {
+                var ch = container.GetChild(i);
+                if (ch.GetComponent<CardView>() != null) cards.Add(ch);
+            }
+            int n = cards.Count;
             if (n == 0) return;
 
-            // Ensure rect dimensions are computed before reading width/height.
-            // (Without HLG, no ForceRebuildLayoutImmediate is called; this replaces it.)
-            Canvas.ForceUpdateCanvases();
-
-            // ── Card dimensions ──────────────────────────────────────────────────
-            // Card width: read from first child's rect; fall back to Pencil design value (110px).
-            float cardWidth = 110f;
-            var firstRT = container.GetChild(0).GetComponent<RectTransform>();
-            if (firstRT != null && firstRT.rect.width > 1f)
-                cardWidth = firstRT.rect.width;
-
-            // Card height via Pencil aspect ratio (110×154).
-            float cardHeight = cardWidth * (154f / 110f);
-
-            // ── Base Y: replaces HLG UpperCenter (player) / LowerCenter (enemy) ──
-            // With HLG removed, we manually position the center card at the edge of
-            // the zone where cards peek from screen edge (player = top of zone, enemy = bottom).
-            float baseY = 0f;
-            var containerRT = container.GetComponent<RectTransform>();
-            if (containerRT != null && containerRT.rect.height > 1f)
-            {
-                float halfZone = containerRT.rect.height / 2f;
-                float halfCard = cardHeight / 2f;
-                // Player: UpperCenter → center card near top of zone (positive Y in local space)
-                // Enemy:  LowerCenter → center card near bottom of zone (negative Y)
-                baseY = isPlayer ? halfZone - halfCard : -(halfZone - halfCard);
-            }
-
-            // ── Horizontal spacing: overlap cards (equivalent to old HLG spacing=-20) ──
-            const float OVERLAP = 20f;
-            float step = cardWidth - OVERLAP;
-
-            // ── Fan angles & parabolic arc (Pencil design, 7-card reference) ────
-            //   Rotation: ±14° max (left/right edge), linear per position
-            //   Y arc:    center highest, edges drop ~56px
-            //   Formula:  t = i - (n-1)/2  → symmetric, center card at t=0
-            float countHalf   = (n - 1) / 2f;
-            float cardAngle   = countHalf > 0f ? 14f / countHalf : 0f;
-            float cardOffsetY = countHalf > 0f ? 56f / (countHalf * countHalf) : 0f;
+            Vector2[] refPos  = isPlayer ? s_PlayerFanPos : s_EnemyFanPos;
+            float[]   refRot  = isPlayer ? s_PlayerFanRot  : s_EnemyFanRot;
+            int       refLast = refPos.Length - 1; // 6
 
             for (int i = 0; i < n; i++)
             {
-                var child = container.GetChild(i);
+                var child = cards[i];
                 var rt    = child.GetComponent<RectTransform>();
                 if (rt == null) continue;
 
-                float t       = i - countHalf;
-                float targetX = t * step;                       // centered, overlapping fan
-                float targetY = baseY + t * t * -cardOffsetY;  // baseY + parabolic arc
-                float zAngle  = t * -cardAngle;
-                if (!isPlayer) zAngle = -zAngle;               // AI hand: mirror rotation
+                // Fix card size to match Pencil design (110×154px), point-anchored at center
+                rt.anchorMin = new Vector2(0.5f, 0.5f);
+                rt.anchorMax = new Vector2(0.5f, 0.5f);
+                rt.sizeDelta = new Vector2(110f, 154f);
+                rt.pivot     = new Vector2(0.5f, 0.5f);
 
-                var cv = child.GetComponent<FWTCG.UI.CardView>();
+                // Fixed step = 1 ref unit (~86px) → cards always overlap ~24px
+                // regardless of count. Only stretch beyond 1 unit when n > 7.
+                float step       = n <= refLast + 1 ? 1f : (float)refLast / (n - 1);
+                float startParam = refLast / 2f - (n - 1) / 2f * step;
+                float param      = Mathf.Clamp(startParam + i * step, 0f, refLast);
+
+                // Interpolate between adjacent reference slots
+                int     lo  = Mathf.Min(Mathf.FloorToInt(param), refLast - 1);
+                float   t   = param - lo;
+                Vector2 pos = Vector2.Lerp(refPos[lo], refPos[lo + 1], t);
+                float   rot = Mathf.Lerp(refRot[lo],  refRot[lo + 1],  t);
+
+                var cv = child.GetComponent<CardView>();
                 if (cv != null)
-                    cv.SetHandFan(zAngle, targetX, targetY);
+                    cv.SetHandFan(rot, pos.x, pos.y);
                 else
-                    rt.localEulerAngles = new Vector3(0f, 0f, zAngle);
+                {
+                    rt.anchoredPosition = pos;
+                    rt.localEulerAngles = new Vector3(0f, 0f, rot);
+                }
             }
         }
 
