@@ -156,10 +156,19 @@ namespace FWTCG.Editor
                 dlRT.offsetMax = Vector2.zero;
                 _scenery = decorLayerGO.AddComponent<SceneryUI>();
 
+                // ── CenterCluster: single wrapper for Logo + CountdownRing + gems ──
+                // Drag this in Scene view to move/scale the whole central group at once
+                var centerClusterGO = new GameObject("CenterCluster", typeof(RectTransform));
+                centerClusterGO.transform.SetParent(decorLayerGO.transform, false);
+                var ccRT = centerClusterGO.GetComponent<RectTransform>();
+                ccRT.anchorMin = Vector2.zero; ccRT.anchorMax = Vector2.one;
+                ccRT.offsetMin = Vector2.zero; ccRT.offsetMax = Vector2.zero;
+                ccRT.anchoredPosition = new Vector2(0f, -5.9f);
+
                 // ── Countdown Ring (Pencil: Thvkj x=747, y=322, 423×423) ─────────
                 // 3 layers: base (time01) + blue fill (time02) + red fill (time03)
                 var ringGO = new GameObject("CountdownRing");
-                ringGO.transform.SetParent(decorLayerGO.transform, false);
+                ringGO.transform.SetParent(centerClusterGO.transform, false);
                 var ringRT = ringGO.AddComponent<RectTransform>();
                 ringRT.anchorMin = new Vector2(747f/1920f, 1f-(322f+423f)/1080f);
                 ringRT.anchorMax = new Vector2((747f+423f)/1920f, 1f-322f/1080f);
@@ -183,13 +192,14 @@ namespace FWTCG.Editor
 
                 // ── Logo (Pencil: 0c05h group at x=817, y=489, ~282×97) — above ring ──
                 var logoGO = new GameObject("Logo", typeof(RectTransform), typeof(Image));
-                logoGO.transform.SetParent(decorLayerGO.transform, false);
+                logoGO.transform.SetParent(centerClusterGO.transform, false);
                 var logoRT = logoGO.GetComponent<RectTransform>();
                 logoRT.anchorMin = new Vector2(814f/1920f, 1f-(489f+92f)/1080f);
                 logoRT.anchorMax = new Vector2((814f+270f)/1920f, 1f-489f/1080f);
                 logoRT.offsetMin = Vector2.zero;
                 logoRT.offsetMax = Vector2.zero;
-                logoRT.localScale = new Vector3(0.65f, 0.65f, 1f);
+                logoRT.anchoredPosition = new Vector2(9.8f, 0f);
+                logoRT.localScale = new Vector3(0.427746326f, 0.427746326f, 0.6580713f);
                 var logoImg = logoGO.GetComponent<Image>();
                 var logoSpr = AssetDatabase.LoadAssetAtPath<Sprite>("Assets/Resources/UI/Generated/logo_fwtcg.png");
                 if (logoSpr != null) { logoImg.sprite = logoSpr; logoImg.color = Color.white; }
@@ -888,9 +898,11 @@ namespace FWTCG.Editor
             var enemyLegendZone = CreatePlayerLegendZone(go.transform, "EnemyLegendZone",
                 false, 391f/1920f, 509f/1920f, 1f-196f/1080f, 1f-42f/1080f,
                 out enemyLegendText, out _);
+            enemyLegendZone.GetComponent<RectTransform>().anchoredPosition = new Vector2(0f, 1.2f);
 
             CreateHeroZone(go.transform, "EnemyHeroZone",
                 262f/1920f, 380f/1920f, 1f-196f/1080f, 1f-42f/1080f, out enemyHeroContainer);
+            ((RectTransform)enemyHeroContainer.parent).anchoredPosition = new Vector2(0f, 1.2f);
 
             // ── ENEMY DECK PILES (Pencil positions) ──
             // 符文堆E (left top): 92,73,138×195
@@ -912,10 +924,12 @@ namespace FWTCG.Editor
             // ── PLAYER SIDE (bottom) — Pencil: 英雄P(262,974,118×154), 传说P(391,974,118×154) ──
             CreateHeroZone(go.transform, "PlayerHeroZone",
                 262f/1920f, 380f/1920f, 1f-1038f/1080f, 1f-884f/1080f, out playerHeroContainer);
+            ((RectTransform)playerHeroContainer.parent).anchoredPosition = new Vector2(0f, -2.1f);
 
             var playerLegendZone = CreatePlayerLegendZone(go.transform, "PlayerLegendZone",
                 true, 391f/1920f, 509f/1920f, 1f-1038f/1080f, 1f-884f/1080f,
                 out playerLegendText, out legendSkillBtn);
+            playerLegendZone.GetComponent<RectTransform>().anchoredPosition = new Vector2(0f, -2.3f);
 
             // ── PLAYER DECK PILES (Pencil positions) ──
             // 主牌堆P (right 3rd): 1689,616,139×195
