@@ -91,6 +91,23 @@ namespace FWTCG.Editor
                     bgImg.color = Color.white;
                     bgImg.type = Image.Type.Simple;
                     bgImg.preserveAspect = false; // stretch to fill full canvas regardless of source resolution
+
+                    // Nebula ring rotation + slight distortion shader (only the central nebula band animates)
+                    EnsureDirectory("Assets/Materials");
+                    var nebulaMat = LoadOrCreateMaterial("Assets/Materials/BackgroundNebulaMat.mat", "UI/BackgroundNebula");
+                    if (nebulaMat != null)
+                    {
+                        nebulaMat.SetFloat("_RotationSpeed", 0.06f);
+                        nebulaMat.SetFloat("_DistortStrength", 0.0035f);
+                        nebulaMat.SetFloat("_DistortFreq", 6f);
+                        nebulaMat.SetFloat("_DistortSpeed", 0.175f);
+                        nebulaMat.SetVector("_NebulaCenter", new Vector4(0.5f, 0.5f, 0f, 0f));
+                        nebulaMat.SetFloat("_NebulaInner", 0.16f);
+                        nebulaMat.SetFloat("_NebulaOuter", 0.30f);
+                        nebulaMat.SetFloat("_EdgeSoft", 0.04f);
+                        nebulaMat.SetFloat("_Aspect", 1920f / 1080f);
+                        bgImg.material = nebulaMat;
+                    }
                 }
                 else
                 {
