@@ -33,10 +33,10 @@ Material:
     - _ColorMask: 15
     - _DistortFreq: 6
     - _DistortSpeed: 0.175
-    - _DistortStrength: 0.014
-    - _EdgeSoft: 0.04
-    - _NebulaInner: 0.16
-    - _NebulaOuter: 0.3
+    - _DistortStrength: 0.0035
+    - _EdgeSoft: 0.03
+    - _NebulaInner: 0.1
+    - _NebulaOuter: 0.2
     - _RotationSpeed: 0.06
     - _Stencil: 0
     - _StencilComp: 8

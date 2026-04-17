@@ -102,9 +102,9 @@ namespace FWTCG.Editor
                         nebulaMat.SetFloat("_DistortFreq", 6f);
                         nebulaMat.SetFloat("_DistortSpeed", 0.175f);
                         nebulaMat.SetVector("_NebulaCenter", new Vector4(0.5f, 0.5f, 0f, 0f));
-                        nebulaMat.SetFloat("_NebulaInner", 0.16f);
-                        nebulaMat.SetFloat("_NebulaOuter", 0.30f);
-                        nebulaMat.SetFloat("_EdgeSoft", 0.04f);
+                        nebulaMat.SetFloat("_NebulaInner", 0.10f);
+                        nebulaMat.SetFloat("_NebulaOuter", 0.20f);
+                        nebulaMat.SetFloat("_EdgeSoft", 0.03f);
                         nebulaMat.SetFloat("_Aspect", 1920f / 1080f);
                         bgImg.material = nebulaMat;
                     }
@@ -164,6 +164,8 @@ namespace FWTCG.Editor
                 ringRT.anchorMax = new Vector2((747f+423f)/1920f, 1f-322f/1080f);
                 ringRT.offsetMin = Vector2.zero;
                 ringRT.offsetMax = Vector2.zero;
+                // Shrink ring + gems concentrically around disc center
+                ringRT.localScale = new Vector3(0.65f, 0.65f, 1f);
 
                 // Layer 0: base ring — time01 (always visible)
                 var baseGO = new GameObject("RingBase", typeof(RectTransform), typeof(Image));
@@ -186,6 +188,7 @@ namespace FWTCG.Editor
                 logoRT.anchorMax = new Vector2((814f+270f)/1920f, 1f-489f/1080f);
                 logoRT.offsetMin = Vector2.zero;
                 logoRT.offsetMax = Vector2.zero;
+                logoRT.localScale = new Vector3(0.65f, 0.65f, 1f);
                 var logoImg = logoGO.GetComponent<Image>();
                 var logoSpr = AssetDatabase.LoadAssetAtPath<Sprite>("Assets/Resources/UI/Generated/logo_fwtcg.png");
                 if (logoSpr != null) { logoImg.sprite = logoSpr; logoImg.color = Color.white; }
