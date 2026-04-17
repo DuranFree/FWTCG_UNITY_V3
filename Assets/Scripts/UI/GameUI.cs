@@ -1698,6 +1698,9 @@ namespace FWTCG.UI
 
                 // Ensure RuneCircle/RuneArt hierarchy exists (may be absent if prefab refs lost)
                 EnsureRuneCircle(newGo);
+
+                // Entrance flash: scale-pop + bright white overlay fade
+                PlayRuneEntranceFlash(newGo);
             }
 
             // Re-collect rune children after add/remove
@@ -2633,6 +2636,30 @@ namespace FWTCG.UI
         /// Creates the RuneCircle / RuneArt / RuneTypeText hierarchy inside a rune GO
         /// if it doesn't already exist (handles case where prefab refs were lost after git reset).
         /// </summary>
+        // Brief scale-pop + bright white overlay flash on rune spawn
+        private static void PlayRuneEntranceFlash(GameObject runeGo)
+        {
+            var rt = runeGo.GetComponent<RectTransform>();
+            if (rt != null)
+            {
+                rt.localScale = new Vector3(0.5f, 0.5f, 1f);
+                rt.DOScale(1f, 0.35f).SetEase(Ease.OutBack).SetTarget(runeGo);
+            }
+            // White flash overlay sibling on top
+            var flashGo = new GameObject("EntranceFlash", typeof(RectTransform));
+            flashGo.transform.SetParent(runeGo.transform, false);
+            flashGo.transform.SetAsLastSibling();
+            var fRT = flashGo.GetComponent<RectTransform>();
+            fRT.anchorMin = Vector2.zero; fRT.anchorMax = Vector2.one;
+            fRT.offsetMin = Vector2.zero; fRT.offsetMax = Vector2.zero;
+            var fImg = flashGo.AddComponent<Image>();
+            fImg.color = new Color(1f, 1f, 0.85f, 0.95f);
+            fImg.raycastTarget = false;
+            fImg.DOFade(0f, 0.5f).SetEase(Ease.OutQuad)
+                .OnComplete(() => { if (flashGo != null) Destroy(flashGo); })
+                .SetTarget(flashGo);
+        }
+
         private static void EnsureRuneCircle(GameObject runeGo)
         {
             if (runeGo.transform.Find("RuneCircle") != null) return;

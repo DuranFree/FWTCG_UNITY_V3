@@ -469,13 +469,7 @@ namespace FWTCG.UI
             if (CardDragHandler.BlockPointerEvents) return;
             if (_unit != null && !_faceDown)
             {
-                ShowGlow(); // VFX-7k
                 StartHandSpread();           // DOT-8: push neighbors apart
-                _preTiltRotation = _handFanEnabled
-                    ? Quaternion.Euler(0f, 0f, _handFanAngle)
-                    : transform.localRotation;
-                _isTiltActive    = true;     // DOT-8: enable 3D tilt
-                _tiltCurrent     = Vector3.zero;
                 _onHoverEnter?.Invoke(_unit);
             }
         }
@@ -485,9 +479,7 @@ namespace FWTCG.UI
             if (CardDragHandler.BlockPointerEvents) return;
             if (_unit != null && !_faceDown)
             {
-                if (!_selected) HideGlow(); // VFX-7k: keep glow if selected
                 StopHandSpread();           // DOT-8: restore spread
-                _isTiltActive = false;      // DOT-8: tilt lerps back to zero in Update
                 _onHoverExit?.Invoke(_unit);
             }
         }
@@ -1996,16 +1988,10 @@ namespace FWTCG.UI
         {
             if (_unit?.CardData == null) return;
 
-            // One-time setup (rotation + shadow) — only on first call per placement
+            // One-time setup (shadow only) — only on first call per placement
             if (!_bfVisualsApplied)
             {
                 _bfVisualsApplied = true;
-
-                // Micro-rotation (±3° Z axis for natural feel)
-                float angle = UnityEngine.Random.Range(-3f, 3f);
-                transform.localRotation = Quaternion.Euler(0f, 0f, angle);
-
-                // Shadow layer (offset Image below card)
                 CreateShadow();
             }
 
