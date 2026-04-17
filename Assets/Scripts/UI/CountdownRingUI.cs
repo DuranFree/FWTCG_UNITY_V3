@@ -27,30 +27,32 @@ namespace FWTCG.UI
         // ── 常量 ─────────────────────────────────────────────────────────
         private const int   SEGMENTS      = 12;
         private const float BREATH_PERIOD = 1.4f;
-        private const float SEG_WAVE_OFF  = 0.07f;
         private const float RING_RADIUS   = 100f;
 
-        // ── 调色板：灰→绿→青→蓝→黄→橙→红（HDR Bright 值，Dim = 0.45×）
-        // index 0 = progress 0%，index 11 = progress 100%
+        // ── 调色板：每个宝石索引对应固定色（Bright 值，Dim = 0.4×）
+        // 序列：暗绿 → 绿 → 青 → 暖青 → 黄绿 → 黄 → 琥珀 → 橙 → 橙红 → 红
+        // HDR 最大分量控制在 2.7 以内，避免 Bloom 过曝（原来最大 5.0）
+        // 序列：暗绿→绿→绿青→青→青蓝  →  黄→亮黄→暖黄  →  琥珀→橙→橙红→红
+        // 规则：seg 5 起 R ≥ G，彻底避免青色之后出现"绿色复现"
         private static readonly Color[] k_PalBright = new Color[]
         {
-            new Color(0.06f, 0.06f, 0.07f, 1f),  //  0 gray       (empty feel)
-            new Color(0.18f, 0.08f, 0.22f, 1f),  //  1 deep-gray  (transition)
-            new Color(0.30f, 1.80f, 0.40f, 1f),  //  2 green
-            new Color(0.22f, 2.20f, 1.00f, 1f),  //  3 cyan-green
-            new Color(0.18f, 1.40f, 2.80f, 1f),  //  4 cyan
-            new Color(0.18f, 0.70f, 2.80f, 1f),  //  5 blue
-            new Color(0.22f, 0.48f, 2.40f, 1f),  //  6 deep-blue
-            new Color(1.80f, 1.60f, 0.18f, 1f),  //  7 yellow
-            new Color(2.60f, 1.10f, 0.10f, 1f),  //  8 amber
-            new Color(3.20f, 0.72f, 0.07f, 1f),  //  9 orange
-            new Color(4.20f, 0.45f, 0.05f, 1f),  // 10 red-orange
-            new Color(5.00f, 0.28f, 0.03f, 1f),  // 11 red
+            new Color(0.06f, 0.80f, 0.10f, 1f),  //  0 dark green
+            new Color(0.04f, 1.05f, 0.22f, 1f),  //  1 green
+            new Color(0.03f, 1.20f, 0.55f, 1f),  //  2 green-teal
+            new Color(0.02f, 1.10f, 1.10f, 1f),  //  3 teal
+            new Color(0.02f, 0.80f, 1.45f, 1f),  //  4 cyan（蓝主导）
+            new Color(1.10f, 1.05f, 0.04f, 1f),  //  5 yellow（R≥G，直接跳黄，无绿复现）
+            new Color(1.40f, 1.00f, 0.04f, 1f),  //  6 bright yellow
+            new Color(1.65f, 0.75f, 0.03f, 1f),  //  7 warm yellow
+            new Color(1.82f, 0.52f, 0.03f, 1f),  //  8 amber
+            new Color(1.98f, 0.32f, 0.02f, 1f),  //  9 orange
+            new Color(2.12f, 0.18f, 0.02f, 1f),  // 10 orange-red
+            new Color(2.20f, 0.08f, 0.01f, 1f),  // 11 red
         };
         private static readonly Color[] k_PalDim;
         private static readonly Color[] k_PalBurst;
-        private static readonly Color   k_DimBase  = new Color(0.04f, 0.04f, 0.05f, 1f);
-        private static readonly Color   k_MegaBurst = new Color(12f, 10f, 6f, 1f);
+        private static readonly Color   k_DimBase  = new Color(0.30f, 0.38f, 0.62f, 1f);  // 偏蓝冷白，暗槽可见
+        private static readonly Color   k_MegaBurst = new Color(9f, 7f, 4f, 1f);
 
         static CountdownRingUI()
         {
@@ -65,20 +67,49 @@ namespace FWTCG.UI
             }
         }
 
+        // ── 颜色渐进：每颗宝石从初始色匀速走向红色 ──────────────────────────
+        // 所有宝石用相同时长到达红色，与出现顺序无关
+        private const float COLOUR_PROGRESSION_DURATION = 28f;
+
         // ── 运行时状态 ────────────────────────────────────────────────────
         private float         _curProgress  = 0f;
         private bool          _isBreathing  = false;
         private float         _breathStart  = 0f;
         private bool          _megaFlashed  = false;
+        private bool          _megaDimming  = false;  // MegaFlash 暗淡期间，屏蔽 OnSegHide
+        private Coroutine     _megaFlashCo  = null;   // 追踪 MegaFlash 协程，ResetRing 时先停
 
         private Image[]       _segImages;   // 12 段宝石图像
         private Material[]    _segMats;     // 对应材质（Material.SetColor 走这里）
         private bool[]        _segActive;
         private Coroutine[]   _segAnims;
+        private float[]       _segAppearTime; // 每颗宝石出现的 Time.time
 
-        private Image         _dimBase;     // 暗灰底图（始终显示宝石槽轮廓，标准 Image 无自定义 shader）
+        private Image[]       _dimImages;   // 12 个暗灰底图分段（每槽独立，宝石亮起时隐藏对应槽）
+        private Material[]    _dimMats;     // 对应材质数组（new Material，需手动销毁）
 
         private Light[]       _gemLights;
+        private Image[]       _gemGlows;    // per-gem glow (EnergyGemGlowUI additive, same wedge shape)
+        private Material[]    _glowMats;    // glow 独立材质，通过 _HdrColor 控制亮度
+
+        // ── 外圈光环 ─────────────────────────────────────────────────────────
+        private Image         _ringArcImg;          // 光环（随宝石延展 + 持续旋转）
+        private Material      _ringArcMat;          // 光环材质（new Material，需手动销毁）
+        private Texture2D     _ringArcTex;          // 过程式环形渐变纹理
+        private Coroutine     _ringArcAnim;          // 保留字段
+        // 填充速度：30s 走满一圈（与倒计时总时长一致）
+        private const float   RING_FILL_SPEED = 1f / 30f;
+        private Color         _ringTargetColor = new Color(0.55f, 0.75f, 1.00f, 0.95f);
+
+        // ── 光环扫描触发宝石点亮 ────────────────────────────────────────────
+        // _intendedActiveSeg：progress 计算出来的"应该亮几颗"（上限）
+        // _fillAmountTotal：圆环累计扫过的总量（单调增长，不受循环重置影响）
+        // 宝石 i 的触发阈值 = (i+1)/SEGMENTS；当 _fillAmountTotal 跨过阈值且 i < _intendedActiveSeg 时，宝石亮起
+        private int   _intendedActiveSeg = 0;
+        private float _fillAmountTotal   = 0f;
+
+        // 注：原独立 GemGlowBlocker 已移除，改由 GemRingArc 移到外圈石头框架位置兼任遮挡
+
 
         private ParticleSystem _psConv;     // 粒子汇聚
         private ParticleSystem _psConn;     // 宝石间连接
@@ -91,28 +122,60 @@ namespace FWTCG.UI
             if (!Application.isPlaying) return;
             CleanRuntimeChildren();
             LoadFillSprite();
-            BuildDimBase();       // 最先：底部暗灰宝石层
-            BuildSegImages();
+            BuildDimBase();       // 底层：暗灰宝石槽轮廓
+            BuildSegImages();     // 宝石图像层
             BuildGemLights();
+            BuildGemGlows();      // 光晕层：在 GemSeg 之上
+            BuildRingArc();       // 外圈光环（最上层，位于外圈石头框架，天然挡住漏光）
             BuildParticleSystems();
             InitFills();
         }
 
         private void Update()
         {
+            // 外圈光环：fillAmount 自动增长，走满后循环
+            if (_ringArcImg != null && _ringArcImg.gameObject.activeSelf)
+            {
+                float inc = RING_FILL_SPEED * Time.deltaTime;
+                _fillAmountTotal += inc;                           // 单调累计（不循环）
+                float f = _ringArcImg.fillAmount + inc;
+                if (f >= 1f) f -= 1f;
+                _ringArcImg.fillAmount = f;
+                _ringArcImg.color = Color.Lerp(_ringArcImg.color, _ringTargetColor, Time.deltaTime * 2.5f);
+
+                // 扫描触发：光环累计走过 (i+1)/12 且 progress 允许 → 才点亮宝石 i
+                for (int i = 0; i < _intendedActiveSeg && i < SEGMENTS; i++)
+                {
+                    if (_segActive[i]) continue;
+                    float threshold = (i + 1f) / SEGMENTS;
+                    if (_fillAmountTotal >= threshold) OnSegAppear(i);
+                }
+            }
+
             if (!_isBreathing) return;
-            float now = Time.time;
+            float now    = Time.time;
+            float breath = BreathT(now);
 
             for (int i = 0; i < SEGMENTS; i++)
             {
                 if (!_segActive[i] || _segMats[i] == null) continue;
                 if (_segAnims[i] != null) continue;
 
-                float t = BreathT(now, i * SEG_WAVE_OFF);
-                _segMats[i].SetColor("_HdrColor", SampleLerp(GetPalettePos(i), t));
+                // 颜色渐进：宝石 i 从 i/11 走向 1，速度自适应
+                // 保证当第 k 颗宝石出现时，前面所有宝石恰好同时到达 k/11
+                float initialPos = GetPalettePos(i);
+                float duration   = (SEGMENTS - 1 - i) * (30f / SEGMENTS); // 宝石越晚出现，变色越快
+                float elapsed    = now - _segAppearTime[i];
+                float currentPos = duration <= 0f ? 1f
+                                 : Mathf.Lerp(initialPos, 1f, Mathf.Clamp01(elapsed / duration));
+
+                // 叠加呼吸亮度（dim ↔ bright）
+                Color dim    = SamplePalette(k_PalDim,    currentPos);
+                Color bright = SamplePalette(k_PalBright, currentPos);
+                _segMats[i].SetColor("_HdrColor", Color.Lerp(dim, bright, breath));
             }
 
-            SyncGemLights(BreathT(now, 0f));
+            SyncGemLights(breath);
         }
 
         // ── Public API ────────────────────────────────────────────────────
@@ -121,41 +184,95 @@ namespace FWTCG.UI
         {
             _curProgress = progress = Mathf.Clamp01(progress);
             int activeSeg = Mathf.RoundToInt(progress * SEGMENTS);
+            _intendedActiveSeg = activeSeg;  // 上限：光环扫到位才实际点亮
 
+            // 只处理熄灭；"出现"延迟到 Update 里光环扫过阈值时触发
             for (int i = 0; i < SEGMENTS; i++)
             {
-                bool should = i < activeSeg;
-                if (should  && !_segActive[i]) OnSegAppear(i);
-                if (!should && _segActive[i])  OnSegHide(i);
+                if (i >= activeSeg && _segActive[i]) OnSegHide(i);
             }
 
             UpdateConnSparks(activeSeg);
+            UpdateRingArc(activeSeg);
+
+            // progress > 0 就启动光环（要先跑起来才能扫到宝石位置触发点亮）
+            if (activeSeg > 0 && _ringArcImg != null && !_ringArcImg.gameObject.activeSelf)
+                _ringArcImg.gameObject.SetActive(true);
 
             if (activeSeg > 0 && !_isBreathing) StartBreathing();
             if (activeSeg == 0) StopBreathing();
 
-            // 12/12 满载时爆闪一次
-            if (activeSeg == SEGMENTS && !_megaFlashed)
+            // 倒计时真正到 0（progress=1）才爆闪；此时确保所有宝石都已点亮
+            if (progress >= 1f && !_megaFlashed)
             {
+                for (int i = 0; i < SEGMENTS; i++)
+                    if (!_segActive[i]) OnSegAppear(i);  // 保险：防最后 1-2 颗未被光环扫到
                 _megaFlashed = true;
-                StartCoroutine(MegaFlashSequence());
+                _megaFlashCo = StartCoroutine(MegaFlashSequence());
             }
         }
 
         public void ResetRing()
         {
-            _curProgress  = 0f;
-            _megaFlashed  = false;
+            _curProgress = 0f;
+            _megaFlashed = false;
+            _intendedActiveSeg = 0;
+            _fillAmountTotal   = 0f;
+
+            if (_megaDimming)
+            {
+                // MegaFlash 暗淡进行中：只重置逻辑状态，不停协程，让视觉自然熄灭
+                StopBreathing();
+                if (_ringArcAnim != null) { StopCoroutine(_ringArcAnim); _ringArcAnim = null; }
+                _ringTargetColor = new Color(0.55f, 0.75f, 1.00f, 0.95f);
+                if (_ringArcImg != null)
+                {
+                    _ringArcImg.fillAmount = 0f;
+                    _ringArcImg.color = _ringTargetColor;
+                    _ringArcImg.gameObject.SetActive(false);  // 下次 SetProgress>0 才重新显示
+                }
+                if (_segImages != null)
+                {
+                    for (int i = 0; i < SEGMENTS; i++)
+                    {
+                        _segActive[i]     = false;
+                        _segAppearTime[i] = 0f;
+                        if (_segAnims[i] != null) { StopCoroutine(_segAnims[i]); _segAnims[i] = null; }
+                        // 宝石 GameObject 留给协程自己隐藏，灯光立即关掉
+                        if (_gemLights != null && i < _gemLights.Length && _gemLights[i] != null)
+                            _gemLights[i].enabled = false;
+                    }
+                }
+                return; // 不停 _megaFlashCo，让暗淡跑完
+            }
+
+            // 正常 reset（无 MegaFlash 进行）
+            if (_megaFlashCo != null) { StopCoroutine(_megaFlashCo); _megaFlashCo = null; }
+            _megaDimming = false;
             StopBreathing();
+            if (_ringArcAnim != null) { StopCoroutine(_ringArcAnim); _ringArcAnim = null; }
+            _ringTargetColor = new Color(0.55f, 0.75f, 1.00f, 0.95f);
+            if (_ringArcImg != null)
+            {
+                _ringArcImg.rectTransform.localEulerAngles = Vector3.zero;
+                _ringArcImg.color = _ringTargetColor;
+                _ringArcImg.gameObject.SetActive(false);  // 下次 SetProgress>0 才重新显示
+            }
             if (_segImages == null) return;
             for (int i = 0; i < SEGMENTS; i++)
             {
-                _segActive[i] = false;
+                _segActive[i]     = false;
+                _segAppearTime[i] = 0f;
                 if (_segAnims[i] != null) { StopCoroutine(_segAnims[i]); _segAnims[i] = null; }
                 if (_segImages[i] != null) _segImages[i].gameObject.SetActive(false);
                 if (_segMats[i]   != null) _segMats[i].SetColor("_HdrColor", k_DimBase);
+                if (_gemGlows     != null && i < _gemGlows.Length  && _gemGlows[i]  != null)
+                    _gemGlows[i].gameObject.SetActive(false);
                 if (_gemLights    != null && i < _gemLights.Length && _gemLights[i] != null)
                     _gemLights[i].enabled = false;
+                // 恢复所有暗灰槽
+                if (_dimImages    != null && i < _dimImages.Length && _dimImages[i]  != null)
+                    _dimImages[i].gameObject.SetActive(true);
             }
         }
 
@@ -163,12 +280,25 @@ namespace FWTCG.UI
 
         private void OnSegAppear(int idx)
         {
+            if (_megaDimming) return;  // 暗淡期间不显示新宝石，避免新旧宝石重叠
             _segActive[idx] = true;
+            _segAppearTime[idx] = Time.time;   // 记录出现时刻，用于颜色渐进
             var img = _segImages[idx];
             if (img == null) return;
 
+            // 隐藏对应暗灰槽（彩色宝石完全覆盖它，避免叠影）
+            if (_dimImages != null && idx < _dimImages.Length && _dimImages[idx] != null)
+                _dimImages[idx].gameObject.SetActive(false);
+
             img.gameObject.SetActive(true);
             _segMats[idx].SetColor("_HdrColor", k_DimBase);
+
+            // 同步激活光晕（_HdrColor 控制发光量，初始透明）
+            if (_gemGlows != null && idx < _gemGlows.Length && _gemGlows[idx] != null)
+            {
+                _gemGlows[idx].gameObject.SetActive(true);
+                SetGlowColor(idx, Color.black, 0f);  // _HdrColor=(0,0,0) → additive 无贡献
+            }
 
             if (_gemLights != null && idx < _gemLights.Length)
                 _gemLights[idx].enabled = true;
@@ -181,31 +311,48 @@ namespace FWTCG.UI
 
         private void OnSegHide(int idx)
         {
+            if (_megaDimming) return;  // MegaFlash 暗淡期间不立刻隐藏
             _segActive[idx] = false;
             if (_segAnims[idx] != null) { StopCoroutine(_segAnims[idx]); _segAnims[idx] = null; }
             if (_segImages[idx] != null) _segImages[idx].gameObject.SetActive(false);
+            if (_gemGlows  != null && idx < _gemGlows.Length  && _gemGlows[idx]  != null)
+                _gemGlows[idx].gameObject.SetActive(false);
             if (_gemLights != null && idx < _gemLights.Length && _gemLights[idx] != null)
                 _gemLights[idx].enabled = false;
+            // 恢复暗灰槽显示
+            if (_dimImages != null && idx < _dimImages.Length && _dimImages[idx] != null)
+                _dimImages[idx].gameObject.SetActive(true);
         }
 
         // ── 宝石出现动画：暗 → 爆发 → 稳定 ──────────────────────────────
 
+        // 光晕 alpha 范围：dim=0.18，bright=0.45，burst=0.80
+        private const float GLOW_ALPHA_DIM    = 0.10f;  // 呼吸低谷
+        private const float GLOW_ALPHA_BRIGHT = 0.22f;  // 呼吸高峰
+        private const float GLOW_ALPHA_BURST  = 0.28f;  // 出现闪光峰值（降低避免溢出到环外）
+
         private IEnumerator SegAppearAnim(int idx)
         {
-            float  palPos  = GetPalettePos(idx);
+            // 出现时颜色 = 当前所有宝石同步色（由索引决定初始位置，和前面宝石保持同步）
+            float palPos = GetPalettePos(idx);
             Color  burst   = SamplePalette(k_PalBurst,  palPos);
             Color  bright  = SamplePalette(k_PalBright, palPos);
             var    mat     = _segMats[idx];
+            var    glow    = (_gemGlows != null && idx < _gemGlows.Length) ? _gemGlows[idx] : null;
+            Color  glowCol = GetNormalisedColor(palPos); // 单位亮度，alpha 单独控制
 
             // 阶段1：暗 → 爆发（0.07s，快速点亮）
             float e = 0f;
             while (e < 0.07f)
             {
                 e += Time.deltaTime;
-                if (mat != null) mat.SetColor("_HdrColor", Color.Lerp(k_DimBase, burst, e / 0.07f));
+                float t0 = e / 0.07f;
+                if (mat  != null) mat.SetColor("_HdrColor", Color.Lerp(k_DimBase, burst, t0));
+                if (glow != null) SetGlowColor(idx, glowCol, Mathf.Lerp(0f, GLOW_ALPHA_BURST, t0));
                 yield return null;
             }
-            if (mat != null) mat.SetColor("_HdrColor", burst);
+            if (mat  != null) mat.SetColor("_HdrColor", burst);
+            if (glow != null) SetGlowColor(idx, glowCol, GLOW_ALPHA_BURST);
 
             // 宝石灯同步爆发
             if (_gemLights != null && idx < _gemLights.Length && _gemLights[idx] != null)
@@ -227,10 +374,12 @@ namespace FWTCG.UI
             {
                 e += Time.deltaTime;
                 float t = 1f - Mathf.Pow(1f - Mathf.Clamp01(e / 0.38f), 3f);
-                if (mat != null) mat.SetColor("_HdrColor", Color.Lerp(burst, bright, t));
+                if (mat  != null) mat.SetColor("_HdrColor", Color.Lerp(burst, bright, t));
+                if (glow != null) SetGlowColor(idx, glowCol, Mathf.Lerp(GLOW_ALPHA_BURST, GLOW_ALPHA_BRIGHT, t));
                 yield return null;
             }
-            if (mat != null) mat.SetColor("_HdrColor", bright);
+            if (mat  != null) mat.SetColor("_HdrColor", bright);
+            if (glow != null) SetGlowColor(idx, glowCol, GLOW_ALPHA_BRIGHT);
 
             _segAnims[idx] = null;
         }
@@ -239,6 +388,7 @@ namespace FWTCG.UI
 
         private IEnumerator MegaFlashSequence()
         {
+            _megaDimming = true;
             StopBreathing();
 
             // 全灯爆亮
@@ -247,16 +397,28 @@ namespace FWTCG.UI
                     if (gl != null && gl.enabled)
                     { gl.intensity = 10f; gl.range = 18f; gl.color = Color.white; }
 
-            // 所有段瞬间跳到 MegaBurst
+            // 外圈光环：满载时高亮爆闪（fill 已经 = 1，直接设颜色）
+            // fillAmount 由 Update 自主驱动，无需设目标
+            _ringTargetColor = new Color(1f, 0.95f, 0.80f, 1.00f);
+
+            // 所有段瞬间跳到 MegaBurst，光晕用红色（_HdrColor 控制发光量）
+            Color redNorm = GetNormalisedColor(1f);
+            float megaGlowAlpha = GLOW_ALPHA_BURST * 0.8f;  // 爆闪时进一步限制亮度
             for (int i = 0; i < SEGMENTS; i++)
+            {
                 if (_segMats[i] != null) _segMats[i].SetColor("_HdrColor", k_MegaBurst);
+                SetGlowColor(i, redNorm, megaGlowAlpha);
+            }
 
             // 保持 3 帧
             yield return null;
             yield return null;
             yield return null;
 
-            // 从 MegaBurst → 各自的 Bright（0.25s）
+            // 红色 Bright（所有宝石此时都已走到红色，pos=1）
+            Color redBright = SamplePalette(k_PalBright, 1f);
+
+            // MegaBurst → 红色（0.25s）— 不回到各自初始色，全部统一到红
             float e = 0f;
             while (e < 0.25f)
             {
@@ -265,48 +427,67 @@ namespace FWTCG.UI
                 for (int i = 0; i < SEGMENTS; i++)
                 {
                     if (_segMats[i] == null) continue;
-                    Color bright = SamplePalette(k_PalBright, GetPalettePos(i));
-                    _segMats[i].SetColor("_HdrColor", Color.Lerp(k_MegaBurst, bright, t));
+                    _segMats[i].SetColor("_HdrColor", Color.Lerp(k_MegaBurst, redBright, t));
                 }
                 yield return null;
             }
 
-            // 然后慢慢暗淡到灰（1.5s）
+            // 红色 → 完全透明（3.5s，缓慢熄灭，alpha 0→完全消失）
+            // 同时 _HdrColor 保持红色亮度，只靠 alpha 淡出，避免变成灰白色
             e = 0f;
-            while (e < 1.5f)
+            while (e < 3.5f)
             {
                 e += Time.deltaTime;
-                float t = Mathf.Clamp01(e / 1.5f);
-                float lightIntensity = Mathf.Lerp(1.5f, 0f, t);
+                float t = Mathf.Clamp01(e / 3.5f);
+                // OutCubic：前段慢，后段快收尾
+                float tEased = 1f - Mathf.Pow(1f - t, 3f);
+                float alpha = 1f - tEased;
+                float lightIntensity = Mathf.Lerp(1.5f, 0f, tEased);
                 for (int i = 0; i < SEGMENTS; i++)
                 {
-                    if (_segMats[i] == null) continue;
-                    Color bright = SamplePalette(k_PalBright, GetPalettePos(i));
-                    _segMats[i].SetColor("_HdrColor", Color.Lerp(bright, k_DimBase, t));
+                    if (_segImages[i] != null)
+                        _segImages[i].color = new Color(1f, 1f, 1f, alpha);
+                    SetGlowColor(i, redNorm, megaGlowAlpha * alpha);
                 }
                 if (_gemLights != null)
                     foreach (var gl in _gemLights)
                         if (gl != null && gl.enabled)
-                        { gl.intensity = lightIntensity; gl.range = Mathf.Lerp(8f, 4f, t); }
+                        { gl.intensity = lightIntensity; gl.range = Mathf.Lerp(8f, 4f, tEased); }
                 yield return null;
             }
 
-            // 全部归灰
+            // 暗淡完成，正式隐藏所有宝石，清除标志
+            _megaDimming = false;
+            _megaFlashCo = null;
             for (int i = 0; i < SEGMENTS; i++)
-                if (_segMats[i] != null) _segMats[i].SetColor("_HdrColor", k_DimBase);
+            {
+                // 重置 Image.color.a=1，下轮出现时不会透明
+                if (_segImages[i] != null) _segImages[i].color = Color.white;
+                if (_segMats[i]   != null) _segMats[i].SetColor("_HdrColor", k_DimBase);
+                // 正式隐藏
+                _segActive[i] = false;
+                if (_segImages[i] != null) _segImages[i].gameObject.SetActive(false);
+                if (_gemGlows != null && i < _gemGlows.Length && _gemGlows[i] != null)
+                    _gemGlows[i].gameObject.SetActive(false);
+                if (_gemLights != null && i < _gemLights.Length && _gemLights[i] != null)
+                    _gemLights[i].enabled = false;
+                // 宝石全部熄灭后，暗灰槽全部恢复显示
+                if (_dimImages != null && i < _dimImages.Length && _dimImages[i] != null)
+                    _dimImages[i].gameObject.SetActive(true);
+            }
+            _ringTargetColor = new Color(0.55f, 0.75f, 1.00f, 0.95f);
         }
 
         // ── 颜色辅助 ──────────────────────────────────────────────────────
 
+        // 颜色由段索引固定决定，与时间/进度无关
+        // seg 0 = 暗绿，seg 2 = 青，seg 4-5 = 蓝，seg 11 = 红
         private float GetPalettePos(int segIdx)
-        {
-            float basePos   = _curProgress;
-            float segOffset = ((float)segIdx / (SEGMENTS - 1) - 0.5f) * 0.18f;
-            return Mathf.Clamp01(basePos + segOffset);
-        }
+            => (float)segIdx / (SEGMENTS - 1);
 
-        private float BreathT(float time, float phaseOff)
-            => (Mathf.Sin((time - _breathStart + phaseOff)
+        // 所有段共用同一呼吸 t 值 → 完全同步
+        private float BreathT(float time)
+            => (Mathf.Sin((time - _breathStart)
                * Mathf.PI * 2f / BREATH_PERIOD - Mathf.PI * 0.5f) + 1f) * 0.5f;
 
         private Color SampleLerp(float pos, float breathT)
@@ -333,6 +514,24 @@ namespace FWTCG.UI
             return new Color(c.r / m, c.g / m, c.b / m, 1f);
         }
 
+        /// <summary>将调色板颜色归一化到 [0,1] 范围（用于光晕 Image.color，alpha 单独控制）。</summary>
+        private static Color GetNormalisedColor(float pos)
+        {
+            Color c = SamplePalette(k_PalBright, pos);
+            float m = Mathf.Max(c.r, c.g, c.b, 0.001f);
+            // 归一化但保留饱和度感：每个分量除以最大值
+            return new Color(Mathf.Clamp01(c.r / m), Mathf.Clamp01(c.g / m), Mathf.Clamp01(c.b / m), 1f);
+        }
+
+        // ── Glow 颜色辅助 ──────────────────────────────────────────────────
+        // brightness: 0=不发光, 1=正常亮度, >1=更亮
+        private void SetGlowColor(int idx, Color normColor, float brightness)
+        {
+            if (_glowMats == null || idx >= _glowMats.Length || _glowMats[idx] == null) return;
+            _glowMats[idx].SetColor("_HdrColor",
+                new Color(normColor.r * brightness, normColor.g * brightness, normColor.b * brightness, 1f));
+        }
+
         // ── 呼吸 ──────────────────────────────────────────────────────────
 
         private void StartBreathing() { _breathStart = Time.time; _isBreathing = true; }
@@ -342,15 +541,34 @@ namespace FWTCG.UI
 
         private void SyncGemLights(float breathT)
         {
-            if (_gemLights == null) return;
             float intensity = Mathf.Lerp(0.5f, 2.8f, breathT);
             float range     = Mathf.Lerp(6f, 10f, breathT);
+            float glowAlpha = Mathf.Lerp(GLOW_ALPHA_DIM, GLOW_ALPHA_BRIGHT, breathT);
+
             for (int i = 0; i < SEGMENTS; i++)
             {
-                if (_gemLights[i] == null || !_gemLights[i].enabled) continue;
-                _gemLights[i].color     = GetLightColor(GetPalettePos(i));
-                _gemLights[i].intensity = intensity;
-                _gemLights[i].range     = range;
+                if (!_segActive[i]) continue;
+                if (_segAnims[i] != null) continue;
+
+                // 颜色渐进：与 Update 主循环保持一致
+                float initialPos2 = GetPalettePos(i);
+                float duration2   = (SEGMENTS - 1 - i) * (30f / SEGMENTS);
+                float elapsed2    = Time.time - _segAppearTime[i];
+                float currentPos  = duration2 <= 0f ? 1f
+                                  : Mathf.Lerp(initialPos2, 1f, Mathf.Clamp01(elapsed2 / duration2));
+
+                if (_gemLights != null && i < _gemLights.Length && _gemLights[i] != null && _gemLights[i].enabled)
+                {
+                    _gemLights[i].color     = GetLightColor(currentPos);
+                    _gemLights[i].intensity = intensity;
+                    _gemLights[i].range     = range;
+                }
+
+                if (_gemGlows != null && i < _gemGlows.Length && _gemGlows[i] != null)
+                {
+                    Color gc = GetNormalisedColor(currentPos);
+                    SetGlowColor(i, gc, glowAlpha);
+                }
             }
         }
 
@@ -407,6 +625,23 @@ namespace FWTCG.UI
             _psConn.Emit(5);
         }
 
+        /// <summary>
+        /// 外圈光环：设目标 fill 和颜色，Update 里匀速驱动，旋转独立持续。
+        /// </summary>
+        /// <summary>光环只更新颜色目标，fillAmount 由 Update 自主驱动。</summary>
+        private void UpdateRingArc(int activeSeg)
+        {
+            if (activeSeg == 0)
+            {
+                _ringTargetColor = new Color(0.55f, 0.75f, 1.00f, 0.95f);
+                return;
+            }
+            float palPos = GetPalettePos(activeSeg - 1);
+            Color gc     = GetNormalisedColor(palPos);
+            float alpha  = Mathf.Lerp(0.95f, 1.00f, (activeSeg - 1) / (float)(SEGMENTS - 1));
+            _ringTargetColor = new Color(gc.r, gc.g, gc.b, alpha);
+        }
+
         private Vector3 GetGemWorldPos(float rad)
         {
             return transform.TransformPoint(new Vector3(
@@ -430,36 +665,66 @@ namespace FWTCG.UI
             if (l != null) { l.intensity = ti; l.range = tr; }
         }
 
-        // ── 构建：暗灰底图（始终显示宝石槽）──────────────────────────────
+        // ── 构建：暗灰底图（12 个独立分段，宝石亮起时对应槽隐藏）────────────
 
         private void BuildDimBase()
         {
-            var go = new GameObject("GemDimBase", typeof(RectTransform), typeof(Image));
-            go.transform.SetParent(transform, false);
+            var shader = Shader.Find("FWTCG/EnergyGemUI");
+            _dimImages = new Image[SEGMENTS];
+            _dimMats   = new Material[SEGMENTS];
 
-            var rt = go.GetComponent<RectTransform>();
-            rt.anchorMin = Vector2.zero;
-            rt.anchorMax = Vector2.one;
-            rt.offsetMin = Vector2.zero;
-            rt.offsetMax = Vector2.zero;
+            for (int i = 0; i < SEGMENTS; i++)
+            {
+                var go = new GameObject($"GemDimBase_{i:00}", typeof(RectTransform), typeof(Image));
+                go.transform.SetParent(transform, false);
 
-            _dimBase = go.GetComponent<Image>();
-            _dimBase.sprite        = _fillSprite;   // countdown_blue.png — 宝石槽轮廓
-            _dimBase.type          = Image.Type.Simple;
-            _dimBase.raycastTarget = false;
-            // 标准 UI shader（不用 EnergyGemUI，避免 LumFloor 把透明区变实心）
-            // 暗灰色 + 低透明度 → 只显示宝石槽轮廓，不遮挡石头底座
-            _dimBase.color = new Color(0.22f, 0.22f, 0.28f, 0.45f);
+                var rt = go.GetComponent<RectTransform>();
+                rt.anchorMin = Vector2.zero;
+                rt.anchorMax = Vector2.one;
+                rt.offsetMin = Vector2.zero;
+                rt.offsetMax = Vector2.zero;
+                rt.localEulerAngles = new Vector3(0f, 0f, -i * (360f / SEGMENTS));
+
+                var img = go.GetComponent<Image>();
+                img.sprite        = _fillSprite;
+                img.type          = Image.Type.Filled;
+                img.fillMethod    = Image.FillMethod.Radial360;
+                img.fillOrigin    = (int)Image.Origin360.Top;
+                img.fillClockwise = true;
+                img.fillAmount    = 1f / SEGMENTS;
+                img.raycastTarget = false;
+                img.color         = Color.white;
+
+                if (shader != null)
+                {
+                    var mat = new Material(shader);
+                    mat.SetColor("_HdrColor",       new Color(0.15f, 0.19f, 0.31f, 1f));
+                    mat.SetFloat("_LumMultiplier",  1.4f);
+                    mat.SetFloat("_LumFloor",       0.05f);
+                    mat.SetFloat("_DistortSpeed",   0f);
+                    mat.SetFloat("_DistortStrength",0f);
+                    img.material  = mat;
+                    _dimMats[i]   = mat;
+                }
+                else
+                {
+                    img.color = new Color(0.20f, 0.20f, 0.25f, 0.40f);
+                }
+
+                go.SetActive(true);   // 初始全部显示
+                _dimImages[i] = img;
+            }
         }
 
         // ── 构建：12 段宝石图像 ────────────────────────────────────────────
 
         private void BuildSegImages()
         {
-            _segImages = new Image[SEGMENTS];
-            _segMats   = new Material[SEGMENTS];
-            _segActive = new bool[SEGMENTS];
-            _segAnims  = new Coroutine[SEGMENTS];
+            _segImages     = new Image[SEGMENTS];
+            _segMats       = new Material[SEGMENTS];
+            _segActive     = new bool[SEGMENTS];
+            _segAnims      = new Coroutine[SEGMENTS];
+            _segAppearTime = new float[SEGMENTS];
 
             var shader = Shader.Find("FWTCG/EnergyGemUI");
 
@@ -488,10 +753,13 @@ namespace FWTCG.UI
                 if (shader != null)
                 {
                     var mat = new Material(shader);
-                    mat.SetColor("_HdrColor",     k_DimBase);
-                    mat.SetFloat("_DistortSpeed",    0.22f);
-                    mat.SetFloat("_DistortStrength", 0.032f);
-                    mat.SetFloat("_DistortScale",    4.2f);
+                    mat.SetColor("_HdrColor",        k_DimBase);
+                    mat.SetFloat("_DistortSpeed",    0.18f + Random.value * 0.12f);   // 0.18–0.30
+                    mat.SetFloat("_DistortStrength", 0.028f + Random.value * 0.018f); // 0.028–0.046
+                    mat.SetFloat("_DistortScale",    3.8f  + Random.value * 1.2f);    // 3.8–5.0
+                    // 随机 noise 相位偏移：让每颗宝石有独立的扰动纹路
+                    mat.SetVector("_NoiseOffset", new Vector4(
+                        Random.Range(-8f, 8f), Random.Range(-8f, 8f), 0f, 0f));
                     img.material = mat;
                     _segMats[i]  = mat;
                 }
@@ -529,87 +797,184 @@ namespace FWTCG.UI
             }
         }
 
+        // ── 构建：外圈光环（Radial Fill 随宝石延展，贴着宝石外缘，兼任漏光遮挡）──
+
+        // 纹理坐标系：d = 2 × UV距离中心。UV 0.40 = 宝石外缘 = 石头框架内边
+        // 贴着内：环内边紧贴 UV 0.40（宝石刚结束的地方），外边 UV 约 0.46
+        private const float ARC_TEX_INNER_R  = 0.80f;   // UV 0.40 — 贴着宝石外缘
+        private const float ARC_TEX_OUTER_R  = 0.925f;  // UV 0.4625 — 薄环外边
+        // 内侧硬边宽度（绝对不透明，挡住漏光溢出）
+        private const float ARC_TEX_HARD_W   = 0.04f;   // UV 0.02
+
+        private void BuildRingArc()
+        {
+            // 内侧硬边纹理：完全不透明挡住漏光，外侧柔和过渡保持美观
+            _ringArcTex = CreateRingTexture(256, ARC_TEX_INNER_R, ARC_TEX_OUTER_R, ARC_TEX_HARD_W);
+            var sprite  = Sprite.Create(_ringArcTex,
+                new Rect(0, 0, 256, 256), new Vector2(0.5f, 0.5f), 100f);
+
+            var go = new GameObject("GemRingArc", typeof(RectTransform), typeof(Image));
+            go.transform.SetParent(transform, false);
+
+            // 填满父容器：与 GemSeg / GemGlow 同 UV 坐标系
+            var rt = go.GetComponent<RectTransform>();
+            rt.anchorMin = Vector2.zero;
+            rt.anchorMax = Vector2.one;
+            rt.offsetMin = Vector2.zero;
+            rt.offsetMax = Vector2.zero;
+
+            _ringArcImg               = go.GetComponent<Image>();
+            _ringArcImg.sprite        = sprite;
+            _ringArcImg.type          = Image.Type.Filled;
+            _ringArcImg.fillMethod    = Image.FillMethod.Radial360;
+            _ringArcImg.fillOrigin    = (int)Image.Origin360.Top;
+            _ringArcImg.fillClockwise = true;
+            _ringArcImg.fillAmount    = 0f;
+            _ringArcImg.raycastTarget = false;
+            // 初始使用高 alpha 防半透明漏光
+            _ringArcImg.color         = new Color(0.55f, 0.75f, 1.00f, 0.95f);
+        }
+
+        /// <summary>
+        /// 生成环形纹理：内侧硬边（完全不透明挡漏光），外侧柔和过渡。
+        /// d 坐标系：d = 2 × UV距离中心。
+        ///   d < innerR              : alpha = 0 （宝石区透明，宝石正常可见）
+        ///   innerR ≤ d < innerR+hardW : alpha = 1 （硬不透明，挡住宝石外缘漏光）
+        ///   innerR+hardW ≤ d ≤ outerR : alpha 从 1 平滑过渡到 0 （外侧柔和）
+        ///   d > outerR              : alpha = 0
+        /// </summary>
+        private static Texture2D CreateRingTexture(int size, float innerR, float outerR, float hardW)
+        {
+            var tex = new Texture2D(size, size, TextureFormat.RGBA32, false);
+            tex.filterMode = FilterMode.Bilinear;
+            tex.wrapMode   = TextureWrapMode.Clamp;
+            var pixels = new Color[size * size];
+            float half        = size * 0.5f;
+            float hardEnd     = innerR + hardW;
+            float fadeLen     = Mathf.Max(outerR - hardEnd, 0.0001f);
+            for (int y = 0; y < size; y++)
+            {
+                for (int x = 0; x < size; x++)
+                {
+                    float dx = (x - half) / half;
+                    float dy = (y - half) / half;
+                    float d  = Mathf.Sqrt(dx * dx + dy * dy);
+
+                    float a;
+                    if      (d < innerR)  a = 0f;
+                    else if (d < hardEnd) a = 1f;
+                    else if (d < outerR)
+                    {
+                        float t = 1f - (d - hardEnd) / fadeLen;
+                        a = t * t * (3f - 2f * t);   // smoothstep
+                    }
+                    else a = 0f;
+
+                    pixels[y * size + x] = new Color(1f, 1f, 1f, a);
+                }
+            }
+            tex.SetPixels(pixels);
+            tex.Apply();
+            return tex;
+        }
+
+        // ── 构建：宝石光晕（与宝石同形状的扇形 Additive 层，天然封边不漏光）──────
+
+        // Additive 材质（叠加混合：加亮底层）
+        private Material _glowAdditiveMat;
+
+        private void BuildGemGlows()
+        {
+            // 每颗宝石独立材质：EnergyGemGlowUI（Additive + gemMask），石头边框被 gemMask 裁掉，不漏光
+            // 外边界裁切：shader 里 _OuterClipR 做径向 UV 裁切，不依赖 Unity Mask 组件
+            // 精灵 UV 外圈实测约 0.449（459.6px / 1024px * 2）
+            var glowShader = Shader.Find("FWTCG/EnergyGemGlowUI");
+            if (glowShader == null) glowShader = Shader.Find("Sprites/Additive"); // 降级
+
+            _gemGlows = new Image[SEGMENTS];
+            _glowMats = new Material[SEGMENTS];
+            for (int i = 0; i < SEGMENTS; i++)
+            {
+                var go = new GameObject($"GemGlow_{i:00}", typeof(RectTransform), typeof(Image));
+                go.transform.SetParent(transform, false);
+
+                var rt = go.GetComponent<RectTransform>();
+                rt.anchorMin = Vector2.zero;
+                rt.anchorMax = Vector2.one;
+                rt.offsetMin = Vector2.zero;
+                rt.offsetMax = Vector2.zero;
+                rt.localEulerAngles = new Vector3(0f, 0f, -i * (360f / SEGMENTS));
+
+                var img = go.GetComponent<Image>();
+                img.sprite        = _fillSprite;
+                img.type          = Image.Type.Filled;
+                img.fillMethod    = Image.FillMethod.Radial360;
+                img.fillOrigin    = (int)Image.Origin360.Top;
+                img.fillClockwise = true;
+                img.fillAmount    = 1f / SEGMENTS;
+                img.raycastTarget = false;
+                img.color         = Color.white;  // shader 里用 _HdrColor 控色，Image.color 保持白
+
+                // 独立材质：EnergyGemGlowUI（Additive + gemMask 裁边框 + 径向外裁切）
+                var mat = new Material(glowShader);
+                mat.SetColor("_HdrColor",        Color.clear);  // 初始透明
+                mat.SetFloat("_LumMultiplier",   1.6f);
+                mat.SetFloat("_LumFloor",        0f);
+                mat.SetFloat("_DistortSpeed",    0f);   // glow 层不做扰动，保持简洁
+                mat.SetFloat("_DistortStrength", 0f);
+                mat.SetFloat("_MaskLow",         0.28f); // 提高阈值：槽缝过渡像素不发光（默认 0.12 太低）
+                mat.SetFloat("_MaskHigh",        0.58f); // 相应提高上限，保留宝石晶体亮区发光
+                mat.SetFloat("_OuterClipR",      0.445f);  // 外边界 UV 半径（实测 0.449，留 0.004 余量）
+                mat.SetFloat("_OuterClipFeather",0.018f);  // 柔和过渡
+                img.material  = mat;
+                _glowMats[i]  = mat;
+
+                go.SetActive(false);
+                _gemGlows[i] = img;
+            }
+
+            _glowAdditiveMat = null;
+        }
+
         // ── 构建：粒子系统 ────────────────────────────────────────────────
 
         private void BuildParticleSystems()
         {
-            _psConv = BuildPS("GemConverge", 200, sortOrder: 100);
-            var main = _psConv.main;
-            main.startLifetime = new ParticleSystem.MinMaxCurve(0.2f, 0.5f);
-            main.startSpeed    = new ParticleSystem.MinMaxCurve(0f);
-            main.startSize     = new ParticleSystem.MinMaxCurve(2f, 5f);
-            var em = _psConv.emission; em.enabled = false;
-            var sh = _psConv.shape;    sh.enabled = false;
-            SetFadeAlpha(_psConv);
-
-            _psConn = BuildPS("GemConn", 64, sortOrder: 99);
-            var main2 = _psConn.main;
-            main2.startLifetime = new ParticleSystem.MinMaxCurve(0.18f, 0.40f);
-            main2.startSpeed    = new ParticleSystem.MinMaxCurve(10f, 25f);
-            main2.startSize     = new ParticleSystem.MinMaxCurve(1.5f, 4f);
-            var sh2 = _psConn.shape;
-            sh2.enabled = true; sh2.shapeType = ParticleSystemShapeType.Circle; sh2.radius = 4f;
-            SetFadeAlpha(_psConn);
-        }
-
-        private ParticleSystem BuildPS(string goName, int maxParts, int sortOrder)
-        {
-            // ⚠️ 放在 Canvas 父物体同级（场景根级），而非 Canvas 子节点
-            // → 作为 World-space 对象，通过 sortingOrder 高于 Canvas 渲染在 UI 之上
-            var go = new GameObject(goName);
-            go.transform.SetParent(null, false);  // 场景根，非 Canvas 子
-
-            var ps   = go.AddComponent<ParticleSystem>();
-            var rend = go.GetComponent<ParticleSystemRenderer>();
-
-            // 排序设置：高于 Canvas 默认 0，确保粒子在 UI 之上
-            rend.sortingLayerName = "Default";
-            rend.sortingOrder     = sortOrder;
-
-            // 材质：按 URP / 内置管线优先级寻找可用 shader，找不到就用系统默认
-            var psShader = Shader.Find("Universal Render Pipeline/Particles/Unlit")
-                        ?? Shader.Find("Universal Render Pipeline/Particles/Simple Lit")
-                        ?? Shader.Find("Particles/Standard Unlit")
-                        ?? Shader.Find("Sprites/Default");
-            if (psShader != null)
-                rend.material = new Material(psShader);
-            // 找不到任何 shader → 保留 rend 默认材质，不会出白方块
-
-            var main = ps.main;
-            main.loop            = false;
-            main.playOnAwake     = false;
-            main.simulationSpace = ParticleSystemSimulationSpace.World;
-            main.maxParticles    = maxParts;
-            main.gravityModifier = new ParticleSystem.MinMaxCurve(0f);
-
-            ps.Stop(true, ParticleSystemStopBehavior.StopEmittingAndClear);
-            return ps;
-        }
-
-        private void SetFadeAlpha(ParticleSystem ps)
-        {
-            var col = ps.colorOverLifetime;
-            col.enabled = true;
-            var g = new Gradient();
-            g.SetKeys(
-                new[] { new GradientColorKey(Color.white, 0f), new GradientColorKey(Color.white, 1f) },
-                new[] { new GradientAlphaKey(1f, 0f), new GradientAlphaKey(0f, 0.9f) });
-            col.color = new ParticleSystem.MinMaxGradient(g);
+            // 粒子系统暂停：URP particle shader 兼容性问题导致粉色大方块
+            // 视觉效果由 per-gem Point Light + EnergyGemUI shader 提供，已足够
+            _psConv = null;
+            _psConn = null;
         }
 
         // ── 初始化 ────────────────────────────────────────────────────────
 
         private void InitFills()
         {
+            // 光环初始（从 0 开始，随宝石延展）
+            // _ringTargetFill 已移除
+            _ringTargetColor = new Color(0.55f, 0.75f, 1.00f, 0.95f);
+            if (_ringArcImg != null)
+            {
+                _ringArcImg.rectTransform.localEulerAngles = Vector3.zero;
+                _ringArcImg.color = _ringTargetColor;
+                _ringArcImg.gameObject.SetActive(false);  // 初始隐藏，等第一颗宝石出现才显示
+            }
+
             if (_segImages == null) return;
             for (int i = 0; i < SEGMENTS; i++)
             {
-                _segActive[i] = false;
+                _segActive[i]     = false;
+                _segAppearTime[i] = 0f;
                 if (_segAnims[i] != null) { StopCoroutine(_segAnims[i]); _segAnims[i] = null; }
                 if (_segImages[i] != null) _segImages[i].gameObject.SetActive(false);
                 if (_segMats[i]   != null) _segMats[i].SetColor("_HdrColor", k_DimBase);
+                if (_gemGlows     != null && i < _gemGlows.Length  && _gemGlows[i]  != null)
+                    _gemGlows[i].gameObject.SetActive(false);
                 if (_gemLights    != null && i < _gemLights.Length && _gemLights[i] != null)
                     _gemLights[i].enabled = false;
+                // 暗灰槽初始全部显示
+                if (_dimImages    != null && i < _dimImages.Length && _dimImages[i]  != null)
+                    _dimImages[i].gameObject.SetActive(true);
             }
         }
 
@@ -622,14 +987,36 @@ namespace FWTCG.UI
                 _fillSprite = Resources.Load<Sprite>("UI/Generated/countdown_empty");
         }
 
+        /// <summary>用 countdown_ring（金色符文整圆）替换 baseRing 贴图，装饰感更强。</summary>
+        private void UpgradeBaseRingSprite()
+        {
+            if (baseRing == null) return;
+            var ringSprite = Resources.Load<Sprite>("UI/Generated/countdown_ring");
+            if (ringSprite != null)
+                baseRing.sprite = ringSprite;
+        }
+
         private void CleanRuntimeChildren()
         {
+            // 先释放旧材质（new Material() 不会随 GO 自动销毁）
+            if (_ringArcMat      != null) { DestroyImmediate(_ringArcMat);      _ringArcMat      = null; }
+            if (_glowAdditiveMat != null) { DestroyImmediate(_glowAdditiveMat); _glowAdditiveMat = null; }
+            if (_ringArcTex      != null) { DestroyImmediate(_ringArcTex);      _ringArcTex      = null; }
+            if (_segMats != null)
+                for (int i = 0; i < _segMats.Length; i++)
+                    if (_segMats[i] != null) { DestroyImmediate(_segMats[i]); _segMats[i] = null; }
+            if (_dimMats != null)
+                for (int i = 0; i < _dimMats.Length; i++)
+                    if (_dimMats[i] != null) { DestroyImmediate(_dimMats[i]); _dimMats[i] = null; }
+
             for (int i = transform.childCount - 1; i >= 0; i--)
             {
                 var name = transform.GetChild(i).name;
                 if (name.StartsWith("GemSeg_")    || name.StartsWith("GemLight_") ||
-                    name.StartsWith("GemDimBase")  || name.StartsWith("GemConverge") ||
-                    name.StartsWith("GemConn"))
+                    name.StartsWith("GemDimBase")  || name.StartsWith("GemGlow_")   ||
+                    name.StartsWith("GemGlowBlocker") ||
+                    name.StartsWith("GemRingArc")  ||
+                    name.StartsWith("GemConverge") || name.StartsWith("GemConn"))
                     DestroyImmediate(transform.GetChild(i).gameObject);
             }
             // 清理场景根级的粒子系统残留
@@ -639,6 +1026,19 @@ namespace FWTCG.UI
                 var found = GameObject.Find(n);
                 if (found != null) DestroyImmediate(found);
             }
+        }
+
+        private void OnDestroy()
+        {
+            if (_ringArcMat      != null) { Destroy(_ringArcMat);      _ringArcMat      = null; }
+            if (_glowAdditiveMat != null) { Destroy(_glowAdditiveMat); _glowAdditiveMat = null; }
+            if (_ringArcTex      != null) { Destroy(_ringArcTex);      _ringArcTex      = null; }
+            if (_segMats != null)
+                for (int i = 0; i < _segMats.Length; i++)
+                    if (_segMats[i] != null) { Destroy(_segMats[i]); _segMats[i] = null; }
+            if (_dimMats != null)
+                for (int i = 0; i < _dimMats.Length; i++)
+                    if (_dimMats[i] != null) { Destroy(_dimMats[i]); _dimMats[i] = null; }
         }
     }
 }

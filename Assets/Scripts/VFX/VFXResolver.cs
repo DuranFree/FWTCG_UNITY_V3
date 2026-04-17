@@ -136,7 +136,7 @@ namespace FWTCG.VFX
             ["hex_ray"]           = new[] { new FXConfig(FX_FLAME), new FXConfig(FX_HIT, delay: 0.2f) },
             ["furnace_blast"]     = new[] { new FXConfig(FX_FLAME, repeat: 3, delay: 0.15f) },
             ["evolve_day"]        = new[] { new FXConfig(FX_FLAME), new FXConfig(FX_RAYGLOW, delay: 0.3f) },
-            ["void_seek"]         = new[] { new FXConfig(FX_FLAME, tint: new Color(0.6f, 0f, 0.8f)) },
+            ["void_seek"]         = new[] { new FXConfig(FX_FLAME, tint: new Color(0.0f, 0.75f, 0.60f, 1f)) },  // dark teal (void energy, not pink)
 
             // ── Radiant (light) effects ───
             ["divine_ray"]        = new[] { new FXConfig(FX_RAYGLOW), new FXConfig(FX_HIT, delay: 0.2f) },
@@ -156,7 +156,7 @@ namespace FWTCG.VFX
             ["duel_stance"]       = new[] { new FXConfig(FX_SHIELD), new FXConfig(FX_HIT, delay: 0.3f) },
 
             // ── Chaos (arcane) effects ───
-            ["time_warp"]         = new[] { new FXConfig(FX_SPAWN, tint: new Color(0.6f, 0f, 0.9f)) },
+            ["time_warp"]         = new[] { new FXConfig(FX_SPAWN, tint: new Color(0.0f, 0.40f, 0.90f, 1f)) },  // deep blue (time magic, not pink)
             ["balance_resolve"]   = new[] { new FXConfig(FX_CAST) },
 
             // ── Order (water/control) effects ───
@@ -177,10 +177,10 @@ namespace FWTCG.VFX
 
             // ── Hero effects ───
             ["yi_hero_enter"]     = new[] { new FXConfig(FX_FLAME), new FXConfig(FX_RAYGLOW, delay: 0.2f) },
-            ["kaisa_hero_conquer"] = new[] { new FXConfig(FX_SPAWN, tint: new Color(0.6f, 0f, 0.8f)), new FXConfig(FX_FLAME, delay: 0.3f) },
+            ["kaisa_hero_conquer"] = new[] { new FXConfig(FX_SPAWN, tint: new Color(0.90f, 0.55f, 0.10f, 1f)), new FXConfig(FX_FLAME, delay: 0.3f) },  // gold (hero conquest)
 
             // ── Reactive spells ───
-            ["swindle"]           = new[] { new FXConfig(FX_CAST, tint: new Color(0.6f, 0f, 0.9f)) },
+            ["swindle"]           = new[] { new FXConfig(FX_CAST, tint: new Color(0.0f, 0.70f, 0.70f, 1f)) },  // teal (shadow/deception, not pink)
 
             // ── Equipment effects ───
             ["dorans_equip"]      = new[] { new FXConfig(FX_HIT) },

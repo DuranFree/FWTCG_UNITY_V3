@@ -1,10 +1,10 @@
-// FWTCG/EnergyGemUI  v9
+// FWTCG/EnergyGemGlowUI  v1 — Additive glow version of EnergyGemUI
 // 亮度模式：提取纹理亮度保留石头/宝石结构，_HdrColor 决定色相
 // vertex color（COLOR）只传 alpha，不传颜色 → 避免 Color32 HDR 截断
 // v7: _LumFloor 由 gemMask 门控 → 石头边框不会在 MegaBurst 时发光
 // v8: color.a 也乘 gemMask → 石头/边框区域完全透明，不染色，底层 RingBase 自然显示
 
-Shader "FWTCG/EnergyGemUI"
+Shader "FWTCG/EnergyGemGlowUI"
 {
     Properties
     {
@@ -21,6 +21,9 @@ Shader "FWTCG/EnergyGemUI"
         _MaskLow             ("Mask Low",         Float) = 0.12
         _MaskHigh            ("Mask High",        Float) = 0.50
         _NoiseOffset         ("Noise Offset",     Vector) = (0,0,0,0)
+        // 径向外边界裁切：UV 中心距离 > _OuterClipR 时平滑淡出（0 = 不裁切）
+        _OuterClipR          ("Outer Clip Radius",Float) = 0.0
+        _OuterClipFeather    ("Outer Clip Feather",Float) = 0.02
 
         _StencilComp         ("Stencil Comparison", Float) = 8
         _Stencil             ("Stencil ID",         Float) = 0
@@ -46,7 +49,7 @@ Shader "FWTCG/EnergyGemUI"
 
         Cull Off  Lighting Off  ZWrite Off
         ZTest [unity_GUIZTestMode]
-        Blend SrcAlpha OneMinusSrcAlpha
+        Blend One One      // Additive — glow only adds light, stone frame masked by gemMask
         ColorMask [_ColorMask]
 
         Pass
@@ -94,6 +97,8 @@ Shader "FWTCG/EnergyGemUI"
             float     _MaskLow;
             float     _MaskHigh;
             float4    _NoiseOffset;
+            float     _OuterClipR;
+            float     _OuterClipFeather;
 
             float _Hash(float2 p)
             {
@@ -160,6 +165,17 @@ Shader "FWTCG/EnergyGemUI"
                 fixed4 color;
                 color.rgb = _HdrColor.rgb * modLum;
                 color.a   = tex.a * i.color.a * gemMask;
+
+                // 径向外边界裁切：UV 中心距离超过 _OuterClipR 时平滑淡出
+                // 精灵 UV (0,0)-(1,1)，中心 (0.5,0.5)，外圈实测约 0.449
+                if (_OuterClipR > 0.0)
+                {
+                    float uvDist  = length(uv - float2(0.5, 0.5));
+                    float clipMask = smoothstep(_OuterClipR,
+                                                _OuterClipR - _OuterClipFeather, uvDist);
+                    color.rgb *= clipMask;
+                    color.a   *= clipMask;
+                }
 
                 #ifdef UNITY_UI_CLIP_RECT
                 color.a *= UnityGet2DClipping(i.worldPos.xy, _ClipRect);

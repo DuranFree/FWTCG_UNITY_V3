@@ -65,6 +65,8 @@ namespace FWTCG.UI
 
         private void OnCardPlayed(UnitInstance card, string owner)
         {
+            return; // VFX 全部暂时禁用（排查紫色问题）
+#pragma warning disable CS0162
             if (!this) return;
             if (!isActiveAndEnabled || _vfxLayer == null) return;
 
@@ -72,6 +74,7 @@ namespace FWTCG.UI
             if (card?.CardData != null && card.CardData.IsSpell) return;
 
             StartCoroutine(DelayedCardPlayFX(card, owner));
+#pragma warning restore CS0162
         }
 
         // ── VFX-8 projectile constants ──────────────────────────────────────
@@ -208,8 +211,11 @@ namespace FWTCG.UI
 
         private void OnUnitDiedAtPos(UnitInstance unit, Vector2 canvasPos)
         {
+            return; // VFX 全部暂时禁用（排查紫色问题）
+#pragma warning disable CS0162
             if (!this) return;
             if (!isActiveAndEnabled || _vfxLayer == null) return;
+#pragma warning restore CS0162
 
             // VFX-4: Spawn resolved death FX prefabs
             if (unit?.CardData != null)
@@ -224,8 +230,11 @@ namespace FWTCG.UI
 
         private void OnLegendEvolved(string owner, int newLevel)
         {
+            return; // VFX 全部暂时禁用（排查紫色问题）
+#pragma warning disable CS0162
             if (!this) return;
             if (!isActiveAndEnabled || _vfxLayer == null) return;
+#pragma warning restore CS0162
             // Approximate legend zone positions (player left / enemy right)
             float x = (owner == GameRules.OWNER_PLAYER) ? -550f : 550f;
             StartCoroutine(LegendFlame(new Vector2(x, 250f)));
@@ -234,8 +243,11 @@ namespace FWTCG.UI
         // DEV-30 F1: conquest VFX — gold burst at score zone when conquest score is earned
         private void OnConquestScored(string owner)
         {
-            if (!this) return; // guard: destroyed object may still hold a delegate reference
+            return; // VFX 全部暂时禁用（排查紫色问题）
+#pragma warning disable CS0162
+            if (!this) return;
             if (!isActiveAndEnabled || _vfxLayer == null) return;
+#pragma warning restore CS0162
             string zone = owner == GameRules.OWNER_PLAYER ? "score_player" : "score_enemy";
             Vector2 pos = GameUI.Instance != null
                 ? GameUI.Instance.GetZoneCanvasPos(zone)
@@ -431,7 +443,7 @@ namespace FWTCG.UI
                 case RuneType.Radiant:  return new Color(1.0f, 0.90f, 0.20f, 1f);
                 case RuneType.Verdant:  return new Color(0.20f, 0.90f, 0.30f, 1f);
                 case RuneType.Crushing: return new Color(0.70f, 0.20f, 0.10f, 1f);
-                case RuneType.Chaos:    return new Color(0.80f, 0.10f, 0.90f, 1f);
+                case RuneType.Chaos:    return new Color(0.10f, 0.75f, 0.85f, 1f); // teal/cyan (not error-pink)
                 case RuneType.Order:    return new Color(0.10f, 0.70f, 1.00f, 1f);
                 default:                return GameColors.BuffColor;
             }

@@ -2254,16 +2254,20 @@ namespace FWTCG.UI
             TweenHelper.KillSafe(ref _timerTween);
             _timerTween = DOVirtual.Float(_timerSeconds, 0f, _timerSeconds, v =>
             {
+                // 整数跳变：用于文字显示和颜色
                 int newSec = Mathf.CeilToInt(v);
                 if (newSec != _timerSeconds)
                 {
                     _timerSeconds = newSec;
                     UpdateTimerDisplay();
                 }
+                // 浮点驱动宝石环：每帧连续，宝石出现间隔完全均匀
+                _countdownRingUI?.SetProgress(1f - v / 30f);
             }).SetEase(Ease.Linear).OnComplete(() =>
             {
                 _timerSeconds = 0;
                 UpdateTimerDisplay();
+                _countdownRingUI?.SetProgress(1f);
                 _timerTween = null;
                 if (_timerDisplay != null) _timerDisplay.SetActive(false);
                 _onTimerExpired?.Invoke();
@@ -2284,12 +2288,8 @@ namespace FWTCG.UI
             if (_timerText != null)
                 _timerText.text = _timerSeconds.ToString();
 
-            float pct = _timerSeconds / 30f;
-
-            // Drive the Pencil countdown ring (0=start, 1=expired)
-            _countdownRingUI?.SetProgress(1f - pct);
-
             // Color gradient: green → yellow → red
+            // 注：宝石环由 StartTurnTimer 里的浮点回调直接驱动，这里不重复调用
             Color timerColor;
             if (_timerSeconds > 15)
                 timerColor = GameColors.PlayerGreen;
@@ -2302,7 +2302,7 @@ namespace FWTCG.UI
 
             if (_timerFill != null)
             {
-                _timerFill.fillAmount = pct;
+                _timerFill.fillAmount = _timerSeconds / 30f;
                 _timerFill.color = timerColor;
             }
 

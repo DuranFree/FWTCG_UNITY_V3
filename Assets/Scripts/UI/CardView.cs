@@ -2046,6 +2046,8 @@ namespace FWTCG.UI
         private IEnumerator SpawnIdleFXDelayed()
         {
             _idleFXSpawned = true;
+            yield break; // VFX 全部暂时禁用（排查紫色问题）
+#pragma warning disable CS0162
             yield return new WaitForSeconds(1f);
 
             if (_unit?.CardData == null || !gameObject.activeInHierarchy) yield break;
@@ -2057,6 +2059,7 @@ namespace FWTCG.UI
             if (prefab == null) yield break;
 
             _idleFX = FXTool.DoSnapFX(prefab, transform, Vector3.zero, 0f); // 0 = no auto-destroy
+#pragma warning restore CS0162
         }
 
         /// <summary>Show/hide Shield FX based on unit keyword state.</summary>

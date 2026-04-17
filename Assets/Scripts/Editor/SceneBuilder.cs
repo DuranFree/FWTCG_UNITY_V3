@@ -157,39 +157,9 @@ namespace FWTCG.Editor
                 if (baseSpr != null) { baseImg.sprite = baseSpr; baseImg.color = Color.white; }
                 baseImg.raycastTarget = false;
 
-                // Layer 1: blue fill — time02, Radial360
-                var blueGO = new GameObject("RingBlueFill", typeof(RectTransform), typeof(Image));
-                blueGO.transform.SetParent(ringGO.transform, false);
-                StretchRect(blueGO.GetComponent<RectTransform>());
-                var blueImg = blueGO.GetComponent<Image>();
-                var blueSpr = AssetDatabase.LoadAssetAtPath<Sprite>("Assets/Resources/UI/Generated/countdown_blue.png");
-                if (blueSpr != null) { blueImg.sprite = blueSpr; blueImg.color = Color.white; }
-                blueImg.type = Image.Type.Filled;
-                blueImg.fillMethod = Image.FillMethod.Radial360;
-                blueImg.fillOrigin = (int)Image.Origin360.Top;
-                blueImg.fillClockwise = true;
-                blueImg.fillAmount = 0f;
-                blueImg.raycastTarget = false;
-                blueGO.SetActive(false);
-
-                // Layer 2: red fill — time03, Radial360
-                var redGO = new GameObject("RingRedFill", typeof(RectTransform), typeof(Image));
-                redGO.transform.SetParent(ringGO.transform, false);
-                StretchRect(redGO.GetComponent<RectTransform>());
-                var redImg = redGO.GetComponent<Image>();
-                var redSpr = AssetDatabase.LoadAssetAtPath<Sprite>("Assets/Resources/UI/Generated/countdown_red.png");
-                if (redSpr != null) { redImg.sprite = redSpr; redImg.color = Color.white; }
-                redImg.type = Image.Type.Filled;
-                redImg.fillMethod = Image.FillMethod.Radial360;
-                redImg.fillOrigin = (int)Image.Origin360.Top;
-                redImg.fillClockwise = true;
-                redImg.fillAmount = 0f;
-                redImg.raycastTarget = false;
-                redGO.SetActive(false);
-
+                // 注：RingBlueFill / RingRedFill 已删除（v4 起改为 12 个 per-segment Images，由 Awake 动态创建）
                 _countdownRingUI = ringGO.AddComponent<CountdownRingUI>();
                 _countdownRingUI.baseRing = baseImg;
-                // 注：blueFill / redFill 已废弃（v4 起改为 12 个 per-segment Images，由 Awake 动态创建）
 
                 // ── Logo (Pencil: 0c05h group at x=817, y=489, ~282×97) — above ring ──
                 var logoGO = new GameObject("Logo", typeof(RectTransform), typeof(Image));
