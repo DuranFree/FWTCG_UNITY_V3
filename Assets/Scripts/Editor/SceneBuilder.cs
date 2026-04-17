@@ -81,6 +81,7 @@ namespace FWTCG.Editor
             // ── Background (SVG-gen bg_game_main, fallback bg_menu, fallback HexGrid) ──
             var background = CreateFullscreenPanel(canvasGO.transform, "Background",
                 HexColor("#010a13"));
+            background.transform.localScale = new Vector3(1.06146014f, 1.06146014f, 1.06146014f);
             {
                 var bgImg = background.GetComponent<Image>();
                 var bgMenuSpr = AssetDatabase.LoadAssetAtPath<Sprite>("Assets/Resources/UI/Generated/bg_game_main.png")
@@ -380,7 +381,7 @@ namespace FWTCG.Editor
                 696f/1920f, 768f/1920f, 1f-646f/1080f, 1f-546f/1080f);
             {
                 CreateTwoLineLabel(bf0Standby.transform, "待命区", "STANDBY");
-                CreateZoneBorderFrame(bf0Standby.transform, ZoneBorderColor);
+                CreateDashedZoneBorderFrame(bf0Standby.transform, ZoneBorderColor);
             }
 
             // BF1FieldCard: Pencil x=1135,y=436,w=106,h=76
@@ -398,7 +399,7 @@ namespace FWTCG.Editor
                 1152f/1920f, 1224f/1920f, 1f-646f/1080f, 1f-546f/1080f);
             {
                 CreateTwoLineLabel(bf1Standby.transform, "待命区", "STANDBY");
-                CreateZoneBorderFrame(bf1Standby.transform, ZoneBorderColor);
+                CreateDashedZoneBorderFrame(bf1Standby.transform, ZoneBorderColor);
             }
 
             // Hand zones (outside board)
@@ -806,13 +807,17 @@ namespace FWTCG.Editor
             hlg.padding = new RectOffset(10, 10, 2, 2);
             hlg.spacing = 10f;
 
+            // Texts kept for GameUI logic refs but rendered invisible (only score circles show state)
             var eScore = CreateTMPText(go.transform, "EnemyScore", "AI: 0/8", GameColors.EnemyRed, 13, TextAnchor.MiddleLeft);
-            eScore.color = new Color(1f, 0.3f, 0.3f, 0.75f);
-            CreateTMPText(go.transform, "RoundInfo", "回合 1", GameColors.GoldLight, 13, TextAnchor.MiddleCenter);
+            eScore.color = new Color(0f, 0f, 0f, 0f);
+            var rInfo = CreateTMPText(go.transform, "RoundInfo", "回合 1", GameColors.GoldLight, 13, TextAnchor.MiddleCenter);
+            rInfo.color = new Color(0f, 0f, 0f, 0f);
             enemyRuneInfoText = CreateTMPText(go.transform, "EnemyRuneInfo", "", GameColors.GoldDark, 12, TextAnchor.MiddleRight);
+            enemyRuneInfoText.color = new Color(0f, 0f, 0f, 0f);
             enemyDeckInfoText = CreateTMPText(go.transform, "EnemyDeckInfo", "", GameColors.GoldDark, 12, TextAnchor.MiddleRight);
+            enemyDeckInfoText.color = new Color(0f, 0f, 0f, 0f);
             var pScore = CreateTMPText(go.transform, "PlayerScore", "玩家: 0/8", GameColors.PlayerGreen, 13, TextAnchor.MiddleRight);
-            pScore.color = new Color(0.3f, 1f, 0.5f, 0.75f);
+            pScore.color = new Color(0f, 0f, 0f, 0f);
 
             return go;
         }
@@ -879,12 +884,13 @@ namespace FWTCG.Editor
                 1854f/1920f, 1876f/1920f, 1f-634f/1080f, 1f-260f/1080f, enemyScoreCircleImages);
 
             // ── ENEMY SIDE (top) — Pencil: 传说E(391,-48,118×154), 英雄E(262,-48,118×154) ──
+            // Symmetric mirror of Player Hero/Legend (884..1038 around canvas center)
             var enemyLegendZone = CreatePlayerLegendZone(go.transform, "EnemyLegendZone",
-                false, 391f/1920f, 509f/1920f, 1f-106f/1080f, 1f+48f/1080f,
+                false, 391f/1920f, 509f/1920f, 1f-196f/1080f, 1f-42f/1080f,
                 out enemyLegendText, out _);
 
             CreateHeroZone(go.transform, "EnemyHeroZone",
-                262f/1920f, 380f/1920f, 1f-106f/1080f, 1f+48f/1080f, out enemyHeroContainer);
+                262f/1920f, 380f/1920f, 1f-196f/1080f, 1f-42f/1080f, out enemyHeroContainer);
 
             // ── ENEMY DECK PILES (Pencil positions) ──
             // 符文堆E (left top): 92,73,138×195
@@ -905,10 +911,10 @@ namespace FWTCG.Editor
 
             // ── PLAYER SIDE (bottom) — Pencil: 英雄P(262,974,118×154), 传说P(391,974,118×154) ──
             CreateHeroZone(go.transform, "PlayerHeroZone",
-                262f/1920f, 380f/1920f, 1f-1128f/1080f, 1f-974f/1080f, out playerHeroContainer);
+                262f/1920f, 380f/1920f, 1f-1038f/1080f, 1f-884f/1080f, out playerHeroContainer);
 
             var playerLegendZone = CreatePlayerLegendZone(go.transform, "PlayerLegendZone",
-                true, 391f/1920f, 509f/1920f, 1f-1128f/1080f, 1f-974f/1080f,
+                true, 391f/1920f, 509f/1920f, 1f-1038f/1080f, 1f-884f/1080f,
                 out playerLegendText, out legendSkillBtn);
 
             // ── PLAYER DECK PILES (Pencil positions) ──
@@ -928,9 +934,9 @@ namespace FWTCG.Editor
             CreateDeckPile(go.transform, "PlayerExilePile", "放逐区",
                 92f/1920f, 231f/1920f, 1f-811f/1080f, 1f-616f/1080f, out playerExileCount);
 
-            // ── Pencil: EnemyRunes 条带 (y=155-240, x=248-1672) ────────────────
+            // ── Pencil: EnemyRunes 条带 (mirror of PlayerRunes 828..880 → 200..252) ────────────────
             var enemyRunesZone = CreateAnchoredZone(go.transform, "EnemyRunes",
-                248f/1920f, 1672f/1920f, 1f-240f/1080f, 1f-155f/1080f);
+                248f/1920f, 1672f/1920f, 1f-252f/1080f, 1f-200f/1080f);
             {
                 // Pencil: no background — gold border only (Image component not needed)
                 CreateZoneBorderFrame(enemyRunesZone.transform, ZoneBorderColor);
@@ -949,15 +955,21 @@ namespace FWTCG.Editor
                 if (_font != null) lblTxt.font = _font;
                 lbl.AddComponent<Shadow>().effectColor = new Color(0f, 0f, 0f, 0.8f);
                 var lblRT = lbl.GetComponent<RectTransform>();
-                if (lblRT != null) { lblRT.anchorMin = new Vector2(0f, 0f); lblRT.anchorMax = new Vector2(0.15f, 1f); lblRT.offsetMin = new Vector2(4f, -27f); lblRT.offsetMax = new Vector2(0f, -27f); }
+                // Same top-left as Player labels
+                if (lblRT != null) {
+                    lblRT.anchorMin = new Vector2(0f, 1f); lblRT.anchorMax = new Vector2(0f, 1f);
+                    lblRT.pivot = new Vector2(0f, 1f);
+                    lblRT.sizeDelta = new Vector2(180f, 18f);
+                    lblRT.anchoredPosition = new Vector2(8f, -4f);
+                }
                 lbl.transform.SetAsLastSibling();
                 // 圆形符文槽 (12个，均匀分布在中间)
                 CreateRuneSlotRow(enemyRunesZone.transform, 12, false);
             }
 
-            // ── Pencil: EnemyBase 区域 (y=242-402, x=248-1672) ───────────────
+            // ── Pencil: EnemyBase 区域 (mirror of PlayerBase 666..826 → 254..414) ───────────────
             var enemyBaseZone = CreateAnchoredZone(go.transform, "EnemyBase",
-                248f/1920f, 1672f/1920f, 1f-402f/1080f, 1f-242f/1080f);
+                248f/1920f, 1672f/1920f, 1f-414f/1080f, 1f-254f/1080f);
             {
                 // Pencil: no background — gold border only (Image component not needed)
                 CreateZoneBorderFrame(enemyBaseZone.transform, ZoneBorderColor);
@@ -976,7 +988,13 @@ namespace FWTCG.Editor
                 if (_font != null) lblTxt.font = _font;
                 lbl.AddComponent<Shadow>().effectColor = new Color(0f, 0f, 0f, 0.8f);
                 var lblRT = lbl.GetComponent<RectTransform>();
-                if (lblRT != null) { lblRT.anchorMin = new Vector2(0f, 0.85f); lblRT.anchorMax = new Vector2(0.15f, 1f); lblRT.offsetMin = new Vector2(4f, -134f); lblRT.offsetMax = new Vector2(0f, -134f); }
+                // Same top-left as Player labels
+                if (lblRT != null) {
+                    lblRT.anchorMin = new Vector2(0f, 1f); lblRT.anchorMax = new Vector2(0f, 1f);
+                    lblRT.pivot = new Vector2(0f, 1f);
+                    lblRT.sizeDelta = new Vector2(180f, 18f);
+                    lblRT.anchoredPosition = new Vector2(8f, -4f);
+                }
                 lbl.transform.SetAsLastSibling();
             }
 
@@ -1000,13 +1018,18 @@ namespace FWTCG.Editor
                 if (_font != null) lblTxt.font = _font;
                 lbl.AddComponent<Shadow>().effectColor = new Color(0f, 0f, 0f, 0.8f);
                 var lblRT = lbl.GetComponent<RectTransform>();
-                if (lblRT != null) { lblRT.anchorMin = new Vector2(0f, 0f); lblRT.anchorMax = new Vector2(0.15f, 0.15f); lblRT.offsetMin = new Vector2(13f, 134f); lblRT.offsetMax = new Vector2(9f, 134f); }
+                if (lblRT != null) {
+                    lblRT.anchorMin = new Vector2(0f, 1f); lblRT.anchorMax = new Vector2(0f, 1f);
+                    lblRT.pivot = new Vector2(0f, 1f);
+                    lblRT.sizeDelta = new Vector2(180f, 18f);
+                    lblRT.anchoredPosition = new Vector2(8f, -4f);
+                }
                 lbl.transform.SetAsLastSibling();
             }
 
             // ── Pencil: PlayerRunes 条带 (y=828-913, x=248-1672) ─────────────
             var playerRunesZone = CreateAnchoredZone(go.transform, "PlayerRunes",
-                248f/1920f, 1672f/1920f, 1f-913f/1080f, 1f-828f/1080f);
+                248f/1920f, 1672f/1920f, 1f-880f/1080f, 1f-828f/1080f);
             {
                 // Pencil: no background — gold border only (Image component not needed)
                 CreateZoneBorderFrame(playerRunesZone.transform, ZoneBorderColor);
@@ -1024,7 +1047,12 @@ namespace FWTCG.Editor
                 if (_font != null) lblTxt.font = _font;
                 lbl.AddComponent<Shadow>().effectColor = new Color(0f, 0f, 0f, 0.8f);
                 var lblRT = lbl.GetComponent<RectTransform>();
-                if (lblRT != null) { lblRT.anchorMin = new Vector2(0f, 0f); lblRT.anchorMax = new Vector2(0.15f, 1f); lblRT.offsetMin = new Vector2(10f, 27f); lblRT.offsetMax = new Vector2(6f, 27f); }
+                if (lblRT != null) {
+                    lblRT.anchorMin = new Vector2(0f, 1f); lblRT.anchorMax = new Vector2(0f, 1f);
+                    lblRT.pivot = new Vector2(0f, 1f);
+                    lblRT.sizeDelta = new Vector2(180f, 18f);
+                    lblRT.anchoredPosition = new Vector2(8f, -4f);
+                }
                 CreateRuneSlotRow(playerRunesZone.transform, 12, true);
                 lbl.transform.SetAsLastSibling();
             }
@@ -1131,7 +1159,7 @@ namespace FWTCG.Editor
         private static readonly Color ZoneBgBase    = new Color(0.016f, 0.063f, 0.110f, 0.90f); // CSS rgba(4,16,28,0.9)
         private static readonly Color ZoneBgDefault = new Color(0.012f, 0.055f, 0.102f, 0.88f); // CSS rgba(3,14,26,0.88)
         // Pencil: stroke #907020 (solid gold) — was 0.18 alpha, now matching Pencil design
-        private static readonly Color ZoneBorderColor = new Color(0x90/255f, 0x70/255f, 0x20/255f, 0.5f);
+        private static readonly Color ZoneBorderColor = new Color(0x90/255f, 0x70/255f, 0x20/255f, 1f);
 
         private static void CreateHorizontalZoneAnchored(Transform parent, string name,
             float xMin, float xMax, float yMin, float yMax)
@@ -1178,8 +1206,8 @@ namespace FWTCG.Editor
             // Diagonal: player circles cluster at BOTTOM-left, enemy at TOP-right
             vlg.childAlignment = isPlayer ? TextAnchor.LowerCenter : TextAnchor.UpperCenter;
 
-            // Pencil: 22×22 circles, fill=#ffffff00 (transparent) + gold stroke
-            var knob = AssetDatabase.GetBuiltinExtraResource<Sprite>("UI/Skin/Knob.psd");
+            // Pencil: 22×22 hollow ring, gold stroke (#907020), transparent center
+            var ringSpr = GetRingSprite();
             for (int raw = 0; raw < 9; raw++)
             {
                 int num = isPlayer ? (8 - raw) : raw;
@@ -1188,18 +1216,14 @@ namespace FWTCG.Editor
                 circleGO.transform.SetParent(go.transform, false);
 
                 var le = circleGO.AddComponent<LayoutElement>();
-                le.preferredWidth  = 22f; // Pencil: 22×22
+                le.preferredWidth  = 22f;
                 le.preferredHeight = 22f;
 
-                // Transparent circular background (Pencil: fill=#ffffff00)
+                // Hollow gold ring — center stays fully transparent so playmat shows through
                 var img = circleGO.AddComponent<Image>();
-                img.sprite = knob;
+                img.sprite = ringSpr;
                 img.type   = Image.Type.Simple;
-                img.color  = new Color(0f, 0f, 0f, 0f); // Pencil: fill=transparent → gold Outline ring shows fully
-                // Gold circular outline (Pencil: stroke #907020) — works correctly on alpha=0 image
-                var ol = circleGO.AddComponent<Outline>();
-                ol.effectColor    = ZoneBorderColor;
-                ol.effectDistance = new Vector2(1f, -1f);
+                img.color  = new Color(ZoneBorderColor.r, ZoneBorderColor.g, ZoneBorderColor.b, 1f);
 
                 var numText = CreateTMPText(circleGO.transform, "Num", num.ToString(),
                     GameColors.GoldLight, 10, TextAnchor.MiddleCenter);
@@ -1307,6 +1331,22 @@ namespace FWTCG.Editor
         {
             var go = CreateAnchoredZone(parent, name, xMin, xMax, yMin, yMax);
 
+            // Soft gaussian-blur shadow behind the pile (sprite-based, looks like real diffuse light)
+            var shadowGO = new GameObject("SoftShadow", typeof(RectTransform));
+            shadowGO.transform.SetParent(go.transform, false);
+            shadowGO.transform.SetAsFirstSibling();
+            var shRT = shadowGO.GetComponent<RectTransform>();
+            shRT.anchorMin = Vector2.zero; shRT.anchorMax = Vector2.one;
+            // Extend ~40% on each side so the gaussian falloff reaches well outside the pile,
+            // and bias slightly down-right so it reads as cast shadow
+            shRT.offsetMin = new Vector2(-50f, -65f);
+            shRT.offsetMax = new Vector2(40f, 25f);
+            var shImg = shadowGO.AddComponent<Image>();
+            shImg.sprite = GetSoftShadowSprite();
+            shImg.type = Image.Type.Simple;
+            shImg.color = new Color(0f, 0f, 0f, 0.75f);
+            shImg.raycastTarget = false;
+
             // Background: card back texture fills entire pile area (Pencil: 贴图层)
             var img = go.AddComponent<Image>();
             var cardBackSprite = AssetDatabase.LoadAssetAtPath<Sprite>(
@@ -1323,6 +1363,7 @@ namespace FWTCG.Editor
                 // Fallback: solid dark blue
                 img.color = GameColors.CardFaceDown;
             }
+
 
             // Pile label — top region, Pencil: y=31/195 → yMax≈0.84, 20pt bold #c7ae87
             var labelGO = new GameObject("PileLabel");
@@ -4542,7 +4583,36 @@ namespace FWTCG.Editor
         }
 
         // ── Zone border frame (replaces Outline on transparent containers) ────
-        private static void CreateZoneBorderFrame(Transform zone, Color borderColor, float thickness = 3f)
+        // Dashed-border variant for Standby zones — same color, broken into segments
+        private static void CreateDashedZoneBorderFrame(Transform zone, Color color,
+            float thickness = 1f, float dashLen = 6f, int dashCountH = 8, int dashCountV = 10)
+        {
+            void Spawn(string name, Vector2 anchor, Vector2 pivot, Vector2 size)
+            {
+                var d = new GameObject(name, typeof(RectTransform));
+                d.transform.SetParent(zone, false);
+                d.AddComponent<LayoutElement>().ignoreLayout = true;
+                var rt = d.GetComponent<RectTransform>();
+                rt.anchorMin = anchor; rt.anchorMax = anchor; rt.pivot = pivot;
+                rt.sizeDelta = size; rt.anchoredPosition = Vector2.zero;
+                var img = d.AddComponent<Image>();
+                img.color = color; img.raycastTarget = false;
+            }
+            for (int i = 0; i < dashCountH; i++)
+            {
+                float t = (i + 0.5f) / dashCountH;
+                Spawn($"DashTop_{i}",  new Vector2(t, 1f), new Vector2(0.5f, 1f), new Vector2(dashLen, thickness));
+                Spawn($"DashBot_{i}",  new Vector2(t, 0f), new Vector2(0.5f, 0f), new Vector2(dashLen, thickness));
+            }
+            for (int i = 0; i < dashCountV; i++)
+            {
+                float t = (i + 0.5f) / dashCountV;
+                Spawn($"DashLeft_{i}",  new Vector2(0f, t), new Vector2(0f, 0.5f), new Vector2(thickness, dashLen));
+                Spawn($"DashRight_{i}", new Vector2(1f, t), new Vector2(1f, 0.5f), new Vector2(thickness, dashLen));
+            }
+        }
+
+        private static void CreateZoneBorderFrame(Transform zone, Color borderColor, float thickness = 1f)
         {
             // Each border child needs ignoreLayout=true so HLG/VLG doesn't absorb it
             var top = new GameObject("BorderTop");
@@ -4757,6 +4827,63 @@ namespace FWTCG.Editor
 
             Debug.LogWarning($"[SceneBuilder] Cannot find shader '{shaderName}' and no existing material at '{assetPath}'. Skipping.");
             return null;
+        }
+
+        // Soft drop-shadow sprite (radial gaussian falloff). Tint via Image.color.
+        private static Sprite _softShadowSprite;
+        private static Sprite GetSoftShadowSprite()
+        {
+            if (_softShadowSprite != null) return _softShadowSprite;
+            const int W = 128, H = 128;
+            var tex = new Texture2D(W, H, TextureFormat.RGBA32, false);
+            tex.filterMode = FilterMode.Bilinear;
+            tex.wrapMode = TextureWrapMode.Clamp;
+            float cx = (W - 1) / 2f, cy = (H - 1) / 2f;
+            // sigma controls blur softness; larger = softer/wider falloff
+            float sigma = W * 0.28f;
+            float twoSigmaSq = 2f * sigma * sigma;
+            var pixels = new Color32[W * H];
+            for (int y = 0; y < H; y++)
+            for (int x = 0; x < W; x++)
+            {
+                float dx = x - cx, dy = y - cy;
+                float r2 = dx * dx + dy * dy;
+                float g = Mathf.Exp(-r2 / twoSigmaSq); // 1 at center, fades smoothly to 0
+                pixels[y * W + x] = new Color32(255, 255, 255, (byte)(g * 255));
+            }
+            tex.SetPixels32(pixels);
+            tex.Apply();
+            _softShadowSprite = Sprite.Create(tex, new Rect(0, 0, W, H), new Vector2(0.5f, 0.5f), 100f);
+            return _softShadowSprite;
+        }
+
+        // Hollow ring sprite (white pixels), tint via Image.color. Cached per build session.
+        private static Sprite _ringSprite;
+        private static Sprite GetRingSprite()
+        {
+            if (_ringSprite != null) return _ringSprite;
+            const int SIZE = 64;
+            const float THICKNESS = 3f; // pixels (≈1px displayed on 22×22 score circles)
+            var tex = new Texture2D(SIZE, SIZE, TextureFormat.RGBA32, false);
+            tex.filterMode = FilterMode.Bilinear;
+            tex.wrapMode = TextureWrapMode.Clamp;
+            float cx = (SIZE - 1) / 2f, cy = (SIZE - 1) / 2f;
+            float outer = SIZE / 2f - 0.5f;
+            float inner = outer - THICKNESS;
+            var pixels = new Color32[SIZE * SIZE];
+            for (int y = 0; y < SIZE; y++)
+            for (int x = 0; x < SIZE; x++)
+            {
+                float d = Mathf.Sqrt((x - cx) * (x - cx) + (y - cy) * (y - cy));
+                float aOut = Mathf.Clamp01(outer - d + 0.5f);
+                float aIn  = Mathf.Clamp01(d - inner + 0.5f);
+                float a = Mathf.Clamp01(Mathf.Min(aOut, aIn));
+                pixels[y * SIZE + x] = new Color32(255, 255, 255, (byte)(a * 255));
+            }
+            tex.SetPixels32(pixels);
+            tex.Apply();
+            _ringSprite = Sprite.Create(tex, new Rect(0, 0, SIZE, SIZE), new Vector2(0.5f, 0.5f), 100f);
+            return _ringSprite;
         }
 
         // ── URP Post Processing Setup (DEV-8) ─────────────────────────────────

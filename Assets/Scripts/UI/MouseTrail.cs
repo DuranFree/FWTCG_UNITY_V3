@@ -21,7 +21,15 @@ namespace FWTCG.UI
         // ── Public constants (used by tests) ──────────────────────────────────
         public const int   TRAIL_LENGTH    = 18;
         public const float TRAIL_HEAD_ALPHA = 0.65f;
-        public const float DOT_MAX_SIZE    = 8f;
+        public const float DOT_MAX_SIZE    = 5f;
+
+        private static Sprite _circleSprite;
+        private static Sprite GetCircleSprite()
+        {
+            if (_circleSprite == null)
+                _circleSprite = Resources.GetBuiltinResource<Sprite>("UI/Skin/Knob.psd");
+            return _circleSprite;
+        }
 
         // ── Inspector refs ────────────────────────────────────────────────────
         [SerializeField] public RectTransform _canvasRect;
@@ -59,6 +67,7 @@ namespace FWTCG.UI
                 rt.sizeDelta = new Vector2(sz, sz);
 
                 var img = go.AddComponent<Image>();
+                img.sprite = GetCircleSprite();
                 img.color = new Color(TRAIL_COLOR.r, TRAIL_COLOR.g, TRAIL_COLOR.b, 0f);
                 img.raycastTarget = false;
 
@@ -145,6 +154,7 @@ namespace FWTCG.UI
             rt.anchoredPosition = pos;
             rt.sizeDelta = new Vector2(size, size);
             var img = go.AddComponent<Image>();
+            img.sprite = GetCircleSprite();
             img.raycastTarget = false;
             return go;
         }

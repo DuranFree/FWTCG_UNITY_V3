@@ -74,6 +74,14 @@ namespace FWTCG.UI
             if (_bgLayer == null) enabled = false;
         }
 
+        private static Sprite _circleSprite;
+        private static Sprite GetCircleSprite()
+        {
+            if (_circleSprite == null)
+                _circleSprite = Resources.GetBuiltinResource<Sprite>("UI/Skin/Knob.psd");
+            return _circleSprite;
+        }
+
         private void Start()
         {
             if (_bgLayer == null) return;
@@ -122,13 +130,14 @@ namespace FWTCG.UI
                 go.transform.SetParent(_bgLayer, false);
 
                 var rt = go.AddComponent<RectTransform>();
-                float sz = Random.Range(2f, 6f);
+                float sz = Random.Range(1.5f, 3.5f);
                 rt.sizeDelta = new Vector2(sz, sz);
                 float startX = Random.Range(-W * 0.5f, W * 0.5f);
                 float startY = Random.Range(-H * 0.5f, H * 0.5f);
                 rt.anchoredPosition = new Vector2(startX, startY);
 
                 var img = go.AddComponent<Image>();
+                img.sprite = GetCircleSprite();
                 img.color = palette[i % palette.Length];
                 img.raycastTarget = false;
 
@@ -259,7 +268,7 @@ namespace FWTCG.UI
                 go.transform.SetParent(_bgLayer, false);
 
                 var rt = go.AddComponent<RectTransform>();
-                float sz = Random.Range(4f, 9f);
+                float sz = Random.Range(2.5f, 5f);
                 rt.sizeDelta = new Vector2(sz, sz);
 
                 var center = new Vector2(
@@ -269,6 +278,7 @@ namespace FWTCG.UI
                 rt.anchoredPosition = center;
 
                 var img = go.AddComponent<Image>();
+                img.sprite = GetCircleSprite();
                 img.color = new Color(0.88f, 1f, 0.55f, 0.70f);
                 img.raycastTarget = false;
 
