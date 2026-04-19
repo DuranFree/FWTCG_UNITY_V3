@@ -2326,3 +2326,28 @@
 - Knob.psd 加载失败：Editor 脚本应用 AssetDatabase API，Resources.GetBuiltinResource 在编辑器批量构建下可能返回 null
 
 **Tests**: 编译 0 error 0 warning，场景重建成功，MCP 验证 RuneSlot0.Image.m_Sprite="Knob" / RunesLabel.fontSize=13
+
+---
+
+## UI-CLEANUP：详情面板极简 + 撤回投机性关键词 — 2026-04-19
+
+**Status**: ✅ Completed
+
+**What was done**:
+- `CardDetailPopup.cs` 完全重写：右键卡牌只显示**放大的完整卡图（520×720）**，移除所有 chip / 文字 / 关键词徽章 / 描述区 / 状态文本；Panel 背景、金色外描边、纹理覆盖层全关
+- `SimplifyToArtOnly()` 在首次 Show 时清空所有 legacy SerializedField 文本 + 隐藏 InfoColumn + 缩放 Panel 到竖版比例
+- `CardKeyword.cs` 撤回投机性扩展枚举：删除 `Summon/BattleCry/Ongoing/Focus/Apprentice/Overwhelm/Starting/Rally/Ethereal/QuickStrike` 10 项（项目 50+ 卡全部不使用，无系统读这些 flag；是上周给详情面板做 UI 装饰时我误加的死代码）
+- 删死文件：`Assets/Resources/{card_element_colors,keyword_colors,kw_colors}.json` + meta + `tools/scan_card_elements.py` / `scan_keyword_colors.py` / `sample_kw_colors.py` / `make_card_grid.py`
+
+**Decisions made**:
+- 经核查每个卡 `_effectId` 都对应 `SpellSystem`/`EntryEffectSystem`/`ReactiveSystem`/`DeathwishSystem`/`CombatSystem` 里的 handler（40 个 effectId / 40 个 handler，100% 覆盖）。原本"还有很多关键词逻辑没做"的说法是我把参考 LoR 卡上的概念误当项目缺口 — 实际上项目功能完整
+- 详情面板极简化后不再需要任何字典/颜色表/JSON 加载器；保留 SerializedField 字段是为了不破坏 SceneBuilder 连线兼容
+
+**Technical debt**:
+- [ ] 历史测试未跟上代码演化（10 项 DOT*/DEV21* 失败），基线就已存在，跟本次清理无关；已追加 tech-debt.md
+
+**Problems encountered**:
+- 采样脚本在非固定切片位置上不稳定（迅捷在不同卡上采到绿/橙/红），尝试多轮后确认像素级取色方案不可行 → 果断改回简化方案
+- stash 验证老测试失败确实先于本次清理就存在
+
+**Tests**: 1109/1119 EditMode 通过；10 项失败全部经 stash 验证为历史问题，与本次清理无因果关系

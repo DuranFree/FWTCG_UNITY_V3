@@ -1,5 +1,5 @@
-using System.Collections.Generic;
-using System.Text;
+using System.Collections;
+using DG.Tweening;
 using UnityEngine;
 using UnityEngine.UI;
 using FWTCG.Core;
@@ -8,12 +8,16 @@ using FWTCG.Data;
 namespace FWTCG.UI
 {
     /// <summary>
-    /// Fullscreen overlay showing detailed card information.
+    /// Fullscreen overlay showing an enlarged view of a card.
     /// Triggered by right-click on any visible card.
     /// Close by clicking the dimmed background or pressing Escape.
+    ///
+    /// The popup now displays ONLY the card sprite centered against a blurred backdrop.
+    /// No info panel / chips / keyword badges (all legacy UI retained in scene is hidden at runtime).
     /// </summary>
     public class CardDetailPopup : MonoBehaviour
     {
+        // ── Scene-wired fields (kept for backward-compat with SceneBuilder wiring) ──────
         [SerializeField] private GameObject _panel;
         [SerializeField] private Image _artImage;
         [SerializeField] private Text _nameText;
@@ -23,47 +27,23 @@ namespace FWTCG.UI
         [SerializeField] private Text _effectText;
         [SerializeField] private Text _stateText;
         [SerializeField] private Button _closeButton;
+        [SerializeField] private RawImage _blurBG;
+        [SerializeField] private CanvasGroup _canvasGroup;
+        [SerializeField] private Text _costChipText;
+        [SerializeField] private Text _runeChipText;
+        [SerializeField] private Text _typeChipText;
+        [SerializeField] private GameObject _runeChip;
+        [SerializeField] private GameObject _typeChip;
+        [SerializeField] private RectTransform _keywordRow;
+        [SerializeField] private Text _footerTypeText;
 
-        // ── Keyword display names ─────────────────────────────────────────────
-        private static readonly Dictionary<CardKeyword, string> KeywordNames = new Dictionary<CardKeyword, string>
-        {
-            { CardKeyword.Haste,      "急速" },
-            { CardKeyword.Barrier,    "壁垒" },
-            { CardKeyword.SpellShield,"法盾" },
-            { CardKeyword.Inspire,    "鼓舞" },
-            { CardKeyword.Conquest,   "征服" },
-            { CardKeyword.Deathwish,  "绝念" },
-            { CardKeyword.Reactive,   "反应" },
-            { CardKeyword.StrongAtk,  "强攻" },
-            { CardKeyword.Roam,       "游走" },
-            { CardKeyword.Foresight,  "预知" },
-            { CardKeyword.Standby,    "待命" },
-            { CardKeyword.Stun,       "眩晕" },
-            { CardKeyword.Echo,       "回响" },
-            { CardKeyword.Guard,      "坚守" },
-            { CardKeyword.Ephemeral,  "瞬息" },
-            { CardKeyword.Swift,      "迅捷" },
-        };
+        private const float FADE_IN_DURATION  = 0.12f;
+        private const float FADE_OUT_DURATION = 0.10f;
 
-        private static readonly Dictionary<CardKeyword, string> KeywordDescriptions = new Dictionary<CardKeyword, string>
-        {
-            { CardKeyword.Haste,      "可选支付[1]+[C]以活跃状态进场（Rule 717）" },
-            { CardKeyword.Barrier,    "战斗中必须先承受致命伤害（Rule 727）" },
-            { CardKeyword.SpellShield,"对手须支付符能才能将我选为目标（Rule 721）" },
-            { CardKeyword.Inspire,    "本回合已打出过其他牌时触发（Rule 724）" },
-            { CardKeyword.Conquest,   "征服战场时触发效果" },
-            { CardKeyword.Deathwish,  "阵亡时触发效果" },
-            { CardKeyword.Reactive,   "可作为反应牌打出" },
-            { CardKeyword.StrongAtk,  "+1 进攻战力" },
-            { CardKeyword.Roam,       "可在战场间移动" },
-            { CardKeyword.Foresight,  "进场时查看牌堆顶" },
-            { CardKeyword.Standby,    "面朝下部署，0费反应" },
-            { CardKeyword.Stun,       "目标无法贡献战力" },
-            { CardKeyword.Echo,       "本回合可再次施放" },
-            { CardKeyword.Guard,      "+1 防御战力" },
-            { CardKeyword.Ephemeral,  "下回合开始前销毁（Rule 728）" },
-            { CardKeyword.Swift,      "可在法术对决期间打出（Rule 718）" },
-        };
+        private Material _blurMat;
+        private RenderTexture _currentBlurRT;
+        private Tween _fadeTween;
+        private bool _simplified;
 
         private void Awake()
         {
@@ -71,12 +51,21 @@ namespace FWTCG.UI
                 _closeButton.onClick.AddListener(Hide);
             if (_panel != null)
                 _panel.SetActive(false);
+            if (_canvasGroup != null)
+            {
+                _canvasGroup.alpha = 0f;
+                _canvasGroup.blocksRaycasts = false;
+            }
         }
 
         private void OnDestroy()
         {
             if (_closeButton != null)
                 _closeButton.onClick.RemoveListener(Hide);
+            TweenHelper.KillSafe(ref _fadeTween);
+            if (_panel != null) DOTween.Kill(_panel);
+            ReleaseBlurRT();
+            if (_blurMat != null) Destroy(_blurMat);
         }
 
         private void Update()
@@ -85,162 +74,189 @@ namespace FWTCG.UI
                 Hide();
         }
 
+        public bool IsVisible => _panel != null && _panel.activeSelf;
+
         public void Show(UnitInstance unit)
         {
             if (unit == null || _panel == null) return;
-
-            CardData cd = unit.CardData;
-            _panel.SetActive(true);
-
-            // Art
-            if (_artImage != null)
-            {
-                if (cd.ArtSprite != null)
-                {
-                    _artImage.sprite = cd.ArtSprite;
-                    _artImage.enabled = true;
-                }
-                else
-                {
-                    _artImage.enabled = false;
-                }
-            }
-
-            // Name
-            if (_nameText != null)
-                _nameText.text = cd.CardName;
-
-            // Cost & Type
-            if (_costText != null)
-            {
-                var sb = new StringBuilder();
-                sb.Append($"费用: {cd.Cost}");
-                if (cd.RuneCost > 0)
-                    sb.Append($"  符能: {cd.RuneCost} {cd.RuneType.ToChinese()}");
-                if (cd.IsSpell)
-                    sb.Append("  [法术]");
-                else if (cd.IsEquipment)
-                    sb.Append("  [装备]");
-                else
-                    sb.Append("  [单位]");
-                _costText.text = sb.ToString();
-            }
-
-            // ATK/HP
-            if (_atkText != null)
-            {
-                if (cd.IsSpell)
-                    _atkText.text = "";
-                else if (cd.IsEquipment)
-                    _atkText.text = $"装备加成: +{cd.EquipAtkBonus}";
-                else
-                    _atkText.text = $"基础战力: {cd.Atk}    当前: {unit.CurrentAtk}/{unit.CurrentHp}";
-            }
-
-            // Keywords
-            if (_keywordsText != null)
-                _keywordsText.text = BuildKeywordsText(cd.Keywords);
-
-            // Effect
-            if (_effectText != null)
-                _effectText.text = string.IsNullOrEmpty(cd.Description) ? "" : cd.Description;
-
-            // Runtime state (rich text: green=buff, gold=equip, red=debuff)
-            if (_stateText != null)
-            {
-                _stateText.supportRichText = true;
-                _stateText.text = BuildStateText(unit);
-            }
+            ApplySpriteOnly(unit.CardData?.ArtSprite);
+            BeginShow();
         }
 
         /// <summary>Show detail for a non-unit item (battlefield, legend, etc).</summary>
         public void ShowSimple(string cardName, string description, Sprite art = null)
         {
             if (_panel == null) return;
-            _panel.SetActive(true);
+            ApplySpriteOnly(art);
+            BeginShow();
+        }
 
+        public void Hide()
+        {
+            if (_panel == null) return;
+            TweenHelper.KillSafe(ref _fadeTween);
+            if (_canvasGroup != null) _canvasGroup.blocksRaycasts = false;
+
+            bool panelVisible = _panel.activeSelf;
+            if (_canvasGroup != null && gameObject.activeInHierarchy && panelVisible)
+            {
+                _fadeTween = _canvasGroup.DOFade(0f, FADE_OUT_DURATION)
+                    .SetEase(Ease.InQuad)
+                    .SetUpdate(true)
+                    .SetTarget(_panel)
+                    .OnComplete(() =>
+                    {
+                        if (_panel != null) _panel.SetActive(false);
+                        ReleaseBlurRT();
+                    });
+            }
+            else
+            {
+                _panel.SetActive(false);
+                if (_canvasGroup != null) _canvasGroup.alpha = 0f;
+                ReleaseBlurRT();
+            }
+        }
+
+        // ── Internal ────────────────────────────────────────────────────────────────────
+
+        private void ApplySpriteOnly(Sprite art)
+        {
+            SimplifyToArtOnly();
             if (_artImage != null)
             {
                 if (art != null) { _artImage.sprite = art; _artImage.enabled = true; }
                 else _artImage.enabled = false;
             }
-            if (_nameText != null) _nameText.text = cardName;
-            if (_costText != null) _costText.text = "[战场]";
-            if (_atkText != null) _atkText.text = "";
-            if (_keywordsText != null) _keywordsText.text = "";
-            if (_effectText != null) _effectText.text = description;
-            if (_stateText != null) _stateText.text = "";
         }
 
-        public void Hide()
+        /// <summary>
+        /// 首次 Show 时隐藏所有 legacy 信息面板子节点，让 popup 只展示卡图。
+        /// 同时去掉 Panel 背景 / 金色外描边 / 纹理覆盖层。
+        /// </summary>
+        private void SimplifyToArtOnly()
         {
-            if (_panel != null) _panel.SetActive(false);
-        }
+            if (_simplified) return;
 
-        public bool IsVisible => _panel != null && _panel.activeSelf;
+            if (_nameText       != null) _nameText.text       = "";
+            if (_costText       != null) _costText.text       = "";
+            if (_atkText        != null) _atkText.text        = "";
+            if (_keywordsText   != null) _keywordsText.text   = "";
+            if (_effectText     != null) _effectText.text     = "";
+            if (_stateText      != null) _stateText.text      = "";
+            if (_costChipText   != null) _costChipText.text   = "";
+            if (_runeChipText   != null) _runeChipText.text   = "";
+            if (_typeChipText   != null) _typeChipText.text   = "";
+            if (_footerTypeText != null) _footerTypeText.text = "";
 
-        private string BuildKeywordsText(CardKeyword keywords)
-        {
-            if (keywords == CardKeyword.None) return "";
+            if (_runeChip   != null) _runeChip.SetActive(false);
+            if (_typeChip   != null) _typeChip.SetActive(false);
+            if (_keywordRow != null) _keywordRow.gameObject.SetActive(false);
 
-            var sb = new StringBuilder();
-            foreach (var kv in KeywordNames)
+            if (_artImage != null)
             {
-                if ((keywords & kv.Key) != 0)
+                var infoColumn = _artImage.transform.parent != null
+                    ? _artImage.transform.parent.Find("InfoColumn") : null;
+                if (infoColumn != null) infoColumn.gameObject.SetActive(false);
+
+                var panelRT = _artImage.transform.parent != null && _artImage.transform.parent.parent != null
+                    ? _artImage.transform.parent.parent as RectTransform : null;
+                if (panelRT != null)
                 {
-                    if (sb.Length > 0) sb.Append("\n");
-                    sb.Append($"[{kv.Value}]");
-                    if (KeywordDescriptions.TryGetValue(kv.Key, out string desc))
-                        sb.Append($" {desc}");
+                    panelRT.sizeDelta = new Vector2(520f, 720f);
+                    var panelImg = panelRT.GetComponent<Image>();
+                    if (panelImg != null) panelImg.color = new Color(0, 0, 0, 0);
+                    var panelOutline = panelRT.GetComponent<Outline>();
+                    if (panelOutline != null) panelOutline.enabled = false;
+                    var texChild = panelRT.Find("PanelTexture");
+                    if (texChild != null) texChild.gameObject.SetActive(false);
+                }
+
+                var artLE = _artImage.GetComponent<LayoutElement>();
+                if (artLE != null)
+                {
+                    artLE.preferredWidth = 500f;
+                    artLE.minWidth       = 500f;
+                    artLE.flexibleWidth  = 1f;
+                    artLE.flexibleHeight = 1f;
                 }
             }
-            return sb.ToString();
+
+            _simplified = true;
         }
 
-        // hex constants for the three badge colors
-        private const string C_BUFF  = "#4ade80"; // green  — buff
-        private const string C_EQUIP = "#c8aa6e"; // gold   — equipment
-        private const string C_DEBUF = "#f87171"; // red    — debuff
-
-        private string BuildStateText(UnitInstance unit)
+        private void BeginShow()
         {
-            var sb = new StringBuilder();
-
-            // ── Green: buff ───────────────────────────────────────────────────
-            if (unit.HasBuff)
+            if (!isActiveAndEnabled || _blurBG == null)
             {
-                sb.AppendLine($"<color={C_BUFF}><b>▲ 强化</b></color>");
-                foreach (var line in unit.BuildBuffSummary().Split('\n'))
-                    if (!string.IsNullOrWhiteSpace(line))
-                        sb.AppendLine($"<color={C_BUFF}>  {line.Trim()}</color>");
+                _panel.SetActive(true);
+                return;
             }
-
-            // ── Gold: equipment ───────────────────────────────────────────────
-            if (unit.AttachedEquipment != null)
-            {
-                sb.AppendLine($"<color={C_EQUIP}><b>▲ 装备</b></color>");
-                foreach (var line in unit.BuildEquipSummary().Split('\n'))
-                    if (!string.IsNullOrWhiteSpace(line))
-                        sb.AppendLine($"<color={C_EQUIP}>  {line.Trim()}</color>");
-            }
-
-            // ── Red: debuff ───────────────────────────────────────────────────
-            if (unit.HasDebuff)
-            {
-                sb.AppendLine($"<color={C_DEBUF}><b>▼ 削弱</b></color>");
-                foreach (var line in unit.BuildDebuffSummary().Split('\n'))
-                    if (!string.IsNullOrWhiteSpace(line))
-                        sb.AppendLine($"<color={C_DEBUF}>  {line.Trim()}</color>");
-            }
-
-            // ── Plain state flags ─────────────────────────────────────────────
-            if (unit.Exhausted)      sb.AppendLine("状态: 休眠");
-            if (unit.HasSpellShield) sb.AppendLine("状态: 法盾 (激活)");
-            if (unit.HasStrongAtk)   sb.AppendLine("状态: 强攻");
-            if (unit.HasGuard)       sb.AppendLine("状态: 坚守");
-
-            return sb.ToString().TrimEnd();
+            StopAllCoroutines();
+            StartCoroutine(CaptureBlurAndShow());
         }
 
+        private IEnumerator CaptureBlurAndShow()
+        {
+            _panel.SetActive(false);
+            if (_blurBG != null) _blurBG.enabled = false;
+            yield return new WaitForEndOfFrame();
+
+            EnsureBlurMaterial();
+            if (_blurMat != null && _blurBG != null)
+            {
+                var screenTex = ScreenCapture.CaptureScreenshotAsTexture();
+                int w = Mathf.Max(64, Screen.width  / 2);
+                int h = Mathf.Max(64, Screen.height / 2);
+                var rt1 = RenderTexture.GetTemporary(w, h, 0);
+                var rt2 = RenderTexture.GetTemporary(w, h, 0);
+                Graphics.Blit(screenTex, rt1, _blurMat, 0);
+                Graphics.Blit(rt1, rt2, _blurMat, 1);
+                RenderTexture.ReleaseTemporary(rt1);
+                ReleaseBlurRT();
+                _currentBlurRT = rt2;
+                _blurBG.texture = rt2;
+                _blurBG.enabled = true;
+                Destroy(screenTex);
+            }
+
+            TweenHelper.KillSafe(ref _fadeTween);
+            if (_canvasGroup != null)
+            {
+                _canvasGroup.alpha = 0f;
+                _canvasGroup.blocksRaycasts = true;
+            }
+            _panel.SetActive(true);
+            if (_canvasGroup != null)
+            {
+                _fadeTween = _canvasGroup.DOFade(1f, FADE_IN_DURATION)
+                    .SetEase(Ease.OutQuad)
+                    .SetUpdate(true)
+                    .SetTarget(_panel);
+            }
+        }
+
+        private void EnsureBlurMaterial()
+        {
+            if (_blurMat != null) return;
+            var sh = Shader.Find("FWTCG/UIBlur");
+            if (sh == null)
+            {
+                Debug.LogWarning("[CardDetailPopup] Shader 'FWTCG/UIBlur' not found — blur disabled.");
+                return;
+            }
+            _blurMat = new Material(sh) { hideFlags = HideFlags.DontSave };
+            _blurMat.SetFloat("_BlurSize", 3.5f);
+        }
+
+        private void ReleaseBlurRT()
+        {
+            if (_currentBlurRT != null)
+            {
+                RenderTexture.ReleaseTemporary(_currentBlurRT);
+                _currentBlurRT = null;
+            }
+            if (_blurBG != null) _blurBG.texture = null;
+        }
     }
 }

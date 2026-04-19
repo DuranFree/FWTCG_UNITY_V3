@@ -30,3 +30,4 @@
 - ✅ WaitForReaction await 无 OperationCanceledException 保护，ReactiveWindowUI 被禁用时 _reactionWindowActive 永久卡死 — 已修复：GameManager try/catch OperationCanceledException — 发现于 DEV-31 Codex HIGH
 - ✅ EnemyRunes/EnemyBase/PlayerBase/PlayerRunes 显示黄色底色 — 已修复：各区域缺少 Image 背景组件，已补加深海军蓝半透明 Image — 发现于 DEV-30c
 - ✅ SpellShowcasePanel / SpellTargetPopup 初始可见（CanvasGroup alpha=1）— 已修复：SceneBuilder 创建时设 alpha=0，不再一帧闪现 — 发现于 DEV-30c
+- [ ] 10 个历史测试失败（非本次引入）：DEV21ParticleTests.MouseTrail_DOT_MAX_SIZE_Is8 (期望 8 实为 5)、SpellVFX_GetCardBurstColor_Chaos_IsPurple、DOT2ReplacementTests.MouseTrail_Constants_Unchanged、DOT4ReplacementTests.CardDragHandler_CancelConstants、DOT7ReplacementTests.CardView_ShakeConstants、DOT8ReplacementTests.StartupFlowUI_* × 5（期望已删除的 shuffle 字段/常数）— 测试没跟上代码演化，不是实际 bug；确认源码已变更，测试陈旧 — 发现于 Detail Popup 清理 Phase

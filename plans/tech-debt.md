@@ -89,3 +89,4 @@
 - ✅ Mulligan 翻转 tween 无 `_mulliganFlipSeq` 字段追踪，OnDestroy/OnDisable 无法 kill — 已修复：新增字段并在 OnDisable/OnDestroy 调用 KillSafe，DOT-8 Medium fix — DOT-8（Codex MEDIUM-3）
 - ✅ PlayManaFillStagger InsertCallback 创建的 PunchScale tween 未挂 SetTarget，KillSafe 无法级联 kill — 已修复：改用 seq.Insert + SetTarget，DOT-8 Medium fix — DOT-8（Codex MEDIUM-5）
 - [ ] CardBackManager.SetPlayerCardBack 写入 PlayerPrefs，但 Load() 硬编码 Back01 忽略 PlayerPrefs；SetPlayerCardBack 功能性死代码，再次 domain reload 后选择被覆盖 — DOT-8（Codex MEDIUM-4，功能未完整实现，暂不修复）
+- [ ] 历史测试未跟上代码演化（10 项 DOT*/DEV21* 失败）— 期望已删除的 shuffle_* 字段 / DOT_MAX_SIZE=8 / 粒子色常数等；测试应更新或删除，源码是真实源 — 记录于 Detail Popup 清理 Phase
