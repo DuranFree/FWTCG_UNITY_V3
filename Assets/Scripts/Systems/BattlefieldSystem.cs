@@ -354,8 +354,9 @@ namespace FWTCG.Systems
             if (buffed != null)
             {
                 buffed.BuffTokens--;
-                buffed.CurrentAtk = Mathf.Max(1, buffed.CurrentAtk - 1);
-                buffed.CurrentHp  = Mathf.Max(1, buffed.CurrentHp  - 1);
+                // Rule 139.2: power floor 0, not 1
+                buffed.CurrentAtk = Mathf.Max(0, buffed.CurrentAtk - 1);
+                buffed.CurrentHp  = Mathf.Max(0, buffed.CurrentHp  - 1);
                 DrawCard(attacker, gs);
                 Log($"[希拉娜修道院] 征服！消耗 {buffed.UnitName} 的增益指示物，抽1张牌。");
             }
@@ -407,7 +408,8 @@ namespace FWTCG.Systems
         {
             foreach (UnitInstance u in units)
             {
-                int power = Mathf.Max(1, u.CurrentAtk + u.TempAtkBonus);
+                // Rule 139.2: use EffectiveAtk (Max(0, CurrentAtk+TempAtkBonus))
+                int power = u.EffectiveAtk();
                 if (power >= GameRules.STRONG_POWER_THRESHOLD)
                 {
                     if (isAttacking && !u.HasStrongAtk)

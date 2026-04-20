@@ -11,15 +11,15 @@ MonoBehaviour:
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 17e2dcccae127ad4fba868ec0487bae7, type: 3}
   m_Name: vile_throat_nest
-  m_EditorClassIdentifier: 
+  m_EditorClassIdentifier:
   _id: vile_throat_nest
-  _cardName: 卑鄙之喉的巢穴
+  _cardName: "卑鄙之喉的巢穴"
   _cost: 0
   _runeType: 0
   _runeCost: 0
   _atk: 0
   _keywords: 0
-  _effectId: 
+  _effectId:
   _isEquipment: 0
   _equipAtkBonus: 0
   _equipRuneType: 0
@@ -27,5 +27,5 @@ MonoBehaviour:
   _isHero: 0
   _isSpell: 0
   _spellTargetType: 0
-  _description: 【限制】此处单位禁止撤回基地
+  _description: "【限制】：此处的单位无法移动到基地（canMoveToBase = false）。"
   _artSprite: {fileID: 0}

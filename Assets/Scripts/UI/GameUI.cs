@@ -266,6 +266,7 @@ namespace FWTCG.UI
         private void Awake()
         {
             Instance = this; // DEV-27: singleton ref for CardDragHandler.FindCardViewInScene
+            NukeAllDecorativeBorders();
             if (_gameOverPanel != null) _gameOverPanel.SetActive(false);
             if (_bannerPanel != null) _bannerPanel.SetActive(false);
             if (_endTurnButton != null) _endTurnButton.onClick.AddListener(HandleEndTurn);
@@ -1458,29 +1459,19 @@ namespace FWTCG.UI
                     artImg.sprite = legend.DisplayData.ArtSprite;
             }
 
-            // VFX-7a: gold frame overlay for legend card
-            Transform frameTransform = legendContainer.Find("LegendFrame");
-            if (frameTransform == null)
+            // 传奇卡：彻底删除 LegendFrame sprite 和 LegendArt 上的 Outline
+            Transform oldFrame = legendContainer.Find("LegendFrame");
+            if (oldFrame != null)
             {
-                var frameGO = new GameObject("LegendFrame");
-                frameGO.transform.SetParent(legendContainer, false);
-                frameGO.transform.SetAsLastSibling();
-                var frt = frameGO.AddComponent<RectTransform>();
-                frt.anchorMin = Vector2.zero;
-                frt.anchorMax = Vector2.one;
-                frt.offsetMin = Vector2.zero;
-                frt.offsetMax = Vector2.zero;
-                var fle = frameGO.AddComponent<LayoutElement>();
-                fle.ignoreLayout = true;
-                var fimg = frameGO.AddComponent<Image>();
-                fimg.raycastTarget = false;
-                fimg.preserveAspect = false;
-                var frameSpr = Resources.Load<Sprite>("UI/frame_gold");
-                if (frameSpr != null)
-                {
-                    fimg.sprite = frameSpr;
-                    fimg.color = new Color(1f, 0.85f, 0.3f, 1f); // 金色
-                }
+                if (Application.isPlaying) Destroy(oldFrame.gameObject);
+                else DestroyImmediate(oldFrame.gameObject);
+            }
+            Transform legendArtT = legendContainer.Find("LegendArt");
+            var legendArtImg = legendArtT != null ? legendArtT.GetComponent<Image>() : null;
+            if (legendArtImg != null)
+            {
+                foreach (var o in legendArtImg.GetComponents<Outline>())
+                    o.enabled = false;
             }
 
             // VFX-7: update description text from CardData
@@ -2989,6 +2980,45 @@ namespace FWTCG.UI
         }
 
         public const float EQUIP_FLY_DURATION = 0.35f;
+
+        /// <summary>
+        /// 兜底：场景里任何名字包含 "Border"/"Frame" 的装饰性 GameObject 一次性全部关闭。
+        /// 包括 CreateZoneBorderFrame 的 BorderTop/Bottom/Left/Right，以及 LegendFrame / FrameOverlay 等。
+        /// 所有 Image/RawImage 上的 Outline 组件也一并 disabled。
+        /// </summary>
+        private void NukeAllDecorativeBorders()
+        {
+            // 1. Border* / *Frame 命名的节点
+            var allTransforms = GetComponentsInChildren<Transform>(true);
+            if (transform.parent != null)
+            {
+                // 也扫整个 Canvas 根，以便抓到同级的区域边框
+                var rootT = transform.root;
+                allTransforms = rootT.GetComponentsInChildren<Transform>(true);
+            }
+            foreach (var t in allTransforms)
+            {
+                if (t == null || t == transform.root) continue;
+                string n = t.name;
+                if (n == null) continue;
+                if (n.StartsWith("Border") || n == "LegendFrame" || n == "FrameOverlay"
+                    || n == "HeroFrame" || n.EndsWith("Border") || n.EndsWith("Frame"))
+                {
+                    t.gameObject.SetActive(false);
+                }
+            }
+
+            // 2. 所有 Outline 组件（残留的类型边 / 选中 glow 等）
+            var allOutlines = GetComponentsInChildren<Outline>(true);
+            foreach (var o in allOutlines)
+                if (o != null) o.enabled = false;
+            if (transform.root != null)
+            {
+                var rootOutlines = transform.root.GetComponentsInChildren<Outline>(true);
+                foreach (var o in rootOutlines)
+                    if (o != null) o.enabled = false;
+            }
+        }
 
         private void StartEquipFlyTween(Vector2 from, Vector2 to, System.Action onDone)
         {

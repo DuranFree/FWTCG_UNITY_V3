@@ -13,10 +13,12 @@ MonoBehaviour:
   m_Name: starburst
   m_EditorClassIdentifier: 
   _id: starburst
-  _cardName: "\u661F\u7206"
+  _cardName: "\u661F\u8292\u51DD\u6C47"
   _cost: 6
   _runeType: 1
   _runeCost: 2
+  _secondaryRuneType: 0
+  _secondaryRuneCost: 0
   _atk: 0
   _keywords: 0
   _effectId: starburst
@@ -27,5 +29,5 @@ MonoBehaviour:
   _isHero: 0
   _isSpell: 1
   _spellTargetType: 1
-  _description: "\u5BF9\u76EE\u6807\u654C\u65B9\u5355\u4F4D\u9020\u62106\u70B9\u4F24\u5BB3\uFF08\u539F\u4E3A2\u76EE\u6807\uFF0CDEV-3\u7B80\u5316\uFF09"
+  _description: "\u5BF9\u6700\u591A\u4E24\u540D\u5355\u4F4D\u5404\u9020\u62106\u70B9\u4F24\u5BB3\u3002"
   _artSprite: {fileID: 21300000, guid: 1218e21eac0dbe548817e4168ad81997, type: 3}

@@ -3476,213 +3476,253 @@ namespace FWTCG.Editor
 
         private static void CreateAllCardData()
         {
-            // ── Kaisa (虚空) deck ─────────────────────────────────────────────
-            // noxus_recruit x2
+            // All card data below comes VERBATIM from the card images in
+            // E:/claudeCode/ref/ksha/ (Kaisa deck) and E:/claudeCode/ref/jiansheng/ (Yi deck).
+            // Descriptions match the card face text exactly; do NOT paraphrase.
+
+            // ── Kaisa (Fury+Mind) deck ────────────────────────────────────────
+            // OGN-012 诺克萨斯新兵
             CD("noxus_recruit",      "诺克萨斯新兵", 4, 4, RuneType.Blazing, 0,
-               "鼓舞：其他盟友入场时手牌费用-1（最低0）",
+               "军团 — 我的费用减少[2]。（如果你在本回合内已打出过其他卡牌，则发动此效果。）",
                CardKeyword.Inspire, "noxus_recruit_enter");
 
-            // alert_sentinel x3
-            CD("alert_sentinel",     "警觉的哨兵",   2, 2, RuneType.Blazing, 0,
-               "绝念：阵亡时摸1张牌",
+            // OGN-096 警觉的哨兵
+            CD("alert_sentinel",     "警觉的哨兵",   2, 1, RuneType.Radiant, 0,
+               "绝念 — 抽一张牌。（当我被摧毁时，发动此效果。）",
                CardKeyword.Deathwish, "alert_sentinel_die");
 
-            // yordel_instructor x3
-            CD("yordel_instructor",  "约德尔教官",   3, 2, RuneType.Blazing, 0,
-               "壁垒。入场：摸1张牌",
+            // 63ed06 约德尔教官
+            CD("yordel_instructor",  "约德尔教官",   3, 2, RuneType.Radiant, 0,
+               "壁垒（我在战斗中首先承担伤害。）当你打出我时，抽一张牌。",
                CardKeyword.Barrier, "yordel_instructor_enter");
 
-            // bad_poro x2
+            // cf27269 坏坏魄罗
             CD("bad_poro",           "坏坏魄罗",     2, 2, RuneType.Blazing, 0,
-               "征服：生成1张已横置的「硬币」装备牌",
+               "当我征服一处战场时，打出1枚休眠的「硬币」装备指示物。",
                CardKeyword.Conquest, "bad_poro_conquer");
 
-            // rengar x2
-            CD("rengar",             "雷恩加尔·暴起", 3, 3, RuneType.Blazing, 1,
-               "反应。强攻：进攻时额外+2战力",
+            // 7e82f2 雷恩加尔
+            CD("rengar",             "雷恩加尔",     3, 3, RuneType.Blazing, 1,
+               "反应。强攻（当我进攻时，+2。）若本回合开始前我在基地，则我可以以活跃状态进场。",
                CardKeyword.Reactive | CardKeyword.StrongAtk, "rengar_enter");
 
-            // kaisa_hero x1 (hero card — extracted to hero zone at game start)
-            CD("kaisa_hero",         "卡莎·九死一生", 4, 4, RuneType.Blazing, 1,
-               "急速（支付1炽烈符能进场时为活跃状态）。征服：本回合可额外打出1张牌",
+            // OGN-039 卡莎·九死一生 — base 4/0, accelerate extra = 1 energy + 1 fury
+            CD("kaisa_hero",         "卡莎·九死一生", 4, 4, RuneType.Blazing, 0,
+               "急速（你可以选择额外支付[1]和1炽烈符能，让我以活跃状态进场。）当我征服一处战场时，抽一张牌。",
                CardKeyword.Haste | CardKeyword.Conquest, "kaisa_hero_conquer",
                isHero: true);
 
-            // darius x1
+            // OGN-027a 德莱厄斯
             CD("darius",             "德莱厄斯",     5, 5, RuneType.Blazing, 1,
-               "入场：若本回合已打出其他牌，+2战力并变为活跃状态",
+               "每当你在本回合中打出第二张牌时，让我本回合+2，并让我变为活跃状态。",
                CardKeyword.None, "darius_second_card");
 
-            // thousand_tail x3
+            // OGN-116 千尾监视者 — base 7/1, accelerate extra = 1 energy + 1 mind
             CD("thousand_tail",      "千尾监视者",   7, 7, RuneType.Radiant, 1,
-               "急速（支付1灵光符能进场时为活跃状态）。入场：所有敌方单位-3战力（最低1）",
+               "急速（你可以选择额外支付[1]和1灵光符能，让我以活跃状态进场。）当你打出我时，让所有敌方单位本回合-3，不得低于1。",
                CardKeyword.Haste, "thousand_tail_enter");
 
-            // foresight_mech x2
-            CD("foresight_mech",     "先见机甲",     2, 2, RuneType.Blazing, 0,
-               "预知：入场时查看牌库顶1张牌，可选择将其置底",
+            // 6b3952 先见机甲
+            CD("foresight_mech",     "先见机甲",     2, 2, RuneType.Radiant, 0,
+               "你的「机械」属性单位获得【预知】。（当你打出我时，查看主牌堆顶的一张牌，你可以选择将其置底。）",
                CardKeyword.Foresight, "foresight_mech_enter");
 
-            // ── MasterYi (伊欧尼亚) deck ──────────────────────────────────────
-            // yi_hero x1 (hero card — extracted to hero zone at game start)
+            // ── MasterYi (Calm+Body) deck ─────────────────────────────────────
+            // 0d52fc2f 易·锋芒毕现 — base 7/1, always enters active (not accelerate)
             CD("yi_hero",            "易·锋芒毕现",  7, 6, RuneType.Crushing, 1,
-               "游走。急速（支付1摧破符能进场时为活跃状态）",
-               CardKeyword.Roam | CardKeyword.Haste, "yi_hero_enter",
+               "游走（我可以向其他战场进行移动。）我以活跃状态进场。",
+               CardKeyword.Roam, "yi_hero_enter",
                isHero: true);
 
-            // jax x2
-            CD("jax",                "贾克斯·万般皆武", 5, 5, RuneType.Verdant, 1,
-               "法盾（敌方法术需额外1符能才能选中）。入场：手牌装备获得反应关键词",
+            // e519a76 贾克斯·万般皆武
+            CD("jax",                "贾克斯·万般皆武", 5, 5, RuneType.Crushing, 1,
+               "法盾（敌方法术需额外支付[1]才能选中。）当你打出我时，让你基地的装备卡获得【反应】。",
                CardKeyword.SpellShield, "jax_enter");
 
-            // tiyana_warden x2
-            CD("tiyana_warden",      "缇亚娜·冕卫",  7, 4, RuneType.Verdant, 2,
-               "法盾。在场时对手无法获得据守分",
-               CardKeyword.SpellShield, "tiyana_enter");
+            // 863d9bc2 缇亚娜·冕卫 — DUAL domain Calm+Body
+            CD("tiyana_warden",      "缇亚娜·冕卫",  7, 4, RuneType.Verdant, 1,
+               "法盾（敌方法术需额外支付[1]才能选中。）如果我位于战场上，则对手无法得分。",
+               CardKeyword.SpellShield, "tiyana_enter",
+               secondaryRuneType: RuneType.Crushing, secondaryRuneCost: 1);
 
-            // wailing_poro x3
+            // dd5eaf31 哀哀魄罗
             CD("wailing_poro",       "哀哀魄罗",     2, 2, RuneType.Verdant, 0,
-               "绝念：独自阵亡时摸1张牌",
+               "绝念 — 当我被摧毁时，如果此处没有其他友方单位，则抽一张牌。（当我被摧毁时，发动此效果。）",
                CardKeyword.Deathwish, "wailing_poro_die");
 
-            // sandshoal_deserter x2
-            CD("sandshoal_deserter", "沙塔啸匪",     6, 5, RuneType.Verdant, 0,
-               "无法被敌方法术或技能选中",
+            // 896b0c45 沙墟啸匪
+            CD("sandshoal_deserter", "沙墟啸匪",     6, 5, RuneType.Crushing, 0,
+               "敌方法术和技能无法将我选作目标。",
                CardKeyword.SpellShield, "sandshoal_deserter_enter");
 
             // ── Yi Equipment ──────────────────────────────────────────────────
+            // OGN-077 中娅沙漏
             CD("zhonya",             "中娅沙漏",     2, 0, RuneType.Verdant, 0,
-               "待命（可以面朝下，0费用反应）。保护附着单位免于阵亡，改为休眠返回基地",
+               "隐匿（支付[1]正面朝下放置此牌，之后可以0费反应打出。）下一次当友方单位被摧毁时，改为将此牌摧毁，然后该单位以休眠状态返回基地。（把该单位移到基地，此行为不视为移动。）",
                CardKeyword.Standby | CardKeyword.Reactive, "",
                isEquipment: true, equipAtkBonus: 0,
                equipRuneType: RuneType.Verdant, equipRuneCost: 0);
 
+            // e8e40a 三相之力
             CD("trinity_force",      "三相之力",     4, 0, RuneType.Crushing, 0,
-               "附着单位据守时额外+1分。+2战力",
+               "装配[1]（支付[1]：将此牌贴附到你控制的一名单位上。）当我据守一处战场时，获得的分数+1。+2战力",
                CardKeyword.None, "trinity_equip",
                isEquipment: true, equipAtkBonus: 2,
                equipRuneType: RuneType.Crushing, equipRuneCost: 1);
 
+            // a1fadf48 守护天使
             CD("guardian_angel",     "守护天使",     2, 0, RuneType.Verdant, 0,
-               "附着单位阵亡时改为休眠返回基地。+1战力",
+               "装配[1]（支付[1]：将此牌贴附到你控制的一名单位上。）若此牌被附着的单位会被摧毁，改为将此牌摧毁。召回该单位并使其休眠。（把它移到基地，此行为不视为移动。）+1战力",
                CardKeyword.None, "guardian_equip",
                isEquipment: true, equipAtkBonus: 1,
                equipRuneType: RuneType.Verdant, equipRuneCost: 1);
 
+            // 905f91c 多兰之刃
             CD("dorans_blade",       "多兰之刃",     2, 0, RuneType.Crushing, 0,
-               "+2战力",
+               "装配[1]（支付[1]：将此牌贴附到你控制的一名单位上。）+2战力",
                CardKeyword.None, "dorans_equip",
                isEquipment: true, equipAtkBonus: 2,
                equipRuneType: RuneType.Crushing, equipRuneCost: 1);
 
             // ── Kaisa spells ──────────────────────────────────────────────────
-            CDS("hex_ray",        "虚空射线",   1, RuneType.Blazing, 1,
-                "迅捷。对目标敌方单位造成3点伤害",
+            // OGN-009 海克斯射线
+            CDS("hex_ray",        "海克斯射线", 1, RuneType.Blazing, 1,
+                "迅捷（可在你的回合或法术对决中打出。）对战场上的一名单位造成3点伤害。",
                 SpellTargetType.EnemyUnit, "hex_ray", CardKeyword.Swift);
 
-            CDS("void_seek",      "虚空追迹",   3, RuneType.Blazing, 1,
-                "迅捷。对目标敌方单位造成4点伤害，摸1张牌",
+            // OGN-024 虚空索敌
+            CDS("void_seek",      "虚空索敌",   3, RuneType.Blazing, 1,
+                "迅捷（可在你的回合或法术对决中打出。）对战场上的一名单位造成4点伤害，然后抽一张牌。",
                 SpellTargetType.EnemyUnit, "void_seek", CardKeyword.Swift);
 
-            CDS("stardrop",       "星陨",       2, RuneType.Blazing, 2,
-                "对目标敌方单位造成3点伤害两次（共6点）",
+            // OGN-029 星落
+            CDS("stardrop",       "星落",       2, RuneType.Blazing, 2,
+                "进行两次：对一名单位造成3点伤害。（可以选择不同的单位。）",
                 SpellTargetType.EnemyUnit, "stardrop");
 
-            CDS("starburst",      "星爆",       6, RuneType.Radiant, 2,
-                "对目标敌方单位造成6点伤害（原为2目标，DEV-3简化）",
+            // OGN-105 星芒凝汇
+            CDS("starburst",      "星芒凝汇",   6, RuneType.Radiant, 2,
+                "对最多两名单位各造成6点伤害。",
                 SpellTargetType.EnemyUnit, "starburst");
 
-            CDS("evolve_day",     "进化之日",   6, RuneType.Radiant, 1,
-                "摸4张牌",
+            // OGN-114 进化日
+            CDS("evolve_day",     "进化日",     6, RuneType.Radiant, 1,
+                "抽四张牌。",
                 SpellTargetType.None, "evolve_day");
 
-            CDS("akasi_storm",    "阿卡希狂暴", 7, RuneType.Radiant, 2,
-                "对随机敌方单位造成2点伤害，共6次",
-                SpellTargetType.None, "akasi_storm");
+            // OGN-248 艾卡西亚暴雨 — DUAL domain Fury+Mind
+            CDS("akasi_storm",    "艾卡西亚暴雨", 7, RuneType.Blazing, 2,
+                "进行六次：对一名单位造成2点伤害。（你可以选择不同的目标。）",
+                SpellTargetType.None, "akasi_storm",
+                secondaryRuneType: RuneType.Radiant, secondaryRuneCost: 1);
 
-            CDS("furnace_blast",  "熔炉烈焰",   3, RuneType.Blazing, 1,
-                "回响。对至多3个敌方单位各造成1点伤害",
-                SpellTargetType.None, "furnace_blast", CardKeyword.Echo);
+            // a4babdea 风箱炎息
+            CDS("furnace_blast",  "风箱炎息",   1, RuneType.Blazing, 1,
+                "迅捷（可在你的回合或法术对决中打出。）回响（你可以选择支付额外费用，以重复此法术效果。）对同一位置的最多三名单位各造成1点伤害。",
+                SpellTargetType.None, "furnace_blast", CardKeyword.Swift | CardKeyword.Echo);
 
-            CDS("time_warp",      "时间扭曲",   8, RuneType.Radiant, 3,
-                "获得一个额外回合",
+            // OGN-122 时间扭曲
+            CDS("time_warp",      "时间扭曲",   10, RuneType.Radiant, 4,
+                "在当前回合结束后，再进行一个回合。然后放逐此牌。",
                 SpellTargetType.None, "time_warp");
 
-            CDS("divine_ray",     "神圣光芒",   4, RuneType.Blazing, 2,
-                "回响。对目标敌方单位造成2点伤害两次（共4点）",
+            // 6bf158 透体圣光
+            CDS("divine_ray",     "透体圣光",   2, RuneType.Radiant, 1,
+                "回响（你可以选择支付额外费用，以重复此法术效果。）对战场上的一名单位造成2点伤害。",
                 SpellTargetType.EnemyUnit, "divine_ray", CardKeyword.Echo);
 
-            // ── Yi spells ─────────────────────────────────────────────────────
-            CDS("rally_call",     "集结号令",   2, RuneType.Verdant, 0,
-                "迅捷。所有己方单位进入活跃状态，摸1张牌",
-                SpellTargetType.None, "rally_call", CardKeyword.Swift);
-
-            CDS("balance_resolve","平衡意志",   3, RuneType.Verdant, 0,
-                "迅捷。摸1张牌，召出1张符文",
-                SpellTargetType.None, "balance_resolve", CardKeyword.Swift);
-
-            CDS("slam",           "冲击",       2, RuneType.Crushing, 0,
-                "迅捷+回响。使目标敌方单位眩晕（法盾可抵消）",
-                SpellTargetType.EnemyUnit, "slam", CardKeyword.Swift | CardKeyword.Echo);
-
-            CDS("strike_ask_later","先斩后奏",  1, RuneType.Crushing, 2,
-                "迅捷。使目标己方单位本回合+5战力",
-                SpellTargetType.FriendlyUnit, "strike_ask_later", CardKeyword.Swift);
-
             // ── Kaisa reactive spells ─────────────────────────────────────────
-            CDS("swindle",        "诡计",       1, RuneType.Blazing, 1,
-                "反应。目标敌方单位本回合-1战力，摸1张牌",
+            // OGN-095 愚诈
+            CDS("swindle",        "愚诈",       1, RuneType.Radiant, 0,
+                "反应（可在任意时机打出，甚至先于其他法术和技能的结算。）让一名单位在本回合内-1，不得低于1。抽一张牌。",
                 SpellTargetType.None, "swindle", CardKeyword.Reactive);
 
-            CDS("retreat_rune",   "撤退符文",   1, RuneType.Blazing, 1,
-                "反应。召回一个己方战场单位（休眠），回收一张符文获得1符能",
+            // OGN-104 择日再战
+            CDS("retreat_rune",   "择日再战",   1, RuneType.Radiant, 0,
+                "反应（可在任意时机打出，甚至先于其他法术和技能的结算。）让一名友方单位返回其所属者的手牌，然后其所属者召出一枚休眠的符文。",
                 SpellTargetType.None, "retreat_rune", CardKeyword.Reactive);
 
-            CDS("guilty_pleasure","罪恶乐趣",   2, RuneType.Blazing, 0,
-                "反应。弃置一张手牌，对目标敌方单位造成2点伤害",
-                SpellTargetType.None, "guilty_pleasure", CardKeyword.Reactive);
+            // OGN-008 罪恶快感 — Swift (not Reactive) per card image
+            CDS("guilty_pleasure","罪恶快感",   2, RuneType.Blazing, 1,
+                "迅捷（可在你的回合或法术对决中打出。）弃置一张手牌。对战场上的一名单位造成等同于被弃置牌费用的伤害。（无视符能费用。）",
+                SpellTargetType.EnemyUnit, "guilty_pleasure", CardKeyword.Swift);
 
-            CDS("smoke_bomb",     "烟雾弹",     1, RuneType.Radiant, 1,
-                "反应。目标敌方单位本回合-4战力",
+            // OGN-093 烟幕弹
+            CDS("smoke_bomb",     "烟幕弹",     2, RuneType.Radiant, 1,
+                "反应（可在任意时机打出，甚至先于其他法术和技能的结算。）让一名单位在本回合内-4，不得低于1。",
                 SpellTargetType.None, "smoke_bomb", CardKeyword.Reactive);
 
+            // ── Yi spells ─────────────────────────────────────────────────────
+            // OGN-129 迎敌号令
+            CDS("rally_call",     "迎敌号令",   2, RuneType.Crushing, 0,
+                "迅捷（可在你的回合或法术对决中打出。）在本回合内，你打出的所有单位以活跃状态进场。抽一张牌。",
+                SpellTargetType.None, "rally_call", CardKeyword.Swift);
+
+            // OGN-047 御御守念
+            CDS("balance_resolve","御御守念",   3, RuneType.Verdant, 0,
+                "迅捷（可在你的回合或法术对决中打出。）如果对手分数离获胜分数不超过3，则此法术的费用减少[3]。抽一张牌，然后召出一枚休眠的符文。",
+                SpellTargetType.None, "balance_resolve", CardKeyword.Swift);
+
+            // 7d5448 扑咚
+            CDS("slam",           "扑咚",       2, RuneType.Crushing, 0,
+                "迅捷（可在你的回合或法术对决中打出。）回响（你可以选择支付额外费用，以重复此法术效果。）眩晕一名单位。（使其在本回合内无法造成战斗伤害。）",
+                SpellTargetType.EnemyUnit, "slam", CardKeyword.Swift | CardKeyword.Echo);
+
+            // 9e49b7d 先打再问
+            CDS("strike_ask_later","先打再问", 1, RuneType.Crushing, 2,
+                "迅捷（可在你的回合或法术对决中打出。）让一名单位在本回合内+5。",
+                SpellTargetType.FriendlyUnit, "strike_ask_later", CardKeyword.Swift);
+
             // ── Yi reactive spells ────────────────────────────────────────────
-            CDS("scoff",          "嘲讽",       1, RuneType.Verdant, 1,
-                "反应。无效化费用≤4的法术",
+            // OGN-045 藐视
+            CDS("scoff",          "藐视",       1, RuneType.Verdant, 1,
+                "反应（可在任意时机打出，甚至先于其他法术和技能的结算。）无效化一个法术，但其费用不得高于[4]，符能费用不得高于[3]。",
                 SpellTargetType.None, "scoff", CardKeyword.Reactive);
 
-            CDS("duel_stance",    "决斗姿态",   1, RuneType.Verdant, 1,
-                "反应。己方一个单位永久获得+1/+1",
+            // OGN-046 冰斗架势
+            CDS("duel_stance",    "冰斗架势",   1, RuneType.Verdant, 1,
+                "反应（可在任意时机打出，甚至先于其他法术和技能的结算。）让一名友方单位在本回合内+1。如果它是你在这一回合打出的，则它本回合内额外获得+1。",
                 SpellTargetType.None, "duel_stance", CardKeyword.Reactive);
 
-            CDS("well_trained",   "精英训练",   2, RuneType.Verdant, 0,
-                "反应。己方一个单位本回合+2战力，摸1张牌",
+            // OGN-058 训练有素
+            CDS("well_trained",   "训练有素",   2, RuneType.Verdant, 0,
+                "反应（可在任意时机打出，甚至先于其他法术和技能的结算。）让一名单位在本回合内+2，然后抽一张牌。",
                 SpellTargetType.None, "well_trained", CardKeyword.Reactive);
 
-            CDS("wind_wall",      "风墙",       2, RuneType.Verdant, 0,
-                "反应。无效化任意法术",
+            // OGN-064 风之障壁
+            CDS("wind_wall",      "风之障壁",   3, RuneType.Verdant, 2,
+                "反应（可在任意时机打出，甚至先于其他法术和技能的结算。）无效化一个法术。",
                 SpellTargetType.None, "wind_wall", CardKeyword.Reactive);
 
-            CDS("flash_counter",  "闪电反制",   1, RuneType.Crushing, 1,
-                "反应。反制一个敌方法术",
+            // 8939ea12 疾速反制
+            CDS("flash_counter",  "疾速反制",   2, RuneType.Crushing, 0,
+                "反应（可在任意时机打出，甚至先于其他法术和技能的结算。）无效化一个敌方法术或装备卡对目标的法术或技能效果。",
                 SpellTargetType.None, "flash_counter", CardKeyword.Reactive);
 
-            // ── DEV-10: Legend CardData (for display only, not in decks) ──────
+            // ── Legend cards (display only, not in main deck) ─────────────────
+            // OGN-247 卡莎·虚空之女 — DUAL domain Fury+Mind
             CD("kaisa_legend",       "卡莎·虚空之女", 0, 0, RuneType.Blazing, 0,
-               "主动：虚空感知（反应，休眠自身+1炽烈符能）\n被动：进化（盟友4种关键词→Lv.2 +3/+3）");
+               "横置：反应 — 获得1任意符能，仅可用于打出法术。（获得资源的反应技能无法成为其他法术的反应目标。）",
+               CardKeyword.None, "",
+               secondaryRuneType: RuneType.Radiant, secondaryRuneCost: 0);
 
-            CD("yi_legend",          "易大师·无极剑圣", 0, 0, RuneType.Crushing, 0,
-               "被动：独影剑鸣（防守单位仅1名时+2战力）");
+            // OGS-019 无极剑圣 — DUAL domain Calm+Body
+            CD("yi_legend",          "无极剑圣",     0, 0, RuneType.Crushing, 0,
+               "如果你只有一名友方单位防守一处战场，则该单位+2。",
+               CardKeyword.None, "",
+               secondaryRuneType: RuneType.Verdant, secondaryRuneCost: 0);
         }
 
         // Shorthand alias for spell cards
         private static CardData CDS(string id, string name, int cost,
             RuneType runeType, int runeCost, string desc,
             SpellTargetType targetType, string effectId,
-            CardKeyword kw = CardKeyword.None)
+            CardKeyword kw = CardKeyword.None,
+            RuneType secondaryRuneType = RuneType.Blazing, int secondaryRuneCost = 0)
         {
             return CreateCardData(id, name, cost, 0, runeType, runeCost, desc, kw, effectId,
-                isSpell: true, spellTargetType: targetType);
+                isSpell: true, spellTargetType: targetType,
+                secondaryRuneType: secondaryRuneType, secondaryRuneCost: secondaryRuneCost);
         }
 
         /// <summary>
@@ -3769,11 +3809,13 @@ namespace FWTCG.Editor
             CardKeyword kw = CardKeyword.None, string effectId = "",
             bool isEquipment = false, int equipAtkBonus = 0,
             RuneType equipRuneType = RuneType.Blazing, int equipRuneCost = 0,
-            bool isHero = false)
+            bool isHero = false,
+            RuneType secondaryRuneType = RuneType.Blazing, int secondaryRuneCost = 0)
         {
             return CreateCardData(id, name, cost, atk, runeType, runeCost, desc,
                                   kw, effectId, isEquipment, equipAtkBonus, equipRuneType, equipRuneCost,
-                                  isHero: isHero);
+                                  isHero: isHero,
+                                  secondaryRuneType: secondaryRuneType, secondaryRuneCost: secondaryRuneCost);
         }
 
         private static CardData CreateCardData(string id, string cardName,
@@ -3782,7 +3824,8 @@ namespace FWTCG.Editor
             bool isEquipment = false, int equipAtkBonus = 0,
             RuneType equipRuneType = RuneType.Blazing, int equipRuneCost = 0,
             bool isSpell = false, SpellTargetType spellTargetType = SpellTargetType.None,
-            bool isHero = false)
+            bool isHero = false,
+            RuneType secondaryRuneType = RuneType.Blazing, int secondaryRuneCost = 0)
         {
             string path = $"Assets/Resources/Cards/{id}.asset";
 
@@ -3795,7 +3838,8 @@ namespace FWTCG.Editor
 
             data.EditorSetup(id, cardName, cost, atk, runeType, runeCost, description,
                              keywords, effectId, isEquipment, equipAtkBonus, equipRuneType, equipRuneCost,
-                             isSpell, spellTargetType, isHero);
+                             isSpell, spellTargetType, isHero,
+                             secondaryRuneType, secondaryRuneCost);
 
             // Assign art sprite from Resources/CardArt/{id}.png if it exists
             string[] exts = { ".png", ".jpg" };

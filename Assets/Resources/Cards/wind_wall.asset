@@ -13,10 +13,12 @@ MonoBehaviour:
   m_Name: wind_wall
   m_EditorClassIdentifier: 
   _id: wind_wall
-  _cardName: "\u98CE\u5899"
-  _cost: 2
+  _cardName: "\u98CE\u4E4B\u969C\u58C1"
+  _cost: 3
   _runeType: 2
-  _runeCost: 0
+  _runeCost: 2
+  _secondaryRuneType: 0
+  _secondaryRuneCost: 0
   _atk: 0
   _keywords: 64
   _effectId: wind_wall
@@ -27,5 +29,5 @@ MonoBehaviour:
   _isHero: 0
   _isSpell: 1
   _spellTargetType: 0
-  _description: "\u53CD\u5E94\u3002\u65E0\u6548\u5316\u4EFB\u610F\u6CD5\u672F"
+  _description: "\u53CD\u5E94\uFF08\u53EF\u5728\u4EFB\u610F\u65F6\u673A\u6253\u51FA\uFF0C\u751A\u81F3\u5148\u4E8E\u5176\u4ED6\u6CD5\u672F\u548C\u6280\u80FD\u7684\u7ED3\u7B97\u3002\uFF09\u65E0\u6548\u5316\u4E00\u4E2A\u6CD5\u672F\u3002"
   _artSprite: {fileID: 21300000, guid: bd8f283a5a44a4c498fe36b5c74839e0, type: 3}

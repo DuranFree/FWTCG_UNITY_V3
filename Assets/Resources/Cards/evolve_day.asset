@@ -13,10 +13,12 @@ MonoBehaviour:
   m_Name: evolve_day
   m_EditorClassIdentifier: 
   _id: evolve_day
-  _cardName: "\u8FDB\u5316\u4E4B\u65E5"
+  _cardName: "\u8FDB\u5316\u65E5"
   _cost: 6
   _runeType: 1
   _runeCost: 1
+  _secondaryRuneType: 0
+  _secondaryRuneCost: 0
   _atk: 0
   _keywords: 0
   _effectId: evolve_day
@@ -27,5 +29,5 @@ MonoBehaviour:
   _isHero: 0
   _isSpell: 1
   _spellTargetType: 0
-  _description: "\u64784\u5F20\u724C"
+  _description: "\u62BD\u56DB\u5F20\u724C\u3002"
   _artSprite: {fileID: 21300000, guid: 5c7840f88db342d4da499f63f4286628, type: 3}

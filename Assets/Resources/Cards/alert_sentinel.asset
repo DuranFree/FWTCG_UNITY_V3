@@ -15,9 +15,11 @@ MonoBehaviour:
   _id: alert_sentinel
   _cardName: "\u8B66\u89C9\u7684\u54E8\u5175"
   _cost: 2
-  _runeType: 0
+  _runeType: 1
   _runeCost: 0
-  _atk: 2
+  _secondaryRuneType: 0
+  _secondaryRuneCost: 0
+  _atk: 1
   _keywords: 32
   _effectId: alert_sentinel_die
   _isEquipment: 0
@@ -27,5 +29,5 @@ MonoBehaviour:
   _isHero: 0
   _isSpell: 0
   _spellTargetType: 0
-  _description: "\u7EDD\u5FF5\uFF1A\u9635\u4EA1\u65F6\u64781\u5F20\u724C"
+  _description: "\u7EDD\u5FF5 \u2014 \u62BD\u4E00\u5F20\u724C\u3002\uFF08\u5F53\u6211\u88AB\u6467\u6BC1\u65F6\uFF0C\u53D1\u52A8\u6B64\u6548\u679C\u3002\uFF09"
   _artSprite: {fileID: 21300000, guid: 0b471e51356515c4f9808ec992384b4a, type: 3}

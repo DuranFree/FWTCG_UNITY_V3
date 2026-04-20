@@ -13,10 +13,12 @@ MonoBehaviour:
   m_Name: sandshoal_deserter
   m_EditorClassIdentifier: 
   _id: sandshoal_deserter
-  _cardName: "\u6C99\u5854\u5578\u532A"
+  _cardName: "\u6C99\u589F\u5578\u532A"
   _cost: 6
-  _runeType: 2
+  _runeType: 3
   _runeCost: 0
+  _secondaryRuneType: 0
+  _secondaryRuneCost: 0
   _atk: 5
   _keywords: 4
   _effectId: sandshoal_deserter_enter
@@ -27,5 +29,5 @@ MonoBehaviour:
   _isHero: 0
   _isSpell: 0
   _spellTargetType: 0
-  _description: "\u65E0\u6CD5\u88AB\u654C\u65B9\u6CD5\u672F\u6216\u6280\u80FD\u9009\u4E2D"
+  _description: "\u654C\u65B9\u6CD5\u672F\u548C\u6280\u80FD\u65E0\u6CD5\u5C06\u6211\u9009\u4F5C\u76EE\u6807\u3002"
   _artSprite: {fileID: 21300000, guid: ddd0955217236af4599eb5860af3a031, type: 3}

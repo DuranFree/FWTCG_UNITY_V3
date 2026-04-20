@@ -41,6 +41,12 @@ namespace FWTCG.Systems
             if (bfId.HasValue && _bfSys != null)
                 pts += _bfSys.GetBonusScorePoints(bfId.Value, type, gs);
 
+            // C-7 trinity_force: attached unit adds +1 when it scores a hold
+            if (type == GameRules.SCORE_TYPE_HOLD && bfId.HasValue)
+            {
+                pts += ComputeTrinityForceBonus(who, bfId.Value, gs);
+            }
+
             // Tiyana passive: opponent can't gain hold score while Tiyana is in play
             if (type == GameRules.SCORE_TYPE_HOLD)
             {
@@ -181,5 +187,28 @@ namespace FWTCG.Systems
 
         private string DisplayName(string owner) =>
             owner == GameRules.OWNER_PLAYER ? "玩家" : "AI";
+
+        /// <summary>
+        /// C-7: 三相之力 — "当我据守一处战场时，获得的分数+1"
+        /// 每一个在 bfId 上的友方单位附着 trinity_force 装备，+1 分。
+        /// </summary>
+        private int ComputeTrinityForceBonus(string owner, int bfId, GameState gs)
+        {
+            var units = owner == GameRules.OWNER_PLAYER
+                ? gs.BF[bfId].PlayerUnits
+                : gs.BF[bfId].EnemyUnits;
+            int bonus = 0;
+            foreach (var u in units)
+            {
+                if (u.AttachedEquipment != null &&
+                    u.AttachedEquipment.CardData.EffectId == "trinity_equip")
+                {
+                    bonus += 1;
+                    TurnManager.BroadcastMessage_Static(
+                        $"[三相之力] {u.UnitName} 据守额外 +1 分");
+                }
+            }
+            return bonus;
+        }
     }
 }

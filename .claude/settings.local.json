@@ -33,7 +33,9 @@
       "Bash(cmd.exe //C \"taskkill /F /IM node.exe\")",
       "Bash(cp \"E:/claudeCode/DOC/Migration/DEV_RULES/UNITY-RULES.md\" \"E:/claudeCode/DOC/Scratch/DEV_RULES/UNITY-RULES.md\")",
       "Bash(cp \"E:/claudeCode/DOC/Migration/DEV_RULES/GODOT-RULES.md\" \"E:/claudeCode/DOC/Scratch/DEV_RULES/GODOT-RULES.md\")",
-      "Bash(cp \"E:/claudeCode/DOC/Migration/DEV_RULES/UNREAL-RULES.md\" \"E:/claudeCode/DOC/Scratch/DEV_RULES/UNREAL-RULES.md\")"
+      "Bash(cp \"E:/claudeCode/DOC/Migration/DEV_RULES/UNREAL-RULES.md\" \"E:/claudeCode/DOC/Scratch/DEV_RULES/UNREAL-RULES.md\")",
+      "Read(//e/claudeCode/DOC/**)",
+      "Read(//c/Users/dliao/.claude/**)"
     ]
   }
 }

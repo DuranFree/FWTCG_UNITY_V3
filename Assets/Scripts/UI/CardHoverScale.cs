@@ -22,6 +22,7 @@ namespace FWTCG.UI
         // Nested Canvas for sorting override — added at runtime if missing
         private Canvas           _overrideCanvas;
         private GraphicRaycaster _raycaster;
+        private CardView         _cardView;
 
         // ── DOTween state ─────────────────────────────────────────────────────
         private Tween _scaleTween;
@@ -35,12 +36,13 @@ namespace FWTCG.UI
                 _raycaster      = gameObject.AddComponent<GraphicRaycaster>();
             }
             _overrideCanvas.overrideSorting = false; // start inactive
+            _cardView = GetComponent<CardView>();
         }
 
-        public void OnPointerEnter(PointerEventData eventData)
+        private bool IsSelected => _cardView != null && _cardView.IsSelected;
+
+        private void ApplyHoverVisuals()
         {
-            if (CardDragHandler.BlockPointerEvents) return;
-            if (Input.GetMouseButton(0)) return;
             if (_overrideCanvas != null)
             {
                 _overrideCanvas.overrideSorting = true;
@@ -52,10 +54,19 @@ namespace FWTCG.UI
                 .SetTarget(gameObject);
         }
 
+        public void OnPointerEnter(PointerEventData eventData)
+        {
+            if (CardDragHandler.BlockPointerEvents) return;
+            if (Input.GetMouseButton(0)) return;
+            ApplyHoverVisuals();
+        }
+
         public void OnPointerExit(PointerEventData eventData)
         {
             if (CardDragHandler.BlockPointerEvents) return;
             if (Input.GetMouseButton(0)) return;
+            // 选中状态：保持放大 + 高层级，直到再次点击取消
+            if (IsSelected) return;
             if (_overrideCanvas != null)
                 _overrideCanvas.overrideSorting = false;
             TweenHelper.KillSafe(ref _scaleTween);
@@ -66,8 +77,8 @@ namespace FWTCG.UI
 
         private void Update()
         {
-            // During drag or left-button hold, all cards must be at normal scale instantly
-            if (CardDragHandler.BlockPointerEvents || Input.GetMouseButton(0))
+            // 拖拽期间 / 左键按住时强制缩回原尺寸（仅未选中才生效）
+            if ((CardDragHandler.BlockPointerEvents || Input.GetMouseButton(0)) && !IsSelected)
             {
                 if (transform.localScale != Vector3.one)
                 {
@@ -76,6 +87,14 @@ namespace FWTCG.UI
                     if (_overrideCanvas != null) _overrideCanvas.overrideSorting = false;
                 }
                 return;
+            }
+
+            // 选中但当前未放大（例如刚被 SetSelected 调用）→ 驱动到放大
+            if (IsSelected && !CardDragHandler.BlockPointerEvents
+                && Mathf.Abs(transform.localScale.x - HOVER_SCALE) > 0.001f
+                && (_scaleTween == null || !_scaleTween.IsActive()))
+            {
+                ApplyHoverVisuals();
             }
         }
 

@@ -13,7 +13,7 @@ MonoBehaviour:
   m_Name: aspirant_climb
   m_EditorClassIdentifier: 
   _id: aspirant_climb
-  _cardName: 试炼者之阶
+  _cardName: "试炼者之阶"
   _cost: 0
   _runeType: 0
   _runeCost: 0
@@ -27,5 +27,5 @@ MonoBehaviour:
   _isHero: 0
   _isSpell: 0
   _spellTargetType: 0
-  _description: 【据守】支付1法力，基地单位+1战力
+  _description: "【据守】：你可以支付[1]法力，给基地的一名单位+1战力。"
   _artSprite: {fileID: 0}

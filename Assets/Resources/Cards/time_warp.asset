@@ -14,9 +14,11 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   _id: time_warp
   _cardName: "\u65F6\u95F4\u626D\u66F2"
-  _cost: 8
+  _cost: 10
   _runeType: 1
-  _runeCost: 3
+  _runeCost: 4
+  _secondaryRuneType: 0
+  _secondaryRuneCost: 0
   _atk: 0
   _keywords: 0
   _effectId: time_warp
@@ -27,5 +29,5 @@ MonoBehaviour:
   _isHero: 0
   _isSpell: 1
   _spellTargetType: 0
-  _description: "\u83B7\u5F97\u4E00\u4E2A\u989D\u5916\u56DE\u5408"
+  _description: "\u5728\u5F53\u524D\u56DE\u5408\u7ED3\u675F\u540E\uFF0C\u518D\u8FDB\u884C\u4E00\u4E2A\u56DE\u5408\u3002\u7136\u540E\u653E\u9010\u6B64\u724C\u3002"
   _artSprite: {fileID: 21300000, guid: 9798174fd7c407b4295214b4af00e755, type: 3}

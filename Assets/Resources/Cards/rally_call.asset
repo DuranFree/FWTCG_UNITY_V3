@@ -13,10 +13,12 @@ MonoBehaviour:
   m_Name: rally_call
   m_EditorClassIdentifier: 
   _id: rally_call
-  _cardName: "\u96C6\u7ED3\u53F7\u4EE4"
+  _cardName: "\u8FCE\u654C\u53F7\u4EE4"
   _cost: 2
-  _runeType: 2
+  _runeType: 3
   _runeCost: 0
+  _secondaryRuneType: 0
+  _secondaryRuneCost: 0
   _atk: 0
   _keywords: 32768
   _effectId: rally_call
@@ -27,5 +29,5 @@ MonoBehaviour:
   _isHero: 0
   _isSpell: 1
   _spellTargetType: 0
-  _description: "\u8FC5\u6377\u3002\u6240\u6709\u5DF1\u65B9\u5355\u4F4D\u8FDB\u5165\u6D3B\u8DC3\u72B6\u6001\uFF0C\u64781\u5F20\u724C"
+  _description: "\u8FC5\u6377\uFF08\u53EF\u5728\u4F60\u7684\u56DE\u5408\u6216\u6CD5\u672F\u5BF9\u51B3\u4E2D\u6253\u51FA\u3002\uFF09\u5728\u672C\u56DE\u5408\u5185\uFF0C\u4F60\u6253\u51FA\u7684\u6240\u6709\u5355\u4F4D\u4EE5\u6D3B\u8DC3\u72B6\u6001\u8FDB\u573A\u3002\u62BD\u4E00\u5F20\u724C\u3002"
   _artSprite: {fileID: 21300000, guid: 06bf126f03edec649af483822e1af5b0, type: 3}

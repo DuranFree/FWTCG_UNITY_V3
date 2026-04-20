@@ -13,7 +13,7 @@ MonoBehaviour:
   m_Name: ascending_stairs
   m_EditorClassIdentifier: 
   _id: ascending_stairs
-  _cardName: 攀圣长阶
+  _cardName: "攀圣长阶"
   _cost: 0
   _runeType: 0
   _runeCost: 0
@@ -27,5 +27,5 @@ MonoBehaviour:
   _isHero: 0
   _isSpell: 0
   _spellTargetType: 0
-  _description: 【被动】据守/征服时额外+1分
+  _description: "使赢得游戏所需的分数 +1。"
   _artSprite: {fileID: 0}

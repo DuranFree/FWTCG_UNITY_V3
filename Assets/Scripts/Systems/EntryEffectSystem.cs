@@ -80,38 +80,32 @@ namespace FWTCG.Systems
                     break;
 
                 case "noxus_recruit_enter":
-                    // Rule 724.1.c: Inspire triggers only if another card was already played this turn
-                    if (gs.CardsPlayedThisTurn > 1)
-                    {
-                        gs.InspireNextUnit = true;
-                        Log($"[入场] {unit.UnitName} — 鼓舞触发：下一个出场的盟友+1战力");
-                    }
-                    else
-                    {
-                        Log($"[入场] {unit.UnitName} — 鼓舞未触发（本回合首张牌）");
-                    }
+                    // 军团（Legion）效果："我的费用减少[2]" 在支付费用时处理，
+                    // 见 GameManager.ComputeEffectiveCost。此处仅记录入场。
+                    Log($"[入场] {unit.UnitName} 进场（军团效果已在费用结算时处理）");
                     break;
 
                 case "rengar_enter":
-                    // Reactive + StrongAtk + gain 1 Blazing sch
+                    // 雷恩加尔：反应+强攻。已在 UnitInstance 构造时从 CardKeyword 装载，此处仅记录。
+                    // 卡面"若本回合开始前我在基地，则可以活跃进场" 不在基础入场触发，
+                    // 需在 Awaken 阶段针对雷恩加尔标记可活跃进场（待 Phase C-5b 或后续实现）。
                     unit.HasReactive = true;
-                    gs.AddSch(owner, RuneType.Blazing, 1);
-                    Log($"[入场] {unit.UnitName} — 反应+强攻+1炽烈符能");
-                    FWTCG.UI.GameEventBus.FireEntryEffectBanner(unit.UnitName, "反应·强攻·炽烈符能+1"); // DEV-18b
+                    Log($"[入场] {unit.UnitName} — 反应·强攻(+2)");
+                    FWTCG.UI.GameEventBus.FireEntryEffectBanner(unit.UnitName, "反应·强攻"); // DEV-18b
                     break;
 
                 case "kaisa_hero_conquer":
-                    // Conquest trigger + gain 1 Blazing sch
-                    gs.AddSch(owner, RuneType.Blazing, 1);
-                    Log($"[入场] {unit.UnitName} — 征服触发+1炽烈符能");
+                    // Kai'Sa, Survivor: "当我征服一处战场时，抽一张牌。"
+                    // 入场阶段不触发任何效果，征服时由 CombatSystem.CheckUnitConquestTriggers 抽牌。
+                    Log($"[入场] {unit.UnitName} 进场");
                     break;
 
                 case "yi_hero_enter":
-                    // Roam + Haste (payment handled by TryPlayUnitAsync/AI) + gain 1 Crushing sch
-                    // Rule 717: Do NOT set Exhausted here — Haste payment is done at play time
-                    gs.AddSch(owner, RuneType.Crushing, 1);
-                    Log($"[入场] {unit.UnitName} — 游走+急速+1摧破符能");
-                    FWTCG.UI.GameEventBus.FireEntryEffectBanner(unit.UnitName, "游走·急速·摧破符能+1"); // DEV-18b
+                    // 易·锋芒毕现: "游走。我以活跃状态进场。"
+                    // 直接设为活跃（不走急速流程，因为本卡没有急速 extra-cost 选择）
+                    unit.Exhausted = false;
+                    Log($"[入场] {unit.UnitName} — 游走·活跃进场");
+                    FWTCG.UI.GameEventBus.FireEntryEffectBanner(unit.UnitName, "游走·活跃进场"); // DEV-18b
                     break;
 
                 case "sandshoal_deserter_enter":
@@ -138,15 +132,8 @@ namespace FWTCG.Systems
                     break;
             }
 
-            // Inspire check: if InspireNextUnit is set and this isn't the inspirer
-            if (gs.InspireNextUnit && effectId != "noxus_recruit_enter")
-            {
-                gs.InspireNextUnit = false;
-                unit.BuffTokens += 1;
-                unit.CurrentAtk += 1;
-                Log($"[鼓舞] {unit.UnitName} 受到鼓舞，+1战力");
-                FWTCG.UI.GameEventBus.FireUnitAtkBuff(unit, 1); // DEV-18b
-            }
+            // Legion 代替了旧 Inspire：现在作为费用折扣在 GameManager 支付费用前处理，
+            // 不再有"下一张盟友进场 +1/+1"的残留触发。
         }
 
         // ── Helpers ────────────────────────────────────────────────────────────

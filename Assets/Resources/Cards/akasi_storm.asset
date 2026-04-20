@@ -13,10 +13,12 @@ MonoBehaviour:
   m_Name: akasi_storm
   m_EditorClassIdentifier: 
   _id: akasi_storm
-  _cardName: "\u963F\u5361\u5E0C\u72C2\u66B4"
+  _cardName: "\u827E\u5361\u897F\u4E9A\u66B4\u96E8"
   _cost: 7
-  _runeType: 1
+  _runeType: 0
   _runeCost: 2
+  _secondaryRuneType: 1
+  _secondaryRuneCost: 1
   _atk: 0
   _keywords: 0
   _effectId: akasi_storm
@@ -27,5 +29,5 @@ MonoBehaviour:
   _isHero: 0
   _isSpell: 1
   _spellTargetType: 0
-  _description: "\u5BF9\u968F\u673A\u654C\u65B9\u5355\u4F4D\u9020\u62102\u70B9\u4F24\u5BB3\uFF0C\u51716\u6B21"
+  _description: "\u8FDB\u884C\u516D\u6B21\uFF1A\u5BF9\u4E00\u540D\u5355\u4F4D\u9020\u62102\u70B9\u4F24\u5BB3\u3002\uFF08\u4F60\u53EF\u4EE5\u9009\u62E9\u4E0D\u540C\u7684\u76EE\u6807\u3002\uFF09"
   _artSprite: {fileID: 21300000, guid: d5c301a55b450c641b7879298af256c3, type: 3}

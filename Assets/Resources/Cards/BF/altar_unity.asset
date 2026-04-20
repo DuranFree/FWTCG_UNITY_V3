@@ -13,7 +13,7 @@ MonoBehaviour:
   m_Name: altar_unity
   m_EditorClassIdentifier: 
   _id: altar_unity
-  _cardName: 团结祭坛
+  _cardName: "团结祭坛"
   _cost: 0
   _runeType: 0
   _runeCost: 0
@@ -27,5 +27,5 @@ MonoBehaviour:
   _isHero: 0
   _isSpell: 0
   _spellTargetType: 0
-  _description: 【据守】在基地召唤1/1新兵
+  _description: "【据守】：在你的基地中召唤一个1/1的新兵。"
   _artSprite: {fileID: 0}

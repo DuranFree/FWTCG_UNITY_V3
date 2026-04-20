@@ -93,7 +93,8 @@ namespace FWTCG.Core
         /// <summary>Whether 梦幻树 (dreaming_tree) draw has already triggered this turn.</summary>
         public bool DreamingTreeTriggeredThisTurn { get; set; }
 
-        /// <summary>Inspire: next unit entering base gets +1 ATK (noxus_recruit effect).</summary>
+        /// <summary>[Deprecated] Old Inspire mechanic placeholder. noxus_recruit now uses
+        /// Legion cost reduction in GameManager, not an entry buff. Field kept for test back-compat.</summary>
         public bool InspireNextUnit { get; set; }
 
         // ── Hero zone ─────────────────────────────────────────────────────────

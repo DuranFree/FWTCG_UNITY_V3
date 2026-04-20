@@ -11,15 +11,15 @@ MonoBehaviour:
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 17e2dcccae127ad4fba868ec0487bae7, type: 3}
   m_Name: trifarian_warcamp
-  m_EditorClassIdentifier: 
+  m_EditorClassIdentifier:
   _id: trifarian_warcamp
-  _cardName: 崔法利战营
+  _cardName: "崔法利战营"
   _cost: 0
   _runeType: 0
   _runeCost: 0
   _atk: 0
   _keywords: 0
-  _effectId: 
+  _effectId:
   _isEquipment: 0
   _equipAtkBonus: 0
   _equipRuneType: 0
@@ -27,5 +27,5 @@ MonoBehaviour:
   _isHero: 0
   _isSpell: 0
   _spellTargetType: 0
-  _description: 【入场】获得增益指示物
+  _description: "【被动】：你的单位移动进入此处时，立即获得一个增益指示物(+1战力)。"
   _artSprite: {fileID: 0}

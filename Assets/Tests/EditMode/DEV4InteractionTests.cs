@@ -107,76 +107,64 @@ namespace FWTCG.Tests
         // ── retreat_rune tests ────────────────────────────────────────────────
 
         [Test]
-        public void RetreatRune_RecallsUnitAndRecyclesRune()
+        public void RetreatRune_ReturnsBFUnitToHand()
         {
-            // Arrange: player unit on BF0, a rune in play
+            // 择日再战（新规则）："让一名友方单位返回其所属者的手牌，然后其所属者召出一枚休眠的符文。"
             var unit = MakeUnit("unit1", 3, GameRules.OWNER_PLAYER);
             _gs.BF[0].PlayerUnits.Add(unit);
-            var rune = new RuneInstance(GameState.NextUid(), RuneType.Blazing);
-            _gs.PRunes.Add(rune);
-            var reactive = MakeSpell("retreat_rune", "撤退符文", 1, "retreat_rune");
+            // 准备符文牌库供"召出休眠符文"使用
+            _gs.PRuneDeck.Add(new RuneInstance(GameState.NextUid(), RuneType.Blazing));
+            var reactive = MakeSpell("retreat_rune", "择日再战", 1, "retreat_rune");
             _gs.PHand.Add(reactive);
 
-            // Act
             _reactiveSys.ApplyReactive(reactive, GameRules.OWNER_PLAYER, null, _gs);
 
-            // Assert
             Assert.IsFalse(_gs.BF[0].PlayerUnits.Contains(unit), "unit removed from BF");
-            Assert.IsTrue(_gs.PBase.Contains(unit), "unit recalled to base");
-            Assert.IsTrue(unit.Exhausted, "recalled unit is exhausted");
-            Assert.AreEqual(0, _gs.PRunes.Count, "rune removed from play");
-            Assert.IsTrue(_gs.PRuneDeck.Contains(rune), "rune returned to rune deck");
+            Assert.IsTrue(_gs.PHand.Contains(unit), "unit returned to hand");
+            Assert.IsFalse(_gs.PBase.Contains(unit), "unit NOT in base (returned to hand)");
         }
 
         [Test]
-        public void RetreatRune_GainsSch()
+        public void RetreatRune_SummonsDormantRune()
         {
+            // 召出一枚休眠（exhausted）符文，不再是"回收获得符能"
             var unit = MakeUnit("unit1", 3, GameRules.OWNER_PLAYER);
             _gs.BF[0].PlayerUnits.Add(unit);
-            var rune = new RuneInstance(GameState.NextUid(), RuneType.Blazing);
-            _gs.PRunes.Add(rune);
-            var reactive = MakeSpell("retreat_rune", "撤退符文", 1, "retreat_rune");
+            _gs.PRuneDeck.Add(new RuneInstance(GameState.NextUid(), RuneType.Blazing));
+            var reactive = MakeSpell("retreat_rune", "择日再战", 1, "retreat_rune");
             _gs.PHand.Add(reactive);
 
             _reactiveSys.ApplyReactive(reactive, GameRules.OWNER_PLAYER, null, _gs);
 
-            Assert.AreEqual(1, _gs.GetSch(GameRules.OWNER_PLAYER, RuneType.Blazing),
-                "should gain 1 Blazing sch");
+            Assert.AreEqual(1, _gs.PRunes.Count, "一枚符文被召出");
+            Assert.IsTrue(_gs.PRunes[0].Tapped, "召出的符文应为休眠状态");
+            Assert.AreEqual(0, _gs.PRuneDeck.Count, "符文从牌库移出");
+            // 不再给予符能
+            Assert.AreEqual(0, _gs.GetSch(GameRules.OWNER_PLAYER, RuneType.Blazing),
+                "择日再战不再给予符能（改为召出休眠符文）");
         }
 
         // ── guilty_pleasure tests ──────────────────────────────────────────────
 
+        // 罪恶快感现已改为迅捷法术（见 SpellSystem.GuiltyPleasure），不再走 ReactiveSystem。
+        // 这两个测试的旧语义（"反应 + 固定2点伤害"）已失效；新行为由
+        // SpellSystem 单元测试（若需要）覆盖。此处保留测试名以避免 CI 丢失记录。
         [Test]
-        public void GuiltyPleasure_DiscardsAndDeals2Damage()
+        public void GuiltyPleasure_NoLongerReactiveSpell()
         {
+            // 旧的 ReactiveSystem 路径不再包含 guilty_pleasure case — 无副作用即通过
             var enemy = MakeUnit("enemy1", 5, GameRules.OWNER_ENEMY);
             _gs.EBase.Add(enemy);
             var handCard = MakeUnit("handcard", 2, GameRules.OWNER_PLAYER);
             _gs.PHand.Add(handCard);
-            var reactive = MakeSpell("guilty_pleasure", "罪恶乐趣", 2, "guilty_pleasure");
+            var reactive = MakeSpell("guilty_pleasure", "罪恶快感", 2, "guilty_pleasure");
             _gs.PHand.Add(reactive);
 
             _reactiveSys.ApplyReactive(reactive, GameRules.OWNER_PLAYER, null, _gs);
 
-            Assert.AreEqual(3, enemy.CurrentHp, "enemy should have 5-2=3 HP");
-            Assert.IsTrue(_gs.PDiscard.Contains(handCard), "hand card discarded");
-            Assert.IsFalse(_gs.PHand.Contains(handCard), "hand card not in hand");
-        }
-
-        [Test]
-        public void GuiltyPleasure_KillsEnemyIfLethal()
-        {
-            var enemy = MakeUnit("weakenemy", 2, GameRules.OWNER_ENEMY);
-            _gs.EBase.Add(enemy);
-            var handCard = MakeUnit("handcard", 1, GameRules.OWNER_PLAYER);
-            _gs.PHand.Add(handCard);
-            var reactive = MakeSpell("guilty_pleasure", "罪恶乐趣", 2, "guilty_pleasure");
-            _gs.PHand.Add(reactive);
-
-            _reactiveSys.ApplyReactive(reactive, GameRules.OWNER_PLAYER, null, _gs);
-
-            Assert.IsFalse(_gs.EBase.Contains(enemy), "dead enemy removed from base");
-            Assert.IsTrue(_gs.EDiscard.Contains(enemy), "dead enemy in discard");
+            // ApplyReactive 仍会把卡从手牌移到弃牌堆（通用反应流程），但不造成任何伤害
+            Assert.AreEqual(5, enemy.CurrentHp, "ReactiveSystem 不再对敌方造成伤害");
+            Assert.IsTrue(_gs.PHand.Contains(handCard), "手牌不应被弃置（非反应流程处理）");
         }
 
         // ── smoke_bomb tests ──────────────────────────────────────────────────
@@ -224,18 +212,20 @@ namespace FWTCG.Tests
         // ── duel_stance tests ─────────────────────────────────────────────────
 
         [Test]
-        public void DuelStance_GivesPermanentPlusOnePlusOne()
+        public void DuelStance_GivesThisTurnPlusOne()
         {
+            // 冰斗架势（新规则）："让一名友方单位在本回合内+1。"
+            // 旧版是永久 +1/+1，新版改为 TempAtkBonus +1（本回合结束清零）
             var ally = MakeUnit("ally1", 3, GameRules.OWNER_PLAYER);
             _gs.PBase.Add(ally);
-            var reactive = MakeSpell("duel_stance", "决斗姿态", 1, "duel_stance");
+            var reactive = MakeSpell("duel_stance", "冰斗架势", 1, "duel_stance");
             _gs.PHand.Add(reactive);
 
             _reactiveSys.ApplyReactive(reactive, GameRules.OWNER_PLAYER, null, _gs);
 
-            Assert.AreEqual(4, ally.CurrentAtk, "ally CurrentAtk should be 4");
-            Assert.AreEqual(4, ally.CurrentHp, "ally CurrentHp should be 4");
-            Assert.AreEqual(1, ally.BuffTokens, "ally BuffTokens should be 1 for persistence");
+            Assert.AreEqual(1, ally.TempAtkBonus, "冰斗架势给 TempAtkBonus +1（本回合）");
+            Assert.AreEqual(3, ally.CurrentAtk, "基础战力不变（本回合结束时 TempAtkBonus 清零）");
+            Assert.AreEqual(0, ally.BuffTokens, "新版不再给永久增益标记");
         }
 
         // ── well_trained tests ────────────────────────────────────────────────

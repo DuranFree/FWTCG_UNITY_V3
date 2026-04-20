@@ -77,6 +77,10 @@ namespace FWTCG.UI
                 foreach (var bf in gs.BF) playerUnits.AddRange(bf.PlayerUnits);
             }
 
+            // C-8: Filter out units with UntargetableBySpells (e.g. sandshoal_deserter)
+            // 仅对敌方过滤（友方装备激活效果可自行选中自己）
+            enemyUnits.RemoveAll(u => u.UntargetableBySpells);
+
             if (filter != null)
             {
                 enemyUnits.RemoveAll(u => !filter(u));

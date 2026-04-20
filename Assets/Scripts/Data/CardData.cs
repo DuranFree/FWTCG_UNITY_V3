@@ -14,6 +14,10 @@ namespace FWTCG.Data
         [SerializeField] private RuneType _runeType;
         [SerializeField] private int _runeCost;
 
+        [Header("Secondary rune cost (dual-domain cards)")]
+        [SerializeField] private RuneType _secondaryRuneType;
+        [SerializeField] private int _secondaryRuneCost;
+
         [Header("Stats")]
         [SerializeField] private int _atk;
 
@@ -46,6 +50,9 @@ namespace FWTCG.Data
         public int Cost => _cost;
         public RuneType RuneType => _runeType;
         public int RuneCost => _runeCost;
+        public RuneType SecondaryRuneType => _secondaryRuneType;
+        public int SecondaryRuneCost => _secondaryRuneCost;
+        public bool HasSecondaryRune => _secondaryRuneCost > 0;
         public int Atk => _atk;
         public CardKeyword Keywords => _keywords;
         public string EffectId => _effectId;
@@ -72,7 +79,9 @@ namespace FWTCG.Data
                                 int equipRuneCost = 0,
                                 bool isSpell = false,
                                 SpellTargetType spellTargetType = SpellTargetType.None,
-                                bool isHero = false)
+                                bool isHero = false,
+                                RuneType secondaryRuneType = RuneType.Blazing,
+                                int secondaryRuneCost = 0)
         {
             _id = id;
             _cardName = cardName;
@@ -80,6 +89,8 @@ namespace FWTCG.Data
             _atk = atk;
             _runeType = runeType;
             _runeCost = runeCost;
+            _secondaryRuneType = secondaryRuneType;
+            _secondaryRuneCost = secondaryRuneCost;
             _description = description;
             _keywords = keywords;
             _effectId = effectId;

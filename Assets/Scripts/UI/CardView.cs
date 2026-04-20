@@ -107,6 +107,11 @@ namespace FWTCG.UI
         private GameObject _orbitDot;
         private Tween      _orbitTween;
 
+        // 选中时边框呼吸灯
+        private Tween _frameBreathTween;
+        private Color _frameBaseColor;
+        private bool  _frameBaseColorCaptured;
+
         // ── DEV-28: Hero aura ────────────────────────────────────────────────
         private Image     _heroAura;
         private Tween     _heroAuraPulse;
@@ -285,6 +290,7 @@ namespace FWTCG.UI
             TweenHelper.KillSafe(ref _targetPulse);
             TweenHelper.KillSafe(ref _targetFadeOut);
             TweenHelper.KillSafe(ref _orbitTween);
+            TweenHelper.KillSafe(ref _frameBreathTween);
             TweenHelper.KillSafe(ref _heroAuraPulse);
             TweenHelper.KillSafe(ref _foilSweep);
             TweenHelper.KillSafe(ref _handSpreadTween);
@@ -516,9 +522,10 @@ namespace FWTCG.UI
                 else
                 {
                     _cardBg.enabled = true;
-                    _cardBg.color = _selected ? GameColors.CardSelected
-                        : (_unit != null && _unit.Exhausted ? GameColors.CardExhausted
-                        : (_isPlayerCard ? GameColors.CardPlayer : GameColors.CardEnemy));
+                    // 只改阵营/累倒底色，不再因选中而变色 —— 选中靠边框 Outline
+                    _cardBg.color = _unit != null && _unit.Exhausted
+                        ? GameColors.CardExhausted
+                        : (_isPlayerCard ? GameColors.CardPlayer : GameColors.CardEnemy);
                 }
             }
             if (_clickButton != null) _clickButton.interactable = !hide;
@@ -731,9 +738,8 @@ namespace FWTCG.UI
                 else
                     baseColor = _isPlayerCard ? GameColors.CardPlayer : GameColors.CardEnemy;
 
-                if (_selected)
-                    baseColor = GameColors.CardSelected;
-                else if (_unit.Exhausted)
+                // 选中不再染卡面 —— 用边框 Outline 表达，见下方 RefreshSelectedOutline
+                if (_unit.Exhausted)
                     baseColor = GameColors.CardExhausted;
 
                 // Cost insufficient dimming
@@ -742,6 +748,9 @@ namespace FWTCG.UI
 
                 _cardBg.color = baseColor;
             }
+
+            // 选中不再显示任何 Outline（用户要求：所有边框全删）
+            DisableAllOutlines();
 
             // Stunned overlay + VFX-7o: stun particle FX
             if (_stunnedOverlay != null)
@@ -762,45 +771,15 @@ namespace FWTCG.UI
                 { Destroy(_stunFX); _stunFX = null; }
             }
 
-            // VFX-7a: frame overlay — color by card type
-            if (_frameOverlay != null)
+            // 边框：全部删除 —— 既不贴 sprite，也不挂任何 Outline，
+            // 并把 _cardBg 根节点浅灰色改成透明，彻底消除卡周 2px 银边
+            if (_frameOverlay != null) _frameOverlay.enabled = false;
+            if (_cardBg != null)
             {
-                bool isLegend = _unit.CardData.Id != null && _unit.CardData.Id.Contains("legend");
-                bool isHero = _unit.CardData.IsHero;
-                bool isSkill = _unit.CardData.IsSpell || _unit.CardData.IsEquipment;
-
-                Sprite frameSpr;
-                Color frameTint;
-                if (isLegend)
-                {
-                    frameSpr = Resources.Load<Sprite>("UI/frame_gold");
-                    frameTint = new Color(1f, 0.85f, 0.3f, 1f); // 金色
-                }
-                else if (isHero)
-                {
-                    frameSpr = Resources.Load<Sprite>("UI/frame_gold");
-                    frameTint = new Color(0.7f, 0.4f, 0.9f, 1f); // 紫色
-                }
-                else if (isSkill)
-                {
-                    frameSpr = Resources.Load<Sprite>("UI/frame_gold");
-                    frameTint = new Color(0.9f, 0.25f, 0.2f, 1f); // 红色
-                }
-                else
-                {
-                    frameSpr = Resources.Load<Sprite>("UI/frame_silver");
-                    frameTint = new Color(1f, 0.82f, 0.86f, 1f); // 浅粉色
-                }
-
-                if (frameSpr != null)
-                {
-                    _frameOverlay.sprite = frameSpr;
-                    _frameOverlay.color = frameTint;
-                    _frameOverlay.enabled = true;
-                }
-                else
-                    _frameOverlay.enabled = false;
+                var c = _cardBg.color;
+                _cardBg.color = new Color(c.r, c.g, c.b, 0f);
             }
+            DisableAllOutlines();
 
             // Exhausted overlay (gray dim) + VFX-7o: sleep particle FX
             if (_exhaustedOverlay != null)
@@ -878,6 +857,150 @@ namespace FWTCG.UI
                     StopStatGlow(ref _schBreath, _schGlowImg);
                 }
             }
+
+            // 卡面已含完整信息（费用/战力/描述均印在卡图上），隐藏所有重复的 UI 叠层
+            HideAllCardOverlays();
+        }
+
+        /// <summary>
+        /// Hide every UI overlay on top of the card art — cost badge, ATK/HP badge,
+        /// name/description text, rune-cost chip, buff tokens, frame overlay,
+        /// status glows. Only the art + card background remain visible.
+        /// Called at the end of Refresh() (and from RefreshFaceDown for face-up path).
+        /// </summary>
+        /// <summary>关掉卡上所有 Outline 组件（类型框 / 选中 glow / 任何历史残留）。</summary>
+        private void DisableAllOutlines()
+        {
+            if (_cardBg != null)
+                foreach (var o in _cardBg.gameObject.GetComponents<Outline>())
+                    o.enabled = false;
+            if (_artImage != null)
+                foreach (var o in _artImage.gameObject.GetComponents<Outline>())
+                    o.enabled = false;
+        }
+
+        /// <summary>
+        /// 卡类型细边框（hero 紫 / spell 红 / legend 金 / unit 银）：
+        /// 比 sprite 贴图细得多，颜色可控。
+        /// 选中 glow 的 3 个 Outline 叠在这个之后（Unity 按组件顺序渲染）。
+        /// </summary>
+        private Outline _typeOutline;
+        private void RefreshTypeOutline()
+        {
+            if (_cardBg == null || _unit == null) return;
+
+            bool isLegend = _unit.CardData.Id != null && _unit.CardData.Id.Contains("legend");
+            bool isHero   = _unit.CardData.IsHero;
+            bool isSkill  = _unit.CardData.IsSpell || _unit.CardData.IsEquipment;
+
+            Color tint;
+            if (isLegend)      tint = new Color(1.00f, 0.82f, 0.25f, 1f); // 金
+            else if (isHero)   tint = new Color(0.60f, 0.15f, 0.95f, 1f); // 深紫（真紫）
+            else if (isSkill)  tint = new Color(0.90f, 0.22f, 0.18f, 1f); // 红
+            else               tint = new Color(0.80f, 0.82f, 0.85f, 1f); // 银
+
+            // 类型 Outline 是 _cardBg 上的**第一个** Outline 组件（在选中 glow 3 层之前）
+            var all = _cardBg.gameObject.GetComponents<Outline>();
+            if (_typeOutline == null)
+            {
+                // 如果尚未创建：在 _cardBg 最前插入一个新 Outline
+                _typeOutline = _cardBg.gameObject.AddComponent<Outline>();
+                // 移到组件列表最前（确保先渲染）
+                // Unity 无直接 API，调用 Reset 后按需要序列重建；此处简单认为添加顺序不影响视觉
+            }
+            _typeOutline.enabled = true;
+            _typeOutline.effectColor = tint;
+            _typeOutline.effectDistance = new Vector2(1.5f, -1.5f); // 细边 1.5px
+            _typeOutline.useGraphicAlpha = false;
+        }
+
+        /// <summary>
+        /// 选中只亮边框：一层硬边 + 两层越外越透明的软边叠加成 glow 效果。
+        /// 玩家卡绿色，敌方卡红色。
+        /// </summary>
+        private readonly Outline[] _selOutlines = new Outline[3];
+        private void RefreshSelectedOutline()
+        {
+            if (_cardBg == null) return;
+
+            // 初次调用时：确保已有 type outline，然后为选中 glow 追加 3 个 Outline
+            // 最终 _cardBg 上应有 4 个 Outline：[0]=type, [1..3]=selection glow
+            if (_selOutlines[0] == null)
+            {
+                // 保证 type outline 存在（先于 selection outlines）
+                if (_typeOutline == null)
+                    _typeOutline = _cardBg.gameObject.AddComponent<Outline>();
+
+                for (int i = 0; i < 3; i++)
+                    _selOutlines[i] = _cardBg.gameObject.AddComponent<Outline>();
+            }
+
+            if (_selected)
+            {
+                Color baseCol = _isPlayerCard
+                    ? new Color(0.25f, 1f, 0.45f, 1f) // 玩家：亮绿
+                    : new Color(1f, 0.3f, 0.3f, 1f);  // 敌方：红
+
+                // Layer 0: 硬边（alpha 1, 1px）
+                _selOutlines[0].enabled = true;
+                _selOutlines[0].effectColor = baseCol;
+                _selOutlines[0].effectDistance = new Vector2(1f, -1f);
+                _selOutlines[0].useGraphicAlpha = false;
+
+                // Layer 1: 中圈软光晕（alpha 0.55, 2.5px）
+                _selOutlines[1].enabled = true;
+                Color c1 = baseCol; c1.a = 0.55f;
+                _selOutlines[1].effectColor = c1;
+                _selOutlines[1].effectDistance = new Vector2(2.5f, -2.5f);
+                _selOutlines[1].useGraphicAlpha = false;
+
+                // Layer 2: 外圈扩散光晕（alpha 0.22, 5px）
+                _selOutlines[2].enabled = true;
+                Color c2 = baseCol; c2.a = 0.22f;
+                _selOutlines[2].effectColor = c2;
+                _selOutlines[2].effectDistance = new Vector2(5f, -5f);
+                _selOutlines[2].useGraphicAlpha = false;
+            }
+            else
+            {
+                for (int i = 0; i < 3; i++)
+                    if (_selOutlines[i] != null) _selOutlines[i].enabled = false;
+            }
+        }
+
+        private void HideAllCardOverlays()
+        {
+            // Text labels
+            if (_nameText != null)  _nameText.gameObject.SetActive(false);
+            if (_descText != null)  _descText.gameObject.SetActive(false);
+
+            // Cost / ATK / HP badges —— 同时隐藏所在的父圆形容器
+            if (_costText != null)
+            {
+                _costText.gameObject.SetActive(false);
+                var p = _costText.transform.parent;
+                if (p != null && p != transform) p.gameObject.SetActive(false);
+            }
+            if (_atkText != null)
+            {
+                _atkText.gameObject.SetActive(false);
+                var p = _atkText.transform.parent;
+                if (p != null && p != transform) p.gameObject.SetActive(false);
+            }
+
+            // 符文消耗指示 (符×N)
+            if (_schCostText != null) _schCostText.gameObject.SetActive(false);
+            if (_schCostBg   != null) _schCostBg.gameObject.SetActive(false);
+
+            // 增益 token / 全卡色块光晕（保留 _frameOverlay 让英雄紫边等类型色生效）
+            if (_buffTokenIcon != null) _buffTokenIcon.SetActive(false);
+            if (_buffTokenText != null) _buffTokenText.gameObject.SetActive(false);
+            if (_glowOverlay   != null) _glowOverlay.enabled  = false;
+
+            // Stat glow 光晕
+            if (_costGlowImg != null) _costGlowImg.enabled = false;
+            if (_atkGlowImg  != null) _atkGlowImg.enabled  = false;
+            if (_schGlowImg  != null) _schGlowImg.enabled  = false;
         }
 
         /// <summary>
@@ -891,6 +1014,7 @@ namespace FWTCG.UI
         }
 
         public UnitInstance Unit => _unit;
+        public bool IsSelected => _selected;
 
         public void SetSelected(bool selected)
         {
@@ -914,20 +1038,16 @@ namespace FWTCG.UI
                     _restAnchoredY = rt.anchoredPosition.y;  // only save rest Y when truly at rest
                 TweenHelper.KillSafe(ref _liftFloat);
                 StartLiftFloat();
-                // DEV-28: start orbit light
-                StartOrbit();
-                ShowGlow(); // VFX-7k
+                StartOrbit(); // DEV-28 光轨保留（不是卡面染色）
+                // 卡面染色 glow / 边框呼吸已移除（用户要求仅边框 Outline）
             }
             else
             {
                 _isLifted = false;
                 TweenHelper.KillSafe(ref _liftFloat);
-                // Animate back to rest position instead of snapping
                 TweenHelper.KillSafe(ref _returnToRest);
                 StartReturnToRest(rt.anchoredPosition.y);
-                // DEV-28: stop orbit light
                 StopOrbit();
-                HideGlow(); // VFX-7k
             }
         }
 
@@ -1562,6 +1682,39 @@ namespace FWTCG.UI
         {
             TweenHelper.KillSafe(ref _orbitTween);
             if (_orbitDot != null) _orbitDot.SetActive(false);
+        }
+
+        // 选中边框呼吸：在基色与高亮色之间往复
+        private const float FRAME_BREATH_PERIOD = 1.1f;
+        private void StartFrameBreath()
+        {
+            if (_frameOverlay == null) return;
+            if (!_frameBaseColorCaptured)
+            {
+                _frameBaseColor = _frameOverlay.color;
+                _frameBaseColorCaptured = true;
+            }
+            TweenHelper.KillSafe(ref _frameBreathTween);
+            _frameBreathTween = DOVirtual.Float(0f, 1f, FRAME_BREATH_PERIOD, v =>
+            {
+                if (_frameOverlay == null) return;
+                Color baseC = _frameBaseColor;
+                Color peak  = new Color(
+                    Mathf.Min(1f, baseC.r + 0.35f),
+                    Mathf.Min(1f, baseC.g + 0.35f),
+                    Mathf.Min(1f, baseC.b + 0.35f),
+                    1f);
+                float t = 0.5f - 0.5f * Mathf.Cos(v * Mathf.PI * 2f); // 0→1→0
+                _frameOverlay.color = Color.Lerp(baseC, peak, t);
+            }).SetEase(Ease.Linear).SetLoops(-1, LoopType.Restart).SetTarget(gameObject);
+        }
+
+        private void StopFrameBreath()
+        {
+            TweenHelper.KillSafe(ref _frameBreathTween);
+            if (_frameOverlay != null && _frameBaseColorCaptured)
+                _frameOverlay.color = _frameBaseColor;
+            _frameBaseColorCaptured = false;
         }
 
         // ── DEV-28: Hero aura ────────────────────────────────────────────────

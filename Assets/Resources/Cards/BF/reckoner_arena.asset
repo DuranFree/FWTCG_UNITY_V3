@@ -13,7 +13,7 @@ MonoBehaviour:
   m_Name: reckoner_arena
   m_EditorClassIdentifier: 
   _id: reckoner_arena
-  _cardName: 清算人竞技场
+  _cardName: "清算人竞技场"
   _cost: 0
   _runeType: 0
   _runeCost: 0
@@ -27,5 +27,5 @@ MonoBehaviour:
   _isHero: 0
   _isSpell: 0
   _spellTargetType: 0
-  _description: 【被动】战力≥5自动获得强攻/坚守
+  _description: "【被动】：法术对决开始时，此处的【强力】单位(战力≥5)获得【强攻[1]】(进攻方)或【坚守[1]】(防守方)。"
   _artSprite: {fileID: 0}

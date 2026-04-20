@@ -13,12 +13,14 @@ MonoBehaviour:
   m_Name: yi_hero
   m_EditorClassIdentifier: 
   _id: yi_hero
-  _cardName: "\u6613\xB7\u950B\u8292\u6BD5\u73B0"
+  _cardName: "\u6613\u00B7\u950B\u8292\u6BD5\u73B0"
   _cost: 7
   _runeType: 3
   _runeCost: 1
+  _secondaryRuneType: 0
+  _secondaryRuneCost: 0
   _atk: 6
-  _keywords: 257
+  _keywords: 256
   _effectId: yi_hero_enter
   _isEquipment: 0
   _equipAtkBonus: 0
@@ -27,5 +29,5 @@ MonoBehaviour:
   _isHero: 1
   _isSpell: 0
   _spellTargetType: 0
-  _description: "\u6E38\u8D70\u3002\u6025\u901F\uFF08\u652F\u4ED81\u6467\u7834\u7B26\u80FD\u8FDB\u573A\u65F6\u4E3A\u6D3B\u8DC3\u72B6\u6001\uFF09"
+  _description: "\u6E38\u8D70\uFF08\u6211\u53EF\u4EE5\u5411\u5176\u4ED6\u6218\u573A\u8FDB\u884C\u79FB\u52A8\u3002\uFF09\u6211\u4EE5\u6D3B\u8DC3\u72B6\u6001\u8FDB\u573A\u3002"
   _artSprite: {fileID: 21300000, guid: 7fa0a90887c0b45409c0505a30d7134e, type: 3}

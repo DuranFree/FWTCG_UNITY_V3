@@ -13,7 +13,7 @@ MonoBehaviour:
   m_Name: bandle_tree
   m_EditorClassIdentifier: 
   _id: bandle_tree
-  _cardName: 班德尔城神树
+  _cardName: "班德尔城神树"
   _cost: 0
   _runeType: 0
   _runeCost: 0
@@ -27,5 +27,5 @@ MonoBehaviour:
   _isHero: 0
   _isSpell: 0
   _spellTargetType: 0
-  _description: 【据守】场上≥3种特性+1法力
+  _description: "【据守】：若你场上的单位包含≥3种符能特性，获得1点任意符能。"
   _artSprite: {fileID: 0}

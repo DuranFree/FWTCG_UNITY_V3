@@ -13,7 +13,7 @@ MonoBehaviour:
   m_Name: reaver_row
   m_EditorClassIdentifier: 
   _id: reaver_row
-  _cardName: 掠夺者之街
+  _cardName: "掠夺者之街"
   _cost: 0
   _runeType: 0
   _runeCost: 0
@@ -27,5 +27,5 @@ MonoBehaviour:
   _isHero: 0
   _isSpell: 0
   _spellTargetType: 0
-  _description: 【征服】从废牌堆捞费用≤2单位
+  _description: "【征服】：你可以将自己废牌堆中1名费用≤2的单位，以休眠状态召唤至基地。"
   _artSprite: {fileID: 0}

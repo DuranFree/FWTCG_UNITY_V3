@@ -13,10 +13,12 @@ MonoBehaviour:
   m_Name: swindle
   m_EditorClassIdentifier: 
   _id: swindle
-  _cardName: "\u8BE1\u8BA1"
+  _cardName: "\u611A\u8BC8"
   _cost: 1
-  _runeType: 0
-  _runeCost: 1
+  _runeType: 1
+  _runeCost: 0
+  _secondaryRuneType: 0
+  _secondaryRuneCost: 0
   _atk: 0
   _keywords: 64
   _effectId: swindle
@@ -27,5 +29,5 @@ MonoBehaviour:
   _isHero: 0
   _isSpell: 1
   _spellTargetType: 0
-  _description: "\u53CD\u5E94\u3002\u76EE\u6807\u654C\u65B9\u5355\u4F4D\u672C\u56DE\u5408-1\u6218\u529B\uFF0C\u64781\u5F20\u724C"
+  _description: "\u53CD\u5E94\uFF08\u53EF\u5728\u4EFB\u610F\u65F6\u673A\u6253\u51FA\uFF0C\u751A\u81F3\u5148\u4E8E\u5176\u4ED6\u6CD5\u672F\u548C\u6280\u80FD\u7684\u7ED3\u7B97\u3002\uFF09\u8BA9\u4E00\u540D\u5355\u4F4D\u5728\u672C\u56DE\u5408\u5185-1\uFF0C\u4E0D\u5F97\u4F4E\u4E8E1\u3002\u62BD\u4E00\u5F20\u724C\u3002"
   _artSprite: {fileID: 21300000, guid: ef5cd1df74f68114cbca92cff074dd60, type: 3}

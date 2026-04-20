@@ -13,7 +13,7 @@ MonoBehaviour:
   m_Name: back_alley_bar
   m_EditorClassIdentifier: 
   _id: back_alley_bar
-  _cardName: 暗巷酒吧
+  _cardName: "暗巷酒吧"
   _cost: 0
   _runeType: 0
   _runeCost: 0
@@ -27,5 +27,5 @@ MonoBehaviour:
   _isHero: 0
   _isSpell: 0
   _spellTargetType: 0
-  _description: 【被动】移动离开时+1战力
+  _description: "【被动】：己方单位移动离开此处时，本回合获得+1战力。"
   _artSprite: {fileID: 0}

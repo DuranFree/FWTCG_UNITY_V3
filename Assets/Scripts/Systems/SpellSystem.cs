@@ -55,9 +55,10 @@ namespace FWTCG.Systems
                     break;
 
                 case "starburst":
-                    // 2 Radiant: deal 6 damage to target enemy
-                    // DEV-3: simplified from "2 targets" to 1 target
+                    // 星芒凝汇 — "对最多两名单位各造成6点伤害"
+                    // 第一个目标来自 SpellTargetPopup；第二个目标自动选另一个敌方单位（若存在）
                     DealDamage(target, 6, gs);
+                    Starburst_DealToSecondTarget(owner, target, gs);
                     break;
 
                 case "akasi_storm":
@@ -107,10 +108,14 @@ namespace FWTCG.Systems
                     break;
 
                 case "divine_ray":
-                    // Echo, 2 Blazing: deal 2 damage to target twice
+                    // 透体圣光 — "回响。对战场上的一名单位造成2点伤害。"
+                    // 单次基础伤害；Echo 由 GameManager 驱动再次 CastSpell 实现（基础效果仍是一次伤害）
                     DealDamage(target, 2, gs);
-                    if (target != null && target.CurrentHp > 0)
-                        DealDamage(target, 2, gs);
+                    break;
+
+                case "guilty_pleasure":
+                    // 罪恶快感 — "迅捷。弃置一张手牌。对战场上的一名单位造成等同于被弃置牌费用的伤害。"
+                    GuiltyPleasure(owner, target, gs);
                     break;
 
                 default:
@@ -152,9 +157,16 @@ namespace FWTCG.Systems
 
         private void RemoveDeadUnit(UnitInstance unit, GameState gs)
         {
+            string owner = unit.Owner;
+
+            // C-6: Guardian Angel death replacement
+            if (TryGuardianProtectFromSpell(unit, owner, gs))
+            {
+                return;
+            }
+
             // Fire BEFORE removal so GameUI can play death animation on the still-visible CardView (DEV-17)
             GameManager.FireUnitDied(unit);
-            string owner = unit.Owner;
 
             // Check base
             if (gs.GetBase(owner).Remove(unit))
@@ -179,6 +191,53 @@ namespace FWTCG.Systems
                     return;
                 }
             }
+        }
+
+        /// <summary>
+        /// C-6 守护天使死亡替换：法术致死时若附着 guardian_equip，改为销毁装备 + 单位回基地休眠。
+        /// </summary>
+        private bool TryGuardianProtectFromSpell(UnitInstance unit, string owner, GameState gs)
+        {
+            var equip = unit.AttachedEquipment;
+            if (equip == null) return false;
+            if (equip.CardData.EffectId != "guardian_equip") return false;
+
+            // 销毁装备
+            gs.GetDiscard(owner).Add(equip);
+            int bonus = equip.CardData.EquipAtkBonus;
+            if (bonus > 0)
+                unit.CurrentAtk = Mathf.Max(0, unit.CurrentAtk - bonus);
+            unit.AttachedEquipment = null;
+            equip.AttachedTo = null;
+
+            // 从原位置移除
+            if (gs.GetBase(owner).Remove(unit))
+            {
+                // already in base, move back with exhausted state
+            }
+            else
+            {
+                for (int i = 0; i < GameRules.BATTLEFIELD_COUNT; i++)
+                {
+                    var bfUnits = owner == GameRules.OWNER_PLAYER
+                        ? gs.BF[i].PlayerUnits : gs.BF[i].EnemyUnits;
+                    if (bfUnits.Remove(unit))
+                    {
+                        UpdateBFControl(i, gs);
+                        break;
+                    }
+                }
+            }
+
+            // 恢复并回基地休眠
+            unit.CurrentHp = unit.CurrentAtk;
+            unit.Exhausted = true;
+            unit.TempAtkBonus = 0;
+            unit.Stunned = false;
+            gs.GetBase(owner).Add(unit);
+
+            Log($"[守护天使] {equip.UnitName} 被摧毁，保护 {unit.UnitName} 休眠返回基地");
+            return true;
         }
 
         private void UpdateBFControl(int bfIdx, GameState gs)
@@ -332,6 +391,76 @@ namespace FWTCG.Systems
             if (target == null) return;
             target.TempAtkBonus += bonus;
             Log($"[先斩后奏] {target.UnitName} 获得+{bonus}战力（本回合）");
+        }
+
+        // ── guilty_pleasure 动态伤害 ──────────────────────────────────────────
+
+        /// <summary>
+        /// 罪恶快感：弃1张手牌，对目标造成等于弃牌费用的伤害。
+        /// 优先弃非法术牌（避免丢弃未结算的反应牌），手牌空则跳过伤害。
+        /// </summary>
+        private void GuiltyPleasure(string owner, UnitInstance target, GameState gs)
+        {
+            if (target == null) return;
+            var hand = gs.GetHand(owner);
+            if (hand.Count == 0)
+            {
+                Log("[罪恶快感] 手牌为空，无牌可弃");
+                return;
+            }
+
+            UnitInstance toDiscard = null;
+            foreach (var c in hand)
+            {
+                if (!c.CardData.IsSpell) { toDiscard = c; break; }
+            }
+            if (toDiscard == null) toDiscard = hand[0];
+
+            int dmg = toDiscard.CardData.Cost;
+            hand.Remove(toDiscard);
+            gs.GetDiscard(owner).Add(toDiscard);
+            Log($"[罪恶快感] 弃置 {toDiscard.UnitName}（费用{dmg}）");
+
+            if (dmg > 0)
+                DealDamage(target, dmg, gs);
+            else
+                Log("[罪恶快感] 弃牌费用为0，无伤害");
+        }
+
+        // ── starburst 二目标辅助 ──────────────────────────────────────────────
+
+        /// <summary>
+        /// 星芒凝汇第二目标：自动挑选与第一目标不同的另一个敌方存活单位并造成 6 点伤害。
+        /// </summary>
+        private void Starburst_DealToSecondTarget(string owner, UnitInstance first, GameState gs)
+        {
+            string enemy = gs.Opponent(owner);
+            var candidates = new List<UnitInstance>(gs.GetBase(enemy));
+            for (int i = 0; i < GameRules.BATTLEFIELD_COUNT; i++)
+            {
+                var bfUnits = enemy == GameRules.OWNER_PLAYER
+                    ? gs.BF[i].PlayerUnits : gs.BF[i].EnemyUnits;
+                candidates.AddRange(bfUnits);
+            }
+
+            UnitInstance second = null;
+            foreach (var u in candidates)
+            {
+                if (u == first) continue;
+                if (u.CurrentHp <= 0) continue;
+                if (u.HasSpellShield) continue; // simplified: skip shielded secondary
+                second = u;
+                break;
+            }
+
+            if (second != null)
+            {
+                DealDamage(second, 6, gs);
+            }
+            else
+            {
+                Log("[星芒凝汇] 无第二合法目标，跳过第二次伤害");
+            }
         }
 
         // ── Helpers ───────────────────────────────────────────────────────────

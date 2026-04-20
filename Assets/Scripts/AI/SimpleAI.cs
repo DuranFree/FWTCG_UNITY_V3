@@ -409,9 +409,10 @@ namespace FWTCG.AI
                     if (enemies.Count == 0) return null;
 
                     // Rule 721: units with SpellShield cost 1 extra sch to target.
-                    // Only include them if the AI has at least 1 sch available.
+                    // C-8: units with UntargetableBySpells cannot be targeted at all.
                     int aiTotalSch = gs.GetSch(GameRules.OWNER_ENEMY);
                     var affordableEnemies = enemies
+                        .Where(u => !u.UntargetableBySpells)
                         .Where(u => !u.HasSpellShield || aiTotalSch >= 1)
                         .ToList();
                     if (affordableEnemies.Count == 0) return null;
@@ -420,6 +421,7 @@ namespace FWTCG.AI
                     {
                         // Stun: prefer BF units (they fight), pick highest ATK, unstunned
                         UnitInstance bfTarget = GetPlayerBFUnits(gs)
+                            .Where(u => !u.UntargetableBySpells)
                             .Where(u => !u.Stunned && (!u.HasSpellShield || aiTotalSch >= 1))
                             .OrderByDescending(u => u.EffectiveAtk())
                             .FirstOrDefault();

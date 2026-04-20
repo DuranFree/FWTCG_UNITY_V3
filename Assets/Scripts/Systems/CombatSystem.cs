@@ -326,6 +326,7 @@ namespace FWTCG.Systems
         /// <summary>
         /// Computes total combat power for a group of units.
         /// Stunned units contribute 0 (Rule 743).
+        /// Rule 139.2: power &lt; 0 treated as 0 (not 1). Uses EffectiveAtk() for floor.
         /// StrongAtk adds +1 when attacking; Guard adds +1 when defending.
         /// </summary>
         private int ComputeCombatPower(List<UnitInstance> units, bool isAttacking)
@@ -334,7 +335,7 @@ namespace FWTCG.Systems
             foreach (UnitInstance u in units)
             {
                 if (u.Stunned) continue;
-                int power = Mathf.Max(1, u.CurrentAtk + u.TempAtkBonus);
+                int power = u.EffectiveAtk();  // already Max(0, CurrentAtk + TempAtkBonus)
                 if (isAttacking && u.HasStrongAtk) power += 1;
                 if (!isAttacking && u.HasGuard) power += 1;
                 total += power;
@@ -383,6 +384,13 @@ namespace FWTCG.Systems
         {
             foreach (UnitInstance u in dead)
             {
+                // C-6: Guardian Angel / Zhonya 死亡替换 — 若单位附着 guardian_equip，
+                // 改为销毁装备，单位以休眠状态返回基地，不计为阵亡。
+                if (TryGuardianProtect(u, bf, owner, gs))
+                {
+                    continue;
+                }
+
                 // Fire BEFORE removal so GameUI can play death animation on the still-visible CardView (DEV-17)
                 GameManager.FireUnitDied(u);
                 Log($"[阵亡] {u.UnitName}({DisplayName(owner)})");
@@ -397,6 +405,40 @@ namespace FWTCG.Systems
                 if (u.CardData.EffectId == "tiyana_enter" && gs.TiyanasInPlay.ContainsKey(owner))
                     gs.TiyanasInPlay[owner] = false;
             }
+        }
+
+        /// <summary>
+        /// C-6 守护天使死亡替换：若将死单位附着 guardian_equip 装备，则销毁装备、单位回基地休眠。
+        /// 返回 true 表示已触发保护，单位不应被当成阵亡处理。
+        /// </summary>
+        private bool TryGuardianProtect(UnitInstance unit, BattlefieldState bf, string owner, GameState gs)
+        {
+            var equip = unit.AttachedEquipment;
+            if (equip == null) return false;
+            if (equip.CardData.EffectId != "guardian_equip") return false;
+
+            // 销毁装备 → 弃牌堆
+            gs.GetDiscard(owner).Add(equip);
+            // 从战场移除单位
+            if (owner == GameRules.OWNER_PLAYER) bf.PlayerUnits.Remove(unit);
+            else                                 bf.EnemyUnits.Remove(unit);
+            // 卸下装备加成，恢复基础状态
+            int bonus = equip.CardData.EquipAtkBonus;
+            if (bonus > 0)
+            {
+                unit.CurrentAtk = Mathf.Max(0, unit.CurrentAtk - bonus);
+            }
+            unit.AttachedEquipment = null;
+            equip.AttachedTo = null;
+            // 回基地休眠
+            unit.CurrentHp = unit.CurrentAtk; // 治愈
+            unit.Exhausted = true;
+            unit.TempAtkBonus = 0;
+            unit.Stunned = false;
+            gs.GetBase(owner).Add(unit);
+
+            Log($"[守护天使] {equip.UnitName} 被摧毁，保护 {unit.UnitName} 休眠返回基地");
+            return true;
         }
 
         /// <summary>
@@ -484,17 +526,29 @@ namespace FWTCG.Systems
                 switch (unit.CardData.EffectId)
                 {
                     case "bad_poro_conquer":
-                        // Draw 1 card on conquest
-                        var deck = gs.GetDeck(attacker);
-                        var hand = gs.GetHand(attacker);
-                        if (deck.Count > 0)
-                        {
-                            hand.Add(deck[0]);
-                            deck.RemoveAt(0);
-                            Log($"[征服触发] {unit.UnitName} 征服效果：摸1张牌（手牌 {hand.Count}）");
-                        }
+                        // bad_poro 卡面："当我征服一处战场时，打出1枚休眠的「硬币」装备指示物。"
+                        // 硬币装备指示物尚未建模，简化为摸一张牌作为占位。
+                        DrawOneCardForConquest(attacker, gs, unit);
+                        break;
+
+                    case "kaisa_hero_conquer":
+                        // 卡莎·九死一生："当我征服一处战场时，抽一张牌。"
+                        DrawOneCardForConquest(attacker, gs, unit);
                         break;
                 }
+            }
+        }
+
+        /// <summary>Shared: draw 1 card as a conquest-triggered effect.</summary>
+        private void DrawOneCardForConquest(string owner, GameState gs, UnitInstance source)
+        {
+            var deck = gs.GetDeck(owner);
+            var hand = gs.GetHand(owner);
+            if (deck.Count > 0)
+            {
+                hand.Add(deck[0]);
+                deck.RemoveAt(0);
+                Log($"[征服触发] {source.UnitName}：抽1张牌（手牌 {hand.Count}）");
             }
         }
 

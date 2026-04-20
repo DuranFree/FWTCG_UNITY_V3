@@ -17,6 +17,8 @@ MonoBehaviour:
   _cost: 2
   _runeType: 2
   _runeCost: 0
+  _secondaryRuneType: 0
+  _secondaryRuneCost: 0
   _atk: 0
   _keywords: 0
   _effectId: guardian_equip
@@ -27,5 +29,5 @@ MonoBehaviour:
   _isHero: 0
   _isSpell: 0
   _spellTargetType: 0
-  _description: "\u9644\u7740\u5355\u4F4D\u9635\u4EA1\u65F6\u6539\u4E3A\u4F11\u7720\u8FD4\u56DE\u57FA\u5730\u3002+1\u6218\u529B"
+  _description: "\u88C5\u914D[1]\uFF08\u652F\u4ED8[1]\uFF1A\u5C06\u6B64\u724C\u8D34\u9644\u5230\u4F60\u63A7\u5236\u7684\u4E00\u540D\u5355\u4F4D\u4E0A\u3002\uFF09\u82E5\u6B64\u724C\u88AB\u9644\u7740\u7684\u5355\u4F4D\u4F1A\u88AB\u6467\u6BC1\uFF0C\u6539\u4E3A\u5C06\u6B64\u724C\u6467\u6BC1\u3002\u53EC\u56DE\u8BE5\u5355\u4F4D\u5E76\u4F7F\u5176\u4F11\u7720\u3002\uFF08\u628A\u5B83\u79FB\u5230\u57FA\u5730\uFF0C\u6B64\u884C\u4E3A\u4E0D\u89C6\u4E3A\u79FB\u52A8\u3002\uFF09+1\u6218\u529B"
   _artSprite: {fileID: 21300000, guid: c44d72b5551e6594fad12ae7eeb411d7, type: 3}

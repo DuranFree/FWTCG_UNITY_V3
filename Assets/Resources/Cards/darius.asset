@@ -17,6 +17,8 @@ MonoBehaviour:
   _cost: 5
   _runeType: 0
   _runeCost: 1
+  _secondaryRuneType: 0
+  _secondaryRuneCost: 0
   _atk: 5
   _keywords: 0
   _effectId: darius_second_card
@@ -27,5 +29,5 @@ MonoBehaviour:
   _isHero: 0
   _isSpell: 0
   _spellTargetType: 0
-  _description: "\u5165\u573A\uFF1A\u82E5\u672C\u56DE\u5408\u5DF2\u6253\u51FA\u5176\u4ED6\u724C\uFF0C+2\u6218\u529B\u5E76\u53D8\u4E3A\u6D3B\u8DC3\u72B6\u6001"
+  _description: "\u6BCF\u5F53\u4F60\u5728\u672C\u56DE\u5408\u4E2D\u6253\u51FA\u7B2C\u4E8C\u5F20\u724C\u65F6\uFF0C\u8BA9\u6211\u672C\u56DE\u5408+2\uFF0C\u5E76\u8BA9\u6211\u53D8\u4E3A\u6D3B\u8DC3\u72B6\u6001\u3002"
   _artSprite: {fileID: 21300000, guid: 767ca1a1f809ace4a8dea6d5f6706545, type: 3}

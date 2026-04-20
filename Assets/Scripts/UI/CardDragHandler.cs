@@ -61,12 +61,14 @@ namespace FWTCG.UI
 
         // Main drag ghost
         private GameObject _ghost;
-        private Vector2    _dragOriginCanvasPos; // canvas-space origin of dragged card
+        private Vector2    _dragOriginCanvasPos; // legacy canvas-space (兼容旧代码)
+        private Vector3    _dragOriginWorldPos;  // world-space origin（SS-Camera 下正确的参考）
 
         // Cluster: ghost copies of other selected cards
         private readonly List<GameObject> _clusterGhosts      = new List<GameObject>();
         private readonly List<CardView>   _clusterOrigViews   = new List<CardView>();
-        private readonly List<Vector2>    _clusterGhostOrigins = new List<Vector2>(); // canvas-space spawn positions
+        private readonly List<Vector2>    _clusterGhostOrigins = new List<Vector2>(); // legacy canvas-space
+        private readonly List<Vector3>    _clusterGhostWorldOrigins = new List<Vector3>(); // world-space (SS-Camera 安全)
         private Coroutine _clusterMoveCoroutine;
         private Sequence  _cancelReturnSeq; // DOT-4: replaced coroutine
         private Vector2   _dragScreenPos; // updated in OnDrag
@@ -154,9 +156,11 @@ namespace FWTCG.UI
             _dragRotation      = 0f; // VFX-7e
             _prevDragPos       = ScreenToCanvas(Input.mousePosition); // VFX-7e
 
-            // Store canvas-space origin of the dragged card (for cancel return animation).
-            if (RootCanvas != null)
+            // Store origin of dragged card (world-space, SS-Camera 安全).
+            if (RootCanvas != null && _rt != null)
             {
+                _dragOriginWorldPos = _rt.position;
+                // 兼容旧字段：保留 canvas-space 转换（给仍用该字段的代码用）
                 var originCorners = new Vector3[4];
                 _rt.GetWorldCorners(originCorners);
                 Vector2 cardScreenPos = new Vector2(
@@ -437,19 +441,20 @@ namespace FWTCG.UI
             TweenHelper.KillSafe(ref _cancelReturnSeq);
             _cancelReturnSeq = DOTween.Sequence();
 
-            // Main ghost returns to origin
+            // Main ghost 返回世界坐标原点（SS-Camera 安全）
             if (_ghost != null)
             {
-                var gRT = _ghost.GetComponent<RectTransform>();
-                if (gRT != null)
+                var gT = _ghost.transform;
+                if (gT != null)
                 {
+                    Vector3 target = _dragOriginWorldPos;
                     _cancelReturnSeq.Join(
                         DOTween.To(
-                            () => (Vector2)gRT.localPosition,
-                            v => gRT.localPosition = new Vector3(v.x, v.y, 0f),
-                            _dragOriginCanvasPos, CANCEL_RETURN_DURATION)
+                            () => gT.position,
+                            v => gT.position = v,
+                            target, CANCEL_RETURN_DURATION)
                         .SetEase(Ease.InOutQuad)
-                        .SetTarget(gRT));
+                        .SetTarget(gT));
                 }
             }
 
@@ -458,20 +463,20 @@ namespace FWTCG.UI
             {
                 var g = _clusterGhosts[i];
                 if (g == null) continue;
-                var gRT = g.GetComponent<RectTransform>();
-                if (gRT == null) continue;
+                var gT = g.transform;
+                if (gT == null) continue;
 
-                Vector2 origin = i < _clusterGhostOrigins.Count
-                    ? _clusterGhostOrigins[i] : _dragOriginCanvasPos;
+                Vector3 origin = i < _clusterGhostWorldOrigins.Count
+                    ? _clusterGhostWorldOrigins[i] : _dragOriginWorldPos;
                 float delay = (i + 1) * CANCEL_STAGGER_DELAY;
 
                 _cancelReturnSeq.Insert(delay,
                     DOTween.To(
-                        () => (Vector2)gRT.localPosition,
-                        v => gRT.localPosition = new Vector3(v.x, v.y, 0f),
+                        () => gT.position,
+                        v => gT.position = v,
                         origin, CANCEL_RETURN_DURATION)
                     .SetEase(Ease.InOutQuad)
-                    .SetTarget(gRT));
+                    .SetTarget(gT));
             }
 
             _cancelReturnSeq.OnComplete(() =>
@@ -698,45 +703,53 @@ namespace FWTCG.UI
                 var rt = cv.GetComponent<RectTransform>();
                 if (rt == null) continue;
 
+                // 世界坐标起点（SS-Camera 下 rt.position 即真实 world 位置）
+                Vector3 originWorldPos = rt.position;
+                Vector2 cardSize = rt.rect.size;
+
                 // Hide original in-place — ghost replaces it visually
                 cv.SuspendLift();
                 var origCG = cv.GetComponent<CanvasGroup>() ?? cv.gameObject.AddComponent<CanvasGroup>();
                 origCG.alpha = 0f;
                 _clusterOrigViews.Add(cv);
 
-                // Snapshot screen position before creating ghost.
-                // For SS-Overlay, rt.position is already in screen pixel space.
-                var cardCorners = new Vector3[4];
-                rt.GetWorldCorners(cardCorners);
-                Vector2 screenPos = new Vector2(
-                    (cardCorners[0].x + cardCorners[2].x) * 0.5f,
-                    (cardCorners[0].y + cardCorners[2].y) * 0.5f);
-                Vector2 cardSize  = rt.rect.size;
-
                 var ghost = Instantiate(cv.gameObject, RootCanvas.transform);
                 ghost.name = "ClusterGhost";
 
                 var dh2  = ghost.GetComponent<CardDragHandler>(); if (dh2  != null) Destroy(dh2);
                 var btn2 = ghost.GetComponent<Button>();           if (btn2 != null) Destroy(btn2);
+                // VFX-7h: Cluster ghost 上的 CardHoverScale 必须移除，否则它会继续执行 Update 把缩放弹到 1.1x
+                var chs2 = ghost.GetComponent<CardHoverScale>();    if (chs2 != null) Destroy(chs2);
 
                 var gcg = ghost.GetComponent<CanvasGroup>() ?? ghost.AddComponent<CanvasGroup>();
-                gcg.alpha          = 1f;   // cluster ghosts are fully opaque — they represent the actual card
+                gcg.alpha          = 1f;
                 gcg.blocksRaycasts = false;
                 gcg.interactable   = false;
 
                 var ghostRT = ghost.GetComponent<RectTransform>();
                 ghostRT.anchorMin = new Vector2(0.5f, 0.5f);
                 ghostRT.anchorMax = new Vector2(0.5f, 0.5f);
+                ghostRT.pivot     = new Vector2(0.5f, 0.5f);
                 ghostRT.sizeDelta = cardSize;
-                RectTransformUtility.ScreenPointToLocalPointInRectangle(
-                    RootCanvas.GetComponent<RectTransform>(), screenPos, uiCam, out Vector2 canvasPos);
-                ghostRT.localPosition = new Vector3(canvasPos.x, canvasPos.y, 0f);
+                ghostRT.localScale = Vector3.one * 0.88f;
+                ghostRT.localRotation = Quaternion.identity;
 
                 _clusterGhosts.Add(ghost);
-                _clusterGhostOrigins.Add(canvasPos); // save real origin for cancel animation
+                _clusterGhostWorldOrigins.Add(originWorldPos); // world-space origin (用来做 cancel 返回)
+                _clusterGhostOrigins.Add(Vector2.zero);        // 旧字段占位
 
-                // Start stacked on main card — they spread out naturally via lag as mouse moves
-                ghostRT.localPosition = new Vector3(_dragOriginCanvasPos.x, _dragOriginCanvasPos.y, 0f);
+                // 起点 = 鼠标当前世界位置（通过世界坐标下设置 transform.position）
+                Camera mouseCam = RootCanvas.worldCamera;
+                if (mouseCam != null)
+                {
+                    Vector3 mouseScreen = Input.mousePosition;
+                    mouseScreen.z = Mathf.Abs(mouseCam.transform.position.z - ghost.transform.position.z);
+                    ghost.transform.position = mouseCam.ScreenToWorldPoint(mouseScreen);
+                }
+                else
+                {
+                    ghost.transform.position = (Vector3)(Vector2)Input.mousePosition;
+                }
             }
 
             if (_clusterGhosts.Count > 0)
@@ -749,6 +762,10 @@ namespace FWTCG.UI
         /// </summary>
         private IEnumerator ClusterFollowRoutine()
         {
+            // 让玩家能看到正在拖的卡数量：每张 ghost 相对主 ghost 做小幅右上错位
+            const float CLUSTER_STAGGER_X = 14f;
+            const float CLUSTER_STAGGER_Y = 10f;
+
             while (_isDragging)
             {
                 Vector2 canvasTarget = ScreenToCanvas(_dragScreenPos);
@@ -760,13 +777,15 @@ namespace FWTCG.UI
                     var gRT = g.GetComponent<RectTransform>();
                     if (gRT == null) continue;
 
-                    // All ghosts aim for the same position as the main card —
-                    // staggered lag speed creates the natural trailing chain without fan spread
+                    // 每张 ghost 相对主 ghost 错位 (i+1)*stagger，露出下面卡片的一角
+                    Vector2 offsetTarget = canvasTarget
+                        + new Vector2(CLUSTER_STAGGER_X * (i + 1), CLUSTER_STAGGER_Y * (i + 1));
+
                     float lerpSpeed = Mathf.Max(9f - i * 2f, 3f);
-                    gRT.localPosition = Vector2.Lerp(gRT.localPosition, canvasTarget, Time.deltaTime * lerpSpeed);
+                    gRT.localPosition = Vector2.Lerp(gRT.localPosition, offsetTarget, Time.deltaTime * lerpSpeed);
                 }
 
-                // Z-order: slowest ghost at bottom, fastest just below main, main on top
+                // Z-order: 索引大的在最底，索引小的在上，主 ghost 最上
                 for (int i = _clusterGhosts.Count - 1; i >= 0; i--)
                     if (_clusterGhosts[i] != null) _clusterGhosts[i].transform.SetAsLastSibling();
                 if (_ghost != null) _ghost.transform.SetAsLastSibling();
@@ -787,6 +806,7 @@ namespace FWTCG.UI
                 if (g != null) Destroy(g);
             _clusterGhosts.Clear();
             _clusterGhostOrigins.Clear();
+            _clusterGhostWorldOrigins.Clear();
 
             // Restore original cards: alpha + lift — do NOT touch selection state
             foreach (var cv in _clusterOrigViews)

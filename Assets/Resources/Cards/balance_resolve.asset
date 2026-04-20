@@ -13,10 +13,12 @@ MonoBehaviour:
   m_Name: balance_resolve
   m_EditorClassIdentifier: 
   _id: balance_resolve
-  _cardName: "\u5E73\u8861\u610F\u5FD7"
+  _cardName: "\u5FA1\u5FA1\u5B88\u5FF5"
   _cost: 3
   _runeType: 2
   _runeCost: 0
+  _secondaryRuneType: 0
+  _secondaryRuneCost: 0
   _atk: 0
   _keywords: 32768
   _effectId: balance_resolve
@@ -27,5 +29,5 @@ MonoBehaviour:
   _isHero: 0
   _isSpell: 1
   _spellTargetType: 0
-  _description: "\u8FC5\u6377\u3002\u64781\u5F20\u724C\uFF0C\u53EC\u51FA1\u5F20\u7B26\u6587"
+  _description: "\u8FC5\u6377\uFF08\u53EF\u5728\u4F60\u7684\u56DE\u5408\u6216\u6CD5\u672F\u5BF9\u51B3\u4E2D\u6253\u51FA\u3002\uFF09\u5982\u679C\u5BF9\u624B\u5206\u6570\u79BB\u83B7\u80DC\u5206\u6570\u4E0D\u8D85\u8FC73\uFF0C\u5219\u6B64\u6CD5\u672F\u7684\u8D39\u7528\u51CF\u5C11[3]\u3002\u62BD\u4E00\u5F20\u724C\uFF0C\u7136\u540E\u53EC\u51FA\u4E00\u679A\u4F11\u7720\u7684\u7B26\u6587\u3002"
   _artSprite: {fileID: 21300000, guid: 9e4afe388dc5acf4ba1b41ca97a4d3db, type: 3}

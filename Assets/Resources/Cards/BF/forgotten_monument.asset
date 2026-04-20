@@ -13,7 +13,7 @@ MonoBehaviour:
   m_Name: forgotten_monument
   m_EditorClassIdentifier: 
   _id: forgotten_monument
-  _cardName: 遗忘丰碑
+  _cardName: "遗忘丰碑"
   _cost: 0
   _runeType: 0
   _runeCost: 0
@@ -27,5 +27,5 @@ MonoBehaviour:
   _isHero: 0
   _isSpell: 0
   _spellTargetType: 0
-  _description: 【被动】第三回合前无据守分
+  _description: "每名玩家在各自的第三回合开始前，无法从此处获得分数。"
   _artSprite: {fileID: 0}

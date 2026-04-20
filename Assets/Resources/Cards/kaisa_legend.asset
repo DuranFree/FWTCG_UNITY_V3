@@ -13,10 +13,12 @@ MonoBehaviour:
   m_Name: kaisa_legend
   m_EditorClassIdentifier: 
   _id: kaisa_legend
-  _cardName: "\u5361\u838E\xB7\u865A\u7A7A\u4E4B\u5973"
+  _cardName: "\u5361\u838E\u00B7\u865A\u7A7A\u4E4B\u5973"
   _cost: 0
   _runeType: 0
   _runeCost: 0
+  _secondaryRuneType: 1
+  _secondaryRuneCost: 0
   _atk: 0
   _keywords: 0
   _effectId: 

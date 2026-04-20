@@ -153,36 +153,104 @@ namespace FWTCG.UI
             if (_typeChip   != null) _typeChip.SetActive(false);
             if (_keywordRow != null) _keywordRow.gameObject.SetActive(false);
 
-            if (_artImage != null)
+            if (_artImage != null && _panel != null)
             {
-                var infoColumn = _artImage.transform.parent != null
-                    ? _artImage.transform.parent.Find("InfoColumn") : null;
-                if (infoColumn != null) infoColumn.gameObject.SetActive(false);
+                // 1. art 先挂到 overlay (_panel) 下，脱离 DetailPanel 的父子关系
+                _artImage.transform.SetParent(_panel.transform, false);
 
-                var panelRT = _artImage.transform.parent != null && _artImage.transform.parent.parent != null
-                    ? _artImage.transform.parent.parent as RectTransform : null;
-                if (panelRT != null)
+                // 2. 扫 overlay 所有直接子节点，除 art/BlurBG/Dim 外全部销毁（彻底消除底座）
+                var overlayT = _panel.transform;
+                for (int i = overlayT.childCount - 1; i >= 0; i--)
                 {
-                    panelRT.sizeDelta = new Vector2(520f, 720f);
-                    var panelImg = panelRT.GetComponent<Image>();
-                    if (panelImg != null) panelImg.color = new Color(0, 0, 0, 0);
-                    var panelOutline = panelRT.GetComponent<Outline>();
-                    if (panelOutline != null) panelOutline.enabled = false;
-                    var texChild = panelRT.Find("PanelTexture");
-                    if (texChild != null) texChild.gameObject.SetActive(false);
+                    var child = overlayT.GetChild(i);
+                    if (child == _artImage.transform) continue;
+                    string n = child.name;
+                    if (n == "BlurBG" || n == "Dim") continue;
+                    if (Application.isPlaying) Destroy(child.gameObject);
+                    else DestroyImmediate(child.gameObject);
                 }
 
-                var artLE = _artImage.GetComponent<LayoutElement>();
-                if (artLE != null)
-                {
-                    artLE.preferredWidth = 500f;
-                    artLE.minWidth       = 500f;
-                    artLE.flexibleWidth  = 1f;
-                    artLE.flexibleHeight = 1f;
-                }
+                // 3. art 自由定位：屏幕中心 + 固定 500×720
+                var artLE = _artImage.GetComponent<LayoutElement>()
+                    ?? _artImage.gameObject.AddComponent<LayoutElement>();
+                artLE.ignoreLayout = true;
+
+                var artRT = _artImage.rectTransform;
+                artRT.anchorMin = new Vector2(0.5f, 0.5f);
+                artRT.anchorMax = new Vector2(0.5f, 0.5f);
+                artRT.pivot     = new Vector2(0.5f, 0.5f);
+                artRT.anchoredPosition = Vector2.zero;
+                artRT.sizeDelta = new Vector2(500f, 720f);
+
+                _artImage.preserveAspect = true;
+
+                // 4. 在 art 背后插一层光晕 halo（半径渐变 + 浅蓝白色）
+                CreateGlowBehindArt();
+
+                _artImage.transform.SetAsLastSibling(); // art 渲染在 glow 之上
             }
 
             _simplified = true;
+        }
+
+        /// <summary>在 art 背后创建一个发光光晕 Image（运行时生成半径渐变 sprite）。</summary>
+        private void CreateGlowBehindArt()
+        {
+            if (_artImage == null || _panel == null) return;
+            // 已存在则跳过
+            if (_panel.transform.Find("CardGlow") != null) return;
+
+            var glowGO = new GameObject("CardGlow");
+            glowGO.transform.SetParent(_panel.transform, false);
+            var img = glowGO.AddComponent<Image>();
+            img.sprite = GetOrCreateRadialGlowSprite();
+            img.raycastTarget = false;
+            img.color = new Color(0.75f, 0.85f, 1f, 0.85f); // 浅冷白蓝
+
+            var rt = img.rectTransform;
+            rt.anchorMin = new Vector2(0.5f, 0.5f);
+            rt.anchorMax = new Vector2(0.5f, 0.5f);
+            rt.pivot     = new Vector2(0.5f, 0.5f);
+            rt.anchoredPosition = Vector2.zero;
+            // 比卡图大 1.4 倍，营造扩散感
+            var artSize = _artImage.rectTransform.sizeDelta;
+            rt.sizeDelta = new Vector2(artSize.x * 1.5f, artSize.y * 1.35f);
+
+            // 插在 art 前面（render 在 art 之下）
+            int artIdx = _artImage.transform.GetSiblingIndex();
+            glowGO.transform.SetSiblingIndex(artIdx);
+        }
+
+        // 运行时生成的半径渐变 sprite，所有 popup 实例共用一份
+        private static Sprite s_glowSprite;
+        private static Sprite GetOrCreateRadialGlowSprite()
+        {
+            if (s_glowSprite != null) return s_glowSprite;
+            const int size = 256;
+            var tex = new Texture2D(size, size, TextureFormat.RGBA32, false) { hideFlags = HideFlags.HideAndDontSave };
+            tex.wrapMode = TextureWrapMode.Clamp;
+            float c = (size - 1) * 0.5f;
+            float maxD = c;
+            var px = new Color[size * size];
+            for (int y = 0; y < size; y++)
+            {
+                for (int x = 0; x < size; x++)
+                {
+                    float dx = x - c;
+                    float dy = y - c;
+                    float d = Mathf.Sqrt(dx * dx + dy * dy) / maxD; // 0..1
+                    // 平滑渐变：中心不透明(0.9)，边缘透明(0)，使用 smoothstep 形状
+                    float a = Mathf.Clamp01(1f - d);
+                    a = a * a * (3f - 2f * a); // smoothstep
+                    px[y * size + x] = new Color(1f, 1f, 1f, a);
+                }
+            }
+            tex.SetPixels(px);
+            tex.Apply(false, true);
+            s_glowSprite = Sprite.Create(tex,
+                new Rect(0, 0, size, size), new Vector2(0.5f, 0.5f));
+            s_glowSprite.hideFlags = HideFlags.HideAndDontSave;
+            return s_glowSprite;
         }
 
         private void BeginShow()
@@ -206,16 +274,28 @@ namespace FWTCG.UI
             if (_blurMat != null && _blurBG != null)
             {
                 var screenTex = ScreenCapture.CaptureScreenshotAsTexture();
-                int w = Mathf.Max(64, Screen.width  / 2);
-                int h = Mathf.Max(64, Screen.height / 2);
-                var rt1 = RenderTexture.GetTemporary(w, h, 0);
-                var rt2 = RenderTexture.GetTemporary(w, h, 0);
-                Graphics.Blit(screenTex, rt1, _blurMat, 0);
-                Graphics.Blit(rt1, rt2, _blurMat, 1);
-                RenderTexture.ReleaseTemporary(rt1);
+
+                // 1/4 尺寸降采样（更柔和，消除 banding）
+                int w = Mathf.Max(64, Screen.width  / 4);
+                int h = Mathf.Max(64, Screen.height / 4);
+                var rtA = RenderTexture.GetTemporary(w, h, 0);
+                var rtB = RenderTexture.GetTemporary(w, h, 0);
+
+                // 第一次：原始截图 → rtA（水平）→ rtB（垂直）
+                Graphics.Blit(screenTex, rtA, _blurMat, 0);
+                Graphics.Blit(rtA, rtB, _blurMat, 1);
+
+                // 追加 2 轮 ping-pong 迭代，每轮 H+V 一次，总共 3 轮
+                for (int i = 0; i < 2; i++)
+                {
+                    Graphics.Blit(rtB, rtA, _blurMat, 0);
+                    Graphics.Blit(rtA, rtB, _blurMat, 1);
+                }
+
+                RenderTexture.ReleaseTemporary(rtA);
                 ReleaseBlurRT();
-                _currentBlurRT = rt2;
-                _blurBG.texture = rt2;
+                _currentBlurRT = rtB;
+                _blurBG.texture = rtB;
                 _blurBG.enabled = true;
                 Destroy(screenTex);
             }
@@ -246,7 +326,8 @@ namespace FWTCG.UI
                 return;
             }
             _blurMat = new Material(sh) { hideFlags = HideFlags.DontSave };
-            _blurMat.SetFloat("_BlurSize", 3.5f);
+            // BlurSize 配合 3 轮迭代 + 1/4 降采样，3f 已是明显柔模糊效果，避免过强割裂
+            _blurMat.SetFloat("_BlurSize", 3f);
         }
 
         private void ReleaseBlurRT()

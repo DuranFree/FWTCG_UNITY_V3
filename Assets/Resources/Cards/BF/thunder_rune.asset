@@ -13,7 +13,7 @@ MonoBehaviour:
   m_Name: thunder_rune
   m_EditorClassIdentifier: 
   _id: thunder_rune
-  _cardName: 雷霆之纹
+  _cardName: "雷霆之纹"
   _cost: 0
   _runeType: 0
   _runeCost: 0
@@ -27,5 +27,5 @@ MonoBehaviour:
   _isHero: 0
   _isSpell: 0
   _spellTargetType: 0
-  _description: 【征服】回收1张符文
+  _description: "当你征服此处时，回收你的一张符文。"
   _artSprite: {fileID: 0}

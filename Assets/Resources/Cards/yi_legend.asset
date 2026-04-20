@@ -13,10 +13,12 @@ MonoBehaviour:
   m_Name: yi_legend
   m_EditorClassIdentifier: 
   _id: yi_legend
-  _cardName: "\u6613\u5927\u5E08\xB7\u65E0\u6781\u5251\u5723"
+  _cardName: "\u65E0\u6781\u5251\u5723"
   _cost: 0
   _runeType: 3
   _runeCost: 0
+  _secondaryRuneType: 2
+  _secondaryRuneCost: 0
   _atk: 0
   _keywords: 0
   _effectId: 
@@ -27,5 +29,5 @@ MonoBehaviour:
   _isHero: 0
   _isSpell: 0
   _spellTargetType: 0
-  _description: "\u88AB\u52A8\uFF1A\u72EC\u5F71\u5251\u9E23\uFF08\u9632\u5B88\u5355\u4F4D\u4EC51\u540D\u65F6+2\u6218\u529B\uFF09"
+  _description: "\u5982\u679C\u4F60\u53EA\u6709\u4E00\u540D\u53CB\u65B9\u5355\u4F4D\u9632\u5B88\u4E00\u5904\u6218\u573A\uFF0C\u5219\u8BE5\u5355\u4F4D+2\u3002"
   _artSprite: {fileID: 21300000, guid: 0a7dedeb80a8f7f4ba44b07d90cddaa4, type: 3}

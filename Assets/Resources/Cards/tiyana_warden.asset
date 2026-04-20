@@ -13,10 +13,12 @@ MonoBehaviour:
   m_Name: tiyana_warden
   m_EditorClassIdentifier: 
   _id: tiyana_warden
-  _cardName: "\u7F07\u4E9A\u5A1C\xB7\u5195\u536B"
+  _cardName: "\u7F07\u4E9A\u5A1C\u00B7\u5195\u536B"
   _cost: 7
   _runeType: 2
-  _runeCost: 2
+  _runeCost: 1
+  _secondaryRuneType: 3
+  _secondaryRuneCost: 1
   _atk: 4
   _keywords: 4
   _effectId: tiyana_enter
@@ -27,5 +29,5 @@ MonoBehaviour:
   _isHero: 0
   _isSpell: 0
   _spellTargetType: 0
-  _description: "\u6CD5\u76FE\u3002\u5728\u573A\u65F6\u5BF9\u624B\u65E0\u6CD5\u83B7\u5F97\u636E\u5B88\u5206"
+  _description: "\u6CD5\u76FE\uFF08\u654C\u65B9\u6CD5\u672F\u9700\u989D\u5916\u652F\u4ED8[1]\u624D\u80FD\u9009\u4E2D\u3002\uFF09\u5982\u679C\u6211\u4F4D\u4E8E\u6218\u573A\u4E0A\uFF0C\u5219\u5BF9\u624B\u65E0\u6CD5\u5F97\u5206\u3002"
   _artSprite: {fileID: 21300000, guid: 2e6192c010513ba47b43b045ed34dd89, type: 3}

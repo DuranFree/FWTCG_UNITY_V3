@@ -15,8 +15,10 @@ MonoBehaviour:
   _id: foresight_mech
   _cardName: "\u5148\u89C1\u673A\u7532"
   _cost: 2
-  _runeType: 0
+  _runeType: 1
   _runeCost: 0
+  _secondaryRuneType: 0
+  _secondaryRuneCost: 0
   _atk: 2
   _keywords: 512
   _effectId: foresight_mech_enter
@@ -27,5 +29,5 @@ MonoBehaviour:
   _isHero: 0
   _isSpell: 0
   _spellTargetType: 0
-  _description: "\u9884\u77E5\uFF1A\u5165\u573A\u65F6\u67E5\u770B\u724C\u5E93\u98761\u5F20\u724C\uFF0C\u53EF\u9009\u62E9\u5C06\u5176\u7F6E\u5E95"
+  _description: "\u4F60\u7684\u300C\u673A\u68B0\u300D\u5C5E\u6027\u5355\u4F4D\u83B7\u5F97\u3010\u9884\u77E5\u3011\u3002\uFF08\u5F53\u4F60\u6253\u51FA\u6211\u65F6\uFF0C\u67E5\u770B\u4E3B\u724C\u5806\u9876\u7684\u4E00\u5F20\u724C\uFF0C\u4F60\u53EF\u4EE5\u9009\u62E9\u5C06\u5176\u7F6E\u5E95\u3002\uFF09"
   _artSprite: {fileID: 21300000, guid: 0f9d02883cea2364ba50818ab5d362c6, type: 3}

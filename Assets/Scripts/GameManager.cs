@@ -1255,22 +1255,51 @@ namespace FWTCG
                 _ = TryPlayUnitAsync(unit);
         }
 
+        /// <summary>
+        /// C-10 Legion 机制：如果卡牌有 Inspire(Legion) 关键词且本回合已打出过其他牌，
+        /// 费用减 2（最低 0）。贴图文字："军团 — 我的费用减少[2]。"
+        /// </summary>
+        private int ComputeLegionAdjustedCost(UnitInstance unit, GameState gs)
+        {
+            int baseCost = unit.CardData.Cost;
+            if (unit.CardData.HasKeyword(CardKeyword.Inspire) && gs.CardsPlayedThisTurn >= 1)
+            {
+                return Mathf.Max(0, baseCost - 2);
+            }
+            return baseCost;
+        }
+
         private async Task TryPlayUnitAsync(UnitInstance unit)
         {
-            if (unit.CardData.Cost > _gs.PMana)
+            // C-10 Legion: noxus_recruit 的费用在本回合已打出过其他牌时 -2
+            int effectiveCost = ComputeLegionAdjustedCost(unit, _gs);
+
+            if (effectiveCost > _gs.PMana)
             {
-                ShowPlayError($"[提示] 法力不足：需要 {unit.CardData.Cost}，当前 {_gs.PMana}", unit);
+                ShowPlayError($"[提示] 法力不足：需要 {effectiveCost}，当前 {_gs.PMana}", unit);
                 _selectedUnit = null;
                 return;
             }
 
-            // Check schematic (rune) cost
+            // Check primary rune cost
             if (unit.CardData.RuneCost > 0)
             {
                 int haveSch = _gs.GetSch(GameRules.OWNER_PLAYER, unit.CardData.RuneType);
                 if (haveSch < unit.CardData.RuneCost)
                 {
                     ShowPlayError($"[提示] 符能不足：需要 {unit.CardData.RuneCost} {unit.CardData.RuneType.ToColoredText()}，当前 {haveSch}", unit);
+                    _selectedUnit = null;
+                    return;
+                }
+            }
+
+            // Check secondary rune cost (dual-domain cards, e.g. tiyana_warden)
+            if (unit.CardData.HasSecondaryRune)
+            {
+                int have2 = _gs.GetSch(GameRules.OWNER_PLAYER, unit.CardData.SecondaryRuneType);
+                if (have2 < unit.CardData.SecondaryRuneCost)
+                {
+                    ShowPlayError($"[提示] 符能不足：需要 {unit.CardData.SecondaryRuneCost} {unit.CardData.SecondaryRuneType.ToColoredText()}，当前 {have2}", unit);
                     _selectedUnit = null;
                     return;
                 }
@@ -1288,7 +1317,7 @@ namespace FWTCG
                 }
                 else
                 {
-                    int extraManaNeeded = unit.CardData.Cost + 1;
+                    int extraManaNeeded = effectiveCost + 1;
                     int extraSchNeeded  = unit.CardData.RuneCost + 1;
                     int haveSch = _gs.GetSch(GameRules.OWNER_PLAYER, unit.CardData.RuneType);
                     bool canAfford = _gs.PMana >= extraManaNeeded && haveSch >= extraSchNeeded;
@@ -1312,7 +1341,9 @@ namespace FWTCG
             if (_gs == null || _gs.GameOver) return;
             if (_gs.Turn != GameRules.OWNER_PLAYER || _gs.Phase != GameRules.PHASE_ACTION) return;
             if (!_gs.PHand.Contains(unit)) return;
-            if (_gs.PMana < unit.CardData.Cost)
+
+            int effectiveCostPost = ComputeLegionAdjustedCost(unit, _gs);
+            if (_gs.PMana < effectiveCostPost)
             {
                 ShowPlayError("[提示] 资源状态已变更，操作已取消", unit);
                 _selectedUnit = null;
@@ -1325,19 +1356,28 @@ namespace FWTCG
                 _selectedUnit = null;
                 return;
             }
+            if (unit.CardData.HasSecondaryRune &&
+                _gs.GetSch(GameRules.OWNER_PLAYER, unit.CardData.SecondaryRuneType) < unit.CardData.SecondaryRuneCost)
+            {
+                ShowPlayError("[提示] 资源状态已变更，操作已取消", unit);
+                _selectedUnit = null;
+                return;
+            }
             // If Haste was chosen, re-verify extra cost is still affordable; downgrade silently if not
             if (useHaste)
             {
-                bool stillCanAffordHaste = _gs.PMana >= unit.CardData.Cost + 1 &&
+                bool stillCanAffordHaste = _gs.PMana >= effectiveCostPost + 1 &&
                     _gs.GetSch(GameRules.OWNER_PLAYER, unit.CardData.RuneType) >= unit.CardData.RuneCost + 1;
                 if (!stillCanAffordHaste) useHaste = false;
             }
 
             _gs.PHand.Remove(unit);
             _gs.PBase.Add(unit);
-            _gs.PMana -= unit.CardData.Cost;
+            _gs.PMana -= effectiveCostPost;
             if (unit.CardData.RuneCost > 0)
                 _gs.SpendSch(GameRules.OWNER_PLAYER, unit.CardData.RuneType, unit.CardData.RuneCost);
+            if (unit.CardData.HasSecondaryRune)
+                _gs.SpendSch(GameRules.OWNER_PLAYER, unit.CardData.SecondaryRuneType, unit.CardData.SecondaryRuneCost);
 
             // Pay Haste extra cost if chosen
             if (useHaste)
@@ -1358,7 +1398,7 @@ namespace FWTCG
             _gs.CardsPlayedThisTurn++;
             FireCardPlayed(unit, GameRules.OWNER_PLAYER);
             TurnManager.BroadcastMessage_Static(
-                $"[打出] {unit.UnitName}（费用{unit.CardData.Cost}），剩余法力 {_gs.PMana}");
+                $"[打出] {unit.UnitName}（费用{effectiveCostPost}），剩余法力 {_gs.PMana}");
 
             // Trigger entry effects
             if (_entryEffects != null)
@@ -1414,9 +1454,11 @@ namespace FWTCG
         /// </summary>
         private async Task TryPlayHeroAsync(UnitInstance hero)
         {
-            if (hero.CardData.Cost > _gs.PMana)
+            int effectiveCost = ComputeLegionAdjustedCost(hero, _gs);
+
+            if (effectiveCost > _gs.PMana)
             {
-                ShowPlayError($"[提示] 法力不足：需要 {hero.CardData.Cost}，当前 {_gs.PMana}", hero);
+                ShowPlayError($"[提示] 法力不足：需要 {effectiveCost}，当前 {_gs.PMana}", hero);
                 return;
             }
 
@@ -1430,7 +1472,17 @@ namespace FWTCG
                 }
             }
 
-            // Haste prompt (same as unit)
+            if (hero.CardData.HasSecondaryRune)
+            {
+                int have2 = _gs.GetSch(GameRules.OWNER_PLAYER, hero.CardData.SecondaryRuneType);
+                if (have2 < hero.CardData.SecondaryRuneCost)
+                {
+                    ShowPlayError($"[提示] 符能不足：需要 {hero.CardData.SecondaryRuneCost} {hero.CardData.SecondaryRuneType.ToColoredText()}，当前 {have2}", hero);
+                    return;
+                }
+            }
+
+            // Haste prompt
             bool useHaste = false;
             if (hero.CardData.HasKeyword(CardKeyword.Haste))
             {
@@ -1441,7 +1493,7 @@ namespace FWTCG
                 }
                 else
                 {
-                    int extraManaNeeded = hero.CardData.Cost + 1;
+                    int extraManaNeeded = effectiveCost + 1;
                     int extraSchNeeded  = hero.CardData.RuneCost + 1;
                     int haveSch = _gs.GetSch(GameRules.OWNER_PLAYER, hero.CardData.RuneType);
                     bool canAfford = _gs.PMana >= extraManaNeeded && haveSch >= extraSchNeeded;
@@ -1464,7 +1516,9 @@ namespace FWTCG
             if (_gs == null || _gs.GameOver) return;
             if (_gs.Turn != GameRules.OWNER_PLAYER || _gs.Phase != GameRules.PHASE_ACTION) return;
             if (_gs.PHero != hero) return; // hero already deployed or replaced
-            if (_gs.PMana < hero.CardData.Cost)
+
+            int effectiveCostPost = ComputeLegionAdjustedCost(hero, _gs);
+            if (_gs.PMana < effectiveCostPost)
             {
                 ShowPlayError("[提示] 资源状态已变更，操作已取消", hero);
                 return;
@@ -1475,9 +1529,15 @@ namespace FWTCG
                 ShowPlayError("[提示] 资源状态已变更，操作已取消", hero);
                 return;
             }
+            if (hero.CardData.HasSecondaryRune &&
+                _gs.GetSch(GameRules.OWNER_PLAYER, hero.CardData.SecondaryRuneType) < hero.CardData.SecondaryRuneCost)
+            {
+                ShowPlayError("[提示] 资源状态已变更，操作已取消", hero);
+                return;
+            }
             if (useHaste)
             {
-                bool stillOk = _gs.PMana >= hero.CardData.Cost + 1 &&
+                bool stillOk = _gs.PMana >= effectiveCostPost + 1 &&
                                _gs.GetSch(GameRules.OWNER_PLAYER, hero.CardData.RuneType) >= hero.CardData.RuneCost + 1;
                 if (!stillOk) useHaste = false;
             }
@@ -1485,9 +1545,11 @@ namespace FWTCG
             // Deploy: remove from hero zone → add to base
             _gs.PHero = null;
             _gs.PBase.Add(hero);
-            _gs.PMana -= hero.CardData.Cost;
+            _gs.PMana -= effectiveCostPost;
             if (hero.CardData.RuneCost > 0)
                 _gs.SpendSch(GameRules.OWNER_PLAYER, hero.CardData.RuneType, hero.CardData.RuneCost);
+            if (hero.CardData.HasSecondaryRune)
+                _gs.SpendSch(GameRules.OWNER_PLAYER, hero.CardData.SecondaryRuneType, hero.CardData.SecondaryRuneCost);
 
             if (useHaste)
             {
@@ -1746,6 +1808,8 @@ namespace FWTCG
                 var targetType = spell.CardData.SpellTargetType;
                 _ui?.ShowTargetHighlights(u =>
                     !u.CardData.IsEquipment && !u.CardData.IsSpell &&
+                    // C-8: exclude enemies marked UntargetableBySpells (sandshoal_deserter)
+                    !(u.Owner == GameRules.OWNER_ENEMY && u.UntargetableBySpells) &&
                     (targetType == SpellTargetType.AnyUnit ||
                     (targetType == SpellTargetType.EnemyUnit   && u.Owner == GameRules.OWNER_ENEMY) ||
                     (targetType == SpellTargetType.FriendlyUnit && u.Owner == GameRules.OWNER_PLAYER)));

@@ -13,10 +13,12 @@ MonoBehaviour:
   m_Name: kaisa_hero
   m_EditorClassIdentifier: 
   _id: kaisa_hero
-  _cardName: "\u5361\u838E\xB7\u4E5D\u6B7B\u4E00\u751F"
+  _cardName: "\u5361\u838E\u00B7\u4E5D\u6B7B\u4E00\u751F"
   _cost: 4
   _runeType: 0
-  _runeCost: 1
+  _runeCost: 0
+  _secondaryRuneType: 0
+  _secondaryRuneCost: 0
   _atk: 4
   _keywords: 17
   _effectId: kaisa_hero_conquer
@@ -27,5 +29,5 @@ MonoBehaviour:
   _isHero: 1
   _isSpell: 0
   _spellTargetType: 0
-  _description: "\u6025\u901F\uFF08\u652F\u4ED81\u70BD\u70C8\u7B26\u80FD\u8FDB\u573A\u65F6\u4E3A\u6D3B\u8DC3\u72B6\u6001\uFF09\u3002\u5F81\u670D\uFF1A\u672C\u56DE\u5408\u53EF\u989D\u5916\u6253\u51FA1\u5F20\u724C"
+  _description: "\u6025\u901F\uFF08\u4F60\u53EF\u4EE5\u9009\u62E9\u989D\u5916\u652F\u4ED8[1]\u548C1\u70BD\u70C8\u7B26\u80FD\uFF0C\u8BA9\u6211\u4EE5\u6D3B\u8DC3\u72B6\u6001\u8FDB\u573A\u3002\uFF09\u5F53\u6211\u5F81\u670D\u4E00\u5904\u6218\u573A\u65F6\uFF0C\u62BD\u4E00\u5F20\u724C\u3002"
   _artSprite: {fileID: 21300000, guid: 3aa39e4b5ddd1a149840a380ecea8a3e, type: 3}
