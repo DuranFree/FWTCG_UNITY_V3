@@ -158,6 +158,41 @@ namespace FWTCG
         private readonly HashSet<int> _preparedTapIdxs     = new HashSet<int>();
         private readonly HashSet<int> _preparedRecycleIdxs = new HashSet<int>();
 
+        // ── UI-OVERHAUL-1c-α: 本回合入场栈（手→基地 / 基地→战场） ───────────
+        /// <summary>
+        /// 本回合入场操作的记录。取消按钮点击时按 LIFO 回滚；回合结束 / 确定按钮点击时清空。
+        /// 1c-γ 会补完实际回滚语义；当前只记录骨架数据。
+        /// </summary>
+        public enum PlayActionKind { HandToBase, BaseToBF, HeroToBase }
+        public struct PlayStackEntry
+        {
+            public PlayActionKind Kind;
+            public UnitInstance   Unit;
+            public int            BFIndex;      // BaseToBF 才用
+            public int            ManaSpent;
+            public int            PrimarySchSpent;
+            public int            SecondarySchSpent;
+        }
+        private readonly List<PlayStackEntry> _thisTurnPlayStack = new List<PlayStackEntry>();
+
+        /// <summary>外部查询：本回合是否有入场操作（用于取消按钮亮/暗）。</summary>
+        public bool HasThisTurnPlayActions() => _thisTurnPlayStack.Count > 0;
+
+        /// <summary>外部查询：战场是否有我方单位（用于确定按钮亮/暗）。</summary>
+        public bool HasAnyPlayerUnitOnBattlefield()
+        {
+            if (_gs == null) return false;
+            for (int i = 0; i < GameRules.BATTLEFIELD_COUNT; i++)
+                if (_gs.BF[i].PlayerUnits.Count > 0) return true;
+            return false;
+        }
+
+        /// <summary>记录一个入场动作到栈（1c-β 的 combat 延迟触发 + 1c-γ 的回滚将调用）。</summary>
+        internal void RecordPlayAction(PlayStackEntry entry) => _thisTurnPlayStack.Add(entry);
+
+        /// <summary>清空本回合入场栈（回合结束 / 确定按钮触发结算后调用）。</summary>
+        internal void ClearThisTurnPlayStack() => _thisTurnPlayStack.Clear();
+
         /// <summary>外部（UI）只读访问当前待横置符文下标。</summary>
         public IReadOnlyCollection<int> GetPreparedTapIdxs()     => _preparedTapIdxs;
         /// <summary>外部（UI）只读访问当前待回收符文下标。</summary>
@@ -981,8 +1016,48 @@ namespace FWTCG
             _selectedUnitLoc = null;
             _selectedBaseUnits.Clear();
             _selectedHandUnits.Clear();
-            ClearPreparedRunes(); // UI-OVERHAUL-1b: 回合结束清空未 commit 的符文标记
+            ClearPreparedRunes();        // UI-OVERHAUL-1b: 清符文标记
+            ClearThisTurnPlayStack();    // UI-OVERHAUL-1c-α: 清本回合入场栈
             _turnMgr.EndTurn();
+            RefreshUI();
+        }
+
+        // ── UI-OVERHAUL-1c-α: 确定 / 取消按钮 handler（骨架）──────────────────
+        /// <summary>
+        /// 全局"确定"按钮：结算本回合战场操作（触发 combat / spell duel）。
+        /// 1c-α: 当前为骨架 stub，仅清空入场栈；真正的 combat 延迟触发留给 1c-β。
+        /// </summary>
+        public void OnConfirmClicked()
+        {
+            if (_gs == null || _gs.GameOver) return;
+            if (_gs.Turn != GameRules.OWNER_PLAYER) return;
+            if (_gs.Phase != GameRules.PHASE_ACTION) return;
+            if (!HasAnyPlayerUnitOnBattlefield())
+            {
+                TurnManager.BroadcastMessage_Static("[提示] 战场无我方单位，无法触发确定");
+                return;
+            }
+            TurnManager.BroadcastMessage_Static("[确定] 1c-α stub — 战斗延迟触发将在 1c-β 落地");
+            ClearThisTurnPlayStack();
+            RefreshUI();
+        }
+
+        /// <summary>
+        /// 全局"取消"按钮：回滚本回合所有入场操作（牌回手 / 基地 / 撤销资源消耗）。
+        /// 1c-α: 当前为骨架 stub，仅清空栈；LIFO 回滚留给 1c-γ。
+        /// </summary>
+        public void OnCancelClicked()
+        {
+            if (_gs == null || _gs.GameOver) return;
+            if (_gs.Turn != GameRules.OWNER_PLAYER) return;
+            if (_gs.Phase != GameRules.PHASE_ACTION) return;
+            if (_thisTurnPlayStack.Count == 0)
+            {
+                TurnManager.BroadcastMessage_Static("[提示] 本回合没有可撤销的操作");
+                return;
+            }
+            TurnManager.BroadcastMessage_Static($"[取消] 1c-α stub — 将回滚 {_thisTurnPlayStack.Count} 个操作（1c-γ 实现）");
+            ClearThisTurnPlayStack();
             RefreshUI();
         }
 

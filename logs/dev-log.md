@@ -2442,3 +2442,43 @@
 - `DOT6ReplacementTests.GameUI_RunePulseConstants` 原断言蓝色 RuneTapFill 失败 → 改为绿色期望
 
 **Tests**: 编译 0 error 0 warning；EditMode 1140/1150 通过（10 项失败皆 known-bugs.md 登记的历史项）
+
+---
+
+## UI-OVERHAUL-1c-α：确定/取消按钮骨架 + 本回合入场栈 — 2026-04-21
+
+**Status**: ✅ Completed（combat 延迟触发 / 回滚实现 / AI 适配留给 1c-β / 1c-γ）
+
+**What was done**:
+- `SceneBuilder.cs`：CancelRunesBtn/ConfirmRunesBtn 重命名为 CancelBtn/ConfirmBtn，颜色使用 1a 就位的 ActionBtnCancel（红）/ ActionBtnConfirm（绿），文案"取消/确定"；移除 `.SetActive(false)` 让其常驻可见
+- `GameManager.cs`：
+  - 新增 `PlayActionKind` 枚举（HandToBase/BaseToBF/HeroToBase）+ `PlayStackEntry` struct（Unit/BFIndex/ManaSpent/PrimarySchSpent/SecondarySchSpent）
+  - 字段 `_thisTurnPlayStack: List<PlayStackEntry>` 保存本回合入场操作
+  - 公开 API：`HasAnyPlayerUnitOnBattlefield()` / `HasThisTurnPlayActions()` / `RecordPlayAction(entry)` / `ClearThisTurnPlayStack()`
+  - `OnConfirmClicked()` stub：校验（行动阶段 + 战场有我方单位）→ 广播"1c-α stub"+ 清栈；真实 combat 延迟触发放到 1c-β
+  - `OnCancelClicked()` stub：校验（行动阶段 + 栈非空）→ 广播"1c-α stub"+ 清栈；真实 LIFO 回滚放到 1c-γ
+  - `OnEndTurnClicked` 回合结束自动 ClearThisTurnPlayStack
+- `GameUI.cs`：
+  - `Awake` 接入 ConfirmBtn/CancelBtn onClick → `GameManager.Instance.OnConfirmClicked / OnCancelClicked`
+  - `RefreshActionButtons` 重写：Confirm 亮色条件 = 行动阶段 + `HasAnyPlayerUnitOnBattlefield`；Cancel 亮色条件 = 行动阶段 + `HasThisTurnPlayActions`
+  - 新静态 helper `ApplyActionButtonState(btn, active)`：active→Image 原色 + alpha=1 + interactable；inactive→Image color ×0.45 + alpha=0.55 + 禁用点击 + Text 淡化
+- 新建 `Assets/Tests/EditMode/UIOverhaul1cAlphaTests.cs`（8 项）：
+  - `HasAnyPlayerUnitOnBattlefield`：空战场 / 有单位两种场景
+  - `PlayStack`：初始空 / RecordPlayAction 累加 / ClearThisTurnPlayStack 清空
+  - `OnConfirmClicked` / `OnCancelClicked` stub 安全性（边界不崩）
+
+**Decisions made**:
+- 复用已有的 `_confirmRunesBtn` / `_cancelRunesBtn` 字段（GameUI SerializedField）避免引入新字段 + SceneBuilder 连线迁移成本；语义从"符文确认 / 符文取消"推广为"全局确定 / 全局取消"
+- 1c 改动体量巨大（涉及 combat 流延迟 + AI 适配），按用户确认的 B 方案拆三阶段推进：α = UI 骨架 + 数据结构；β = combat 延迟触发 + Haste 自动判定；γ = LIFO 回滚 + AI 适配
+- `ApplyActionButtonState` 当前仅做"亮/暗"二态；用户要求的"激活瞬间闪烁 + 长亮发光 + 粒子"留到 1c-γ 整体润色（避免在骨架阶段过早细化视觉）
+
+**Technical debt**:
+- [ ] `ConfirmBtn` / `CancelBtn` 字段在 GameUI 仍叫 `_confirmRunesBtn` / `_cancelRunesBtn` — 语义已变，后续可重命名（不影响 SceneBuilder 连线字段名）— UI-OVERHAUL-1c-α
+- [ ] OnConfirmClicked / OnCancelClicked 仍为 stub — 1c-β/γ 未落地前用户点击只会清栈 + 广播提示，不会真实 combat / 回滚 — UI-OVERHAUL-1c-α
+- [ ] 按钮"激活瞬间闪烁 + 长亮发光 + 粒子"未实现，1c-γ 整体润色时补完 — UI-OVERHAUL-1c-α
+
+**Problems encountered**:
+- 无阻塞问题；编译 0 warning，MCP 场景重建确认 ConfirmBtn 存在且文本为"确定"
+
+**Tests**: EditMode 1140/1150 通过（10 项失败皆 known-bugs.md 登记的历史项）；新增 8 项 1c-α 测试全绿
+**引擎场景验证**：MCP `get_gameobject ConfirmBtn` 确认：名字=ConfirmBtn, text="确定", activeSelf=true, ButtonCharge 挂载正常 ✓

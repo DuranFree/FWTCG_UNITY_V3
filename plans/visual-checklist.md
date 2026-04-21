@@ -299,3 +299,9 @@
 - [x] RuneTapFill 由蓝色改为绿色（#2DFF59）— "准备横置"呼吸灯 — UI-OVERHAUL-1b
 - [x] RuneRecFill 保持红色（#FF2626）— "准备回收"呼吸灯 — UI-OVERHAUL-1b
 - [x] RuneBorderGlow 连接 GameManager.PreparedTapIdxs / PreparedRecycleIdxs（RefreshUI 时同步驱动）— UI-OVERHAUL-1b
+
+### UI-OVERHAUL-1c-α — 确定/取消按钮骨架视觉
+- [x] 确定按钮 ConfirmBtn — 绿色 #5fd064，文案"确定"，常驻显示 — UI-OVERHAUL-1c-α
+- [x] 取消按钮 CancelBtn — 红色 #d24a4a，文案"取消"，常驻显示 — UI-OVERHAUL-1c-α
+- [x] 按钮 dim 状态（条件未满足）：Image.color ×0.45 + alpha 0.55 + interactable=false — UI-OVERHAUL-1c-α
+- [ ] 激活瞬间闪烁 + 长亮发光 + 粒子（留给 1c-β/γ 调整）— UI-OVERHAUL-1c

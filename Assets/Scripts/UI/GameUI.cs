@@ -282,6 +282,12 @@ namespace FWTCG.UI
             if (_bf1Button != null) _bf1Button.onClick.AddListener(() => _onBFClicked?.Invoke(0));
             if (_bf2Button != null) _bf2Button.onClick.AddListener(() => _onBFClicked?.Invoke(1));
 
+            // UI-OVERHAUL-1c-α: 全局"确定/取消"按钮 handler
+            if (_confirmRunesBtn != null)
+                _confirmRunesBtn.onClick.AddListener(() => GameManager.Instance?.OnConfirmClicked());
+            if (_cancelRunesBtn != null)
+                _cancelRunesBtn.onClick.AddListener(() => GameManager.Instance?.OnCancelClicked());
+
             // B8 full: 查找待命区槽位并挂 Button 以触发翻开打出
             if (_rootCanvas != null)
             {
@@ -2095,15 +2101,47 @@ namespace FWTCG.UI
 
             if (_tapAllRunesBtn != null)
                 _tapAllRunesBtn.interactable = isPlayerAction;
-            if (_cancelRunesBtn != null)
-                _cancelRunesBtn.interactable = isPlayerAction;
-            if (_confirmRunesBtn != null)
-                _confirmRunesBtn.interactable = isPlayerAction;
             if (_skipReactionBtn != null)
                 _skipReactionBtn.interactable = isPlayerAction;
 
+            // UI-OVERHAUL-1c-α: 确定 / 取消按钮动态亮/暗
+            //   确定：行动阶段 + 战场有我方单位 → 亮色 + interactable
+            //   取消：行动阶段 + 本回合有入场操作   → 亮色 + interactable
+            var gm = GameManager.Instance;
+            bool confirmActive = isPlayerAction && gm != null && gm.HasAnyPlayerUnitOnBattlefield();
+            bool cancelActive  = isPlayerAction && gm != null && gm.HasThisTurnPlayActions();
+            ApplyActionButtonState(_confirmRunesBtn, confirmActive);
+            ApplyActionButtonState(_cancelRunesBtn,  cancelActive);
+
             // DEV-19: end turn button persistent pulse during player action
             UpdateEndTurnPulse(isPlayerAction);
+        }
+
+        /// <summary>
+        /// UI-OVERHAUL-1c-α: 按钮 active/dim 状态切换。
+        /// active：interactable=true + Image 原色 + alpha=1
+        /// dim   ：interactable=false + Image 降色（×0.45）+ alpha=0.55，无点击反馈
+        /// 1c-β/γ 会补完"激活瞬间闪烁 + 长亮发光 + 粒子"。
+        /// </summary>
+        private static void ApplyActionButtonState(Button btn, bool active)
+        {
+            if (btn == null) return;
+            btn.interactable = active;
+            var img = btn.GetComponent<Image>();
+            if (img != null)
+            {
+                var c = img.color;
+                float baseA = active ? 1f : 0.55f;
+                float mul   = active ? 1f : 0.45f;
+                img.color = new Color(c.r * (active ? 1f : mul), c.g * (active ? 1f : mul), c.b * (active ? 1f : mul), baseA);
+            }
+            // 文字也同步淡化
+            var label = btn.GetComponentInChildren<Text>();
+            if (label != null)
+            {
+                var c = label.color;
+                label.color = new Color(c.r, c.g, c.b, active ? 1f : 0.55f);
+            }
         }
 
         // 迅捷/反应 按钮状态：有可用牌 = 亮紫 + 呼吸动画；无可用牌 = 暗紫但仍可点击

@@ -1760,10 +1760,10 @@ namespace FWTCG.Editor
             phaseDisplay.gameObject.SetActive(false);
             tapAllRunesBtn = CreateActionButton(actionPanel.transform, "TapAllRunesBtn", "全部横置", GameColors.ActionBtnSecondary);
             tapAllRunesBtn.gameObject.SetActive(false);
-            cancelRunesBtn = CreateActionButton(actionPanel.transform, "CancelRunesBtn", "取消", GameColors.ActionBtnDanger);
-            cancelRunesBtn.gameObject.SetActive(false);
-            confirmRunesBtn = CreateActionButton(actionPanel.transform, "ConfirmRunesBtn", "确认符文操作", GameColors.ActionBtnPrimary);
-            confirmRunesBtn.gameObject.SetActive(false);
+            // UI-OVERHAUL-1c-α: 复用 CancelRunesBtn / ConfirmRunesBtn 作为全局"确定/取消"入口
+            cancelRunesBtn = CreateActionButton(actionPanel.transform, "CancelBtn", "取消", GameColors.ActionBtnCancel);
+            // 常驻显示（interactable 由 GameUI 根据 playStack 状态动态控制）
+            confirmRunesBtn = CreateActionButton(actionPanel.transform, "ConfirmBtn", "确定", GameColors.ActionBtnConfirm);
             skipReactionBtn = CreateActionButton(actionPanel.transform, "SkipReactionBtn", "跳过响应", GameColors.ActionBtnSecondary);
             skipReactionBtn.gameObject.SetActive(false);
 

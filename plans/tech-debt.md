@@ -96,3 +96,6 @@
 - [ ] RuneAutoConsume.Compute / ExecuteRunePlan 仍被 AI / Mulligan 使用，玩家路径已切 prepared 机制 — UI-OVERHAUL-1b
 - [ ] OnCardHoverEnter/OnHeroHoverEnter 等 hover 入口 no-op 保留方法签名，1c 再决定是否恢复 hover 预览 — UI-OVERHAUL-1b
 - [ ] Haste 关键词仍硬编码为 false — 1c 整合确定按钮时按"多准备 +1 法力 + +1 符能 → 自动激活"规则补完 — UI-OVERHAUL-1b
+- [ ] GameUI 字段 _confirmRunesBtn/_cancelRunesBtn 语义推广为全局按钮后名字未改（SceneBuilder 连线仍依赖旧字段名） — UI-OVERHAUL-1c-α
+- [ ] OnConfirmClicked / OnCancelClicked 为 stub — 1c-β 补 combat 延迟触发；1c-γ 补 LIFO 回滚 + AI 适配 — UI-OVERHAUL-1c-α
+- [ ] Confirm/Cancel 按钮"激活瞬间闪烁 + 长亮发光 + 粒子"未做，当前仅亮/暗二态 — 1c-γ 整体润色 — UI-OVERHAUL-1c-α

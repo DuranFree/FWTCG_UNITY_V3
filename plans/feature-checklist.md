@@ -481,3 +481,24 @@
 - [x] Hover 自动高亮（OnCardHoverEnter/OnHeroHoverEnter）禁用：玩家手动标记模式下 auto plan 会误导
 - [x] FloatingTipUI 接入出牌失败飘屏：法力缺口（白）+ 主符能缺口（符能本体色）+ 副符能缺口
 - [x] 新增 UIOverhaul1bTests（9 项）：OnRuneClicked toggle/互斥/已横置守卫 + CommitPreparedRunes tap/recycle/混合
+
+## UI-OVERHAUL-1c-α — 确定/取消按钮骨架（combat 延迟/回滚留给 1c-β/γ）
+- [x] SceneBuilder 将 CancelRunesBtn/ConfirmRunesBtn 重命名为 CancelBtn/ConfirmBtn，颜色改绿/红，文案改"确定/取消"
+- [x] 按钮常驻显示（interactable 动态控制），不再 SetActive(false)
+- [x] GameUI.Awake 接入 onClick → GameManager.OnConfirmClicked / OnCancelClicked
+- [x] RefreshActionButtons 新增 ApplyActionButtonState：active 亮色 + 可点；inactive 暗淡（×0.45）+ 无反馈
+- [x] GameManager 新增 PlayStackEntry / PlayActionKind / _thisTurnPlayStack + Record/Clear/Has 查询 API
+- [x] HasAnyPlayerUnitOnBattlefield（确定按钮条件）+ HasThisTurnPlayActions（取消按钮条件）
+- [x] OnConfirmClicked / OnCancelClicked stub：目前只清空栈 + 广播提示；combat 延迟触发 / 回滚在 1c-β / 1c-γ
+- [x] OnEndTurnClicked 回合结束自动 ClearThisTurnPlayStack
+- [x] UIOverhaul1cAlphaTests 8 项：栈记录/清空 + 按钮条件查询 + stub handler 安全性
+
+## UI-OVERHAUL-1c-β（待做）
+- [ ] OnBattlefieldClicked / OnDragUnitToBF：把单位放入战场但不 CheckAndResolveCombat
+- [ ] OnConfirmClicked：真正触发 CheckAndResolveCombat（可能串入 spell duel）
+- [ ] Haste 重新支持：prepared tap ≥ cost+1 且 prepared recycle ≥ runeCost+1 → 自动激活
+
+## UI-OVERHAUL-1c-γ（待做）
+- [ ] PlayStackEntry 回滚语义：HandToBase 回手 + 退资源；BaseToBF 退回基地；HeroToBase 退回 hero zone
+- [ ] OnCancelClicked 按 LIFO 回滚 _thisTurnPlayStack 全部
+- [ ] AI 侧适配：AI 行动完自动模拟点击"确定"
