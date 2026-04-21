@@ -159,8 +159,14 @@ namespace FWTCG.Systems
         {
             string owner = unit.Owner;
 
-            // C-6: Guardian Angel death replacement
+            // C-6: Guardian Angel — 附着型死亡替换
             if (TryGuardianProtectFromSpell(unit, owner, gs))
+            {
+                return;
+            }
+
+            // B8-mini: Zhonya — 非附着型死亡替换
+            if (TryZhonyaProtectFromSpell(unit, owner, gs))
             {
                 return;
             }
@@ -391,6 +397,53 @@ namespace FWTCG.Systems
             if (target == null) return;
             target.TempAtkBonus += bonus;
             Log($"[先斩后奏] {target.UnitName} 获得+{bonus}战力（本回合）");
+        }
+
+        /// <summary>
+        /// B8-mini: 中娅沙漏 — 法术致死时的非附着型保护。
+        /// </summary>
+        private bool TryZhonyaProtectFromSpell(UnitInstance unit, string owner, GameState gs)
+        {
+            var baseList = gs.GetBase(owner);
+            UnitInstance zhonya = null;
+            foreach (var c in baseList)
+            {
+                if (c.CardData.IsEquipment && c.CardData.EffectId == "zhonya_equip" && c.AttachedTo == null)
+                {
+                    zhonya = c;
+                    break;
+                }
+            }
+            if (zhonya == null) return false;
+
+            // 销毁 zhonya
+            baseList.Remove(zhonya);
+            gs.GetDiscard(owner).Add(zhonya);
+
+            // 从原位置移除单位
+            if (!gs.GetBase(owner).Remove(unit))
+            {
+                for (int i = 0; i < GameRules.BATTLEFIELD_COUNT; i++)
+                {
+                    var bfUnits = owner == GameRules.OWNER_PLAYER
+                        ? gs.BF[i].PlayerUnits : gs.BF[i].EnemyUnits;
+                    if (bfUnits.Remove(unit))
+                    {
+                        UpdateBFControl(i, gs);
+                        break;
+                    }
+                }
+            }
+
+            // 恢复 + 休眠回基地
+            unit.CurrentHp = unit.CurrentAtk;
+            unit.Exhausted = true;
+            unit.TempAtkBonus = 0;
+            unit.Stunned = false;
+            gs.GetBase(owner).Add(unit);
+
+            Log($"[中娅沙漏] 销毁自身，保护 {unit.UnitName} 休眠返回基地");
+            return true;
         }
 
         // ── guilty_pleasure 动态伤害 ──────────────────────────────────────────

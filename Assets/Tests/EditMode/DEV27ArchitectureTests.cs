@@ -134,19 +134,22 @@ namespace FWTCG.Tests
         }
 
         [Test]
-        public void CanPlaySpell_ReactiveSpell_FalseInNormalOpenLoop()
+        public void CanPlaySpell_ReactiveSpell_TrueInNormalOpenLoop()
         {
+            // 按 Rule 25：反应是"权限性关键词"，额外提供闭环权限，不剥夺基础开环权限。
+            // 玩家自己的回合开环，任何法术（包括反应）都可以作为普通法术打出。
             TurnStateMachine.TransitionTo(TurnStateMachine.State.Normal_OpenLoop);
             var spell = MakeSpell("reactive_spell", CardKeyword.Reactive);
-            Assert.IsFalse(TurnStateMachine.CanPlaySpell(spell));
+            Assert.IsTrue(TurnStateMachine.CanPlaySpell(spell));
         }
 
         [Test]
-        public void CanPlaySpell_SwiftSpell_FalseInNormalOpenLoop()
+        public void CanPlaySpell_SwiftSpell_TrueInNormalOpenLoop()
         {
+            // 按 Rule 18：迅捷是额外权限，自己回合开环本来就能打普通法术。
             TurnStateMachine.TransitionTo(TurnStateMachine.State.Normal_OpenLoop);
             var spell = MakeSpell("swift_spell", CardKeyword.Swift);
-            Assert.IsFalse(TurnStateMachine.CanPlaySpell(spell));
+            Assert.IsTrue(TurnStateMachine.CanPlaySpell(spell));
         }
 
         [Test]

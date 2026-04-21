@@ -122,6 +122,7 @@ namespace FWTCG.AI
                     }
                 }
                 hero.Exhausted = !useHaste;
+                hero.PlayedThisTurn = true;  // B10: duel_stance 额外+1 触发标记
                 gs.CardsPlayedThisTurn++;
                 Log($"[AI] 英雄出场：{hero.UnitName}（费用{hero.CardData.Cost}），剩余法力 {gs.EMana}");
                 entryEffects?.OnUnitEntered(hero, GameRules.OWNER_ENEMY, gs);
@@ -170,6 +171,7 @@ namespace FWTCG.AI
                     }
                 }
                 toPlay.Exhausted = !useHaste;
+                toPlay.PlayedThisTurn = true;  // B10: duel_stance 额外+1 触发标记
                 gs.CardsPlayedThisTurn++;
                 Log($"[AI] 出 {toPlay.UnitName}（费用{toPlay.CardData.Cost}，战力{toPlay.CurrentAtk}），剩余法力 {gs.EMana}");
                 entryEffects?.OnUnitEntered(toPlay, GameRules.OWNER_ENEMY, gs);
@@ -621,12 +623,16 @@ namespace FWTCG.AI
         // ── Cost Helpers ──────────────────────────────────────────────────────
         // ═══════════════════════════════════════════════════════════════════════
 
-        /// <summary>Returns true if the AI can afford both the mana and rune costs.</summary>
+        /// <summary>Returns true if the AI can afford both the mana and rune costs (including dual-color secondary).</summary>
         private static bool CanAfford(CardData card, GameState gs)
         {
             if (card.Cost > gs.EMana) return false;
             if (card.RuneCost > 0
                 && gs.GetSch(GameRules.OWNER_ENEMY, card.RuneType) < card.RuneCost)
+                return false;
+            // B3: 双色卡次符能检查（如 akasi_storm, tiyana_warden）
+            if (card.SecondaryRuneCost > 0
+                && gs.GetSch(GameRules.OWNER_ENEMY, card.SecondaryRuneType) < card.SecondaryRuneCost)
                 return false;
             return true;
         }
@@ -636,6 +642,9 @@ namespace FWTCG.AI
             gs.EMana -= card.Cost;
             if (card.RuneCost > 0)
                 gs.SpendSch(GameRules.OWNER_ENEMY, card.RuneType, card.RuneCost);
+            // B3: 扣除双色次符能
+            if (card.SecondaryRuneCost > 0)
+                gs.SpendSch(GameRules.OWNER_ENEMY, card.SecondaryRuneType, card.SecondaryRuneCost);
         }
 
         // ═══════════════════════════════════════════════════════════════════════

@@ -131,8 +131,16 @@ namespace FWTCG.Systems
                         if (t != null)
                         {
                             t.TempAtkBonus += 1;
-                            // TODO(C-4 后续): 追踪"本回合打出的单位"标记，此处暂不加额外+1
-                            Log($"[冰斗架势] {t.UnitName} 本回合+1战力");
+                            // B10: 如果目标是本回合打出的单位，额外 +1
+                            if (t.PlayedThisTurn)
+                            {
+                                t.TempAtkBonus += 1;
+                                Log($"[冰斗架势] {t.UnitName} 本回合+1战力（本回合打出，额外+1 共+2）");
+                            }
+                            else
+                            {
+                                Log($"[冰斗架势] {t.UnitName} 本回合+1战力");
+                            }
                         }
                         else
                         {

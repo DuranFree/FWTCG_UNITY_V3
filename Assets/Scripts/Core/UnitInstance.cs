@@ -39,17 +39,35 @@ namespace FWTCG.Core
         /// <summary>Temporary attack bonus (e.g. Darius entry effect). Cleared end of turn.</summary>
         public int TempAtkBonus { get; set; }
 
+        /// <summary>
+        /// B10: 追踪本单位是否是"这一回合打出的"（duel_stance 额外+1 用）。
+        /// 由 GameManager/AI 打出时设为 true；由 TurnManager.DoEndPhase 清零。
+        /// </summary>
+        public bool PlayedThisTurn { get; set; }
+
+        /// <summary>
+        /// B11: 追踪本单位"在本回合开始前就在基地"（rengar 可活跃移动用）。
+        /// 由 TurnManager.DoAwaken 基于本回合开始时在基地的单位设置；移动离基或回合切换后清零。
+        /// </summary>
+        public bool WasInBaseAtTurnStart { get; set; }
+
         /// <summary>Whether this unit currently has a spell shield charge.</summary>
         public bool HasSpellShield { get; set; }
 
         /// <summary>Whether this unit has Barrier (壁垒): must absorb lethal damage first in combat.</summary>
         public bool HasBarrier { get; set; }
 
-        /// <summary>Whether this unit has StrongAtk (强攻): +1 power when attacking.</summary>
+        /// <summary>Whether this unit has StrongAtk (强攻): +StrongAtkValue power when attacking.</summary>
         public bool HasStrongAtk { get; set; }
 
-        /// <summary>Whether this unit has Guard (坚守): +1 power when defending.</summary>
+        /// <summary>强攻值（Rule 19.1.b）。默认 1；rengar 等特定卡为 2。</summary>
+        public int StrongAtkValue { get; set; } = 1;
+
+        /// <summary>Whether this unit has Guard (坚守): +GuardValue power when defending.</summary>
         public bool HasGuard { get; set; }
+
+        /// <summary>坚守值（Rule 26.1.b）。默认 1。</summary>
+        public int GuardValue { get; set; } = 1;
 
         /// <summary>Whether this unit has Reactive keyword (can be played in reaction window).</summary>
         public bool HasReactive { get; set; }

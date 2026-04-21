@@ -138,6 +138,28 @@ namespace FWTCG.Systems
                 foreach (UnitInstance u in bfUnits) u.Exhausted = false;
             }
 
+            // B10: 清零"本回合打出"标记（回合玩家的单位；上回合打出的视为"不是本回合打出的"）
+            foreach (UnitInstance u in gs.GetBase(who)) u.PlayedThisTurn = false;
+            for (int i = 0; i < GameRules.BATTLEFIELD_COUNT; i++)
+            {
+                var bfUnits = who == GameRules.OWNER_PLAYER ? gs.BF[i].PlayerUnits : gs.BF[i].EnemyUnits;
+                foreach (UnitInstance u in bfUnits) u.PlayedThisTurn = false;
+            }
+
+            // B11: 扫描本回合开始时在基地的单位，设 WasInBaseAtTurnStart=true（rengar 用）
+            // 所有位置的其他单位先清零
+            foreach (string owner in new[] { GameRules.OWNER_PLAYER, GameRules.OWNER_ENEMY })
+            {
+                foreach (UnitInstance u in gs.GetBase(owner)) u.WasInBaseAtTurnStart = false;
+                for (int i = 0; i < GameRules.BATTLEFIELD_COUNT; i++)
+                {
+                    var bfUnits = owner == GameRules.OWNER_PLAYER ? gs.BF[i].PlayerUnits : gs.BF[i].EnemyUnits;
+                    foreach (UnitInstance u in bfUnits) u.WasInBaseAtTurnStart = false;
+                }
+            }
+            // 仅本回合玩家自己的基地单位标记（rengar 是回合玩家的单位才触发）
+            foreach (UnitInstance u in gs.GetBase(who)) u.WasInBaseAtTurnStart = true;
+
             // Un-tap all runes
             foreach (RuneInstance r in gs.GetRunes(who)) r.Tapped = false;
 

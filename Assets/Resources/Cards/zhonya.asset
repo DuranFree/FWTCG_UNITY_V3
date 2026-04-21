@@ -21,7 +21,7 @@ MonoBehaviour:
   _secondaryRuneCost: 0
   _atk: 0
   _keywords: 1088
-  _effectId: 
+  _effectId: zhonya_equip
   _isEquipment: 1
   _equipAtkBonus: 0
   _equipRuneType: 2

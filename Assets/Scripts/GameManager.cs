@@ -60,6 +60,10 @@ namespace FWTCG
         [SerializeField] private Button _reactBtn;
         [SerializeField] private Button _legendSkillBtn;
 
+        // 迅捷/反应 按钮可用性 + 无牌时 toast 节流（避免疯狂点击刷屏）
+        private float _lastNoReactiveToastTime = -10f;
+        private const float NO_REACTIVE_TOAST_COOLDOWN = 2f;
+
         // ── Reaction window freeze (static so SimpleAI can await without a ref) ─
         // Player reaction window (player clicks React → AI waits)
         private static bool _reactionWindowActive;
@@ -612,9 +616,11 @@ namespace FWTCG
                     return; // Stay in targeting mode so player can pick another target
                 }
 
-                // Valid target — give AI a reaction window before resolving (DEV-15)
+                // Valid target — play showcase, then give AI a reaction window before resolving (DEV-15)
                 UnitInstance spell = _targetingSpell;
                 _targetingSpell = null;
+                if (_spellShowcase != null)
+                    _ = _spellShowcase.ShowAsync(spell, GameRules.OWNER_PLAYER);
                 _ = CastPlayerSpellWithReactionAsync(spell, unit);
                 RefreshUI();
                 return;
@@ -1395,6 +1401,7 @@ namespace FWTCG
             }
 
             if (unit.IsEphemeral) unit.SummonedOnRound = _gs.Round;
+            unit.PlayedThisTurn = true;  // B10: 标记为"本回合打出"以支持 duel_stance 额外+1
             _gs.CardsPlayedThisTurn++;
             FireCardPlayed(unit, GameRules.OWNER_PLAYER);
             TurnManager.BroadcastMessage_Static(
@@ -1566,6 +1573,7 @@ namespace FWTCG
             }
 
             if (hero.IsEphemeral) hero.SummonedOnRound = _gs.Round;
+            hero.PlayedThisTurn = true;  // B10: duel_stance 额外+1 触发标记
             _gs.CardsPlayedThisTurn++;
             FireCardPlayed(hero, GameRules.OWNER_PLAYER);
             TurnManager.BroadcastMessage_Static(
@@ -1764,12 +1772,50 @@ namespace FWTCG
             }
         }
 
+        /// <summary>
+        /// B1/B2: 取消法术目标选择 / 法盾付不起时，退还所有已扣费用。
+        /// 调用方保证 spell 此前已扣法力 + 主符能 + 次符能（如有）。
+        /// </summary>
+        private void RefundSpellCosts(UnitInstance spell)
+        {
+            _gs.PHand.Add(spell);
+            _gs.PMana += spell.CardData.Cost;
+            if (spell.CardData.RuneCost > 0)
+                _gs.AddSch(GameRules.OWNER_PLAYER, spell.CardData.RuneType, spell.CardData.RuneCost);
+            if (spell.CardData.HasSecondaryRune)
+                _gs.AddSch(GameRules.OWNER_PLAYER, spell.CardData.SecondaryRuneType, spell.CardData.SecondaryRuneCost);
+            _gs.CardsPlayedThisTurn--;
+        }
+
         private async Task TryPlaySpellAsync(UnitInstance spell)
         {
+            // B1: 法力检查
             if (spell.CardData.Cost > _gs.PMana)
             {
                 ShowPlayError($"[提示] 法力不足：需要 {spell.CardData.Cost}，当前 {_gs.PMana}", spell);
                 return;
+            }
+
+            // B1: 主符能检查（法术同样要付符能费用，此前漏扣）
+            if (spell.CardData.RuneCost > 0)
+            {
+                int haveSch = _gs.GetSch(GameRules.OWNER_PLAYER, spell.CardData.RuneType);
+                if (haveSch < spell.CardData.RuneCost)
+                {
+                    ShowPlayError($"[提示] 符能不足：需要 {spell.CardData.RuneCost} {spell.CardData.RuneType.ToColoredText()}，当前 {haveSch}", spell);
+                    return;
+                }
+            }
+
+            // B2: 次符能检查（双色法术，如 akasi_storm）
+            if (spell.CardData.HasSecondaryRune)
+            {
+                int have2 = _gs.GetSch(GameRules.OWNER_PLAYER, spell.CardData.SecondaryRuneType);
+                if (have2 < spell.CardData.SecondaryRuneCost)
+                {
+                    ShowPlayError($"[提示] 符能不足：需要 {spell.CardData.SecondaryRuneCost} {spell.CardData.SecondaryRuneType.ToColoredText()}，当前 {have2}", spell);
+                    return;
+                }
             }
 
             // Guard: no valid targets → reject before deducting anything
@@ -1782,18 +1828,22 @@ namespace FWTCG
                 return;
             }
 
+            // B1+B2: 扣除法力 + 主符能 + 次符能
             _gs.PMana -= spell.CardData.Cost;
+            if (spell.CardData.RuneCost > 0)
+                _gs.SpendSch(GameRules.OWNER_PLAYER, spell.CardData.RuneType, spell.CardData.RuneCost);
+            if (spell.CardData.HasSecondaryRune)
+                _gs.SpendSch(GameRules.OWNER_PLAYER, spell.CardData.SecondaryRuneType, spell.CardData.SecondaryRuneCost);
+
             _gs.CardsPlayedThisTurn++;
             FireCardPlayed(spell, GameRules.OWNER_PLAYER);
             _gs.PHand.Remove(spell);
 
-            // Show spell showcase immediately on cast (skip particle VFX delay)
-            if (_spellShowcase != null)
-                _ = _spellShowcase.ShowAsync(spell, GameRules.OWNER_PLAYER);
-
             if (spell.CardData.SpellTargetType == SpellTargetType.None)
             {
-                // No target needed — give AI reaction window (DEV-15)
+                // No target needed — show showcase immediately, then resolve with AI reaction window (DEV-15)
+                if (_spellShowcase != null)
+                    _ = _spellShowcase.ShowAsync(spell, GameRules.OWNER_PLAYER);
                 _ = CastPlayerSpellWithReactionAsync(spell, null);
                 RefreshUI();
                 return;
@@ -1837,11 +1887,9 @@ namespace FWTCG
 
             if (target == null)
             {
-                // Cancelled — refund mana and return spell to hand
-                _gs.PHand.Add(spell);
-                _gs.PMana += spell.CardData.Cost;
-                _gs.CardsPlayedThisTurn--;
-                TurnManager.BroadcastMessage_Static($"[法术] 取消 {spell.UnitName} 的目标选择，法力退还");
+                // Cancelled — refund mana + all runes and return spell to hand
+                RefundSpellCosts(spell);
+                TurnManager.BroadcastMessage_Static($"[法术] 取消 {spell.UnitName} 的目标选择，费用已退还");
                 RefreshUI();
                 return;
             }
@@ -1850,13 +1898,15 @@ namespace FWTCG
             if (!TryPaySpellShieldCost(GameRules.OWNER_PLAYER, target))
             {
                 // Can't afford — treat as cancelled, refund
-                _gs.PHand.Add(spell);
-                _gs.PMana += spell.CardData.Cost;
-                _gs.CardsPlayedThisTurn--;
+                RefundSpellCosts(spell);
                 ShowPlayError($"[法盾] 符能不足：{target.UnitName} 拥有法盾，需要至少1点符能才能选为目标", spell);
                 RefreshUI();
                 return;
             }
+
+            // Target confirmed — now play the spell showcase (fires in parallel with cast resolution)
+            if (_spellShowcase != null)
+                _ = _spellShowcase.ShowAsync(spell, GameRules.OWNER_PLAYER);
 
             _ = CastPlayerSpellWithReactionAsync(spell, target);
             RefreshUI();
@@ -1942,6 +1992,9 @@ namespace FWTCG
             // Pay cost and apply reactive
             _gs.EMana -= chosen.CardData.Cost;
             TurnManager.ShowBanner_Static($"⚡ [AI] 反应！{chosen.UnitName}");
+            // Full-screen showcase for AI reactive card (matches player reactive + spell visual)
+            if (_spellShowcase != null)
+                _ = _spellShowcase.ShowAsync(chosen, GameRules.OWNER_ENEMY);
             bool negated = _reactiveSys.ApplyReactive(chosen, GameRules.OWNER_ENEMY, playerSpell, _gs);
             return negated;
         }
@@ -2175,6 +2228,25 @@ namespace FWTCG
         // ── React button ──────────────────────────────────────────────────────
 
         /// <summary>
+        /// 检查玩家手中是否有可立即打出的反应/迅捷法术（用于按钮亮暗状态）。
+        /// 条件：手牌中存在 IsSpell + (Reactive 或 Swift) 且经 RuneAutoConsume 可付费。
+        /// </summary>
+        public bool HasAffordableReactive()
+        {
+            if (_gs == null || _gs.GameOver) return false;
+            if (_gs.PHand == null) return false;
+            foreach (var c in _gs.PHand)
+            {
+                if (c == null || c.CardData == null) continue;
+                if (!c.CardData.IsSpell) continue;
+                if (!c.CardData.HasKeyword(CardKeyword.Reactive) && !c.CardData.HasKeyword(CardKeyword.Swift)) continue;
+                var plan = RuneAutoConsume.Compute(c, _gs, GameRules.OWNER_PLAYER);
+                if (plan.CanAfford) return true;
+            }
+            return false;
+        }
+
+        /// <summary>
         /// Called when the player clicks the React button (any time, any turn).
         /// Collects affordable reactive cards from hand.
         /// If any exist → opens the reaction window (player must pick one, no cancel).
@@ -2218,8 +2290,13 @@ namespace FWTCG
 
             if (reactives.Count == 0)
             {
-                TurnManager.BroadcastMessage_Static(
-                    $"[反应] 当前没有可打出的反应牌（手牌无反应法术或资源不足，当前法力：{_gs.PMana}）");
+                // 允许玩家疯狂点击"抢触发"，但 toast 最多 2 秒一次，避免刷屏
+                if (Time.time - _lastNoReactiveToastTime > NO_REACTIVE_TOAST_COOLDOWN)
+                {
+                    _lastNoReactiveToastTime = Time.time;
+                    TurnManager.BroadcastMessage_Static(
+                        $"[反应] 当前没有可打出的反应牌（手牌无反应法术或资源不足，当前法力：{_gs.PMana}）");
+                }
                 return;
             }
 
@@ -2326,9 +2403,7 @@ namespace FWTCG
             if (used)
             {
                 RefreshUI();
-                // DOT-8: legend skill closeup
-                if (_gs.PLegend != null)
-                    UI.GameEventBus.FireLegendSkillFired(_gs.PLegend, GameRules.OWNER_PLAYER);
+                // Skill closeup now fired inside LegendSystem.UseKaisaActive to cover AI path too
             }
         }
 

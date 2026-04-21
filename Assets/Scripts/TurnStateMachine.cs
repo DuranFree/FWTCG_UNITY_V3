@@ -62,10 +62,12 @@ namespace FWTCG
 
         /// <summary>
         /// Returns true when a spell card is legal to play given the current state.
+        /// 按 Rule 18/25 修正后的权限判定：
         ///
-        /// Normal_OpenLoop     : non-Reactive, non-Swift spells only.
-        /// SpellDuel_OpenLoop  : Reactive OR Swift spells only (Rule 718).
-        /// All other states    : no spells allowed.
+        /// Normal_OpenLoop      : 任意法术合法（自己回合开环，基础权限）。
+        /// SpellDuel_OpenLoop   : 只有反应 OR 迅捷（Rule 18.1.b / Rule 25）。
+        /// SpellDuel_ClosedLoop : 只有反应插队（Rule 25.1.c 闭环）。
+        /// Normal_ClosedLoop    : 只有反应（非本回合 / 结算中，Rule 25.1.c）。
         /// </summary>
         public static bool CanPlaySpell(CardData card)
         {
@@ -77,11 +79,15 @@ namespace FWTCG
             switch (_current)
             {
                 case State.Normal_OpenLoop:
-                    // Normal play: only non-reactive, non-swift spells
-                    return !hasReactive && !hasSwift;
+                    // 自己回合开环：所有法术均可打（反应/迅捷属于额外权限，不是限制）
+                    return true;
                 case State.SpellDuel_OpenLoop:
-                    // Duel window: Reactive OR Swift (Rule 718)
+                    // 对决开环：只有反应或迅捷（Rule 18.1.b）
                     return hasReactive || hasSwift;
+                case State.SpellDuel_ClosedLoop:
+                case State.Normal_ClosedLoop:
+                    // 闭环：只有反应能插队结算链（Rule 25.1.c）
+                    return hasReactive;
                 default:
                     return false;
             }

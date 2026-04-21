@@ -71,7 +71,22 @@ namespace FWTCG.Systems
             else
                 bf.EnemyUnits.Add(unit);
 
-            unit.Exhausted = true;
+            // B11: rengar — "若本回合开始前我在基地，则我可以以活跃状态进场"
+            // 从基地移出到战场时，如果是 rengar 且 WasInBaseAtTurnStart，则不休眠
+            bool rengarActiveMove = unit.CardData.EffectId == "rengar_enter"
+                                    && unit.WasInBaseAtTurnStart
+                                    && fromLoc == "base";
+            if (rengarActiveMove)
+            {
+                unit.Exhausted = false;
+                // 触发一次后清零标记，避免下次移动复用（已"进场"了）
+                unit.WasInBaseAtTurnStart = false;
+                Log($"[雷恩加尔] {unit.UnitName} 本回合开始前在基地 → 以活跃状态进场");
+            }
+            else
+            {
+                unit.Exhausted = true;
+            }
 
             Log($"[移动] {unit.UnitName}({DisplayName(owner)}) → 战场{toBF + 1}");
 
@@ -336,8 +351,8 @@ namespace FWTCG.Systems
             {
                 if (u.Stunned) continue;
                 int power = u.EffectiveAtk();  // already Max(0, CurrentAtk + TempAtkBonus)
-                if (isAttacking && u.HasStrongAtk) power += 1;
-                if (!isAttacking && u.HasGuard) power += 1;
+                if (isAttacking && u.HasStrongAtk) power += u.StrongAtkValue;
+                if (!isAttacking && u.HasGuard)    power += u.GuardValue;
                 total += power;
             }
             return total;
@@ -384,9 +399,14 @@ namespace FWTCG.Systems
         {
             foreach (UnitInstance u in dead)
             {
-                // C-6: Guardian Angel / Zhonya 死亡替换 — 若单位附着 guardian_equip，
-                // 改为销毁装备，单位以休眠状态返回基地，不计为阵亡。
+                // C-6: Guardian Angel — 附着装备型死亡替换
                 if (TryGuardianProtect(u, bf, owner, gs))
+                {
+                    continue;
+                }
+
+                // B8-mini: Zhonya — 非附着型死亡替换（在基地只要还有一张 zhonya_equip 就能保护一次）
+                if (TryZhonyaProtect(u, bf, owner, gs))
                 {
                     continue;
                 }
@@ -528,15 +548,56 @@ namespace FWTCG.Systems
                     case "bad_poro_conquer":
                         // bad_poro 卡面："当我征服一处战场时，打出1枚休眠的「硬币」装备指示物。"
                         // 硬币装备指示物尚未建模，简化为摸一张牌作为占位。
+                        FWTCG.UI.SpellShowcaseUI.Instance?.ShowAsync(unit, attacker);
                         DrawOneCardForConquest(attacker, gs, unit);
                         break;
 
                     case "kaisa_hero_conquer":
                         // 卡莎·九死一生："当我征服一处战场时，抽一张牌。"
+                        FWTCG.UI.SpellShowcaseUI.Instance?.ShowAsync(unit, attacker);
                         DrawOneCardForConquest(attacker, gs, unit);
                         break;
                 }
             }
+        }
+
+        /// <summary>
+        /// B8-mini: 中娅沙漏 — 非附着型死亡替换。
+        /// 如果 unit 所属者的基地里有一张 zhonya_equip 装备，销毁该装备，把 unit 休眠回基地。
+        /// 多张同时在基地时只消耗一张。
+        /// </summary>
+        private bool TryZhonyaProtect(UnitInstance unit, BattlefieldState bf, string owner, GameState gs)
+        {
+            var baseList = gs.GetBase(owner);
+            UnitInstance zhonya = null;
+            for (int i = 0; i < baseList.Count; i++)
+            {
+                var c = baseList[i];
+                if (c.CardData.IsEquipment && c.CardData.EffectId == "zhonya_equip" && c.AttachedTo == null)
+                {
+                    zhonya = c;
+                    break;
+                }
+            }
+            if (zhonya == null) return false;
+
+            // 销毁 zhonya → 弃牌堆
+            baseList.Remove(zhonya);
+            gs.GetDiscard(owner).Add(zhonya);
+
+            // 从战场移除单位
+            if (owner == GameRules.OWNER_PLAYER) bf.PlayerUnits.Remove(unit);
+            else                                 bf.EnemyUnits.Remove(unit);
+
+            // 单位恢复状态 + 休眠回基地
+            unit.CurrentHp = unit.CurrentAtk;
+            unit.Exhausted = true;
+            unit.TempAtkBonus = 0;
+            unit.Stunned = false;
+            baseList.Add(unit);
+
+            Log($"[中娅沙漏] 销毁自身，保护 {unit.UnitName} 休眠返回基地");
+            return true;
         }
 
         /// <summary>Shared: draw 1 card as a conquest-triggered effect.</summary>

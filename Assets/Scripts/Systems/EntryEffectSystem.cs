@@ -20,7 +20,15 @@ namespace FWTCG.Systems
         public void OnUnitEntered(UnitInstance unit, string owner, GameState gs)
         {
             string effectId = unit.CardData.EffectId;
-            if (string.IsNullOrEmpty(effectId)) return;
+            bool hasEffect = !string.IsNullOrEmpty(effectId);
+            bool isEquipment = unit.CardData.IsEquipment;
+
+            // 统一通过 SpellShowcaseUI 队列播放：带入场效果的单位、装备牌都触发
+            // 纯数值单位（白板，无 effectId 且非装备）不触发，避免骚扰
+            if (hasEffect || isEquipment)
+                FWTCG.UI.SpellShowcaseUI.Instance?.ShowAsync(unit, owner);
+
+            if (!hasEffect) return;
 
             switch (effectId)
             {
@@ -58,8 +66,12 @@ namespace FWTCG.Systems
                     break;
 
                 case "foresight_mech_enter":
-                    // DEV-26: logs for all owners; player also gets an interactive "置底?" prompt
-                    //         handled in GameManager.HandleForesightPromptAsync after this call returns.
+                    // 先见机甲卡面："你的「机械」属性单位获得【预知】。（当你打出我时，查看主牌堆顶…）"
+                    // 架构说明：规则严格要求给所有"机械"类己方单位赋予预知关键词（Rule 29.1），
+                    // 然后每个机械单位进场时各自触发一次预知。
+                    // 当前简化：仅 foresight_mech 这一张"机械"卡存在，因此触发一次等价正确。
+                    // 若未来加入其他机械卡，需引入 Tags 字段 + 关键词赋予机制。
+                    // 播放阶段的查看+置底提示由 GameManager.HandleForesightPromptAsync 处理。
                     List<UnitInstance> deck = gs.GetDeck(owner);
                     if (deck.Count > 0)
                         Log($"[预知] {unit.UnitName} — 牌库顶：{deck[0].UnitName}（ATK:{deck[0].CardData.Atk} 费用:{deck[0].CardData.Cost}）");
@@ -86,12 +98,12 @@ namespace FWTCG.Systems
                     break;
 
                 case "rengar_enter":
-                    // 雷恩加尔：反应+强攻。已在 UnitInstance 构造时从 CardKeyword 装载，此处仅记录。
-                    // 卡面"若本回合开始前我在基地，则可以活跃进场" 不在基础入场触发，
-                    // 需在 Awaken 阶段针对雷恩加尔标记可活跃进场（待 Phase C-5b 或后续实现）。
+                    // 雷恩加尔：反应 + 强攻[2]（卡面"当我进攻时，+2"）。
+                    // 默认 HasStrongAtk 由 CardKeyword 装载，但默认 StrongAtkValue=1 需要这里覆写为 2。
                     unit.HasReactive = true;
-                    Log($"[入场] {unit.UnitName} — 反应·强攻(+2)");
-                    FWTCG.UI.GameEventBus.FireEntryEffectBanner(unit.UnitName, "反应·强攻"); // DEV-18b
+                    unit.StrongAtkValue = 2;
+                    Log($"[入场] {unit.UnitName} — 反应·强攻[2]");
+                    FWTCG.UI.GameEventBus.FireEntryEffectBanner(unit.UnitName, "反应·强攻[2]"); // DEV-18b
                     break;
 
                 case "kaisa_hero_conquer":

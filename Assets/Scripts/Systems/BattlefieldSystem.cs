@@ -45,6 +45,22 @@ namespace FWTCG.Systems
         private string GetBFId(int bfIndex, GameState gs) =>
             gs.BFNames != null && bfIndex < gs.BFNames.Length ? gs.BFNames[bfIndex] : "";
 
+        /// <summary>
+        /// Show the spell-style full-screen showcase for a battlefield card's triggered effect.
+        /// Used only for rare events (conquest / defense failure) — not for per-turn hold effects
+        /// to avoid spamming the player. Constructs a transient UnitInstance purely for display.
+        /// </summary>
+        private static void FireBFShowcase(string bfKey, string owner)
+        {
+            if (string.IsNullOrEmpty(bfKey)) return;
+            if (FWTCG.UI.SpellShowcaseUI.Instance == null) return;
+            var card = Resources.Load<CardData>($"Cards/BF/{bfKey}");
+            if (card == null) return;
+            // uid = -1 marks as display-only; no system tracks BF display units
+            var display = new UnitInstance(-1, card, owner);
+            FWTCG.UI.SpellShowcaseUI.Instance.ShowAsync(display, owner);
+        }
+
         // ── Score modifiers ───────────────────────────────────────────────────
 
         /// <summary>
@@ -164,21 +180,27 @@ namespace FWTCG.Systems
         /// </summary>
         public void OnConquest(int bfId, string attacker, GameState gs)
         {
-            switch (GetBFId(bfId, gs))
+            string bfKey = GetBFId(bfId, gs);
+            switch (bfKey)
             {
                 case "hirana":
+                    FireBFShowcase(bfKey, attacker);
                     HiranaConquest(attacker, gs);
                     break;
                 case "reaver_row":
+                    FireBFShowcase(bfKey, attacker);
                     ReaverRowConquest(attacker, gs);
                     break;
                 case "zaun_undercity":
+                    FireBFShowcase(bfKey, attacker);
                     ZaunUndercityConquest(attacker, gs);
                     break;
                 case "strength_obelisk":
+                    FireBFShowcase(bfKey, attacker);
                     StrengthObeliskExtra(attacker, gs);
                     break;
                 case "thunder_rune":
+                    FireBFShowcase(bfKey, attacker);
                     ThunderRuneConquest(attacker, gs);
                     break;
             }
@@ -193,6 +215,7 @@ namespace FWTCG.Systems
             if (defender != GameRules.OWNER_PLAYER) return;
             if (GetBFId(bfId, gs) == "sunken_temple" && gs.PMana >= 2)
             {
+                FireBFShowcase("sunken_temple", defender);
                 gs.PMana -= 2;
                 DrawCard(defender, gs);
                 Log("[沉没神庙] 防守失败！支付2法力，抽1张牌。");

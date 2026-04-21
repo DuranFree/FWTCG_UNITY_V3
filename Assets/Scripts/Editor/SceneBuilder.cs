@@ -451,11 +451,13 @@ namespace FWTCG.Editor
                 out var mulliganTitleText, out var mulliganCardContainer,
                 out var mulliganConfirmButton, out var mulliganConfirmLabel);
 
-            // DebugPanel removed — not in Pencil design, GameManager handles null gracefully
-            Button debugSpellBtn = null, debugEquipBtn = null, debugUnitBtn = null;
-            Button debugReactiveBtn = null, debugManaBtn = null, debugSchBtn = null, debugFloatBtn = null;
-            Button debugTakeHitBtn = null, debugDealHitBtn = null;
-            InputField debugDmgInput = null;
+            // DebugPanel — 默认隐藏，用户按键盘 0 可切换显隐（仅临时/开发用）
+            var debugPanelGO = CreateDebugPanel(canvasGO.transform,
+                out var debugSpellBtn, out var debugEquipBtn,
+                out var debugUnitBtn, out var debugReactiveBtn, out var debugManaBtn,
+                out var debugSchBtn, out var debugFloatBtn,
+                out var debugDmgInput, out var debugTakeHitBtn, out var debugDealHitBtn);
+            debugPanelGO.SetActive(false);   // 默认隐藏，按 0 切换
 
             // ── Reactive Window Panel ─────────────────────────────────────────
             var reactivePanel = CreateReactiveWindowPanel(canvasGO.transform,
@@ -605,11 +607,26 @@ namespace FWTCG.Editor
                 gmSO.ApplyModifiedPropertiesWithoutUndo();
             }
 
-            // Wire combat result + misc into GameUI (debugPanel removed from Pencil design)
+            // Wire CardDetailPopup into popup card pickers so right-click can enlarge cards there too
+            void WirePopup(MonoBehaviour comp)
+            {
+                if (comp == null) return;
+                var so = new SerializedObject(comp);
+                var prop = so.FindProperty("_cardDetailPopup");
+                if (prop != null) { prop.objectReferenceValue = cardDetailPopupComp; so.ApplyModifiedPropertiesWithoutUndo(); }
+            }
+            WirePopup(startupFlowUI);
+            WirePopup(askPromptUI);
+            WirePopup(reactiveWindowUI);
+
+            // Wire combat result + misc into GameUI (debugPanel 默认隐藏，按 0 切换)
             {
                 var guiSO2 = new SerializedObject(gameUI);
-                guiSO2.FindProperty("_debugPanel").objectReferenceValue = null;
+                guiSO2.FindProperty("_debugPanel").objectReferenceValue = debugPanelGO;
                 guiSO2.FindProperty("_debugToggleBtn").objectReferenceValue = null;
+
+                // 迅捷/反应 按钮引用，GameUI.NotifyReactButtonState 用它做呼吸/暗淡切换
+                guiSO2.FindProperty("_reactBtn").objectReferenceValue = reactBtn;
 
                 // Combat result panel
                 guiSO2.FindProperty("_combatResultPanel").objectReferenceValue = combatResultPanel;
@@ -882,16 +899,16 @@ namespace FWTCG.Editor
             // SCORES: C1 R3-5 = Player | C7 R1-3 = Enemy
             // ════════════════════════════════════════════════════════════
 
-            // ── Score tracks (Pencil: left x=47 w=22, y=446-820; right x=1854 w=22, y=260-634) ──
-            // Pencil: Player circles at x=47, y=446-798 (9×44px spacing), bottom=820
+            // ── Score tracks (1.5× sized; Player pushed up, AI pushed down) ──
+            // Player: x=42..75 (33 wide), y=386..760 — pushed up 60
             playerScoreCircleImages = new Image[9];
             CreateScoreTrack(go.transform, "PlayerScoreTrack", true,
-                47f/1920f, 69f/1920f, 1f-820f/1080f, 1f-446f/1080f, playerScoreCircleImages);
+                42f/1920f, 75f/1920f, 1f-760f/1080f, 1f-386f/1080f, playerScoreCircleImages);
 
-            // Pencil: Enemy circles at x=1854, y=260-612 (9×44px spacing), bottom=634
+            // AI: x=1845..1878 (33 wide), y=320..694 — pushed down 60
             enemyScoreCircleImages = new Image[9];
             CreateScoreTrack(go.transform, "EnemyScoreTrack", false,
-                1854f/1920f, 1876f/1920f, 1f-634f/1080f, 1f-260f/1080f, enemyScoreCircleImages);
+                1845f/1920f, 1878f/1920f, 1f-694f/1080f, 1f-320f/1080f, enemyScoreCircleImages);
 
             // ── ENEMY SIDE (top) — Pencil: 传说E(391,-48,118×154), 英雄E(262,-48,118×154) ──
             // Symmetric mirror of Player Hero/Legend (884..1038 around canvas center)
@@ -1211,27 +1228,29 @@ namespace FWTCG.Editor
             trackBg.raycastTarget = false;
 
             var vlg = go.AddComponent<VerticalLayoutGroup>();
-            vlg.childControlWidth = true;
-            vlg.childControlHeight = true;
-            vlg.childForceExpandWidth = true;
+            // childControlWidth=false to keep circles at exact preferredWidth (avoid horizontal stretch → ellipse)
+            vlg.childControlWidth = false;
+            vlg.childControlHeight = false;
+            vlg.childForceExpandWidth = false;
             vlg.childForceExpandHeight = false;
-            vlg.spacing = 2f;
-            vlg.padding = new RectOffset(2, 2, 4, 4);
-            // Diagonal: player circles cluster at BOTTOM-left, enemy at TOP-right
+            vlg.spacing = 4f;
+            vlg.padding = new RectOffset(0, 0, 4, 4);
             vlg.childAlignment = isPlayer ? TextAnchor.LowerCenter : TextAnchor.UpperCenter;
 
-            // Pencil: 22×22 hollow ring, gold stroke (#907020), transparent center
+            // 33×33 hollow ring (1.5× original 22)
             var ringSpr = GetRingSprite();
             for (int raw = 0; raw < 9; raw++)
             {
                 int num = isPlayer ? (8 - raw) : raw;
 
-                var circleGO = new GameObject($"Score_{num}");
+                var circleGO = new GameObject($"Score_{num}", typeof(RectTransform));
                 circleGO.transform.SetParent(go.transform, false);
+                var crt = circleGO.GetComponent<RectTransform>();
+                crt.sizeDelta = new Vector2(33f, 33f);
 
                 var le = circleGO.AddComponent<LayoutElement>();
-                le.preferredWidth  = 22f;
-                le.preferredHeight = 22f;
+                le.preferredWidth  = 33f;
+                le.preferredHeight = 33f;
 
                 // Hollow gold ring — center stays fully transparent so playmat shows through
                 var img = circleGO.AddComponent<Image>();
@@ -1240,7 +1259,7 @@ namespace FWTCG.Editor
                 img.color  = new Color(ZoneBorderColor.r, ZoneBorderColor.g, ZoneBorderColor.b, 1f);
 
                 var numText = CreateTMPText(circleGO.transform, "Num", num.ToString(),
-                    GameColors.GoldLight, 10, TextAnchor.MiddleCenter);
+                    GameColors.GoldLight, 15, TextAnchor.MiddleCenter);
                 var numRT = numText.GetComponent<RectTransform>();
                 numRT.anchorMin = Vector2.zero;
                 numRT.anchorMax = Vector2.one;
@@ -1351,14 +1370,13 @@ namespace FWTCG.Editor
             shadowGO.transform.SetAsFirstSibling();
             var shRT = shadowGO.GetComponent<RectTransform>();
             shRT.anchorMin = Vector2.zero; shRT.anchorMax = Vector2.one;
-            // Extend ~40% on each side so the gaussian falloff reaches well outside the pile,
-            // and bias slightly down-right so it reads as cast shadow
-            shRT.offsetMin = new Vector2(-50f, -65f);
-            shRT.offsetMax = new Vector2(40f, 25f);
+            // Tight halo so the dark falloff doesn't bleed across the play area
+            shRT.offsetMin = new Vector2(-18f, -28f);
+            shRT.offsetMax = new Vector2(14f, 8f);
             var shImg = shadowGO.AddComponent<Image>();
             shImg.sprite = GetSoftShadowSprite();
             shImg.type = Image.Type.Simple;
-            shImg.color = new Color(0f, 0f, 0f, 0.75f);
+            shImg.color = new Color(0f, 0f, 0f, 0.55f);
             shImg.raycastTarget = false;
 
             // Background: card back texture fills entire pile area (Pencil: 贴图层)
@@ -1763,8 +1781,16 @@ namespace FWTCG.Editor
                 endImg.type = Image.Type.Simple;
                 endImg.color = Color.white;
             }
-            // 查看弃牌堆 — Pencil: 77×24, below 结束回合
-            reactBtn = CreateActionButton(actionPanel.transform, "ReactButton", "查看弃牌堆", new Color(0.2f, 0.16f, 0.08f, 0.9f));
+            // 迅捷/反应 — 紫色按钮（和结束回合同样式，只是色相换成紫），状态由 GameUI 动态切换亮/暗/呼吸
+            reactBtn = CreateActionButton(actionPanel.transform, "ReactButton", "迅捷/反应", Color.white);
+            // 覆盖默认 btn_react 红底 sprite，换成紫色版（btn_react_purple 由 EndTurn sprite 色相旋转生成）
+            var reactImg = reactBtn.GetComponent<Image>();
+            if (reactImg != null)
+            {
+                var purpleSpr = AssetDatabase.LoadAssetAtPath<Sprite>("Assets/Resources/UI/Generated/btn_react_purple.png");
+                if (purpleSpr != null) reactImg.sprite = purpleSpr;
+                reactImg.color = Color.white; // 用白色让 sprite 原色透出；GameUI 会根据状态调整亮度
+            }
             var reactLE = reactBtn.gameObject.GetComponent<LayoutElement>() ?? reactBtn.gameObject.AddComponent<LayoutElement>();
             reactLE.preferredHeight = 24f;
 
@@ -1978,10 +2004,9 @@ namespace FWTCG.Editor
             rt.offsetMin = Vector2.zero;
             rt.offsetMax = Vector2.zero;
 
-            // Semi-transparent dark background
+            // Semi-transparent dark background（不加 panel_spell_showcase sprite，sprite 里烘焙了多余底框）
             var bg = go.AddComponent<Image>();
             bg.color = new Color(0f, 0f, 0f, 0.72f);
-            TryApplySvgSprite(bg, "panel_spell_showcase");
 
             // CanvasGroup for alpha animation — start fully hidden
             var cg = go.AddComponent<CanvasGroup>();
@@ -2283,7 +2308,7 @@ namespace FWTCG.Editor
             boxGO.transform.SetParent(panel.transform, false);
             var boxImg = boxGO.AddComponent<Image>();
             boxImg.color = new Color(0.04f, 0.08f, 0.14f, 0.97f);
-            TryApplySvgSprite(boxImg, "panel_glass");
+            // 不加 panel_glass sprite，sprite 里烘焙了装饰勋章框
             boxGO.AddComponent<FWTCG.UI.GlassPanelFX>();  // DEV-25 glass effect
             var boxRT = boxGO.GetComponent<RectTransform>();
             boxRT.anchorMin = new Vector2(0.5f, 0.5f);
@@ -2377,137 +2402,131 @@ namespace FWTCG.Editor
             out Text coinFlipText, out Button okButton,
             out Image coinCircleImage, out Text coinResultText, out Image scanLightImage)
         {
-            var go = CreateFullscreenPanel(parent, "CoinFlipPanel", new Color(0.02f, 0.04f, 0.07f, 0.95f));
-            // DEV-24: CanvasGroup for fade transitions
+            // Outer dim overlay (full screen)
+            var go = CreateFullscreenPanel(parent, "CoinFlipPanel", new Color(0f, 0f, 0f, 0.92f));
             go.AddComponent<CanvasGroup>();
 
-            // Centered dialog frame (ignoreLayout so VLG skips it, renders behind content)
-            {
-                var bgBox = new GameObject("PanelBg");
-                bgBox.transform.SetParent(go.transform, false);
-                var le = bgBox.AddComponent<LayoutElement>(); le.ignoreLayout = true;
-                var rt = bgBox.GetComponent<RectTransform>();
-                rt.anchorMin = new Vector2(0.5f, 0.5f); rt.anchorMax = new Vector2(0.5f, 0.5f);
-                rt.pivot = new Vector2(0.5f, 0.5f); rt.sizeDelta = new Vector2(800f, 600f);
-                var bgImg = bgBox.AddComponent<Image>();
-                bgImg.color = Color.white; bgImg.raycastTarget = false;
-                TryApplySvgSprite(bgImg, "bg_coin_flip");
-            }
+            // Centered modal panel 560×680, navy + gold border
+            var panel = new GameObject("Panel", typeof(RectTransform));
+            panel.transform.SetParent(go.transform, false);
+            var pRT = panel.GetComponent<RectTransform>();
+            pRT.anchorMin = new Vector2(0.5f, 0.5f); pRT.anchorMax = new Vector2(0.5f, 0.5f);
+            pRT.pivot = new Vector2(0.5f, 0.5f);
+            pRT.sizeDelta = new Vector2(560f, 680f);
+            var pImg = panel.AddComponent<Image>();
+            pImg.color = new Color(0x0E/255f, 0x1A/255f, 0x2E/255f, 0.95f);
+            CreateZoneBorderFrame(panel.transform, new Color(0xF2/255f, 0xC8/255f, 0x5A/255f, 1f), 3f);
+            AddPanelCornerOrnaments(panel.transform);
 
-            var vlg = go.AddComponent<VerticalLayoutGroup>();
-            vlg.childControlWidth = false;
-            vlg.childControlHeight = false;
-            vlg.childForceExpandWidth = false;
-            vlg.childForceExpandHeight = false;
-            vlg.childAlignment = TextAnchor.MiddleCenter;
-            vlg.spacing = 28f;
+            var pVlg = panel.AddComponent<VerticalLayoutGroup>();
+            pVlg.padding = new RectOffset(40, 40, 28, 28);
+            pVlg.spacing = 14f;
+            pVlg.childAlignment = TextAnchor.UpperCenter;
+            pVlg.childControlWidth = false; pVlg.childControlHeight = false;
+            pVlg.childForceExpandWidth = false; pVlg.childForceExpandHeight = false;
 
-            // Title label — DEV-30 V1: alpha=0, animated in by TitleTextEntranceRoutine
-            // ignoreLayout=true: must not be controlled by VLG (DOTween fights VLG → wrong position)
-            {
-                var titleText = CreateTMPText(go.transform, "CoinTitle", "掷硬币",
-                    new Color(0.78f, 0.67f, 0.43f, 0f), 44, TextAnchor.MiddleCenter);
-                var titleLE = titleText.gameObject.AddComponent<LayoutElement>();
-                titleLE.ignoreLayout = true;
-                var titleRT = titleText.rectTransform;
-                titleRT.anchorMin = new Vector2(0.5f, 0.5f);
-                titleRT.anchorMax = new Vector2(0.5f, 0.5f);
-                titleRT.pivot    = new Vector2(0.5f, 0.5f);
-                titleRT.sizeDelta = new Vector2(400f, 60f);
-                titleRT.anchoredPosition = new Vector2(0f, 280f); // above coin, clear of VLG content
-            }
+            // Title 决 胜 先 手
+            var title = CreateTMPText(panel.transform, "CoinTitle", "决  胜  先  手",
+                new Color(0xF2/255f, 0xC8/255f, 0x5A/255f, 1f), 42, TextAnchor.MiddleCenter);
+            title.fontStyle = FontStyle.Bold;
+            var titleLE = title.gameObject.AddComponent<LayoutElement>();
+            titleLE.preferredHeight = 50f;
 
-            // ── Coin group: VLG item that wraps coin + face text ─────────────
-            // CoinGroup is the VLG item (160×160). CoinContainer (with Mask) lives
-            // inside it; CoinFaceText is a sibling of CoinContainer — NOT inside the
-            // Mask hierarchy — so it is never clipped by the circular mask.
-            var coinGroup = new GameObject("CoinGroup");
-            coinGroup.transform.SetParent(go.transform, false);
-            var coinGroupRT = coinGroup.AddComponent<RectTransform>();
-            coinGroupRT.sizeDelta = new Vector2(160f, 160f);
-            var coinGroupLE = coinGroup.AddComponent<LayoutElement>();
-            coinGroupLE.preferredWidth  = 160f;
-            coinGroupLE.preferredHeight = 160f;
+            // (subtitle + divider removed per layout request — tighter spacing brings the coin up)
 
-            // CoinContainer: circular mask clips the dark outer border ring of coin sprites
-            var coinContainer = new GameObject("CoinContainer");
+            // CoinGroup: snug 240×240 (was 280×280 with transparent margin)
+            var coinGroup = new GameObject("CoinGroup", typeof(RectTransform));
+            coinGroup.transform.SetParent(panel.transform, false);
+            var cgRT = coinGroup.GetComponent<RectTransform>();
+            cgRT.sizeDelta = new Vector2(240f, 240f);
+            var cgLE = coinGroup.AddComponent<LayoutElement>();
+            cgLE.preferredWidth = 240f; cgLE.preferredHeight = 240f;
+
+            // ScanLight strip (full-canvas absolute positioning preserved for StartupFlowUI sweep)
+            var scanGO = new GameObject("ScanLight", typeof(RectTransform));
+            scanGO.transform.SetParent(go.transform, false);
+            var scanRT = scanGO.GetComponent<RectTransform>();
+            scanRT.sizeDelta = new Vector2(240f, 3f);
+            scanRT.anchorMin = new Vector2(0f, 0.5f); scanRT.anchorMax = new Vector2(0f, 0.5f);
+            scanRT.pivot = new Vector2(0.5f, 0.5f);
+            scanRT.anchoredPosition = new Vector2(-960f, 0f);
+            scanGO.AddComponent<LayoutElement>().ignoreLayout = true;
+            scanLightImage = scanGO.AddComponent<Image>();
+            scanLightImage.color = new Color(0.49f, 0.61f, 1f, 0.35f);
+
+            // CoinContainer: 240×240 centered inside CoinGroup, circular mask
+            var coinContainer = new GameObject("CoinContainer", typeof(RectTransform));
             coinContainer.transform.SetParent(coinGroup.transform, false);
-            var coinContRT = coinContainer.AddComponent<RectTransform>();
-            coinContRT.anchorMin = Vector2.zero;
-            coinContRT.anchorMax = Vector2.one;
-            coinContRT.offsetMin = Vector2.zero;
-            coinContRT.offsetMax = Vector2.zero;
+            var ccRT = coinContainer.GetComponent<RectTransform>();
+            ccRT.anchorMin = new Vector2(0.5f, 0.5f); ccRT.anchorMax = new Vector2(0.5f, 0.5f);
+            ccRT.pivot = new Vector2(0.5f, 0.5f);
+            ccRT.sizeDelta = new Vector2(240f, 240f);
             var maskImg = coinContainer.AddComponent<Image>();
             maskImg.sprite = AssetDatabase.GetBuiltinExtraResource<Sprite>("UI/Skin/Knob.psd");
-            maskImg.color  = Color.white;
+            maskImg.color = Color.white;
             maskImg.raycastTarget = false;
             coinContainer.AddComponent<Mask>().showMaskGraphic = false;
 
-            // CoinCircle: the actual coin sprite — slightly oversized so border stays outside mask
-            var coinGO = new GameObject("CoinCircle");
+            // CoinCircle: actual coin sprite (kept identical for animation), oversized to hide border
+            var coinGO = new GameObject("CoinCircle", typeof(RectTransform));
             coinGO.transform.SetParent(coinContainer.transform, false);
-            var coinRT = coinGO.AddComponent<RectTransform>();
+            var coinRT = coinGO.GetComponent<RectTransform>();
             coinRT.anchorMin = new Vector2(-0.07f, -0.07f);
-            coinRT.anchorMax = new Vector2(1.07f,  1.07f);
-            coinRT.offsetMin = Vector2.zero;
-            coinRT.offsetMax = Vector2.zero;
+            coinRT.anchorMax = new Vector2(1.07f, 1.07f);
+            coinRT.offsetMin = Vector2.zero; coinRT.offsetMax = Vector2.zero;
             coinCircleImage = coinGO.AddComponent<Image>();
-            coinCircleImage.color          = Color.white;
+            coinCircleImage.color = Color.white;
             coinCircleImage.preserveAspect = false;
 
-            // CoinEdge: thin vertical strip that simulates the coin's rim/thickness
-            // during the flip animation. Hidden by default; animated in StartupFlowUI.
-            // Lives inside the masked container → top/bottom are rounded by the circle mask.
+            // CoinEdge for flip animation (preserved)
             {
-                var edgeGO = new GameObject("CoinEdge");
+                var edgeGO = new GameObject("CoinEdge", typeof(RectTransform));
                 edgeGO.transform.SetParent(coinContainer.transform, false);
-                var edgeRT = edgeGO.AddComponent<RectTransform>();
-                edgeRT.anchorMin = new Vector2(0.5f, 0f);
-                edgeRT.anchorMax = new Vector2(0.5f, 1f);
-                edgeRT.pivot     = new Vector2(0.5f, 0.5f);
-                edgeRT.sizeDelta = new Vector2(12f, 0f); // 12 px wide, full container height
-                var edgeImg = edgeGO.AddComponent<Image>();
-                edgeImg.color = new Color(0.72f, 0.55f, 0.13f, 0f); // dark gold, alpha=0
+                var eRT = edgeGO.GetComponent<RectTransform>();
+                eRT.anchorMin = new Vector2(0.5f, 0f); eRT.anchorMax = new Vector2(0.5f, 1f);
+                eRT.pivot = new Vector2(0.5f, 0.5f); eRT.sizeDelta = new Vector2(12f, 0f);
+                edgeGO.AddComponent<Image>().color = new Color(0.72f, 0.55f, 0.13f, 0f);
             }
 
-            // CoinFaceText: sibling of CoinContainer — NOT clipped by the Mask above
+            // CoinFaceText: sibling of CoinContainer (not clipped) — preserved for "?" / face label
             coinFlipText = CreateTMPText(coinGroup.transform, "CoinFaceText", "?",
                 new Color(0.10f, 0.07f, 0.02f, 1f), 48, TextAnchor.MiddleCenter);
             {
-                var faceRT = coinFlipText.rectTransform;
-                faceRT.anchorMin = Vector2.zero;
-                faceRT.anchorMax = Vector2.one;
-                faceRT.offsetMin = Vector2.zero;
-                faceRT.offsetMax = Vector2.zero;
+                var fRT = coinFlipText.rectTransform;
+                fRT.anchorMin = Vector2.zero; fRT.anchorMax = Vector2.one;
+                fRT.offsetMin = Vector2.zero; fRT.offsetMax = Vector2.zero;
             }
 
-            // ── Result text (hidden initially) ────────────────────────────────
-            coinResultText = CreateTMPText(go.transform, "CoinResultText", "",
-                Color.white, 26, TextAnchor.MiddleCenter);
-            // Start fully transparent — StartupFlowUI fades this in after the flip
-            var rc = coinResultText.color;
-            rc.a = 0f;
-            coinResultText.color = rc;
+            // Result text — Pencil: " 你先手" 24pt #9DFF9D, bold. Alpha 0 until coin lands.
+            coinResultText = CreateTMPText(panel.transform, "CoinResultText", "",
+                new Color(0.62f, 1f, 0.62f, 0f), 24, TextAnchor.MiddleCenter);
+            coinResultText.fontStyle = FontStyle.Bold;
+            coinResultText.gameObject.AddComponent<LayoutElement>().preferredHeight = 30f;
 
-            okButton = CreateButton(go.transform, "OkButton", "开始");
-            TryApplySvgSprite(okButton.GetComponent<Image>(), "btn_confirm");
-            AddButtonCharge(okButton.gameObject); // V4: 按钮入场动画
+            // Result badge — Pencil: 340×48, cornerRadius 24, fill #0A2410CC, border #9DFF9D80 1px,
+            // text "先手优势：先抽 1 张牌" 14pt #9DFF9D. Fades in after coin lands.
+            var resultBadge = new GameObject("CoinResultBadge", typeof(RectTransform));
+            resultBadge.transform.SetParent(panel.transform, false);
+            var rbRT = resultBadge.GetComponent<RectTransform>();
+            rbRT.sizeDelta = new Vector2(340f, 48f);
+            var rbLE = resultBadge.AddComponent<LayoutElement>();
+            rbLE.preferredWidth = 340f; rbLE.preferredHeight = 48f;
+            var rbImg = resultBadge.AddComponent<Image>();
+            rbImg.color = new Color(0x0A/255f, 0x24/255f, 0x10/255f, 0.8f);
+            rbImg.raycastTarget = false;
+            CreateZoneBorderFrame(resultBadge.transform,
+                new Color(0x9D/255f, 0xFF/255f, 0x9D/255f, 0.5f), 1f);
+            var rbCG = resultBadge.AddComponent<CanvasGroup>();
+            rbCG.alpha = 1f; // visible as part of the modal; text is set at runtime
+            var rbTxt = CreateTMPText(resultBadge.transform, "CoinResultBadgeText", "先 手 优 势 ： 先 抽 1 张 牌",
+                new Color(0x9D/255f, 0xFF/255f, 0x9D/255f, 1f), 14, TextAnchor.MiddleCenter);
+            var rbtRT = rbTxt.rectTransform;
+            rbtRT.anchorMin = Vector2.zero; rbtRT.anchorMax = Vector2.one;
+            rbtRT.offsetMin = Vector2.zero; rbtRT.offsetMax = Vector2.zero;
 
-            // ── Scan light (absolute positioned, not in VLG) ──────────────────
-            var scanGO = new GameObject("ScanLight");
-            scanGO.transform.SetParent(go.transform, false);
-            var scanRT = scanGO.AddComponent<RectTransform>();
-            scanRT.sizeDelta = new Vector2(240f, 3f);
-            scanRT.anchorMin = new Vector2(0f, 0.5f);
-            scanRT.anchorMax = new Vector2(0f, 0.5f);
-            scanRT.pivot = new Vector2(0.5f, 0.5f);
-            scanRT.anchoredPosition = new Vector2(-960f, 0f);
-            var scanLE = scanGO.AddComponent<LayoutElement>();
-            scanLE.ignoreLayout = true;
-            scanLightImage = scanGO.AddComponent<Image>();
-            scanLightImage.color = new Color(0.37f, 0.55f, 1f, 0.35f); // translucent blue-white
-
-            // DEV-30 V2/V3/V5 overlays removed — SVG background (bg_coin_flip) covers the visual design
+            // OK button
+            okButton = CreateMetallicButton(panel.transform, "OkButton", "开 始 战 斗", gold: true);
+            AddButtonCharge(okButton.gameObject);
 
             go.SetActive(false);
             return go;
@@ -2517,51 +2536,91 @@ namespace FWTCG.Editor
             out Text titleText, out Transform cardContainer,
             out Button confirmButton, out Text confirmLabel)
         {
-            var go = CreateFullscreenPanel(parent, "MulliganPanel", new Color(0f, 0f, 0f, 0.9f));
-            // DEV-24: CanvasGroup for fade transitions
+            var go = CreateFullscreenPanel(parent, "MulliganPanel", new Color(0f, 0f, 0f, 0.92f));
             go.AddComponent<CanvasGroup>();
 
-            // Centered dialog frame (ignoreLayout so VLG skips it, renders behind content)
-            {
-                var bgBox = new GameObject("PanelBg");
-                bgBox.transform.SetParent(go.transform, false);
-                var le = bgBox.AddComponent<LayoutElement>(); le.ignoreLayout = true;
-                var rt = bgBox.GetComponent<RectTransform>();
-                rt.anchorMin = new Vector2(0.5f, 0.5f); rt.anchorMax = new Vector2(0.5f, 0.5f);
-                rt.pivot = new Vector2(0.5f, 0.5f); rt.sizeDelta = new Vector2(1200f, 700f);
-                var bgImg = bgBox.AddComponent<Image>();
-                bgImg.color = Color.white; bgImg.raycastTarget = false;
-                TryApplySvgSprite(bgImg, "bg_mulligan");
-            }
+            // Centered modal panel 1100×680
+            var panel = new GameObject("Panel", typeof(RectTransform));
+            panel.transform.SetParent(go.transform, false);
+            var pRT = panel.GetComponent<RectTransform>();
+            pRT.anchorMin = new Vector2(0.5f, 0.5f); pRT.anchorMax = new Vector2(0.5f, 0.5f);
+            pRT.pivot = new Vector2(0.5f, 0.5f);
+            pRT.sizeDelta = new Vector2(1100f, 680f);
+            var pImg = panel.AddComponent<Image>();
+            pImg.color = new Color(0x0E/255f, 0x1A/255f, 0x2E/255f, 0.95f);
+            CreateZoneBorderFrame(panel.transform, new Color(0xF2/255f, 0xC8/255f, 0x5A/255f, 1f), 3f);
+            AddPanelCornerOrnaments(panel.transform);
 
-            var vlg = go.AddComponent<VerticalLayoutGroup>();
-            vlg.childControlWidth = false;
-            vlg.childControlHeight = false;
-            vlg.childForceExpandWidth = false;
-            vlg.childForceExpandHeight = false;
-            vlg.childAlignment = TextAnchor.MiddleCenter;
-            vlg.spacing = 20f;
+            var pVlg = panel.AddComponent<VerticalLayoutGroup>();
+            pVlg.padding = new RectOffset(40, 40, 36, 36);
+            pVlg.spacing = 18f;
+            pVlg.childAlignment = TextAnchor.UpperCenter;
+            pVlg.childControlWidth = false; pVlg.childControlHeight = false;
+            pVlg.childForceExpandWidth = false; pVlg.childForceExpandHeight = false;
 
-            titleText = CreateTMPText(go.transform, "MulliganTitle", "梦想手牌调度",
-                Color.white, 28, TextAnchor.MiddleCenter);
+            // Pencil: static title "卡牌调度" 36pt gold, letter-spaced.
+            var mTitle = CreateTMPText(panel.transform, "MulliganTitle", "卡  牌  调  度",
+                new Color(0xF2/255f, 0xC8/255f, 0x5A/255f, 1f), 36, TextAnchor.MiddleCenter);
+            mTitle.fontStyle = FontStyle.Bold;
+            mTitle.gameObject.AddComponent<LayoutElement>().preferredHeight = 44f;
 
-            // Card container (horizontal layout for up to 4 cards)
-            var containerGO = new GameObject("MulliganCardContainer");
-            containerGO.transform.SetParent(go.transform, false);
-            var containerRT = containerGO.AddComponent<RectTransform>();
-            containerRT.sizeDelta = new Vector2(500f, 150f);
+            // Divider 520×1 gold-faded
+            var div = new GameObject("Divider", typeof(RectTransform));
+            div.transform.SetParent(panel.transform, false);
+            div.GetComponent<RectTransform>().sizeDelta = new Vector2(520f, 1f);
+            div.AddComponent<LayoutElement>().preferredHeight = 1f;
+            var divImg = div.AddComponent<Image>();
+            divImg.color = new Color(0xF2/255f, 0xC8/255f, 0x5A/255f, 0.4f);
+            divImg.raycastTarget = false;
+
+            // Pencil tipBadge 520×34: dark pill showing selection count / instructions.
+            // Bound to out `titleText` so StartupFlowUI's runtime "已选 X / Y ..." text lands here.
+            var tipBadge = new GameObject("MulliganTipBadge", typeof(RectTransform));
+            tipBadge.transform.SetParent(panel.transform, false);
+            var tbRT = tipBadge.GetComponent<RectTransform>();
+            tbRT.sizeDelta = new Vector2(520f, 48f);
+            var tbLE = tipBadge.AddComponent<LayoutElement>();
+            tbLE.preferredWidth = 520f; tbLE.preferredHeight = 48f;
+            var tbImg = tipBadge.AddComponent<Image>();
+            tbImg.color = new Color(0x1A/255f, 0x23/255f, 0x40/255f, 0.8f);
+            tbImg.raycastTarget = false;
+            CreateZoneBorderFrame(tipBadge.transform,
+                new Color(0x7C/255f, 0x9C/255f, 0xFF/255f, 0.33f), 1f);
+            titleText = CreateTMPText(tipBadge.transform, "Text",
+                "已 选 0 / 4    ·    被 选 中 的 牌 将 弃 掉 重 抽",
+                new Color(0xC6/255f, 0xD4/255f, 0xFF/255f, 1f), 13, TextAnchor.MiddleCenter);
+            var tTxtRT = titleText.rectTransform;
+            tTxtRT.anchorMin = Vector2.zero; tTxtRT.anchorMax = Vector2.one;
+            tTxtRT.offsetMin = new Vector2(8f, 0f); tTxtRT.offsetMax = new Vector2(-8f, 0f);
+
+            // Card row (just the empty container — actual cards spawned by game logic)
+            var containerGO = new GameObject("MulliganCardContainer", typeof(RectTransform));
+            containerGO.transform.SetParent(panel.transform, false);
+            var cRT = containerGO.GetComponent<RectTransform>();
+            cRT.sizeDelta = new Vector2(1020f, 340f);
+            var cLE = containerGO.AddComponent<LayoutElement>();
+            cLE.preferredWidth = 1020f; cLE.preferredHeight = 340f;
             var hlg = containerGO.AddComponent<HorizontalLayoutGroup>();
             hlg.childAlignment = TextAnchor.MiddleCenter;
-            hlg.spacing = 12f;
+            hlg.spacing = 24f;
             hlg.childControlWidth = false;
             hlg.childControlHeight = false;
             cardContainer = containerGO.transform;
 
-            // Confirm button with label
-            confirmButton = CreateButton(go.transform, "ConfirmButton", "确认");
-            TryApplySvgSprite(confirmButton.GetComponent<Image>(), "btn_confirm");
-            AddButtonCharge(confirmButton.gameObject); // V8: 梦想手牌确认按钮动画
-            confirmLabel  = confirmButton.GetComponentInChildren<Text>();
+            // Footer row: confirm + skip side by side
+            var footer = new GameObject("Footer", typeof(RectTransform));
+            footer.transform.SetParent(panel.transform, false);
+            footer.GetComponent<RectTransform>().sizeDelta = new Vector2(1020f, 80f);
+            footer.AddComponent<LayoutElement>().preferredHeight = 80f;
+            var fHlg = footer.AddComponent<HorizontalLayoutGroup>();
+            fHlg.childAlignment = TextAnchor.MiddleCenter;
+            fHlg.spacing = 20f;
+            fHlg.childControlWidth = false; fHlg.childControlHeight = false;
+
+            confirmButton = CreateMetallicButton(footer.transform, "ConfirmButton", "确 认 调 度", gold: true);
+            AddButtonCharge(confirmButton.gameObject);
+            confirmLabel = confirmButton.GetComponentInChildren<Text>();
+            // SkipButton（蓝色"全部保留"）已删除——confirm 按钮在不选任何牌时会显示"不换牌，开始"，功能等价
 
             go.SetActive(false);
             return go;
@@ -2769,10 +2828,9 @@ namespace FWTCG.Editor
         private static GameObject CreateReactiveWindowPanel(Transform parent,
             out Text contextText, out Transform cardContainer)
         {
-            // Full-screen dark overlay
+            // Full-screen dark overlay — 不加 panel_reactive sprite（sprite 里烘焙了多余内框）
             var panel = CreateFullscreenPanel(parent, "ReactiveWindowPanel",
                 new Color(0f, 0f, 0f, 0.75f));
-            TryApplySvgSprite(panel.GetComponent<Image>(), "panel_reactive");
 
             var vlg = panel.AddComponent<VerticalLayoutGroup>();
             vlg.childControlWidth = false;
@@ -2866,6 +2924,12 @@ namespace FWTCG.Editor
             hlg.childAlignment = TextAnchor.MiddleCenter;
             cardContainer = ccGO.transform;
 
+            // ── Edge countdown border — 15s 光条沿边框从绿变红（顺时针 Top→Right→Bottom→Left 消耗）
+            _reactiveBorderTop    = CreateCountdownBorder(panel.transform, "BorderTop",    Edge.Top);
+            _reactiveBorderRight  = CreateCountdownBorder(panel.transform, "BorderRight",  Edge.Right);
+            _reactiveBorderBottom = CreateCountdownBorder(panel.transform, "BorderBottom", Edge.Bottom);
+            _reactiveBorderLeft   = CreateCountdownBorder(panel.transform, "BorderLeft",   Edge.Left);
+
             // Store fill/text refs for wiring to ReactiveWindowUI
             _reactiveTimerFill = fillImg;
             _reactiveTimerText = secText;
@@ -2874,9 +2938,84 @@ namespace FWTCG.Editor
             return panel;
         }
 
+        private enum Edge { Top, Right, Bottom, Left }
+
+        /// <summary>
+        /// 创建一条贴在面板某条边的倒计时光条。
+        /// fillOrigin 设计成让 fillAmount 由 1→0 时，"消耗"的方向沿着顺时针路径推进（Top L→R、Right T→B、Bottom R→L、Left B→T）。
+        /// </summary>
+        private static Image CreateCountdownBorder(Transform panelParent, string name, Edge edge)
+        {
+            var go = new GameObject(name);
+            go.transform.SetParent(panelParent, false);
+            var rt = go.AddComponent<RectTransform>();
+
+            const float THICKNESS = 6f;
+            switch (edge)
+            {
+                case Edge.Top:
+                    rt.anchorMin = new Vector2(0f, 1f);
+                    rt.anchorMax = new Vector2(1f, 1f);
+                    rt.pivot     = new Vector2(0.5f, 1f);
+                    rt.sizeDelta = new Vector2(0f, THICKNESS);
+                    break;
+                case Edge.Right:
+                    rt.anchorMin = new Vector2(1f, 0f);
+                    rt.anchorMax = new Vector2(1f, 1f);
+                    rt.pivot     = new Vector2(1f, 0.5f);
+                    rt.sizeDelta = new Vector2(THICKNESS, 0f);
+                    break;
+                case Edge.Bottom:
+                    rt.anchorMin = new Vector2(0f, 0f);
+                    rt.anchorMax = new Vector2(1f, 0f);
+                    rt.pivot     = new Vector2(0.5f, 0f);
+                    rt.sizeDelta = new Vector2(0f, THICKNESS);
+                    break;
+                case Edge.Left:
+                    rt.anchorMin = new Vector2(0f, 0f);
+                    rt.anchorMax = new Vector2(0f, 1f);
+                    rt.pivot     = new Vector2(0f, 0.5f);
+                    rt.sizeDelta = new Vector2(THICKNESS, 0f);
+                    break;
+            }
+            rt.anchoredPosition = Vector2.zero;
+
+            // 不参与 VerticalLayoutGroup 排版
+            var le = go.AddComponent<LayoutElement>();
+            le.ignoreLayout = true;
+
+            var img = go.AddComponent<Image>();
+            img.type = Image.Type.Filled;
+            img.fillAmount = 1f;
+            img.raycastTarget = false;
+            img.color = new Color(0.3f, 1f, 0.3f, 1f); // 初始绿色
+
+            switch (edge)
+            {
+                case Edge.Top:
+                    img.fillMethod = Image.FillMethod.Horizontal;
+                    img.fillOrigin = (int)Image.OriginHorizontal.Right;   // 剩余在右，左侧先消耗
+                    break;
+                case Edge.Right:
+                    img.fillMethod = Image.FillMethod.Vertical;
+                    img.fillOrigin = (int)Image.OriginVertical.Bottom;    // 剩余在下，上侧先消耗
+                    break;
+                case Edge.Bottom:
+                    img.fillMethod = Image.FillMethod.Horizontal;
+                    img.fillOrigin = (int)Image.OriginHorizontal.Left;    // 剩余在左，右侧先消耗
+                    break;
+                case Edge.Left:
+                    img.fillMethod = Image.FillMethod.Vertical;
+                    img.fillOrigin = (int)Image.OriginVertical.Top;       // 剩余在上，下侧先消耗
+                    break;
+            }
+            return img;
+        }
+
         // Temp storage between CreateReactiveWindowPanel and WireGameManager
         private static Image _reactiveTimerFill;
         private static Text  _reactiveTimerText;
+        private static Image _reactiveBorderTop, _reactiveBorderRight, _reactiveBorderBottom, _reactiveBorderLeft;
 
         // ── Legend Panels (DEV-5) ─────────────────────────────────────────────
 
@@ -3020,7 +3159,7 @@ namespace FWTCG.Editor
             var panelImg = panel.AddComponent<Image>();
             panelImg.color = new Color(0.06f, 0.08f, 0.14f, 0.95f);
             panelImg.raycastTarget = true;
-            TryApplySvgSprite(panelImg, "panel_card_detail");
+            // 不加 panel_card_detail sprite，sprite 里烘焙了多层嵌套框
             panel.AddComponent<FWTCG.UI.GlassPanelFX>();  // DEV-25 glass effect
 
             var panelRT = panel.GetComponent<RectTransform>();
@@ -3559,7 +3698,7 @@ namespace FWTCG.Editor
             // OGN-077 中娅沙漏
             CD("zhonya",             "中娅沙漏",     2, 0, RuneType.Verdant, 0,
                "隐匿（支付[1]正面朝下放置此牌，之后可以0费反应打出。）下一次当友方单位被摧毁时，改为将此牌摧毁，然后该单位以休眠状态返回基地。（把该单位移到基地，此行为不视为移动。）",
-               CardKeyword.Standby | CardKeyword.Reactive, "",
+               CardKeyword.Standby | CardKeyword.Reactive, "zhonya_equip",
                isEquipment: true, equipAtkBonus: 0,
                equipRuneType: RuneType.Verdant, equipRuneCost: 0);
 
@@ -4135,6 +4274,11 @@ namespace FWTCG.Editor
             reactiveWindowSO.FindProperty("_cardViewPrefab").objectReferenceValue   = cardPrefab;
             reactiveWindowSO.FindProperty("_countdownFill").objectReferenceValue    = _reactiveTimerFill;
             reactiveWindowSO.FindProperty("_countdownText").objectReferenceValue    = _reactiveTimerText;
+            // 边框倒计时光条
+            reactiveWindowSO.FindProperty("_borderTop").objectReferenceValue        = _reactiveBorderTop;
+            reactiveWindowSO.FindProperty("_borderRight").objectReferenceValue      = _reactiveBorderRight;
+            reactiveWindowSO.FindProperty("_borderBottom").objectReferenceValue     = _reactiveBorderBottom;
+            reactiveWindowSO.FindProperty("_borderLeft").objectReferenceValue       = _reactiveBorderLeft;
             reactiveWindowSO.ApplyModifiedPropertiesWithoutUndo();
 
             // Wire React button and Legend skill button into GameManager
@@ -4810,6 +4954,73 @@ namespace FWTCG.Editor
             if (_font != null) t.font = _font;
 
             return t;
+        }
+
+        // Metallic button matching Pencil mockup (gold or blue), 280×64 by default
+        private static Button CreateMetallicButton(Transform parent, string name, string label,
+            bool gold = true, float w = 280f, float h = 64f, int fontSize = 22)
+        {
+            var go = new GameObject(name, typeof(RectTransform));
+            go.transform.SetParent(parent, false);
+            var le = go.AddComponent<LayoutElement>();
+            le.preferredWidth = w; le.preferredHeight = h;
+            var rt = go.GetComponent<RectTransform>();
+            rt.sizeDelta = new Vector2(w, h);
+
+            var img = go.AddComponent<Image>();
+            string spritePath = gold
+                ? "Assets/Resources/UI/Generated/btn_metallic_gold.png"
+                : "Assets/Resources/UI/Generated/btn_metallic_blue.png";
+            var spr = AssetDatabase.LoadAssetAtPath<Sprite>(spritePath);
+            if (spr != null) { img.sprite = spr; img.type = Image.Type.Simple; img.preserveAspect = false; }
+            img.color = Color.white;
+
+            var btn = go.AddComponent<Button>();
+
+            var lblGO = new GameObject("Label", typeof(RectTransform));
+            lblGO.transform.SetParent(go.transform, false);
+            var lbl = lblGO.AddComponent<Text>();
+            lbl.text = label;
+            lbl.color = gold ? new Color(0.10f, 0.07f, 0.02f) : Color.white;
+            lbl.fontSize = fontSize;
+            lbl.fontStyle = FontStyle.Bold;
+            lbl.alignment = TextAnchor.MiddleCenter;
+            lbl.horizontalOverflow = HorizontalWrapMode.Overflow;
+            lbl.verticalOverflow = VerticalWrapMode.Overflow;
+            if (_font != null) lbl.font = _font;
+            var lblRT = lblGO.GetComponent<RectTransform>();
+            lblRT.anchorMin = Vector2.zero; lblRT.anchorMax = Vector2.one;
+            lblRT.offsetMin = Vector2.zero; lblRT.offsetMax = Vector2.zero;
+
+            return btn;
+        }
+
+        // Decorative gold corner ornament (18×18 hollow square stroked) used at panel corners
+        private static void AddPanelCornerOrnaments(Transform panel, float thickness = 2f, float size = 18f, float inset = 8f)
+        {
+            var goldFill = new Color(0xF2/255f, 0xC8/255f, 0x5A/255f, 1f);
+            void Corner(string n, Vector2 anchor, Vector2 pivot, Vector2 offset)
+            {
+                var c = new GameObject(n, typeof(RectTransform));
+                c.transform.SetParent(panel, false);
+                c.AddComponent<LayoutElement>().ignoreLayout = true;
+                var rt = c.GetComponent<RectTransform>();
+                rt.anchorMin = anchor; rt.anchorMax = anchor; rt.pivot = pivot;
+                rt.sizeDelta = new Vector2(size, size); rt.anchoredPosition = offset;
+                void Edge(string en, Vector2 aMin, Vector2 aMax, Vector2 sd)
+                { var e = new GameObject(en, typeof(RectTransform)); e.transform.SetParent(c.transform, false);
+                  var er = e.GetComponent<RectTransform>(); er.anchorMin=aMin; er.anchorMax=aMax;
+                  er.offsetMin=Vector2.zero; er.offsetMax=Vector2.zero; er.sizeDelta=sd;
+                  var ei = e.AddComponent<Image>(); ei.color = goldFill; ei.raycastTarget = false; }
+                Edge("T", new Vector2(0,1), new Vector2(1,1), new Vector2(0, thickness));
+                Edge("B", new Vector2(0,0), new Vector2(1,0), new Vector2(0, thickness));
+                Edge("L", new Vector2(0,0), new Vector2(0,1), new Vector2(thickness, 0));
+                Edge("R", new Vector2(1,0), new Vector2(1,1), new Vector2(thickness, 0));
+            }
+            Corner("CornerTL", new Vector2(0,1), new Vector2(0,1), new Vector2( inset, -inset));
+            Corner("CornerTR", new Vector2(1,1), new Vector2(1,1), new Vector2(-inset, -inset));
+            Corner("CornerBL", new Vector2(0,0), new Vector2(0,0), new Vector2( inset,  inset));
+            Corner("CornerBR", new Vector2(1,0), new Vector2(1,0), new Vector2(-inset,  inset));
         }
 
         private static Button CreateButton(Transform parent, string name, string label)
