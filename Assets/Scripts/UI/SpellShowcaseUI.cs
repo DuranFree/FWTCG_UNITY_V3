@@ -21,10 +21,20 @@ namespace FWTCG.UI
         public static SpellShowcaseUI Instance { get; private set; }
 
         // ── Timing constants ───────────────────────────────────────────────────
-        public const float FLY_IN_DURATION  = 0.4f;
-        public const float HOLD_DURATION    = 0.5f;
-        public const float FLY_OUT_DURATION = 0.35f;
-        public const float TOTAL_DURATION   = FLY_IN_DURATION + HOLD_DURATION + FLY_OUT_DURATION;
+        public const float FLY_IN_DURATION   = 0.4f;
+        public const float HOLD_DURATION     = 0.5f;
+        // Single-card outro is now a magical dissolve; group outro is still a fly-out.
+        public const float DISSOLVE_DURATION = 0.73f;
+        public const float FLY_OUT_DURATION  = DISSOLVE_DURATION; // alias for back-compat with existing callers/tests
+        public const float TOTAL_DURATION    = FLY_IN_DURATION + HOLD_DURATION + DISSOLVE_DURATION;
+
+        // ── Dissolve state ─────────────────────────────────────────────────────
+        private Material _dissolveMat;       // instance material for _artImage
+        private Material _artOriginalMat;    // restored if we ever detach
+        private RectTransform _sparksRoot;   // sibling of _cardPanel under overlay
+
+        // ── Queue (task chain) — multiple rapid calls play sequentially ────────
+        private Task _queueTail = Task.CompletedTask;
 
         // ── Inspector refs (wired by SceneBuilder) ────────────────────────────
         [SerializeField] private CanvasGroup   _canvasGroup;
@@ -54,7 +64,80 @@ namespace FWTCG.UI
         {
             if (Instance != null && Instance != this) { Destroy(gameObject); return; }
             Instance = this;
+
+            // ── 极简化：去掉卡框/底板/文字，只剩一张大"原画"居中溶解 ──
+            StripDecorationsForMinimalLayout();
+
+            // Attach dissolve material to the art image (falls back to fly-out if shader missing).
+            if (_artImage != null)
+            {
+                _artOriginalMat = _artImage.material;
+                _dissolveMat = SpellDissolveFX.CreateDissolveMaterial();
+                if (_dissolveMat != null)
+                    _artImage.material = _dissolveMat;
+            }
+
+            // Build a sparks root sibling of _cardPanel under the same overlay container.
+            if (_cardPanel != null && _cardPanel.parent is RectTransform parentRT)
+            {
+                var go = new GameObject("SpellDissolveSparks");
+                _sparksRoot = go.AddComponent<RectTransform>();
+                _sparksRoot.SetParent(parentRT, false);
+                _sparksRoot.anchorMin = _sparksRoot.anchorMax = new Vector2(0.5f, 0.5f);
+                _sparksRoot.pivot = new Vector2(0.5f, 0.5f);
+                _sparksRoot.anchoredPosition = Vector2.zero;
+                _sparksRoot.sizeDelta = _cardPanel.sizeDelta;
+                _sparksRoot.SetAsLastSibling();
+            }
+
             Hide();
+        }
+
+        /// <summary>
+        /// 运行时一次性剥离 SceneBuilder 搭的卡框/玻璃/描边/文字，让展示只剩居中的一张大原画。
+        /// 不改场景资产 — 纯运行时覆盖。
+        /// </summary>
+        private void StripDecorationsForMinimalLayout()
+        {
+            // 1. 放大卡牌容器到竖向大牌比例（约 20% × 52% 屏幕）
+            if (_cardPanel != null)
+            {
+                _cardPanel.anchorMin = new Vector2(0.40f, 0.24f);
+                _cardPanel.anchorMax = new Vector2(0.60f, 0.76f);
+                _cardPanel.offsetMin = Vector2.zero;
+                _cardPanel.offsetMax = Vector2.zero;
+
+                // 卡牌底板 Image（深蓝方框）—— 隐藏
+                var panelImg = _cardPanel.GetComponent<Image>();
+                if (panelImg != null) panelImg.enabled = false;
+
+                // GlassPanelFX（玻璃光泽）—— 禁用
+                var glass = _cardPanel.GetComponent<GlassPanelFX>();
+                if (glass != null) glass.enabled = false;
+
+                // 金色描边子对象（CreateZoneBorderFrame 建的 Border* / ZoneBorder*）—— 隐藏
+                foreach (Transform child in _cardPanel)
+                {
+                    string n = child.name;
+                    if (n.StartsWith("Border") || n.StartsWith("ZoneBorder"))
+                        child.gameObject.SetActive(false);
+                }
+            }
+
+            // 2. 隐藏三段文字：归属 / 卡名 / 效果描述
+            if (_ownerLabel != null)   _ownerLabel.gameObject.SetActive(false);
+            if (_cardNameText != null) _cardNameText.gameObject.SetActive(false);
+            if (_effectText != null)   _effectText.gameObject.SetActive(false);
+
+            // 3. 原画填满整个卡牌容器（preserveAspect 会自动保持比例，黑条边缘自然与 dim 融合）
+            if (_artImage != null)
+            {
+                var artRT = _artImage.rectTransform;
+                artRT.anchorMin = Vector2.zero;
+                artRT.anchorMax = Vector2.one;
+                artRT.offsetMin = Vector2.zero;
+                artRT.offsetMax = Vector2.zero;
+            }
         }
 
         private void Hide()
@@ -74,18 +157,60 @@ namespace FWTCG.UI
             _activeTcs?.TrySetResult(true);
             _activeTcs = null;
             IsShowing = false;
+            if (_dissolveMat != null)
+            {
+                if (_artImage != null && _artImage.material == _dissolveMat)
+                    _artImage.material = _artOriginalMat;
+                Destroy(_dissolveMat);
+                _dissolveMat = null;
+            }
             if (Instance == this) Instance = null;
         }
 
         // ── Public API ─────────────────────────────────────────────────────────
 
         /// <summary>
-        /// Show a group of spells side by side. If only 1 spell, falls back to ShowAsync.
+        /// 公开入口：按队列顺序播放单张法术展示。多次快速调用会排队，依次播完。
+        /// </summary>
+        public Task ShowAsync(UnitInstance spell, string owner)
+        {
+            if (spell == null) return Task.CompletedTask;
+            var prev = _queueTail;
+            var next = ShowAsyncChained(prev, spell, owner);
+            _queueTail = next;
+            return next;
+        }
+
+        private async Task ShowAsyncChained(Task prev, UnitInstance spell, string owner)
+        {
+            try { await prev; } catch { /* upstream error is its caller's problem */ }
+            if (this == null || !isActiveAndEnabled) return; // singleton destroyed mid-chain
+            await ShowSingleInternal(spell, owner);
+        }
+
+        /// <summary>
+        /// 公开入口：按队列顺序播放多卡群组展示。
         /// </summary>
         public Task ShowGroupAsync(List<UnitInstance> spells, string owner)
         {
             if (spells == null || spells.Count == 0) return Task.CompletedTask;
             if (spells.Count == 1) return ShowAsync(spells[0], owner);
+            var prev = _queueTail;
+            var next = ShowGroupAsyncChained(prev, spells, owner);
+            _queueTail = next;
+            return next;
+        }
+
+        private async Task ShowGroupAsyncChained(Task prev, List<UnitInstance> spells, string owner)
+        {
+            try { await prev; } catch { }
+            if (this == null || !isActiveAndEnabled) return;
+            await ShowGroupInternal(spells, owner);
+        }
+
+        private Task ShowGroupInternal(List<UnitInstance> spells, string owner)
+        {
+            if (spells == null || spells.Count == 0) return Task.CompletedTask;
 
             var tcs = new TaskCompletionSource<bool>();
             _activeTcs = tcs;
@@ -151,10 +276,9 @@ namespace FWTCG.UI
         }
 
         /// <summary>
-        /// Show the spell showcase. Awaitable — resolves after the full animation completes.
-        /// Safe to call from async Task context.
+        /// 内部实现：单张法术的完整飞入 + hold + 溶解序列。返回 Task，外层队列负责串行。
         /// </summary>
-        public Task ShowAsync(UnitInstance spell, string owner)
+        private Task ShowSingleInternal(UnitInstance spell, string owner)
         {
             if (spell == null) return Task.CompletedTask;
 
@@ -167,15 +291,16 @@ namespace FWTCG.UI
             PopulateSingleCard(spell, isPlayer);
 
             float flyStartY = isPlayer ? -FLY_OFFSET : FLY_OFFSET;
-            float flyExitY  = isPlayer ? -FLY_OFFSET : FLY_OFFSET;
 
-            // Reset position
+            // Reset position + dissolve state
             if (_cardPanel != null)
             {
                 var pos = _cardPanel.anchoredPosition;
                 _cardPanel.anchoredPosition = new Vector2(pos.x, flyStartY);
             }
             if (_canvasGroup != null) _canvasGroup.alpha = 0f;
+            SpellDissolveFX.ResetAmount(_dissolveMat);
+            SpellDissolveFX.SetDirection(_dissolveMat, isPlayer);
 
             // Build animation sequence (unscaled time for pause-safe)
             TweenHelper.KillSafe(ref _showSeq);
@@ -190,14 +315,40 @@ namespace FWTCG.UI
             // Hold
             seq.AppendInterval(HOLD_DURATION);
 
-            // Fly out
-            if (_cardPanel != null)
-                seq.Append(_cardPanel.DOAnchorPosY(flyExitY, FLY_OUT_DURATION).SetEase(Ease.InOutQuad));
-            if (_canvasGroup != null)
-                seq.Join(_canvasGroup.DOFade(0f, FLY_OUT_DURATION).SetEase(Ease.InOutQuad));
+            // Dissolve outro — either shader-driven magical burn, or fallback fly-out
+            if (_dissolveMat != null && _artImage != null)
+            {
+                // Burst sparks at dissolve start + mid-way
+                seq.AppendCallback(() =>
+                {
+                    if (_sparksRoot != null && _cardPanel != null)
+                        SpellDissolveFX.BurstSparks(_sparksRoot, 70, _cardPanel.sizeDelta.x, _cardPanel.sizeDelta.y);
+                });
+                seq.Append(SpellDissolveFX.TweenAmount(_dissolveMat, 1.12f, DISSOLVE_DURATION));
+                if (_cardPanel != null)
+                    seq.Join(_cardPanel.DOScale(1.05f, DISSOLVE_DURATION).SetEase(Ease.InOutSine));
+                seq.InsertCallback(FLY_IN_DURATION + HOLD_DURATION + DISSOLVE_DURATION * 0.35f, () =>
+                {
+                    if (_sparksRoot != null && _cardPanel != null)
+                        SpellDissolveFX.BurstSparks(_sparksRoot, 35, _cardPanel.sizeDelta.x, _cardPanel.sizeDelta.y);
+                });
+                if (_canvasGroup != null)
+                    seq.Append(_canvasGroup.DOFade(0f, 0.23f).SetEase(Ease.InQuad));
+            }
+            else
+            {
+                // Shader unavailable — preserve previous fly-out behaviour
+                float flyExitY = isPlayer ? -FLY_OFFSET : FLY_OFFSET;
+                if (_cardPanel != null)
+                    seq.Append(_cardPanel.DOAnchorPosY(flyExitY, DISSOLVE_DURATION).SetEase(Ease.InOutQuad));
+                if (_canvasGroup != null)
+                    seq.Join(_canvasGroup.DOFade(0f, DISSOLVE_DURATION).SetEase(Ease.InOutQuad));
+            }
 
             seq.OnComplete(() =>
             {
+                // Reset card panel scale so next showcase starts clean
+                if (_cardPanel != null) _cardPanel.localScale = Vector3.one;
                 Hide();
                 IsShowing = false;
                 tcs.TrySetResult(true);

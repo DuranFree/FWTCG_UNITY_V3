@@ -25,8 +25,15 @@ namespace FWTCG.UI
         [SerializeField] private Text          _contextText;
         [SerializeField] private Transform     _cardContainer;
         [SerializeField] private GameObject    _cardViewPrefab;
+        [SerializeField] private CardDetailPopup _cardDetailPopup;
         [SerializeField] private Image         _countdownFill;  // Radial360 clock fill
         [SerializeField] private Text          _countdownText;  // seconds label
+
+        // 边框倒计时光条（顺时针 Top→Right→Bottom→Left 按 25% 区间逐段消耗，颜色绿→黄→红）
+        [SerializeField] private Image _borderTop;
+        [SerializeField] private Image _borderRight;
+        [SerializeField] private Image _borderBottom;
+        [SerializeField] private Image _borderLeft;
 
         private const float REACTION_TIMEOUT = 15f;
 
@@ -128,7 +135,7 @@ namespace FWTCG.UI
                     if (cv != null)
                     {
                         cv.Setup(captured, true, OnCardClicked,
-                                 onRightClick: null,
+                                 onRightClick: u => { if (_cardDetailPopup != null && u != null) _cardDetailPopup.Show(u); },
                                  onHoverEnter: onHoverEnter,
                                  onHoverExit:  onHoverExit);
                         _cardViews.Add(cv);
@@ -172,11 +179,18 @@ namespace FWTCG.UI
             if (_countdownFill != null) _countdownFill.fillAmount = 1f;
             if (_countdownText != null) _countdownText.text = Mathf.CeilToInt(REACTION_TIMEOUT).ToString();
 
+            // 初始化边框：全满、绿色
+            ResetBorders();
+
             Color normalColor = _countdownText != null ? _countdownText.color : Color.white;
             _countdownTween = DOVirtual.Float(REACTION_TIMEOUT, 0f, REACTION_TIMEOUT, remaining =>
             {
-                float t = Mathf.Clamp01(remaining / REACTION_TIMEOUT);
+                float t = Mathf.Clamp01(remaining / REACTION_TIMEOUT); // 1 → 0
                 if (_countdownFill != null) _countdownFill.fillAmount = t;
+
+                // 边框推进：剩余比例 t 分配到顺时针 4 段（Left/Bottom/Right/Top 按顺序保留）
+                UpdateBorders(t);
+
                 if (_countdownText != null)
                 {
                     _countdownText.text = Mathf.CeilToInt(remaining).ToString();
@@ -199,9 +213,47 @@ namespace FWTCG.UI
             {
                 if (_countdownFill != null) _countdownFill.fillAmount = 0f;
                 if (_countdownText != null) _countdownText.text = "0";
+                UpdateBorders(0f); // 全部消耗完
                 _countdownTween = null;
                 SkipReaction();
             });
+        }
+
+        private void ResetBorders()
+        {
+            Color green = new Color(0.3f, 1f, 0.3f, 1f);
+            if (_borderTop    != null) { _borderTop.fillAmount    = 1f; _borderTop.color    = green; }
+            if (_borderRight  != null) { _borderRight.fillAmount  = 1f; _borderRight.color  = green; }
+            if (_borderBottom != null) { _borderBottom.fillAmount = 1f; _borderBottom.color = green; }
+            if (_borderLeft   != null) { _borderLeft.fillAmount   = 1f; _borderLeft.color   = green; }
+        }
+
+        /// <summary>
+        /// 按剩余比例 t（1→0）推进 4 条边框。顺时针消耗：Top 段先空（t 从 1 降到 0.75），然后 Right（0.75→0.5），Bottom（0.5→0.25），Left（0.25→0）。
+        /// 颜色基于 elapsed = 1-t 全局绿→黄→红。
+        /// </summary>
+        private void UpdateBorders(float t)
+        {
+            // 各边剩余量：每段占 0.25 区间
+            float topRemain    = Mathf.Clamp01((t - 0.75f) * 4f);
+            float rightRemain  = Mathf.Clamp01((t - 0.50f) * 4f);
+            float bottomRemain = Mathf.Clamp01((t - 0.25f) * 4f);
+            float leftRemain   = Mathf.Clamp01(t * 4f);
+
+            if (_borderTop    != null) _borderTop.fillAmount    = topRemain;
+            if (_borderRight  != null) _borderRight.fillAmount  = rightRemain;
+            if (_borderBottom != null) _borderBottom.fillAmount = bottomRemain;
+            if (_borderLeft   != null) _borderLeft.fillAmount   = leftRemain;
+
+            // 全局颜色 绿→黄→红
+            float elapsed = 1f - t;
+            Color c = elapsed < 0.5f
+                ? Color.Lerp(new Color(0.3f, 1f, 0.3f, 1f), new Color(1f, 0.9f, 0.2f, 1f), elapsed * 2f)
+                : Color.Lerp(new Color(1f, 0.9f, 0.2f, 1f), new Color(1f, 0.2f, 0.2f, 1f), (elapsed - 0.5f) * 2f);
+            if (_borderTop    != null) _borderTop.color    = c;
+            if (_borderRight  != null) _borderRight.color  = c;
+            if (_borderBottom != null) _borderBottom.color = c;
+            if (_borderLeft   != null) _borderLeft.color   = c;
         }
 
         // ── Private callbacks ─────────────────────────────────────────────────

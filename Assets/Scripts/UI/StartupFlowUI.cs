@@ -42,6 +42,7 @@ namespace FWTCG.UI
         [SerializeField] private Button _mulliganConfirmButton;
         [SerializeField] private Text _mulliganConfirmLabel;
         [SerializeField] private CanvasGroup _mulliganCG;
+        [SerializeField] private CardDetailPopup _cardDetailPopup;
 
         private const int MAX_MULLIGAN_SWAPS = 2;
 
@@ -304,17 +305,23 @@ namespace FWTCG.UI
                 StartCoinBurstTweens(_coinCircleImage.rectTransform);
 
             // ── Fade in result text ───────────────────────────────────────────
-            string result = $"{(isPlayerFirst ? "玩家先手！" : "AI先手！")}\n\n战场：{bf0}  /  {bf1}";
+            // Pencil split: short winner line in CoinResultText, arena info in CoinResultBadge.
+            string winner = isPlayerFirst ? "玩家先手！" : "AI先手！";
             if (_coinResultText != null)
             {
-                _coinResultText.text = result;
+                _coinResultText.text = winner;
                 var txtTween = FadeTextIn(_coinResultText, RESULT_FADE_IN);
                 if (txtTween != null) yield return txtTween.WaitForCompletion();
             }
             else if (_coinFlipText != null)
             {
-                _coinFlipText.text = result;
+                _coinFlipText.text = winner;
             }
+            // Update result badge text (Pencil: green pill showing the gameplay consequence).
+            var badgeText = _coinFlipPanel != null
+                ? _coinFlipPanel.transform.Find("Panel/CoinResultBadge/CoinResultBadgeText")?.GetComponent<Text>()
+                : null;
+            if (badgeText != null) badgeText.text = $"战场：{bf0}    ·    {bf1}";
 
             // ── Enable button ──────────────────────────────────────────────────
             if (_coinFlipOkButton != null)
@@ -636,10 +643,18 @@ namespace FWTCG.UI
                 {
                     UnitInstance captured = unit;
                     GameObject cardGO = Instantiate(_cardViewPrefab, _mulliganCardContainer);
+                    // Pencil spec: mulligan cards are 200×300 (vs hand's 110×154 prefab size).
+                    var cardRT = cardGO.GetComponent<RectTransform>();
+                    if (cardRT != null) cardRT.sizeDelta = new Vector2(200f, 300f);
+                    var cardLE = cardGO.GetComponent<LayoutElement>();
+                    if (cardLE == null) cardLE = cardGO.AddComponent<LayoutElement>();
+                    cardLE.preferredWidth = 200f;
+                    cardLE.preferredHeight = 300f;
                     CardView cv = cardGO.GetComponent<CardView>();
                     if (cv != null)
                     {
-                        cv.Setup(captured, true, OnMulliganCardClicked);
+                        cv.Setup(captured, true, OnMulliganCardClicked,
+                            onRightClick: u => { if (_cardDetailPopup != null && u != null) _cardDetailPopup.Show(u); });
                         _mulliganCardViews.Add(cv);
                     }
                 }
@@ -675,45 +690,39 @@ namespace FWTCG.UI
 
         private void OnMulliganCardClicked(UnitInstance unit)
         {
+            // 和手牌一样：单击切换选中；未选的卡在已达上限时忽略（不弹提示，直接无反应）
             if (_selectedForSwap.Contains(unit))
                 _selectedForSwap.Remove(unit);
             else if (_selectedForSwap.Count < MAX_MULLIGAN_SWAPS)
                 _selectedForSwap.Add(unit);
+            else
+                return; // 已满，未选的卡点击无效
             UpdateMulliganUI();
-
-            // DOT-8: flip animation on the clicked card
-            int idx = _mulliganHand.IndexOf(unit);
-            if (idx >= 0 && idx < _mulliganCardViews.Count)
-            {
-                var rt = _mulliganCardViews[idx].GetComponent<RectTransform>();
-                if (rt != null)
-                {
-                    TweenHelper.KillSafe(ref _mulliganFlipSeq); // M-3
-                    rt.localScale = Vector3.one;
-                    _mulliganFlipSeq = DOTween.Sequence()
-                        .Append(rt.DOScaleX(0f, MULLIGAN_FLIP_HALF).SetEase(Ease.InQuad))
-                        .Append(rt.DOScaleX(1f, MULLIGAN_FLIP_HALF).SetEase(Ease.OutBack))
-                        .SetTarget(gameObject)
-                        .OnComplete(() => _mulliganFlipSeq = null);
-                }
-            }
+            // 翻牌动画已移除：选中视觉走 CardView.SetSelected（和手牌同一套 outline glow）
         }
 
         private void UpdateMulliganUI()
         {
             if (_mulliganTitleText != null)
                 _mulliganTitleText.text =
-                    $"梦想手牌调度（最多 {MAX_MULLIGAN_SWAPS} 张，已选 {_selectedForSwap.Count}）\n点击要换掉的牌，再点取消";
+                    $"已选 {_selectedForSwap.Count} / {MAX_MULLIGAN_SWAPS}    ·    被选中的牌将弃掉重抽";
 
             if (_mulliganConfirmLabel != null)
                 _mulliganConfirmLabel.text = _selectedForSwap.Count > 0
                     ? $"确认换 {_selectedForSwap.Count} 张"
                     : "不换牌，开始";
 
+            // 已达上限时，未选中的卡视觉压暗提示"不可再选"
+            bool atCap = _selectedForSwap.Count >= MAX_MULLIGAN_SWAPS;
             for (int i = 0; i < _mulliganCardViews.Count && i < _mulliganHand.Count; i++)
             {
                 bool selected = _selectedForSwap.Contains(_mulliganHand[i]);
                 _mulliganCardViews[i].SetSelected(selected);
+
+                // 非选中 + 已达上限 → 压暗；其他情况恢复正常色
+                var cg = _mulliganCardViews[i].GetComponent<CanvasGroup>();
+                if (cg == null) cg = _mulliganCardViews[i].gameObject.AddComponent<CanvasGroup>();
+                cg.alpha = (atCap && !selected) ? 0.45f : 1f;
             }
         }
 

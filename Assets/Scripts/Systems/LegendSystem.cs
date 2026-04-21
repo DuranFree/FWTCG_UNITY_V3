@@ -74,6 +74,8 @@ namespace FWTCG.Systems
             int blazing = gs.GetSch(owner, RuneType.Blazing);
             Log($"[传奇] 卡莎发动【虚空感知】— 进入休眠，获得1炽烈符能（当前{blazing}点）");
             FWTCG.UI.GameEventBus.FireLegendSkillBanner("虚空感知", "休眠·炽烈符能+1"); // DEV-18b
+            // 全屏传奇技能演示（AI/非玩家路径也要触发，不依赖 GameManager）
+            FWTCG.UI.GameEventBus.FireLegendSkillFired(legend, owner);
             return true;
         }
 
@@ -108,6 +110,8 @@ namespace FWTCG.Systems
                 Log($"[传奇] 卡莎进化！盟友拥有{distinctCount}种关键词 — 升至等级2！");
                 OnLegendEvolved?.Invoke(kaisaOwner, legend.Level); // DEV-15
                 FWTCG.UI.GameEventBus.FireLegendEvolvedBanner(); // DEV-18b
+                // 全屏传奇进化演示（与技能触发同视觉）
+                FWTCG.UI.GameEventBus.FireLegendSkillFired(legend, kaisaOwner);
             }
         }
 
@@ -147,6 +151,8 @@ namespace FWTCG.Systems
                 Log($"[传奇] 易大师【独影剑鸣】— {defenderUnits[0].UnitName} 孤身作战，+2战力" +
                     $"（实际战力 {defenderUnits[0].EffectiveAtk()}）");
                 FWTCG.UI.GameEventBus.FireLegendSkillBanner("独影剑鸣", $"{defenderUnits[0].UnitName} +2战力"); // DEV-18b
+                // 全屏传奇技能演示（与法术 showcase 视觉统一）
+                FWTCG.UI.GameEventBus.FireLegendSkillFired(legend, defender);
                 FWTCG.UI.GameEventBus.FireUnitAtkBuff(defenderUnits[0], 2); // DEV-18b
             }
         }

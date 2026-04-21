@@ -214,8 +214,10 @@ namespace FWTCG.Tests
         {
             Assert.AreEqual(0.4f, SpellShowcaseUI.FLY_IN_DURATION);
             Assert.AreEqual(0.5f, SpellShowcaseUI.HOLD_DURATION);
-            Assert.AreEqual(0.35f, SpellShowcaseUI.FLY_OUT_DURATION);
-            Assert.AreEqual(0.4f + 0.5f + 0.35f, SpellShowcaseUI.TOTAL_DURATION, 0.001f);
+            // DISSOLVE_DURATION replaces original 0.35f fly-out; FLY_OUT_DURATION aliases DISSOLVE_DURATION.
+            Assert.AreEqual(0.73f, SpellShowcaseUI.DISSOLVE_DURATION);
+            Assert.AreEqual(SpellShowcaseUI.DISSOLVE_DURATION, SpellShowcaseUI.FLY_OUT_DURATION);
+            Assert.AreEqual(0.4f + 0.5f + 0.73f, SpellShowcaseUI.TOTAL_DURATION, 0.001f);
         }
 
         [Test]

@@ -34,6 +34,8 @@ namespace FWTCG.Systems
             switch (effectId)
             {
                 case "alert_sentinel_die":
+                    // 绝念：必然触发效果 — 播放 showcase
+                    FWTCG.UI.SpellShowcaseUI.Instance?.ShowAsync(unit, owner);
                     DrawCard(owner, gs);
                     Log($"[绝念] {unit.UnitName} 阵亡 — 摸1张牌");
                     FWTCG.UI.GameEventBus.FireDeathwishBanner(unit.UnitName, "摸1张牌"); // DEV-18b
@@ -44,6 +46,8 @@ namespace FWTCG.Systems
                     bool isAlone = IsAloneInZone(unit, bfId, gs);
                     if (isAlone)
                     {
+                        // 仅在效果真正触发时播放 showcase（孤独阵亡条件满足）
+                        FWTCG.UI.SpellShowcaseUI.Instance?.ShowAsync(unit, owner);
                         DrawCard(owner, gs);
                         Log($"[绝念] {unit.UnitName} 孤独阵亡 — 摸1张牌");
                         FWTCG.UI.GameEventBus.FireDeathwishBanner(unit.UnitName, "孤独阵亡 — 摸1张牌"); // DEV-18b

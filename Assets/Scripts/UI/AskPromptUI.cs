@@ -42,6 +42,7 @@ namespace FWTCG.UI
         [SerializeField] private Button      _cancelBtn;
         [SerializeField] private Text        _confirmBtnText;
         [SerializeField] private Text        _cancelBtnText;
+        [SerializeField] private CardDetailPopup _cardDetailPopup;
 
         // ── Async state ───────────────────────────────────────────────────────
         private TaskCompletionSource<UnitInstance> _cardTcs;
@@ -132,7 +133,8 @@ namespace FWTCG.UI
                     GameObject go = Instantiate(_cardViewPrefab, _cardContainer);
                     var cv = go.GetComponent<CardView>();
                     if (cv != null)
-                        cv.Setup(captured, true, OnCardChosen);
+                        cv.Setup(captured, true, OnCardChosen,
+                            onRightClick: u => { if (_cardDetailPopup != null && u != null) _cardDetailPopup.Show(u); });
                 }
             }
 

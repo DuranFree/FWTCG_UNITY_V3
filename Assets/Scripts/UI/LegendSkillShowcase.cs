@@ -38,6 +38,11 @@ namespace FWTCG.UI
         // ── Runtime state ──────────────────────────────────────────────────────
         private Sequence _showcaseSeq;
 
+        // Dissolve + sparks to match SpellShowcaseUI's visual feel
+        private Image _cardBgImage;
+        private Material _dissolveMat;
+        private RectTransform _sparksRoot;
+
         // ── Unity lifecycle ────────────────────────────────────────────────────
 
         private void Awake()
@@ -53,6 +58,13 @@ namespace FWTCG.UI
         {
             GameEventBus.OnLegendSkillFired -= OnLegendSkillFired;
             TweenHelper.KillSafe(ref _showcaseSeq);
+            if (_dissolveMat != null)
+            {
+                if (_cardBgImage != null && _cardBgImage.material == _dissolveMat)
+                    _cardBgImage.material = null;
+                Destroy(_dissolveMat);
+                _dissolveMat = null;
+            }
             if (Instance == this) Instance = null;
         }
 
@@ -62,6 +74,9 @@ namespace FWTCG.UI
         {
             if (legend == null) return;
             PopulateLegendInfo(legend, owner);
+            // Direction matches SpellShowcaseUI convention: player burns bottom→top, opponent top→bottom
+            bool isPlayer = owner == FWTCG.Core.GameRules.OWNER_PLAYER;
+            SpellDissolveFX.SetDirection(_dissolveMat, isPlayer);
             PlayShowcase();
         }
 
@@ -107,22 +122,51 @@ namespace FWTCG.UI
             // Phase 2: hold
             _showcaseSeq.AppendInterval(HOLD_DUR);
 
-            // Phase 3: fade out overlay + scale card out
-            if (_darkOverlay != null)
-                _showcaseSeq.Append(_darkOverlay.DOFade(0f, EXIT_DUR).SetEase(Ease.InQuad));
-            else
-                _showcaseSeq.AppendInterval(EXIT_DUR);
-
-            if (_cardPanel != null)
+            // Phase 3: magical dissolve + spark burst (matches SpellShowcaseUI visual style)
+            if (_dissolveMat != null && _cardBgImage != null)
             {
-                _showcaseSeq.Join(_cardPanel.DOScale(0f, EXIT_DUR).SetEase(Ease.InBack));
-                var cg = _cardPanel.GetComponent<CanvasGroup>();
+                SpellDissolveFX.ResetAmount(_dissolveMat);
+                // Legend skill treated as "player-side cast" direction by default; callers pass owner via PopulateLegendInfo.
+                // Direction is set each time in OnLegendSkillFired before PlayShowcase runs.
+                _showcaseSeq.AppendCallback(() =>
+                {
+                    if (_sparksRoot != null && _cardPanel != null)
+                        SpellDissolveFX.BurstSparks(_sparksRoot, 60, _cardPanel.sizeDelta.x, _cardPanel.sizeDelta.y);
+                });
+                _showcaseSeq.Append(SpellDissolveFX.TweenAmount(_dissolveMat, 1.12f, EXIT_DUR * 2.2f));
+                if (_cardPanel != null)
+                    _showcaseSeq.Join(_cardPanel.DOScale(1.04f, EXIT_DUR * 2.2f).SetEase(Ease.InOutSine));
+                _showcaseSeq.InsertCallback(DARKEN_DUR + ZOOM_DUR + HOLD_DUR + EXIT_DUR * 0.9f, () =>
+                {
+                    if (_sparksRoot != null && _cardPanel != null)
+                        SpellDissolveFX.BurstSparks(_sparksRoot, 30, _cardPanel.sizeDelta.x, _cardPanel.sizeDelta.y);
+                });
+                if (_darkOverlay != null)
+                    _showcaseSeq.Append(_darkOverlay.DOFade(0f, EXIT_DUR).SetEase(Ease.InQuad));
+                var cg = _cardPanel != null ? _cardPanel.GetComponent<CanvasGroup>() : null;
                 if (cg != null)
-                    _showcaseSeq.Join(cg.DOFade(0f, EXIT_DUR * 0.6f).SetEase(Ease.InQuad));
+                    _showcaseSeq.Join(cg.DOFade(0f, EXIT_DUR * 0.8f).SetEase(Ease.InQuad));
+            }
+            else
+            {
+                // Shader unavailable — preserve original scale-out fallback
+                if (_darkOverlay != null)
+                    _showcaseSeq.Append(_darkOverlay.DOFade(0f, EXIT_DUR).SetEase(Ease.InQuad));
+                else
+                    _showcaseSeq.AppendInterval(EXIT_DUR);
+                if (_cardPanel != null)
+                {
+                    _showcaseSeq.Join(_cardPanel.DOScale(0f, EXIT_DUR).SetEase(Ease.InBack));
+                    var cg = _cardPanel.GetComponent<CanvasGroup>();
+                    if (cg != null)
+                        _showcaseSeq.Join(cg.DOFade(0f, EXIT_DUR * 0.6f).SetEase(Ease.InQuad));
+                }
             }
 
             _showcaseSeq.OnComplete(() =>
             {
+                // Reset scale for next showcase
+                if (_cardPanel != null) _cardPanel.localScale = Vector3.one;
                 SetVisible(false);
                 _showcaseSeq = null;
             });
@@ -186,8 +230,23 @@ namespace FWTCG.UI
                 cg.blocksRaycasts = false;
 
                 // Background card body
-                var bg = panelGO.AddComponent<Image>();
-                bg.color = new Color(0.12f, 0.10f, 0.20f, 0.95f);
+                _cardBgImage = panelGO.AddComponent<Image>();
+                _cardBgImage.color = new Color(0.12f, 0.10f, 0.20f, 0.95f);
+
+                // Attach dissolve material (falls back to plain if shader missing)
+                _dissolveMat = SpellDissolveFX.CreateDissolveMaterial();
+                if (_dissolveMat != null)
+                    _cardBgImage.material = _dissolveMat;
+
+                // Sparks root — sibling of card panel for uncoupled transform
+                var sparksGO = new GameObject("LegendSkillSparks");
+                sparksGO.transform.SetParent(_rootCanvas.transform, false);
+                _sparksRoot = sparksGO.AddComponent<RectTransform>();
+                _sparksRoot.anchorMin = _sparksRoot.anchorMax = new Vector2(0.5f, 0.5f);
+                _sparksRoot.pivot = new Vector2(0.5f, 0.5f);
+                _sparksRoot.anchoredPosition = Vector2.zero;
+                _sparksRoot.sizeDelta = _cardPanel.sizeDelta;
+                _sparksRoot.SetAsLastSibling();
 
                 // Gold border
                 var borderGO = new GameObject("Border");

@@ -15,8 +15,9 @@ namespace FWTCG.UI
     /// </summary>
     public class CardHoverScale : MonoBehaviour, IPointerEnterHandler, IPointerExitHandler
     {
-        private const float HOVER_SCALE    = 1.08f;
-        private const float TWEEN_DURATION = 0.1f;
+        private const float HOVER_SCALE    = 1.18f;  // 放大明显一点
+        private const float TWEEN_DURATION = 0.18f;
+        private const float HAND_LIFT_Y    = 40f;    // 手牌悬停时额外向上位移（像抽出来）
         private const int   HOVER_SORT     = 100; // above hand zone (depth ~163)
 
         // Nested Canvas for sorting override — added at runtime if missing
@@ -26,6 +27,11 @@ namespace FWTCG.UI
 
         // ── DOTween state ─────────────────────────────────────────────────────
         private Tween _scaleTween;
+        private Tween _liftTween;
+        private RectTransform _rt;
+        private bool  _isLifted;             // 手牌悬停抬起状态
+        private float _liftCurrentOffset;    // 当前实际抬起的 y 偏移（tween 驱动）
+        private bool  _liftHookSubscribed;   // 是否已订阅 willRenderCanvases
 
         private void Awake()
         {
@@ -37,9 +43,16 @@ namespace FWTCG.UI
             }
             _overrideCanvas.overrideSorting = false; // start inactive
             _cardView = GetComponent<CardView>();
+            _rt       = (RectTransform)transform;
         }
 
         private bool IsSelected => _cardView != null && _cardView.IsSelected;
+
+        private bool IsHandCard()
+        {
+            // 只对真正的玩家手牌区生效（PlayerHandZone），其它带 HLG 的容器（Mulligan/AskPrompt/Reactive）不触发抬起+扩散
+            return transform.parent != null && transform.parent.name == "PlayerHandZone";
+        }
 
         private void ApplyHoverVisuals()
         {
@@ -52,6 +65,45 @@ namespace FWTCG.UI
             _scaleTween = transform.DOScale(HOVER_SCALE, TWEEN_DURATION)
                 .SetEase(Ease.OutCubic)
                 .SetTarget(gameObject);
+
+            // 手牌：抬起（抽出效果）
+            if (IsHandCard())
+            {
+                _isLifted = true;
+                if (!_liftHookSubscribed)
+                {
+                    Canvas.willRenderCanvases += EnforceLift;
+                    _liftHookSubscribed = true;
+                }
+                TweenHelper.KillSafe(ref _liftTween);
+                _liftTween = DOTween.To(() => _liftCurrentOffset,
+                                        v => _liftCurrentOffset = v,
+                                        HAND_LIFT_Y, TWEEN_DURATION)
+                    .SetEase(Ease.OutCubic)
+                    .SetTarget(gameObject);
+            }
+        }
+
+        /// <summary>
+        /// 在 HLG 完成布局后（Canvas.willRenderCanvases 阶段）把抬起偏移加到 anchoredPosition.y 上。
+        /// 这样不跟 HLG 互斥：HLG 设定 x + baseY，我们在最后一刻把 Y 加上 lift offset。
+        /// </summary>
+        private void EnforceLift()
+        {
+            if (_rt == null) return;
+            if (!_isLifted && Mathf.Approximately(_liftCurrentOffset, 0f))
+            {
+                // 已完全落回且不需要抬起 → 取消订阅减少每帧开销
+                if (_liftHookSubscribed)
+                {
+                    Canvas.willRenderCanvases -= EnforceLift;
+                    _liftHookSubscribed = false;
+                }
+                return;
+            }
+            var p = _rt.anchoredPosition;
+            p.y += _liftCurrentOffset;
+            _rt.anchoredPosition = p;
         }
 
         public void OnPointerEnter(PointerEventData eventData)
@@ -73,6 +125,18 @@ namespace FWTCG.UI
             _scaleTween = transform.DOScale(1f, TWEEN_DURATION)
                 .SetEase(Ease.OutCubic)
                 .SetTarget(gameObject);
+
+            // 手牌：抬起偏移动画式归零（保持订阅，直到归零后 EnforceLift 自动退订）
+            if (_isLifted)
+            {
+                _isLifted = false;
+                TweenHelper.KillSafe(ref _liftTween);
+                _liftTween = DOTween.To(() => _liftCurrentOffset,
+                                        v => _liftCurrentOffset = v,
+                                        0f, TWEEN_DURATION)
+                    .SetEase(Ease.OutCubic)
+                    .SetTarget(gameObject);
+            }
         }
 
         private void Update()
@@ -101,6 +165,12 @@ namespace FWTCG.UI
         private void OnDestroy()
         {
             TweenHelper.KillSafe(ref _scaleTween);
+            TweenHelper.KillSafe(ref _liftTween);
+            if (_liftHookSubscribed)
+            {
+                Canvas.willRenderCanvases -= EnforceLift;
+                _liftHookSubscribed = false;
+            }
         }
     }
 }

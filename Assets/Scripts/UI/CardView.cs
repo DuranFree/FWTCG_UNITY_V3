@@ -771,8 +771,7 @@ namespace FWTCG.UI
                 { Destroy(_stunFX); _stunFX = null; }
             }
 
-            // 边框：全部删除 —— 既不贴 sprite，也不挂任何 Outline，
-            // 并把 _cardBg 根节点浅灰色改成透明，彻底消除卡周 2px 银边
+            // 边框：默认全删；选中时由下方 RefreshSelectedOutline 重新加 3 层呼吸描边
             if (_frameOverlay != null) _frameOverlay.enabled = false;
             if (_cardBg != null)
             {
@@ -780,6 +779,7 @@ namespace FWTCG.UI
                 _cardBg.color = new Color(c.r, c.g, c.b, 0f);
             }
             DisableAllOutlines();
+            RefreshSelectedOutline();
 
             // Exhausted overlay (gray dim) + VFX-7o: sleep particle FX
             if (_exhaustedOverlay != null)
@@ -1026,20 +1026,21 @@ namespace FWTCG.UI
             // avoids flickering when Refresh() calls SetSelected with the same value.
             if (!stateChanged) return;
 
+            // Click feedback punch — visible on BOTH select and deselect
+            PlayClickPunch();
+
             var rt = (RectTransform)transform;
             if (selected)
             {
-                // If a return animation was in-progress, the card hasn't reached rest yet —
-                // _restAnchoredY is still the correct original rest Y, so don't overwrite it.
                 bool wasReturning = _returnToRest != null && _returnToRest.IsActive();
                 TweenHelper.KillSafe(ref _returnToRest);
                 _isLifted = true;
                 if (!wasReturning)
-                    _restAnchoredY = rt.anchoredPosition.y;  // only save rest Y when truly at rest
+                    _restAnchoredY = rt.anchoredPosition.y;
                 TweenHelper.KillSafe(ref _liftFloat);
                 StartLiftFloat();
-                StartOrbit(); // DEV-28 光轨保留（不是卡面染色）
-                // 卡面染色 glow / 边框呼吸已移除（用户要求仅边框 Outline）
+                StartOrbit();
+                StartSelectionBreath();
             }
             else
             {
@@ -1048,7 +1049,47 @@ namespace FWTCG.UI
                 TweenHelper.KillSafe(ref _returnToRest);
                 StartReturnToRest(rt.anchoredPosition.y);
                 StopOrbit();
+                StopSelectionBreath();
             }
+        }
+
+        // ── Selection click feedback + breathing border ─────────────────────────
+        private Tween _selectionBreathTween;
+        private Tween _clickPunchTween;
+
+        private void PlayClickPunch()
+        {
+            // Punch around current scale (hover keeps card at 1.18× — punch is additive)
+            TweenHelper.KillSafe(ref _clickPunchTween);
+            Vector3 baseScale = transform.localScale;
+            _clickPunchTween = transform.DOPunchScale(new Vector3(0.08f, 0.08f, 0f), 0.22f, 6, 0.7f)
+                .OnKill(() => { if (this != null) transform.localScale = baseScale; })
+                .SetTarget(gameObject);
+        }
+
+        private void StartSelectionBreath()
+        {
+            TweenHelper.KillSafe(ref _selectionBreathTween);
+            // Drive the alpha multiplier of all 3 selection outlines layers (already created by RefreshSelectedOutline)
+            _selectionBreathTween = DOVirtual.Float(0f, 1f, 1.1f, v =>
+            {
+                if (this == null || _selOutlines == null) return;
+                float t = 0.5f - 0.5f * Mathf.Cos(v * Mathf.PI * 2f); // 0→1→0
+                float[] baseAlphas = { 1f, 0.55f, 0.22f };
+                float boost = Mathf.Lerp(0.6f, 1f, t); // 60%→100% pulsation
+                for (int i = 0; i < 3; i++)
+                {
+                    if (_selOutlines[i] == null) continue;
+                    var c = _selOutlines[i].effectColor;
+                    c.a = baseAlphas[i] * boost;
+                    _selOutlines[i].effectColor = c;
+                }
+            }).SetEase(Ease.Linear).SetLoops(-1, LoopType.Restart).SetTarget(gameObject);
+        }
+
+        private void StopSelectionBreath()
+        {
+            TweenHelper.KillSafe(ref _selectionBreathTween);
         }
 
         /// <summary>
@@ -1074,9 +1115,9 @@ namespace FWTCG.UI
         /// <summary>DOT-8: Expand preferred width → HLG pushes neighboring cards apart.</summary>
         private void StartHandSpread()
         {
-            // Only spread hand cards (inside a HorizontalLayoutGroup)
+            // Only spread real player hand cards — not popup card pickers (Mulligan/AskPrompt/Reactive)
             if (transform.parent == null) return;
-            if (transform.parent.GetComponent<UnityEngine.UI.HorizontalLayoutGroup>() == null) return;
+            if (transform.parent.name != "PlayerHandZone") return;
 
             if (_spreadLayoutEl == null)
                 _spreadLayoutEl = GetComponent<UnityEngine.UI.LayoutElement>()
