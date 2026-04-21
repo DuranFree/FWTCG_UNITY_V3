@@ -2104,26 +2104,27 @@ namespace FWTCG.UI
             if (_skipReactionBtn != null)
                 _skipReactionBtn.interactable = isPlayerAction;
 
-            // UI-OVERHAUL-1c-α: 确定 / 取消按钮动态亮/暗
-            //   确定：行动阶段 + 战场有我方单位 → 亮色 + interactable
-            //   取消：行动阶段 + 本回合有入场操作   → 亮色 + interactable
+            // UI-OVERHAUL-1c-α/γ: 确定 / 取消按钮动态亮/暗 + 激活动效
             var gm = GameManager.Instance;
             bool confirmActive = isPlayerAction && gm != null && gm.HasAnyPlayerUnitOnBattlefield();
             bool cancelActive  = isPlayerAction && gm != null && gm.HasThisTurnPlayActions();
-            ApplyActionButtonState(_confirmRunesBtn, confirmActive);
-            ApplyActionButtonState(_cancelRunesBtn,  cancelActive);
+            ApplyActionButtonState(_confirmRunesBtn, confirmActive, ref _confirmBtnWasActive, ref _confirmPulseTween);
+            ApplyActionButtonState(_cancelRunesBtn,  cancelActive,  ref _cancelBtnWasActive,  ref _cancelPulseTween);
 
             // DEV-19: end turn button persistent pulse during player action
             UpdateEndTurnPulse(isPlayerAction);
         }
 
+        // UI-OVERHAUL-1c-γ: 按钮激活动效状态
+        private bool _confirmBtnWasActive;
+        private bool _cancelBtnWasActive;
+        private Tween _confirmPulseTween;
+        private Tween _cancelPulseTween;
+
         /// <summary>
-        /// UI-OVERHAUL-1c-α: 按钮 active/dim 状态切换。
-        /// active：interactable=true + Image 原色 + alpha=1
-        /// dim   ：interactable=false + Image 降色（×0.45）+ alpha=0.55，无点击反馈
-        /// 1c-β/γ 会补完"激活瞬间闪烁 + 长亮发光 + 粒子"。
+        /// UI-OVERHAUL-1c-γ: 按钮 active/dim 状态切换 + 激活动效（瞬间 punch + 长亮 pulse）。
         /// </summary>
-        private static void ApplyActionButtonState(Button btn, bool active)
+        private void ApplyActionButtonState(Button btn, bool active, ref bool wasActive, ref Tween pulseTween)
         {
             if (btn == null) return;
             btn.interactable = active;
@@ -2133,14 +2134,36 @@ namespace FWTCG.UI
                 var c = img.color;
                 float baseA = active ? 1f : 0.55f;
                 float mul   = active ? 1f : 0.45f;
-                img.color = new Color(c.r * (active ? 1f : mul), c.g * (active ? 1f : mul), c.b * (active ? 1f : mul), baseA);
+                img.color = new Color(c.r * mul, c.g * mul, c.b * mul, baseA);
             }
-            // 文字也同步淡化
             var label = btn.GetComponentInChildren<Text>();
             if (label != null)
             {
                 var c = label.color;
                 label.color = new Color(c.r, c.g, c.b, active ? 1f : 0.55f);
+            }
+
+            var rt = btn.GetComponent<RectTransform>();
+            if (active != wasActive)
+            {
+                // 状态切换：kill 旧 pulse，切换到新状态
+                TweenHelper.KillSafe(ref pulseTween);
+                if (active && rt != null)
+                {
+                    // 激活瞬间 punch scale（闪烁感）
+                    rt.DOPunchScale(new Vector3(0.18f, 0.18f, 0f), 0.35f, vibrato: 6, elasticity: 0.6f)
+                      .SetTarget(btn.gameObject);
+                    // 长亮 pulse：scale 1.0 <-> 1.04 循环
+                    pulseTween = rt.DOScale(1.04f, 0.9f)
+                                   .SetEase(Ease.InOutSine)
+                                   .SetLoops(-1, LoopType.Yoyo)
+                                   .SetTarget(btn.gameObject);
+                }
+                else if (rt != null)
+                {
+                    rt.localScale = Vector3.one;
+                }
+                wasActive = active;
             }
         }
 

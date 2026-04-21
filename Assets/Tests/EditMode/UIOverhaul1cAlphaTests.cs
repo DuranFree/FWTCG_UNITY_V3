@@ -51,7 +51,7 @@ namespace FWTCG.Tests
         {
             var cd = ScriptableObject.CreateInstance<CardData>();
             cd.EditorSetup("x", "X", 1, 2, RuneType.Blazing, 0, "");
-            var unit = new UnitInstance(cd, GameRules.OWNER_PLAYER);
+            var unit = new UnitInstance(0, cd, GameRules.OWNER_PLAYER);
             _gs.BF[0].PlayerUnits.Add(unit);
 
             Assert.IsTrue(_gm.HasAnyPlayerUnitOnBattlefield(),

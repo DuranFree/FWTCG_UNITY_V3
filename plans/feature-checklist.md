@@ -502,3 +502,25 @@
 - [ ] PlayStackEntry 回滚语义：HandToBase 回手 + 退资源；BaseToBF 退回基地；HeroToBase 退回 hero zone
 - [ ] OnCancelClicked 按 LIFO 回滚 _thisTurnPlayStack 全部
 - [ ] AI 侧适配：AI 行动完自动模拟点击"确定"
+
+## UI-OVERHAUL-1c-β — combat 延迟触发 + Haste 自动判定 + 入场栈写入
+- [x] OnBattlefieldClicked（base→BF 路径）：只 MoveUnit + RecordPlayAction(BaseToBF)，删除立即 CheckAndResolveCombat / FireDuelBanner
+- [x] OnBattlefieldClicked（Roam BF→BF 路径）：同样延迟 combat（不入栈，Roam 非资源入场）
+- [x] OnConfirmClicked 真实实现：遍历所有战场 → 有敌方 → FireDuelBanner → CheckAndResolveCombat → combat 后 550ms 延迟
+- [x] OnEndTurnClicked 自动 flush：结束回合前若战场有我方单位，等同隐式点击"确定"触发 combat
+- [x] ValidateAndCommitPreparedFor 完全接管 mana/sch 扣费：cost + HasteExtra 一次性扣，返 entry 用于入栈
+- [x] Haste 自动判定：HasKeyword(Haste) + manaAvailable ≥ cost+1 + primaryHave ≥ primary+1 → useHaste=true，多扣 +1+1
+- [x] TryPlayUnitAsync：mana/sch/Haste 检查与扣费移除，落地后 RecordPlayAction(HandToBase, entry from ValidateAndCommit)
+- [x] TryPlayHeroAsync：同上，Kind=HeroToBase
+
+## UI-OVERHAUL-1c-γ — LIFO 回滚 + 按钮激活动效
+- [x] OnCancelClicked 实际回滚：LIFO 遍历 _thisTurnPlayStack，逐条 RollbackEntry
+- [x] RollbackEntry — HandToBase：unit 回手 + PlayedThisTurn/Exhausted 还原
+- [x] RollbackEntry — HeroToBase：unit 回 hero zone + 同上
+- [x] RollbackEntry — BaseToBF：unit 回基地（从 BF[idx].PlayerUnits 移除）
+- [x] RollbackEntry — 资源回撤：_gs.PMana += ManaSpent；AddSch 还原主/副符能
+- [x] RollbackEntry — Tap 快照撤销：CommittedTappedUids 逐个 Tapped=false + PMana 减 1
+- [x] RollbackEntry — Recycle 快照撤销：CommittedRecycled 从 PRuneDeck 移回 PRunes + SpendSch 减 1
+- [x] _gs.CardsPlayedThisTurn 按回滚条数减回
+- [x] Confirm/Cancel 按钮激活动效：状态切换到 active → DOPunchScale（0.18, 0.35s）+ DOScale 1.04 Yoyo 长亮 pulse；切回 dim → Kill tween + scale 归 1
+- [x] UIOverhaul1cBetaGammaTests 7 项：HandToBase 回手/符能/Tap/Recycle 撤销 + BaseToBF / HeroToBase 回滚 + LIFO 多条 + 空战场拒绝

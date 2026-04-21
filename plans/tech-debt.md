@@ -99,3 +99,6 @@
 - [ ] GameUI 字段 _confirmRunesBtn/_cancelRunesBtn 语义推广为全局按钮后名字未改（SceneBuilder 连线仍依赖旧字段名） — UI-OVERHAUL-1c-α
 - [ ] OnConfirmClicked / OnCancelClicked 为 stub — 1c-β 补 combat 延迟触发；1c-γ 补 LIFO 回滚 + AI 适配 — UI-OVERHAUL-1c-α
 - [ ] Confirm/Cancel 按钮"激活瞬间闪烁 + 长亮发光 + 粒子"未做，当前仅亮/暗二态 — 1c-γ 整体润色 — UI-OVERHAUL-1c-α
+- [ ] Confirm 按钮"粒子从按钮向上飘"用户原需求未实现，当前用 DOPunchScale + Yoyo scale pulse 代替 — UI-OVERHAUL-1c-γ
+- [ ] Roam（BF→BF）延迟 combat 但不入回滚栈，取消按钮不能撤销 Roam 移动 — 低优先级 — UI-OVERHAUL-1c-γ
+- [ ] 玩家"确定"触发 combat 期间若敌方触发反应窗口，_bfClickInFlight 状态与反应窗口时序耦合未端到端验证 — 需 Play Mode 观察 — UI-OVERHAUL-1c-γ

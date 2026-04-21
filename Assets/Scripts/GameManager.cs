@@ -158,22 +158,40 @@ namespace FWTCG
         private readonly HashSet<int> _preparedTapIdxs     = new HashSet<int>();
         private readonly HashSet<int> _preparedRecycleIdxs = new HashSet<int>();
 
-        // ── UI-OVERHAUL-1c-α: 本回合入场栈（手→基地 / 基地→战场） ───────────
+        // ── UI-OVERHAUL-1c: 本回合入场栈（手→基地 / 基地→战场） ───────────────
         /// <summary>
         /// 本回合入场操作的记录。取消按钮点击时按 LIFO 回滚；回合结束 / 确定按钮点击时清空。
-        /// 1c-γ 会补完实际回滚语义；当前只记录骨架数据。
         /// </summary>
         public enum PlayActionKind { HandToBase, BaseToBF, HeroToBase }
+
         public struct PlayStackEntry
         {
             public PlayActionKind Kind;
             public UnitInstance   Unit;
-            public int            BFIndex;      // BaseToBF 才用
-            public int            ManaSpent;
+            public int            BFIndex;         // BaseToBF 才用
+            // 入场消耗（用于回滚）
+            public int            ManaSpent;       // 基础 cost 扣的 mana（含 Haste +1）
+            public FWTCG.Data.RuneType PrimaryType;
             public int            PrimarySchSpent;
+            public bool           HasSecondary;
+            public FWTCG.Data.RuneType SecondaryType;
             public int            SecondarySchSpent;
+            public bool           UsedHaste;
+            // 本次 CommitPreparedRunes 的快照（用于回滚 Tap/Recycle）
+            public List<int>          CommittedTappedUids;  // 哪些 rune uid 被 Tapped
+            public List<RuneInstance> CommittedRecycled;    // 哪些 rune 被回收
         }
         private readonly List<PlayStackEntry> _thisTurnPlayStack = new List<PlayStackEntry>();
+
+        /// <summary>
+        /// CommitPreparedRunes 完成后把"这一次 commit 的 tap/recycle 快照"填回最近一条 PlayStackEntry。
+        /// 允许回滚时精确还原 Tapped 状态 + PRunes 列表 + PRuneDeck。
+        /// </summary>
+        public struct PreparedCommitSnapshot
+        {
+            public List<int>          TappedUids;
+            public List<RuneInstance> Recycled;
+        }
 
         /// <summary>外部查询：本回合是否有入场操作（用于取消按钮亮/暗）。</summary>
         public bool HasThisTurnPlayActions() => _thisTurnPlayStack.Count > 0;
@@ -188,10 +206,10 @@ namespace FWTCG
         }
 
         /// <summary>记录一个入场动作到栈（1c-β 的 combat 延迟触发 + 1c-γ 的回滚将调用）。</summary>
-        internal void RecordPlayAction(PlayStackEntry entry) => _thisTurnPlayStack.Add(entry);
+        public void RecordPlayAction(PlayStackEntry entry) => _thisTurnPlayStack.Add(entry);
 
         /// <summary>清空本回合入场栈（回合结束 / 确定按钮触发结算后调用）。</summary>
-        internal void ClearThisTurnPlayStack() => _thisTurnPlayStack.Clear();
+        public void ClearThisTurnPlayStack() => _thisTurnPlayStack.Clear();
 
         /// <summary>外部（UI）只读访问当前待横置符文下标。</summary>
         public IReadOnlyCollection<int> GetPreparedTapIdxs()     => _preparedTapIdxs;
@@ -218,11 +236,16 @@ namespace FWTCG
         /// <summary>
         /// 真正执行所有准备标记：tap 的 rune.Tapped=true + _gs.PMana+=N；
         /// recycle 的从 _gs.PRunes 移除 + 放入 PRuneDeck 底部 + AddSch。
-        /// 完成后清空所有标记。
+        /// 返回 snapshot 让调用方附到 PlayStackEntry 以支持 1c-γ 回滚。
         /// </summary>
-        private void CommitPreparedRunes()
+        private PreparedCommitSnapshot CommitPreparedRunes()
         {
-            if (_gs == null) { ClearPreparedRunes(); return; }
+            var snap = new PreparedCommitSnapshot
+            {
+                TappedUids = new List<int>(),
+                Recycled   = new List<RuneInstance>(),
+            };
+            if (_gs == null) { ClearPreparedRunes(); return snap; }
 
             // Tap：小到大，不影响索引
             var tapSorted = new List<int>(_preparedTapIdxs);
@@ -234,6 +257,7 @@ namespace FWTCG
                 if (r == null || r.Tapped) continue;
                 r.Tapped = true;
                 _gs.PMana += 1;
+                snap.TappedUids.Add(r.Uid);
             }
 
             // Recycle：大到小 remove，避免索引偏移
@@ -247,46 +271,60 @@ namespace FWTCG
                 _gs.PRunes.RemoveAt(idx);
                 _gs.PRuneDeck.Add(r);
                 _gs.AddSch(GameRules.OWNER_PLAYER, r.RuneType, 1);
+                snap.Recycled.Add(r);
             }
 
             ClearPreparedRunes();
+            return snap;
+        }
+
+        /// <summary>1c-γ 回滚用：栈顶最后一条 entry 附加 CommittedTapped/Recycled 快照。</summary>
+        private void AttachCommitSnapshotToLatestEntry(PreparedCommitSnapshot snap)
+        {
+            if (_thisTurnPlayStack.Count == 0) return;
+            int i = _thisTurnPlayStack.Count - 1;
+            var e = _thisTurnPlayStack[i];
+            e.CommittedTappedUids = snap.TappedUids;
+            e.CommittedRecycled   = snap.Recycled;
+            _thisTurnPlayStack[i] = e;
         }
 
         /// <summary>
-        /// UI-OVERHAUL-1b: 校验玩家当前 prepared 标记 + 现有资源能否支付 <paramref name="card"/>。
+        /// UI-OVERHAUL-1b/1c-β: 校验玩家当前 prepared 标记 + 现有资源能否支付 <paramref name="card"/>。
         /// 不够 → 飘屏列出缺口 + 清空标记 + 返回 false；
-        /// 足够 → Commit 所有标记（真正 tap/recycle）+ 返回 true。
+        /// 足够 → Commit prepared（真正 tap/recycle）+ 扣 mana/sch + Haste 自动判定 + 返回 true。
+        ///
+        /// Haste 自动判定：若单位有 Haste 且 prepared 资源"多出" +1 法力 + +1 主符能 → 激活 Haste，多扣 +1 +1，
+        /// 单位以活跃状态进场（Exhausted=false）。
         /// </summary>
         private bool ValidateAndCommitPreparedFor(UnitInstance card)
         {
+            _lastCommitUsedHaste = false; // 结果会被 TryPlayUnitAsync / TryPlayHeroAsync 读取
             if (_gs == null || card == null) return false;
             int cost           = ComputeLegionAdjustedCost(card, _gs);
             int manaAvailable  = _gs.PMana + _preparedTapIdxs.Count;
-            int manaShort      = cost - manaAvailable;
 
-            int primaryShort = 0, secondaryShort = 0;
-            if (card.CardData.RuneCost > 0)
-            {
-                int have = _gs.GetSch(GameRules.OWNER_PLAYER, card.CardData.RuneType)
-                         + CountPreparedRecyclesOfType(card.CardData.RuneType);
-                primaryShort = card.CardData.RuneCost - have;
-            }
+            // 基础 primary/secondary 需求
+            int primaryNeed   = card.CardData.RuneCost;
+            int secondaryNeed = card.CardData.HasSecondaryRune ? card.CardData.SecondaryRuneCost : 0;
+
+            int primaryHave = _gs.GetSch(GameRules.OWNER_PLAYER, card.CardData.RuneType)
+                              + CountPreparedRecyclesOfType(card.CardData.RuneType);
+            int secondaryHave = 0;
             if (card.CardData.HasSecondaryRune)
-            {
-                int have2 = _gs.GetSch(GameRules.OWNER_PLAYER, card.CardData.SecondaryRuneType)
-                          + CountPreparedRecyclesOfType(card.CardData.SecondaryRuneType);
-                secondaryShort = card.CardData.SecondaryRuneCost - have2;
-            }
+                secondaryHave = _gs.GetSch(GameRules.OWNER_PLAYER, card.CardData.SecondaryRuneType)
+                              + CountPreparedRecyclesOfType(card.CardData.SecondaryRuneType);
+
+            int manaShort      = cost         - manaAvailable;
+            int primaryShort   = primaryNeed  - primaryHave;
+            int secondaryShort = secondaryNeed - secondaryHave;
 
             if (manaShort > 0 || primaryShort > 0 || secondaryShort > 0)
             {
-                // 飘屏提示缺口
                 var lines = new List<FloatingTipUI.Line>();
-                if (manaShort > 0) lines.Add(FloatingTipUI.ManaShortLine(manaShort));
-                if (primaryShort > 0)
-                    lines.Add(FloatingTipUI.RuneShortLine(card.CardData.RuneType, primaryShort));
-                if (secondaryShort > 0)
-                    lines.Add(FloatingTipUI.RuneShortLine(card.CardData.SecondaryRuneType, secondaryShort));
+                if (manaShort > 0)     lines.Add(FloatingTipUI.ManaShortLine(manaShort));
+                if (primaryShort > 0)  lines.Add(FloatingTipUI.RuneShortLine(card.CardData.RuneType, primaryShort));
+                if (secondaryShort > 0) lines.Add(FloatingTipUI.RuneShortLine(card.CardData.SecondaryRuneType, secondaryShort));
                 var canvas = _ui != null ? _ui.RootCanvasRef : null;
                 if (canvas != null) FloatingTipUI.Show(canvas, lines);
 
@@ -294,15 +332,58 @@ namespace FWTCG
                 TurnManager.BroadcastMessage_Static(
                     $"[提示] {card.UnitName} 资源未准备到位（法力缺{Mathf.Max(0, manaShort)}，主符能缺{Mathf.Max(0, primaryShort)}，副符能缺{Mathf.Max(0, secondaryShort)}）");
 
-                // 失败：清空标记，避免下次出牌误 commit 失效标记
                 ClearPreparedRunes();
                 RefreshUI();
                 return false;
             }
 
-            CommitPreparedRunes();
+            // Haste 自动判定（仅有 Haste 关键词时）：是否多出 +1 法力 + +1 主符能？
+            bool useHaste = false;
+            if (card.CardData.HasKeyword(CardKeyword.Haste)
+                && manaAvailable >= cost + 1
+                && primaryHave   >= primaryNeed + 1)
+            {
+                useHaste = true;
+            }
+
+            // Commit prepared runes（真正 tap/recycle）
+            var snap = CommitPreparedRunes();
+
+            // 扣 mana + 扣 sch（包括 Haste 额外 +1 +1）
+            int manaTotal   = cost + (useHaste ? 1 : 0);
+            int primaryTotal = primaryNeed + (useHaste ? 1 : 0);
+            _gs.PMana -= manaTotal;
+            if (primaryTotal > 0)
+                _gs.SpendSch(GameRules.OWNER_PLAYER, card.CardData.RuneType, primaryTotal);
+            if (card.CardData.HasSecondaryRune && secondaryNeed > 0)
+                _gs.SpendSch(GameRules.OWNER_PLAYER, card.CardData.SecondaryRuneType, secondaryNeed);
+
+            // 记录入场栈条目，便于 1c-γ 回滚（Unit 会由调用方补填）
+            var entry = new PlayStackEntry
+            {
+                ManaSpent           = manaTotal,
+                PrimaryType         = card.CardData.RuneType,
+                PrimarySchSpent     = primaryTotal,
+                HasSecondary        = card.CardData.HasSecondaryRune,
+                SecondaryType       = card.CardData.HasSecondaryRune ? card.CardData.SecondaryRuneType : default,
+                SecondarySchSpent   = secondaryNeed,
+                UsedHaste           = useHaste,
+                CommittedTappedUids = snap.TappedUids,
+                CommittedRecycled   = snap.Recycled,
+            };
+            _pendingStackEntry = entry;
+            _lastCommitUsedHaste = useHaste;
+
+            if (useHaste)
+                TurnManager.BroadcastMessage_Static(
+                    $"[急速] {card.UnitName} 自动激活（额外1法力+1{card.CardData.RuneType.ToChinese()}）");
+
             return true;
         }
+
+        // 1c-β: commit 后、调用方 RecordPlayAction 前保存 entry
+        private PlayStackEntry _pendingStackEntry;
+        private bool _lastCommitUsedHaste;
 
         // ── DEV-22: Drag query helpers (used by CardDragHandler) ─────────────
 
@@ -892,10 +973,9 @@ namespace FWTCG
                 }
             }
 
-            // ── Batch move from base ──
+            // ── Batch move from base ── UI-OVERHAUL-1c-β: 延迟 combat；combat 改由"确定"按钮触发
             if (_selectedBaseUnits.Count > 0)
             {
-                // Move all selected base units to this BF
                 List<UnitInstance> toMove = new List<UnitInstance>(_selectedBaseUnits);
                 _selectedBaseUnits.Clear();
 
@@ -906,34 +986,21 @@ namespace FWTCG
                         if (u.CardData.IsEquipment)
                             await ActivateEquipmentAsync(u);
                         else
+                        {
                             _combatSys.MoveUnit(u, "base", bfId, GameRules.OWNER_PLAYER, _gs);
+                            _thisTurnPlayStack.Add(new PlayStackEntry
+                            {
+                                Kind    = PlayActionKind.BaseToBF,
+                                Unit    = u,
+                                BFIndex = bfId,
+                            });
+                        }
                     }
                 }
 
-                // Refresh UI first so CardViews are at BF position before combat animations fire
-                RefreshUI();
-
-                if (_gs.BF[bfId].EnemyUnits.Count > 0)
-                {
-                    await System.Threading.Tasks.Task.Delay(500);  // unit lands → 0.5s pause
-                    UI.GameEventBus.FireDuelBanner();
-                    await System.Threading.Tasks.Task.Delay(2000); // banner 1.5s + 0.5s gap
-                    UI.GameEventBus.FireSetBannerDelay(0.5f);      // combat EventBanners wait 0.5s
-                }
-
-                // After all units moved, check combat on this BF
-                _combatSys.CheckAndResolveCombat(bfId, GameRules.OWNER_PLAYER, _gs, _scoreMgr);
-
                 _selectedUnit = null;
                 _selectedUnitLoc = null;
-                // DEV-17: wait for hit flash + death animation before destroying CardViews (≈0.5s gap after combat)
-                _bfClickInFlight = true;
-                try
-                {
-                    await System.Threading.Tasks.Task.Delay(550);
-                    if (!_gs.GameOver) RefreshUI(); // re-check in case game ended during delay
-                }
-                finally { _bfClickInFlight = false; }
+                RefreshUI();
                 return;
             }
 
@@ -957,29 +1024,12 @@ namespace FWTCG
                     return;
                 }
 
+                // UI-OVERHAUL-1c-β: Roam 移动也延迟 combat；不计入回滚栈（Roam 非资源入场）
                 _combatSys.MoveUnit(_selectedUnit, _selectedUnitLoc, bfId, GameRules.OWNER_PLAYER, _gs);
-                RefreshUI(); // move CardView to BF position before combat animations fire
-
-                if (_gs.BF[bfId].EnemyUnits.Count > 0)
-                {
-                    await System.Threading.Tasks.Task.Delay(500);  // unit lands → 0.5s pause
-                    UI.GameEventBus.FireDuelBanner();
-                    await System.Threading.Tasks.Task.Delay(2000); // banner 1.5s + 0.5s gap
-                    UI.GameEventBus.FireSetBannerDelay(0.5f);      // combat EventBanners wait 0.5s
-                }
-
-                _combatSys.CheckAndResolveCombat(bfId, GameRules.OWNER_PLAYER, _gs, _scoreMgr);
-
                 _selectedUnit = null;
                 _selectedUnitLoc = null;
-                // DEV-17: wait for hit flash + death animation before destroying CardViews (≈0.5s gap after combat)
-                _bfClickInFlight = true;
-                try
-                {
-                    await System.Threading.Tasks.Task.Delay(550);
-                    if (!_gs.GameOver) RefreshUI(); // re-check in case game ended during delay
-                }
-                finally { _bfClickInFlight = false; }
+                RefreshUI();
+                await System.Threading.Tasks.Task.CompletedTask;
                 return;
             }
 
@@ -995,12 +1045,14 @@ namespace FWTCG
 
         /// <summary>
         /// Called when the player clicks "End Turn" button.
+        /// UI-OVERHAUL-1c-β: 结束回合前自动 flush 待结算战斗（等价于隐式点击"确定"）。
         /// </summary>
-        public void OnEndTurnClicked()
+        public async void OnEndTurnClicked()
         {
             if (_gs.GameOver) return;
             if (_gs.Turn != GameRules.OWNER_PLAYER) return;
             if (_gs.Phase != GameRules.PHASE_ACTION) return;
+            if (_bfClickInFlight) return;
 
             // Cancel any pending spell targeting — refund mana and return spell to hand
             if (_targetingSpell != null)
@@ -1012,39 +1064,88 @@ namespace FWTCG
                 _targetingSpell = null;
             }
 
+            // 自动 flush 未结算战斗
+            if (HasAnyPlayerUnitOnBattlefield())
+            {
+                _bfClickInFlight = true;
+                try { await TriggerPendingCombatsAsync(); }
+                finally { _bfClickInFlight = false; }
+                if (_gs == null || _gs.GameOver) return;
+            }
+
             _selectedUnit = null;
             _selectedUnitLoc = null;
             _selectedBaseUnits.Clear();
             _selectedHandUnits.Clear();
-            ClearPreparedRunes();        // UI-OVERHAUL-1b: 清符文标记
-            ClearThisTurnPlayStack();    // UI-OVERHAUL-1c-α: 清本回合入场栈
+            ClearPreparedRunes();
+            ClearThisTurnPlayStack();
             _turnMgr.EndTurn();
             RefreshUI();
         }
 
-        // ── UI-OVERHAUL-1c-α: 确定 / 取消按钮 handler（骨架）──────────────────
+        // ── UI-OVERHAUL-1c-β/γ: 确定 / 取消按钮真实实现 ──────────────────────
+
         /// <summary>
-        /// 全局"确定"按钮：结算本回合战场操作（触发 combat / spell duel）。
-        /// 1c-α: 当前为骨架 stub，仅清空入场栈；真正的 combat 延迟触发留给 1c-β。
+        /// 1c-β: 全局"确定"按钮 — 遍历所有战场触发 combat / spell duel。
         /// </summary>
-        public void OnConfirmClicked()
+        public async void OnConfirmClicked()
         {
             if (_gs == null || _gs.GameOver) return;
             if (_gs.Turn != GameRules.OWNER_PLAYER) return;
             if (_gs.Phase != GameRules.PHASE_ACTION) return;
+            if (_bfClickInFlight) return;
             if (!HasAnyPlayerUnitOnBattlefield())
             {
                 TurnManager.BroadcastMessage_Static("[提示] 战场无我方单位，无法触发确定");
                 return;
             }
-            TurnManager.BroadcastMessage_Static("[确定] 1c-α stub — 战斗延迟触发将在 1c-β 落地");
-            ClearThisTurnPlayStack();
-            RefreshUI();
+
+            _bfClickInFlight = true;
+            try
+            {
+                await TriggerPendingCombatsAsync();
+            }
+            finally
+            {
+                _bfClickInFlight = false;
+                ClearThisTurnPlayStack(); // combat 已结算，无法回滚
+                if (!_gs.GameOver) RefreshUI();
+            }
         }
 
         /// <summary>
-        /// 全局"取消"按钮：回滚本回合所有入场操作（牌回手 / 基地 / 撤销资源消耗）。
-        /// 1c-α: 当前为骨架 stub，仅清空栈；LIFO 回滚留给 1c-γ。
+        /// 对所有有我方单位的战场触发 combat / spell duel。供 OnConfirmClicked 和 OnEndTurnClicked 共用。
+        /// </summary>
+        private async System.Threading.Tasks.Task TriggerPendingCombatsAsync()
+        {
+            bool anyCombat = false;
+            for (int bf = 0; bf < GameRules.BATTLEFIELD_COUNT; bf++)
+            {
+                if (_gs.BF[bf].PlayerUnits.Count == 0) continue;
+                if (_gs.BF[bf].EnemyUnits.Count > 0)
+                {
+                    await System.Threading.Tasks.Task.Delay(500);
+                    UI.GameEventBus.FireDuelBanner();
+                    await System.Threading.Tasks.Task.Delay(2000);
+                    UI.GameEventBus.FireSetBannerDelay(0.5f);
+                    anyCombat = true;
+                }
+                _combatSys.CheckAndResolveCombat(bf, GameRules.OWNER_PLAYER, _gs, _scoreMgr);
+                if (_gs.GameOver) return;
+            }
+            if (anyCombat)
+            {
+                await System.Threading.Tasks.Task.Delay(550); // hit flash + death anim 余韵
+            }
+        }
+
+        /// <summary>
+        /// 1c-γ: 全局"取消"按钮 — LIFO 回滚本回合所有入场操作：
+        ///   - Tap/Recycle 符文：还原 Tapped / 从 RuneDeck 拿回 + 撤销 sch 增加
+        ///   - 扣除的 mana / sch：还原
+        ///   - HandToBase: PBase.Remove → PHand.Add，unit.Exhausted/PlayedThisTurn 还原
+        ///   - HeroToBase: PBase.Remove → PHero 恢复
+        ///   - BaseToBF:   BF.PlayerUnits.Remove → PBase.Add
         /// </summary>
         public void OnCancelClicked()
         {
@@ -1056,9 +1157,88 @@ namespace FWTCG
                 TurnManager.BroadcastMessage_Static("[提示] 本回合没有可撤销的操作");
                 return;
             }
-            TurnManager.BroadcastMessage_Static($"[取消] 1c-α stub — 将回滚 {_thisTurnPlayStack.Count} 个操作（1c-γ 实现）");
-            ClearThisTurnPlayStack();
+
+            int rolled = 0;
+            for (int i = _thisTurnPlayStack.Count - 1; i >= 0; i--)
+            {
+                var e = _thisTurnPlayStack[i];
+                RollbackEntry(e);
+                rolled++;
+            }
+            _thisTurnPlayStack.Clear();
+            _gs.CardsPlayedThisTurn = Mathf.Max(0, _gs.CardsPlayedThisTurn - rolled);
+
+            TurnManager.BroadcastMessage_Static($"[取消] 已回滚本回合 {rolled} 个操作");
             RefreshUI();
+        }
+
+        /// <summary>单条 entry 回滚（按单位位置/资源消耗/符文快照逐项撤销）。</summary>
+        private void RollbackEntry(PlayStackEntry e)
+        {
+            if (_gs == null || e.Unit == null) return;
+
+            // 1. 单位位置还原
+            switch (e.Kind)
+            {
+                case PlayActionKind.HandToBase:
+                    if (_gs.PBase.Contains(e.Unit)) _gs.PBase.Remove(e.Unit);
+                    _gs.PHand.Add(e.Unit);
+                    e.Unit.PlayedThisTurn = false;
+                    e.Unit.Exhausted      = false;
+                    break;
+
+                case PlayActionKind.HeroToBase:
+                    if (_gs.PBase.Contains(e.Unit)) _gs.PBase.Remove(e.Unit);
+                    _gs.PHero = e.Unit;
+                    e.Unit.PlayedThisTurn = false;
+                    e.Unit.Exhausted      = false;
+                    break;
+
+                case PlayActionKind.BaseToBF:
+                    if (e.BFIndex >= 0 && e.BFIndex < GameRules.BATTLEFIELD_COUNT)
+                    {
+                        if (_gs.BF[e.BFIndex].PlayerUnits.Contains(e.Unit))
+                            _gs.BF[e.BFIndex].PlayerUnits.Remove(e.Unit);
+                    }
+                    _gs.PBase.Add(e.Unit);
+                    e.Unit.Exhausted = false; // 派遣前未休眠
+                    break;
+            }
+
+            // 2. 扣除的 mana / sch 还原（仅 Hand/HeroToBase 有资源消耗）
+            if (e.Kind == PlayActionKind.HandToBase || e.Kind == PlayActionKind.HeroToBase)
+            {
+                _gs.PMana += e.ManaSpent;
+                if (e.PrimarySchSpent > 0)
+                    _gs.AddSch(GameRules.OWNER_PLAYER, e.PrimaryType, e.PrimarySchSpent);
+                if (e.HasSecondary && e.SecondarySchSpent > 0)
+                    _gs.AddSch(GameRules.OWNER_PLAYER, e.SecondaryType, e.SecondarySchSpent);
+
+                // 3. Rune tap/recycle 快照撤销
+                if (e.CommittedTappedUids != null)
+                {
+                    foreach (int uid in e.CommittedTappedUids)
+                    {
+                        var r = _gs.PRunes.Find(x => x != null && x.Uid == uid);
+                        if (r != null && r.Tapped)
+                        {
+                            r.Tapped = false;
+                            _gs.PMana -= 1; // commit 时 PMana+=1，回滚撤销
+                        }
+                    }
+                }
+                if (e.CommittedRecycled != null)
+                {
+                    foreach (var r in e.CommittedRecycled)
+                    {
+                        if (r == null) continue;
+                        // 从 PRuneDeck 尾部移除（commit 时 Add 到尾）
+                        if (_gs.PRuneDeck.Contains(r)) _gs.PRuneDeck.Remove(r);
+                        _gs.PRunes.Add(r);
+                        _gs.SpendSch(GameRules.OWNER_PLAYER, r.RuneType, 1);
+                    }
+                }
+            }
         }
 
         /// <summary>
@@ -1490,95 +1670,20 @@ namespace FWTCG
 
         private async Task TryPlayUnitAsync(UnitInstance unit)
         {
-            // C-10 Legion: noxus_recruit 的费用在本回合已打出过其他牌时 -2
-            int effectiveCost = ComputeLegionAdjustedCost(unit, _gs);
-
-            if (effectiveCost > _gs.PMana)
-            {
-                ShowPlayError($"[提示] 法力不足：需要 {effectiveCost}，当前 {_gs.PMana}", unit);
-                _selectedUnit = null;
-                return;
-            }
-
-            // Check primary rune cost
-            if (unit.CardData.RuneCost > 0)
-            {
-                int haveSch = _gs.GetSch(GameRules.OWNER_PLAYER, unit.CardData.RuneType);
-                if (haveSch < unit.CardData.RuneCost)
-                {
-                    ShowPlayError($"[提示] 符能不足：需要 {unit.CardData.RuneCost} {unit.CardData.RuneType.ToColoredText()}，当前 {haveSch}", unit);
-                    _selectedUnit = null;
-                    return;
-                }
-            }
-
-            // Check secondary rune cost (dual-domain cards, e.g. tiyana_warden)
-            if (unit.CardData.HasSecondaryRune)
-            {
-                int have2 = _gs.GetSch(GameRules.OWNER_PLAYER, unit.CardData.SecondaryRuneType);
-                if (have2 < unit.CardData.SecondaryRuneCost)
-                {
-                    ShowPlayError($"[提示] 符能不足：需要 {unit.CardData.SecondaryRuneCost} {unit.CardData.SecondaryRuneType.ToColoredText()}，当前 {have2}", unit);
-                    _selectedUnit = null;
-                    return;
-                }
-            }
-
-            // UI-OVERHAUL-1a: Haste 询问弹窗已移除。临时硬编码为 false；1b 将改为"玩家手动准备 +1 法力 + +1 符能则自动激活"。
-            bool useHaste = false;
-            if (_pendingDragHasteDecision.HasValue) _pendingDragHasteDecision = null;
-            await Task.Yield(); // 保留 async 签名所需的 yield
-
-            // H-5: Re-validate after async Haste prompt — turn/resources may have changed
+            // UI-OVERHAUL-1c-β: mana/sch/Haste 已在 ValidateAndCommitPreparedFor 完成扣费 + commit
             if (_gs == null || _gs.GameOver) return;
             if (_gs.Turn != GameRules.OWNER_PLAYER || _gs.Phase != GameRules.PHASE_ACTION) return;
             if (!_gs.PHand.Contains(unit)) return;
 
-            int effectiveCostPost = ComputeLegionAdjustedCost(unit, _gs);
-            if (_gs.PMana < effectiveCostPost)
-            {
-                ShowPlayError("[提示] 资源状态已变更，操作已取消", unit);
-                _selectedUnit = null;
-                return;
-            }
-            if (unit.CardData.RuneCost > 0 &&
-                _gs.GetSch(GameRules.OWNER_PLAYER, unit.CardData.RuneType) < unit.CardData.RuneCost)
-            {
-                ShowPlayError("[提示] 资源状态已变更，操作已取消", unit);
-                _selectedUnit = null;
-                return;
-            }
-            if (unit.CardData.HasSecondaryRune &&
-                _gs.GetSch(GameRules.OWNER_PLAYER, unit.CardData.SecondaryRuneType) < unit.CardData.SecondaryRuneCost)
-            {
-                ShowPlayError("[提示] 资源状态已变更，操作已取消", unit);
-                _selectedUnit = null;
-                return;
-            }
-            // If Haste was chosen, re-verify extra cost is still affordable; downgrade silently if not
-            if (useHaste)
-            {
-                bool stillCanAffordHaste = _gs.PMana >= effectiveCostPost + 1 &&
-                    _gs.GetSch(GameRules.OWNER_PLAYER, unit.CardData.RuneType) >= unit.CardData.RuneCost + 1;
-                if (!stillCanAffordHaste) useHaste = false;
-            }
+            bool useHaste = _lastCommitUsedHaste;
+            _lastCommitUsedHaste = false;
 
             _gs.PHand.Remove(unit);
             _gs.PBase.Add(unit);
-            _gs.PMana -= effectiveCostPost;
-            if (unit.CardData.RuneCost > 0)
-                _gs.SpendSch(GameRules.OWNER_PLAYER, unit.CardData.RuneType, unit.CardData.RuneCost);
-            if (unit.CardData.HasSecondaryRune)
-                _gs.SpendSch(GameRules.OWNER_PLAYER, unit.CardData.SecondaryRuneType, unit.CardData.SecondaryRuneCost);
 
-            // Pay Haste extra cost if chosen
             if (useHaste)
             {
-                _gs.PMana -= 1;
-                _gs.SpendSch(GameRules.OWNER_PLAYER, unit.CardData.RuneType, 1);
                 unit.Exhausted = false;
-                TurnManager.BroadcastMessage_Static(
-                    $"[急速] {unit.UnitName} 支付额外1法力+1{unit.CardData.RuneType.ToChinese()}符能，以活跃状态进场");
                 UI.GameEventBus.FireUnitFloatText(unit, "急速！", UI.GameColors.BuffColor);
             }
             else
@@ -1591,7 +1696,15 @@ namespace FWTCG
             _gs.CardsPlayedThisTurn++;
             FireCardPlayed(unit, GameRules.OWNER_PLAYER);
             TurnManager.BroadcastMessage_Static(
-                $"[打出] {unit.UnitName}（费用{effectiveCostPost}），剩余法力 {_gs.PMana}");
+                $"[打出] {unit.UnitName}（剩余法力 {_gs.PMana}）");
+
+            // UI-OVERHAUL-1c-β: 记录入场栈（HandToBase）— _pendingStackEntry 由 ValidateAndCommit 填好资源数据
+            var entry = _pendingStackEntry;
+            entry.Kind    = PlayActionKind.HandToBase;
+            entry.Unit    = unit;
+            entry.BFIndex = -1;
+            _thisTurnPlayStack.Add(entry);
+            _pendingStackEntry = default;
 
             // Trigger entry effects
             if (_entryEffects != null)
@@ -1647,85 +1760,20 @@ namespace FWTCG
         /// </summary>
         private async Task TryPlayHeroAsync(UnitInstance hero)
         {
-            int effectiveCost = ComputeLegionAdjustedCost(hero, _gs);
-
-            if (effectiveCost > _gs.PMana)
-            {
-                ShowPlayError($"[提示] 法力不足：需要 {effectiveCost}，当前 {_gs.PMana}", hero);
-                return;
-            }
-
-            if (hero.CardData.RuneCost > 0)
-            {
-                int haveSch = _gs.GetSch(GameRules.OWNER_PLAYER, hero.CardData.RuneType);
-                if (haveSch < hero.CardData.RuneCost)
-                {
-                    ShowPlayError($"[提示] 符能不足：需要 {hero.CardData.RuneCost} {hero.CardData.RuneType.ToColoredText()}，当前 {haveSch}", hero);
-                    return;
-                }
-            }
-
-            if (hero.CardData.HasSecondaryRune)
-            {
-                int have2 = _gs.GetSch(GameRules.OWNER_PLAYER, hero.CardData.SecondaryRuneType);
-                if (have2 < hero.CardData.SecondaryRuneCost)
-                {
-                    ShowPlayError($"[提示] 符能不足：需要 {hero.CardData.SecondaryRuneCost} {hero.CardData.SecondaryRuneType.ToColoredText()}，当前 {have2}", hero);
-                    return;
-                }
-            }
-
-            // UI-OVERHAUL-1a: Haste 询问弹窗已移除（1b 将改为资源准备机制自动判定）
-            bool useHaste = false;
-            if (_pendingDragHasteDecision.HasValue) _pendingDragHasteDecision = null;
-            await Task.Yield();
-
-            // Re-validate after async prompt
+            // UI-OVERHAUL-1c-β: mana/sch/Haste 已由 ValidateAndCommitPreparedFor 扣除
             if (_gs == null || _gs.GameOver) return;
             if (_gs.Turn != GameRules.OWNER_PLAYER || _gs.Phase != GameRules.PHASE_ACTION) return;
-            if (_gs.PHero != hero) return; // hero already deployed or replaced
+            if (_gs.PHero != hero) return;
 
-            int effectiveCostPost = ComputeLegionAdjustedCost(hero, _gs);
-            if (_gs.PMana < effectiveCostPost)
-            {
-                ShowPlayError("[提示] 资源状态已变更，操作已取消", hero);
-                return;
-            }
-            if (hero.CardData.RuneCost > 0 &&
-                _gs.GetSch(GameRules.OWNER_PLAYER, hero.CardData.RuneType) < hero.CardData.RuneCost)
-            {
-                ShowPlayError("[提示] 资源状态已变更，操作已取消", hero);
-                return;
-            }
-            if (hero.CardData.HasSecondaryRune &&
-                _gs.GetSch(GameRules.OWNER_PLAYER, hero.CardData.SecondaryRuneType) < hero.CardData.SecondaryRuneCost)
-            {
-                ShowPlayError("[提示] 资源状态已变更，操作已取消", hero);
-                return;
-            }
-            if (useHaste)
-            {
-                bool stillOk = _gs.PMana >= effectiveCostPost + 1 &&
-                               _gs.GetSch(GameRules.OWNER_PLAYER, hero.CardData.RuneType) >= hero.CardData.RuneCost + 1;
-                if (!stillOk) useHaste = false;
-            }
+            bool useHaste = _lastCommitUsedHaste;
+            _lastCommitUsedHaste = false;
 
-            // Deploy: remove from hero zone → add to base
             _gs.PHero = null;
             _gs.PBase.Add(hero);
-            _gs.PMana -= effectiveCostPost;
-            if (hero.CardData.RuneCost > 0)
-                _gs.SpendSch(GameRules.OWNER_PLAYER, hero.CardData.RuneType, hero.CardData.RuneCost);
-            if (hero.CardData.HasSecondaryRune)
-                _gs.SpendSch(GameRules.OWNER_PLAYER, hero.CardData.SecondaryRuneType, hero.CardData.SecondaryRuneCost);
 
             if (useHaste)
             {
-                _gs.PMana -= 1;
-                _gs.SpendSch(GameRules.OWNER_PLAYER, hero.CardData.RuneType, 1);
                 hero.Exhausted = false;
-                TurnManager.BroadcastMessage_Static(
-                    $"[急速] {hero.UnitName} 支付额外1法力+1{hero.CardData.RuneType.ToChinese()}符能，以活跃状态进场");
                 UI.GameEventBus.FireUnitFloatText(hero, "急速！", UI.GameColors.BuffColor);
             }
             else
@@ -1734,16 +1782,22 @@ namespace FWTCG
             }
 
             if (hero.IsEphemeral) hero.SummonedOnRound = _gs.Round;
-            hero.PlayedThisTurn = true;  // B10: duel_stance 额外+1 触发标记
+            hero.PlayedThisTurn = true;
             _gs.CardsPlayedThisTurn++;
             FireCardPlayed(hero, GameRules.OWNER_PLAYER);
-            TurnManager.BroadcastMessage_Static(
-                $"[英雄出场] {hero.UnitName}（费用{hero.CardData.Cost}），剩余法力 {_gs.PMana}");
+            TurnManager.BroadcastMessage_Static($"[英雄出场] {hero.UnitName}（剩余法力 {_gs.PMana}）");
+
+            // UI-OVERHAUL-1c-β: 记录入场栈（HeroToBase）
+            var entry = _pendingStackEntry;
+            entry.Kind    = PlayActionKind.HeroToBase;
+            entry.Unit    = hero;
+            entry.BFIndex = -1;
+            _thisTurnPlayStack.Add(entry);
+            _pendingStackEntry = default;
 
             if (_entryEffects != null)
                 _entryEffects.OnUnitEntered(hero, GameRules.OWNER_PLAYER, _gs);
 
-            // DEV-26: mirror TryPlayUnitAsync — hero cards can also have Foresight
             if (hero.CardData.HasKeyword(CardKeyword.Foresight))
                 await HandleForesightPromptAsync(GameRules.OWNER_PLAYER);
 

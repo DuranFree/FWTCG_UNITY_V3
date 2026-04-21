@@ -2482,3 +2482,62 @@
 
 **Tests**: EditMode 1140/1150 通过（10 项失败皆 known-bugs.md 登记的历史项）；新增 8 项 1c-α 测试全绿
 **引擎场景验证**：MCP `get_gameobject ConfirmBtn` 确认：名字=ConfirmBtn, text="确定", activeSelf=true, ButtonCharge 挂载正常 ✓
+
+---
+
+## UI-OVERHAUL-1c-β/γ：combat 延迟 + LIFO 回滚 + 按钮激活动效 — 2026-04-21
+
+**Status**: ✅ Completed（1c 系列收尾，整套 UI-OVERHAUL 完整落地）
+
+**What was done（1c-β）**:
+- `GameManager.cs`：
+  - `PlayStackEntry` 扩展：ManaSpent / PrimaryType / PrimarySchSpent / HasSecondary / SecondaryType / SecondarySchSpent / UsedHaste / CommittedTappedUids / CommittedRecycled
+  - `PreparedCommitSnapshot` 新增：CommitPreparedRunes 返回 TappedUids + Recycled 列表
+  - `ValidateAndCommitPreparedFor` 重写：计算 manaAvailable/primaryHave/secondaryHave（含 prepared）；不够飘屏+清栈返 false；够→判定 Haste（有 Haste 关键词 && manaAvailable ≥ cost+1 && primaryHave ≥ primary+1 → 激活）→ CommitPreparedRunes → 扣 mana/sch（含 Haste 额外 +1+1）→ 填 `_pendingStackEntry` + `_lastCommitUsedHaste`
+  - `TryPlayUnitAsync`：移除所有 mana/sch 检查 + 扣费（已在 ValidateAndCommit 做）；从 `_lastCommitUsedHaste` 读 Haste；落地后 `_thisTurnPlayStack.Add(entry with Kind=HandToBase, Unit, BFIndex=-1)`
+  - `TryPlayHeroAsync`：同上，Kind=HeroToBase
+  - `OnBattlefieldClicked`（base→BF）：只 MoveUnit + `_thisTurnPlayStack.Add(Kind=BaseToBF)`，删除原立即 CheckAndResolveCombat + FireDuelBanner + 550ms 延迟
+  - `OnBattlefieldClicked`（Roam BF→BF）：同样只 MoveUnit，不 combat（不入栈因为非资源入场）
+  - `OnConfirmClicked` 真实实现：`_bfClickInFlight=true` → `TriggerPendingCombatsAsync()` → `ClearThisTurnPlayStack()` → RefreshUI
+  - `TriggerPendingCombatsAsync()`：遍历所有 BF，有我方单位 + 有敌方 → FireDuelBanner（2s banner）→ CheckAndResolveCombat；最后 550ms 余韵
+  - `OnEndTurnClicked` 改为 async：若战场有我方单位自动 flush TriggerPendingCombatsAsync（等同隐式点击"确定"），再 EndTurn
+
+**What was done（1c-γ）**:
+- `GameManager.OnCancelClicked` 实际回滚：LIFO 遍历 `_thisTurnPlayStack`，逐条 `RollbackEntry`；`_gs.CardsPlayedThisTurn` 相应减回
+- `RollbackEntry(entry)`：
+  - HandToBase：PBase.Remove + PHand.Add + PlayedThisTurn=false + Exhausted=false
+  - HeroToBase：PBase.Remove + PHero=unit + PlayedThisTurn=false + Exhausted=false
+  - BaseToBF：BF[idx].PlayerUnits.Remove + PBase.Add + Exhausted=false
+  - 资源还原：PMana += ManaSpent；AddSch 主/副符能
+  - Tap 快照撤销：每个 CommittedTappedUid 找到 rune → Tapped=false + PMana -= 1
+  - Recycle 快照撤销：每个 CommittedRecycled rune 从 PRuneDeck 移回 PRunes + SpendSch -1
+- `GameUI.cs`：
+  - 新字段 `_confirmBtnWasActive` / `_cancelBtnWasActive` / `_confirmPulseTween` / `_cancelPulseTween`
+  - `ApplyActionButtonState(btn, active, ref wasActive, ref pulseTween)` 重写：状态切换时 Kill 旧 tween；切到 active → DOPunchScale(0.18, 0.35s, 6 vibrato) + DOScale 1.04 Yoyo 长亮 pulse；切回 dim → scale=1
+- 新建 `Assets/Tests/EditMode/UIOverhaul1cBetaGammaTests.cs`（7 项）：
+  - OnCancelClicked 回滚 HandToBase 三路径（unit+mana / 主符能 / Tap+Recycle 快照）
+  - OnCancelClicked 回滚 BaseToBF（unit 回基地）
+  - OnCancelClicked LIFO 多条（HandToBase + BaseToBF 混合）
+  - OnConfirmClicked 无单位拒绝
+  - OnCancelClicked 回滚 HeroToBase（PHero 恢复）
+
+**Decisions made**:
+- combat 仅玩家路径延迟；AI 路径（SimpleAI 直接调 _combatSys）保留原立即结算，避免大规模重构 AI
+- Roam（BF→BF）也延迟 combat，但不入回滚栈 — Roam 只是位置移动无资源消耗，如需回滚后续可补
+- OnEndTurnClicked 隐式 flush：鲁棒性考虑，避免玩家不点"确定"时战场 pending 永远不结算
+- Confirm/Cancel 按钮动效采用轻量方案（punch + scale pulse）；用户原需求的"粒子从按钮向上飘"未做，留作后续润色（当前 scale 动效已能传达"可点击/激活"视觉差异）
+- Haste 激活条件精简为"额外 +1 法力 + +1 主符能"，不要求副符能；用户手动横置/回收达到该阈值自动激活，否则休眠进场
+
+**Technical debt**:
+- [ ] Confirm 按钮"粒子从按钮向上飘"未实现，当前用 DOPunchScale + Yoyo scale 代替 — 1c-γ
+- [ ] 1c 下 Play Mode 端到端验收尚未由人类执行 — 用户明确 Play Mode 手动验证 — 1c-γ
+- [ ] Roam（BF→BF）延迟 combat 但不入栈，取消按钮不能回滚该类移动 — 低优先级，非典型回滚需求 — 1c-γ
+- [ ] 玩家"确定"按钮触发 combat 时若敌方有反应牌，当前走原 ReactiveSystem 流程；按钮点击期间的状态切换（_bfClickInFlight）可能与反应窗口时序有耦合，需 Play Mode 观察 — 1c-γ
+
+**Problems encountered**:
+- UIOverhaul1cAlphaTests 里 UnitInstance 构造签名错误（正确为 `(int uid, CardData, string)`），已修
+- RecordPlayAction / ClearThisTurnPlayStack 原 internal 跨 assembly 测试不可见，改 public
+- MCP run_tests 一次性超时后按 CLAUDE.md 规则查 console 确认测试仍在跑 → 重试成功（1155/1165）
+
+**Tests**: 编译 0 error 0 warning；EditMode 1155/1165 通过，10 项失败皆 known-bugs.md 登记的历史项
+**引擎场景验证**：1c-α 阶段已通过 MCP 确认 ConfirmBtn 存在 + 文本"确定" + active；1c-β/γ 的 combat 流改动与按钮动效需 Play Mode 人工验收

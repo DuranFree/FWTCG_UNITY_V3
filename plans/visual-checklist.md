@@ -305,3 +305,11 @@
 - [x] 取消按钮 CancelBtn — 红色 #d24a4a，文案"取消"，常驻显示 — UI-OVERHAUL-1c-α
 - [x] 按钮 dim 状态（条件未满足）：Image.color ×0.45 + alpha 0.55 + interactable=false — UI-OVERHAUL-1c-α
 - [ ] 激活瞬间闪烁 + 长亮发光 + 粒子（留给 1c-β/γ 调整）— UI-OVERHAUL-1c
+
+### UI-OVERHAUL-1c-β/γ — combat 延迟 + 按钮激活动效
+- [x] 玩家基地→战场拖拽不再立即 combat，战斗由"确定"按钮触发（或结束回合隐式触发）— 1c-β
+- [x] Haste 单位若玩家多准备 +1 法力 + +1 主符能 → 自动以活跃状态进场，浮字"急速！"— 1c-β
+- [x] Confirm 按钮激活瞬间 PunchScale(0.18, 0.35s, vibrato=6) — 1c-γ
+- [x] Confirm 按钮长亮 pulse：Yoyo scale 1.0↔1.04（0.9s 每周期）— 1c-γ
+- [x] Cancel 按钮同样 punch + pulse；切回 dim 时 Kill tween + scale=1 — 1c-γ
+- [ ] 粒子从按钮飘出朝上（用户原需求）— 当前用 scale pulse 代替，1d/下一轮可补 — 1c-γ
