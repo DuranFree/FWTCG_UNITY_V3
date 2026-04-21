@@ -3620,10 +3620,11 @@ namespace FWTCG.Editor
             // Descriptions match the card face text exactly; do NOT paraphrase.
 
             // ── Kaisa (Fury+Mind) deck ────────────────────────────────────────
-            // OGN-012 诺克萨斯新兵
+            // OGN-012 诺克萨斯新兵 — 军团（Legion）减费 2
             CD("noxus_recruit",      "诺克萨斯新兵", 4, 4, RuneType.Blazing, 0,
                "军团 — 我的费用减少[2]。（如果你在本回合内已打出过其他卡牌，则发动此效果。）",
-               CardKeyword.Inspire, "noxus_recruit_enter");
+               CardKeyword.Inspire, "noxus_recruit_enter",
+               legionCostReduction: 2);
 
             // OGN-096 警觉的哨兵
             CD("alert_sentinel",     "警觉的哨兵",   2, 1, RuneType.Radiant, 0,
@@ -3949,12 +3950,14 @@ namespace FWTCG.Editor
             bool isEquipment = false, int equipAtkBonus = 0,
             RuneType equipRuneType = RuneType.Blazing, int equipRuneCost = 0,
             bool isHero = false,
-            RuneType secondaryRuneType = RuneType.Blazing, int secondaryRuneCost = 0)
+            RuneType secondaryRuneType = RuneType.Blazing, int secondaryRuneCost = 0,
+            int legionCostReduction = 0)
         {
             return CreateCardData(id, name, cost, atk, runeType, runeCost, desc,
                                   kw, effectId, isEquipment, equipAtkBonus, equipRuneType, equipRuneCost,
                                   isHero: isHero,
-                                  secondaryRuneType: secondaryRuneType, secondaryRuneCost: secondaryRuneCost);
+                                  secondaryRuneType: secondaryRuneType, secondaryRuneCost: secondaryRuneCost,
+                                  legionCostReduction: legionCostReduction);
         }
 
         private static CardData CreateCardData(string id, string cardName,
@@ -3964,7 +3967,8 @@ namespace FWTCG.Editor
             RuneType equipRuneType = RuneType.Blazing, int equipRuneCost = 0,
             bool isSpell = false, SpellTargetType spellTargetType = SpellTargetType.None,
             bool isHero = false,
-            RuneType secondaryRuneType = RuneType.Blazing, int secondaryRuneCost = 0)
+            RuneType secondaryRuneType = RuneType.Blazing, int secondaryRuneCost = 0,
+            int legionCostReduction = 0)
         {
             string path = $"Assets/Resources/Cards/{id}.asset";
 
@@ -3978,7 +3982,8 @@ namespace FWTCG.Editor
             data.EditorSetup(id, cardName, cost, atk, runeType, runeCost, description,
                              keywords, effectId, isEquipment, equipAtkBonus, equipRuneType, equipRuneCost,
                              isSpell, spellTargetType, isHero,
-                             secondaryRuneType, secondaryRuneCost);
+                             secondaryRuneType, secondaryRuneCost,
+                             legionCostReduction);
 
             // Assign art sprite from Resources/CardArt/{id}.png if it exists
             string[] exts = { ".png", ".jpg" };

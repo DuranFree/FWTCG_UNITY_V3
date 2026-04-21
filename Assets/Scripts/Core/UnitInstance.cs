@@ -83,11 +83,24 @@ namespace FWTCG.Core
         public int SummonedOnRound { get; set; } = -1;
 
         /// <summary>
-        /// Standby units (Rule 716) are deployed face-down at 0 cost.
-        /// While IsStandby=true the unit does not participate in combat and
-        /// cannot be targeted. The owner may flip it face-up as a 0-cost action.
+        /// 正面朝下放在待命区（Rule 23 Hidden）。true 时：
+        ///   - 不参与战斗，不可被法术/技能选为目标
+        ///   - 控制者可在"下一位玩家回合开始后"以 0 费反应翻开打出
+        ///   - 目标只能从本待命区关联的战场选
         /// </summary>
         public bool IsStandby { get; set; }
+
+        /// <summary>
+        /// 记录面朝下时关联的战场 ID（0 或 1）。-1 表示不在待命区。
+        /// 翻开打出时的目标只能从此战场选取（Rule 23.1.d）。
+        /// </summary>
+        public int StandbyBFIndex { get; set; } = -1;
+
+        /// <summary>
+        /// true 表示此待命牌可以被翻开打出（跨过"放下它的那一回合"后激活）。
+        /// 放下时设 false；下一位玩家回合开始时（TurnManager）设 true。
+        /// </summary>
+        public bool StandbyReadyToFlip { get; set; }
 
         /// <summary>Equipment attached to this unit (null if none).</summary>
         public UnitInstance AttachedEquipment { get; set; }

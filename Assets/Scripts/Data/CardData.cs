@@ -36,6 +36,9 @@ namespace FWTCG.Data
         [Header("Hero")]
         [SerializeField] private bool _isHero;   // hero cards are extracted to hero zone at game start
 
+        [Header("Legion 军团 (Rule 24) — 本回合打过其他牌时减费额度；0=无 / 未使用")]
+        [SerializeField] private int _legionCostReduction;
+
         [Header("Spell (isSpell=true only)")]
         [SerializeField] private bool _isSpell;
         [SerializeField] private SpellTargetType _spellTargetType;
@@ -61,6 +64,8 @@ namespace FWTCG.Data
         public RuneType EquipRuneType => _equipRuneType;
         public int EquipRuneCost => _equipRuneCost;
         public bool IsHero => _isHero;
+        /// <summary>军团减费额度（Rule 24 条件满足时）。0 表示此卡不使用军团减费。</summary>
+        public int LegionCostReduction => _legionCostReduction;
         public bool IsSpell => _isSpell;
         public SpellTargetType SpellTargetType => _spellTargetType;
         public string Description => _description;
@@ -81,7 +86,8 @@ namespace FWTCG.Data
                                 SpellTargetType spellTargetType = SpellTargetType.None,
                                 bool isHero = false,
                                 RuneType secondaryRuneType = RuneType.Blazing,
-                                int secondaryRuneCost = 0)
+                                int secondaryRuneCost = 0,
+                                int legionCostReduction = 0)
         {
             _id = id;
             _cardName = cardName;
@@ -101,6 +107,7 @@ namespace FWTCG.Data
             _isSpell = isSpell;
             _spellTargetType = spellTargetType;
             _isHero = isHero;
+            _legionCostReduction = legionCostReduction;
         }
 #endif
     }

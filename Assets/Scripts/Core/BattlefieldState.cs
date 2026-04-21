@@ -15,6 +15,13 @@ namespace FWTCG.Core
         public List<UnitInstance> EnemyUnits { get; private set; }
 
         /// <summary>
+        /// Rule 23 待命区：每个战场两方各有一个槽位，最多容纳 1 张面朝下的牌。
+        /// 只有战场控制者可以放置；控制权易手后下次清理时移除（Rule 106.4.d）。
+        /// </summary>
+        public UnitInstance PlayerStandby { get; set; }
+        public UnitInstance EnemyStandby  { get; set; }
+
+        /// <summary>
         /// Current controller. null = contested/empty, "player" or "enemy".
         /// </summary>
         public string Ctrl { get; set; }

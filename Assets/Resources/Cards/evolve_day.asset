@@ -27,6 +27,7 @@ MonoBehaviour:
   _equipRuneType: 0
   _equipRuneCost: 0
   _isHero: 0
+  _legionCostReduction: 0
   _isSpell: 1
   _spellTargetType: 0
   _description: "\u62BD\u56DB\u5F20\u724C\u3002"

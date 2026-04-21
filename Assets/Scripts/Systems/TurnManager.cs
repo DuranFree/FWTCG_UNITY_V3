@@ -180,6 +180,10 @@ namespace FWTCG.Systems
             // Ephemeral units have SummonedOnRound < gs.Round (they were created in a past round).
             DestroyEphemeralUnits(gs);
 
+            // B8 full (Rule 23.1.b): 下一位玩家回合开始时，上一位玩家放下的面朝下牌获得可翻开权限。
+            // 此处即"新回合开始"，给对方的面朝下牌开权限；同时移除失控战场上的面朝下牌（Rule 106.4.d）。
+            ActivateOpponentStandbyAndCleanup(who, gs);
+
             Broadcast($"[觉醒] {DisplayName(who)} 符文解除横置，符能清零");
             await Delay(GameRules.PHASE_DELAY_MS);
         }
@@ -447,6 +451,50 @@ namespace FWTCG.Systems
 
         private string DisplayName(string owner) =>
             owner == GameRules.OWNER_PLAYER ? "玩家" : "AI";
+
+        /// <summary>
+        /// B8 full (Rule 23 / 106.4.d)：
+        ///   1) 新回合 "who" 开始，其对手放下的面朝下牌（上回合由 who.Opponent 放下）获得 ReadyToFlip。
+        ///   2) 同时扫描所有战场：若待命牌的所属者已失去该战场控制权，移除该待命牌（送弃牌堆）。
+        /// </summary>
+        private void ActivateOpponentStandbyAndCleanup(string currentWho, GameState gs)
+        {
+            string opponent = gs.Opponent(currentWho);
+            for (int i = 0; i < GameRules.BATTLEFIELD_COUNT; i++)
+            {
+                var bf = gs.BF[i];
+
+                // 1) 激活对手的待命牌（即非 currentWho 放的那张）
+                // 但实际上 Rule 23.1.b 的原意是：放下之后"下一位玩家回合开始"获得权限。
+                // 等价于新回合开始时，场上所有满足 StandbyReadyToFlip==false 的牌全部设为 true。
+                if (bf.PlayerStandby != null && !bf.PlayerStandby.StandbyReadyToFlip)
+                    bf.PlayerStandby.StandbyReadyToFlip = true;
+                if (bf.EnemyStandby != null && !bf.EnemyStandby.StandbyReadyToFlip)
+                    bf.EnemyStandby.StandbyReadyToFlip = true;
+
+                // 2) 失控清理（Rule 106.4.d）
+                if (bf.PlayerStandby != null && bf.Ctrl != GameRules.OWNER_PLAYER)
+                {
+                    var card = bf.PlayerStandby;
+                    bf.PlayerStandby = null;
+                    card.IsStandby = false;
+                    card.StandbyBFIndex = -1;
+                    card.StandbyReadyToFlip = false;
+                    gs.GetDiscard(GameRules.OWNER_PLAYER).Add(card);
+                    Broadcast($"[待命清理] 玩家失去战场{i + 1}控制权，面朝下牌 {card.UnitName} 被移除");
+                }
+                if (bf.EnemyStandby != null && bf.Ctrl != GameRules.OWNER_ENEMY)
+                {
+                    var card = bf.EnemyStandby;
+                    bf.EnemyStandby = null;
+                    card.IsStandby = false;
+                    card.StandbyBFIndex = -1;
+                    card.StandbyReadyToFlip = false;
+                    gs.GetDiscard(GameRules.OWNER_ENEMY).Add(card);
+                    Broadcast($"[待命清理] AI 失去战场{i + 1}控制权，面朝下牌 {card.UnitName} 被移除");
+                }
+            }
+        }
 
         /// <summary>
         /// Rule 728: Destroy ephemeral units whose SummonedOnRound is before the current round.

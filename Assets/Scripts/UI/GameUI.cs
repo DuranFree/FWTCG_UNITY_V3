@@ -55,6 +55,11 @@ namespace FWTCG.UI
         [SerializeField] private Button _bf1Button;
         [SerializeField] private Button _bf2Button;
 
+        // ── B8 full: 待命区槽位（Rule 23 面朝下牌） ────────────────────────────
+        // 运行时 Find by name: BF0Standby / BF1Standby（SceneBuilder 已创建）
+        private Transform _bf0StandbyContainer;
+        private Transform _bf1StandbyContainer;
+
         // ── Rune area ─────────────────────────────────────────────────────────
         [SerializeField] private Transform _playerRuneContainer;
         [SerializeField] private Transform _enemyRuneContainer;
@@ -195,6 +200,12 @@ namespace FWTCG.UI
 
         // React button ribbon — previous interactable state to detect transitions
         private bool _reactBtnWasInteractable;
+        [SerializeField] private Button _reactBtn;  // 由 SceneBuilder wire 注入，用于呼吸动画
+        private Tween _reactBtnBreathTween;  // 迅捷/反应 按钮可用时的呼吸动画
+        // 按钮用的是紫色 sprite，这里只调亮度 tint（白=原色，灰=压暗），避免污染 sprite 色相
+        private static readonly Color ReactBtnLit   = Color.white;                          // 有可用牌：满亮度
+        private static readonly Color ReactBtnPeak  = new Color(1.3f, 1.3f, 1.3f, 1f);      // 呼吸峰值（HDR 略过曝）
+        private static readonly Color ReactBtnDim   = new Color(0.45f, 0.45f, 0.45f, 1f);   // 无可用牌：灰色压暗
 
         // AskPromptUI reference (optional, set by SceneBuilder)
         [SerializeField] private AskPromptUI _askPromptUI;
@@ -272,12 +283,24 @@ namespace FWTCG.UI
             if (_endTurnButton != null) _endTurnButton.onClick.AddListener(HandleEndTurn);
             if (_bf1Button != null) _bf1Button.onClick.AddListener(() => _onBFClicked?.Invoke(0));
             if (_bf2Button != null) _bf2Button.onClick.AddListener(() => _onBFClicked?.Invoke(1));
+
+            // B8 full: 查找待命区槽位并挂 Button 以触发翻开打出
+            if (_rootCanvas != null)
+            {
+                _bf0StandbyContainer = _rootCanvas.transform.Find("MainArea/BF0Standby");
+                _bf1StandbyContainer = _rootCanvas.transform.Find("MainArea/BF1Standby");
+                WireStandbyZoneClick(_bf0StandbyContainer, 0);
+                WireStandbyZoneClick(_bf1StandbyContainer, 1);
+            }
             if (_restartButton != null) _restartButton.onClick.AddListener(HandleRestart);
             if (_logToggleBtn != null) _logToggleBtn.onClick.AddListener(ToggleLog);
             if (_viewerCloseBtn != null) _viewerCloseBtn.onClick.AddListener(CloseViewer);
             if (_viewerPanel != null) _viewerPanel.SetActive(false);
             if (_timerDisplay != null) _timerDisplay.SetActive(false);
             if (_debugToggleBtn != null) _debugToggleBtn.onClick.AddListener(ToggleDebug);
+
+            // Debug 面板默认隐藏，按键盘 0 切换显隐（临时开发用）
+            if (_debugPanel != null) _debugPanel.SetActive(false);
 
             // Default: log collapsed, debug collapsed
             if (_logPanel != null) _logPanel.SetActive(false);
@@ -901,6 +924,7 @@ namespace FWTCG.UI
             RefreshEndTurnButton(gs);
             RefreshLegends(gs);
             RefreshHeroZones(gs);
+            RefreshStandbyZones(gs); // B8 full
             RefreshScoreTrack(gs);
             RefreshPileCounts(gs);
             RefreshBFControlBadges(gs);
@@ -908,6 +932,10 @@ namespace FWTCG.UI
             UpdateBFCardArt(gs);      // DEV-18
             RefreshInfoStrips(gs);
             RefreshActionButtons(gs.Phase, gs.Turn);
+
+            // 迅捷/反应 按钮状态：有可用牌 → 亮+呼吸；无可用牌 → 暗（仍可点击）
+            var gm = GameManager.Instance;
+            if (gm != null) NotifyReactButtonState(gm.HasAffordableReactive());
         }
 
         // ── Individual panel refresh ──────────────────────────────────────────
@@ -1264,43 +1292,15 @@ namespace FWTCG.UI
             WireLegendRightClick(_enemyLegendContainer, gs.ELegend);
         }
 
-        // VFX-7: hover glow for legend cards (green=player, red=enemy, half intensity)
+        // VFX-7: 传奇卡悬停 glow 已禁用（用户嫌绿色干扰），保留函数入口只做隐藏 overlay
         private readonly System.Collections.Generic.HashSet<int> _legendGlowWired = new();
         private void WireLegendHoverGlow(Transform container, bool isPlayer)
         {
             if (container == null) return;
-            int id = container.GetInstanceID();
-            if (_legendGlowWired.Contains(id)) return;
             var glowT = container.Find("LegendGlowOverlay");
             if (glowT == null) return;
-            var glowImg = glowT.GetComponent<Image>();
-            if (glowImg == null) return;
-
-            // Set base color: green for player, red for enemy
-            Color baseColor = isPlayer ? GameColors.PlayerGreen : GameColors.EnemyRed;
-            glowImg.color = new Color(baseColor.r, baseColor.g, baseColor.b, 0f);
-
-            _legendGlowWired.Add(id);
-            var et = container.GetComponent<UnityEngine.EventSystems.EventTrigger>();
-            if (et == null) et = container.gameObject.AddComponent<UnityEngine.EventSystems.EventTrigger>();
-
-            var enterEntry = new UnityEngine.EventSystems.EventTrigger.Entry();
-            enterEntry.eventID = UnityEngine.EventSystems.EventTriggerType.PointerEnter;
-            enterEntry.callback.AddListener((_) =>
-            {
-                if (glowImg != null)
-                    FadeLegendGlow(glowImg, 0.25f);
-            });
-            et.triggers.Add(enterEntry);
-
-            var exitEntry = new UnityEngine.EventSystems.EventTrigger.Entry();
-            exitEntry.eventID = UnityEngine.EventSystems.EventTriggerType.PointerExit;
-            exitEntry.callback.AddListener((_) =>
-            {
-                if (glowImg != null)
-                    FadeLegendGlow(glowImg, 0f);
-            });
-            et.triggers.Add(exitEntry);
+            // 直接隐藏，不挂 hover 监听
+            glowT.gameObject.SetActive(false);
         }
 
         public const float LEGEND_GLOW_SPEED = 4f;
@@ -2112,13 +2112,36 @@ namespace FWTCG.UI
             UpdateEndTurnPulse(isPlayerAction);
         }
 
-        // DEV-19: called by GameManager when react button interactability changes
-        public void NotifyReactButtonState(bool isInteractable)
+        // 迅捷/反应 按钮状态：有可用牌 = 亮紫 + 呼吸动画；无可用牌 = 暗紫但仍可点击
+        // 允许玩家在没牌时也疯狂点击，抢到触发窗口打开的瞬间（GameManager.OnReactClicked 每次都会重新检查）
+        public void NotifyReactButtonState(bool hasAffordableReactive)
         {
-            bool transition = !_reactBtnWasInteractable && isInteractable;
-            _reactBtnWasInteractable = isInteractable;
-            if (transition)
-                GameManager.FireHintToast(""); // no-op, ribbon animation below
+            _reactBtnWasInteractable = hasAffordableReactive;
+            if (_reactBtn == null) return;
+
+            // 按钮永远可点击，不锁住输入
+            _reactBtn.interactable = true;
+
+            var img = _reactBtn.GetComponent<Image>();
+            if (img == null) return;
+
+            // 清掉旧的呼吸 tween
+            TweenHelper.KillSafe(ref _reactBtnBreathTween);
+
+            if (hasAffordableReactive)
+            {
+                // 亮起 + 循环呼吸（Yoyo 在亮色和峰值之间来回）
+                img.color = ReactBtnLit;
+                _reactBtnBreathTween = img.DOColor(ReactBtnPeak, 0.8f)
+                    .SetEase(Ease.InOutSine)
+                    .SetLoops(-1, LoopType.Yoyo)
+                    .SetTarget(_reactBtn.gameObject);
+            }
+            else
+            {
+                // 暗淡静态
+                img.color = ReactBtnDim;
+            }
         }
 
         // ── Log panel toggle (DEV-10) ────────────────────────────────────────
@@ -2163,6 +2186,26 @@ namespace FWTCG.UI
         }
 
         // ── Debug panel toggle (DEV-10) ──────────────────────────────────────
+
+        // 按键盘 0（主键区或小键盘）整体切换 Debug 面板显隐（直接全展开，无折叠态）
+        private void Update()
+        {
+            if (_debugPanel == null) return;
+            if (Input.GetKeyDown(KeyCode.Alpha0) || Input.GetKeyDown(KeyCode.Keypad0))
+            {
+                bool show = !_debugPanel.activeSelf;
+                _debugPanel.SetActive(show);
+                if (show)
+                {
+                    // 强制全展开：显示所有子按钮 + 恢复完整尺寸
+                    _debugCollapsed = false;
+                    for (int i = 0; i < _debugPanel.transform.childCount; i++)
+                        _debugPanel.transform.GetChild(i).gameObject.SetActive(true);
+                    var rt = _debugPanel.GetComponent<RectTransform>();
+                    if (rt != null) rt.sizeDelta = new Vector2(130f, 360f);
+                }
+            }
+        }
 
         public void ToggleDebug()
         {
@@ -2425,6 +2468,93 @@ namespace FWTCG.UI
         public const float CR_FADE_IN  = 0.2f;
         public const float CR_STAY     = 3.5f;
         public const float CR_FADE_OUT = 0.3f;
+
+        // ── B8 full: 待命区点击（翻开打出）───────────────────────────────────
+
+        /// <summary>Callback triggered when player clicks a face-up standby slot they want to flip.</summary>
+        private Action<int> _onStandbyClicked;
+
+        public void SetStandbyClickCallback(Action<int> callback)
+        {
+            _onStandbyClicked = callback;
+        }
+
+        /// <summary>给 BF 待命区挂 Button → 点击触发翻开回调。</summary>
+        private void WireStandbyZoneClick(Transform zone, int bfId)
+        {
+            if (zone == null) return;
+            var go = zone.gameObject;
+            // 确保有 Image 作为 Button 的 target graphic（标签文本已有 Image 但不点中）
+            var img = go.GetComponent<UnityEngine.UI.Image>();
+            if (img == null)
+            {
+                img = go.AddComponent<UnityEngine.UI.Image>();
+                img.color = new Color(0f, 0f, 0f, 0.01f); // 几乎透明但接收射线
+            }
+            var btn = go.GetComponent<UnityEngine.UI.Button>();
+            if (btn == null) btn = go.AddComponent<UnityEngine.UI.Button>();
+            btn.transition = UnityEngine.UI.Selectable.Transition.None;
+            btn.onClick.RemoveAllListeners();
+            btn.onClick.AddListener(() => _onStandbyClicked?.Invoke(bfId));
+        }
+
+        /// <summary>
+        /// 刷新待命区视觉：有面朝下牌时用 CardBackManager 的卡背 sprite 显示；
+        /// 可翻开时加绿色脉冲提示。空槽时透明。
+        /// </summary>
+        public void RefreshStandbyZones(FWTCG.Core.GameState gs)
+        {
+            RefreshOneStandbyZone(_bf0StandbyContainer, 0, gs);
+            RefreshOneStandbyZone(_bf1StandbyContainer, 1, gs);
+        }
+
+        private void RefreshOneStandbyZone(Transform zone, int bfId, FWTCG.Core.GameState gs)
+        {
+            if (zone == null || gs == null || bfId >= gs.BF.Length) return;
+            var bf = gs.BF[bfId];
+
+            // 找到或创建专用的卡背 Image 子节点（避免覆盖 zone 自己的点击目标 Image）
+            const string cardBackName = "StandbyCardBack";
+            Transform cardBackTf = zone.Find(cardBackName);
+            UnityEngine.UI.Image cardBackImg = null;
+            if (cardBackTf != null) cardBackImg = cardBackTf.GetComponent<UnityEngine.UI.Image>();
+
+            // 判定：优先显示玩家面朝下牌；其次 AI 的
+            var card = bf.PlayerStandby ?? bf.EnemyStandby;
+            bool ownedByPlayer = bf.PlayerStandby != null;
+            bool canFlipNow = ownedByPlayer && card != null && card.StandbyReadyToFlip;
+
+            if (card == null)
+            {
+                // 空槽 — 隐藏 CardBack 子节点
+                if (cardBackImg != null) cardBackImg.enabled = false;
+                return;
+            }
+
+            // 懒创建子节点
+            if (cardBackImg == null)
+            {
+                var go = new GameObject(cardBackName, typeof(RectTransform), typeof(UnityEngine.UI.Image));
+                go.transform.SetParent(zone, false);
+                var rt = go.GetComponent<RectTransform>();
+                rt.anchorMin = new Vector2(0.1f, 0.05f);
+                rt.anchorMax = new Vector2(0.9f, 0.95f);
+                rt.offsetMin = Vector2.zero;
+                rt.offsetMax = Vector2.zero;
+                cardBackImg = go.GetComponent<UnityEngine.UI.Image>();
+                cardBackImg.raycastTarget = false; // 点击走外层 zone
+                cardBackImg.preserveAspect = true;
+            }
+
+            cardBackImg.enabled = true;
+            cardBackImg.sprite = CardBackManager.GetCardBackSprite();
+
+            // 色调：可翻开 = 明亮 + 绿色光晕；不可翻 = 微暗
+            if (canFlipNow)
+                cardBackImg.color = new Color(1f, 1f, 1f, 1f);
+            else
+                cardBackImg.color = new Color(0.7f, 0.7f, 0.7f, 0.8f);
+        }
 
         // ── Discard/Exile click setup (DEV-10) ──────────────────────────────
 

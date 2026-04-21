@@ -410,6 +410,8 @@ namespace FWTCG
                 );
                 _ui.SetPileClickCallback(OnPileClicked);
                 _ui.WirePileButtons();
+                // B8 full: 待命区点击 → 尝试翻开己方面朝下牌
+                _ui.SetStandbyClickCallback(bfId => _ = FlipAndPlayStandbyAsync(bfId, GameRules.OWNER_PLAYER));
                 // DEV-22: wire drag callbacks and push zone RTs to CardDragHandler
                 _ui.SetDragCallbacks(
                     onDragCardToBase:      OnDragCardToBase,
@@ -1262,15 +1264,187 @@ namespace FWTCG
         }
 
         /// <summary>
-        /// C-10 Legion 机制：如果卡牌有 Inspire(Legion) 关键词且本回合已打出过其他牌，
-        /// 费用减 2（最低 0）。贴图文字："军团 — 我的费用减少[2]。"
+        /// B8 full: 面朝下打出带【隐匿/待命】关键词的牌（Rule 23）。
+        /// 流程：支付 1 任意符能 → 选己方控制且待命区未被占的战场 → 面朝下放该战场待命区。
+        /// 放下这一回合不能翻开；下一位玩家回合开始后激活。
+        /// </summary>
+        public async Task TryPlayAsStandbyAsync(UnitInstance card)
+        {
+            if (_aiReactionWindowActive) { FireHintToast("AI 正在使用反应牌"); return; }
+            if (_gs == null || _gs.GameOver) return;
+            if (_gs.Turn != GameRules.OWNER_PLAYER || _gs.Phase != GameRules.PHASE_ACTION)
+            {
+                FireHintToast("只能在自己行动阶段面朝下放置");
+                return;
+            }
+            if (!card.CardData.HasKeyword(CardKeyword.Standby))
+            {
+                FireHintToast("该牌没有【隐匿】关键词");
+                return;
+            }
+            if (!_gs.PHand.Contains(card)) return;
+
+            // Rule 23.1.b.1：需要 1 任意符能（符文池任意颜色都可）
+            int totalSch = _gs.GetSch(GameRules.OWNER_PLAYER);
+            if (totalSch < 1)
+            {
+                FireHintToast("需要至少 1 点任意符能才能面朝下放置");
+                return;
+            }
+
+            // 找到所有己方控制且 PlayerStandby 为空的战场
+            var legalBFs = new System.Collections.Generic.List<int>();
+            for (int i = 0; i < GameRules.BATTLEFIELD_COUNT; i++)
+            {
+                if (_gs.BF[i].Ctrl == GameRules.OWNER_PLAYER && _gs.BF[i].PlayerStandby == null)
+                    legalBFs.Add(i);
+            }
+            if (legalBFs.Count == 0)
+            {
+                FireHintToast("没有合法战场（需己方控制且待命区未被占用）");
+                return;
+            }
+
+            // 让玩家选战场（UI 简化：只有一个合法就直接用；多个则弹 AskPrompt 选择）
+            int chosenBF = legalBFs[0];
+            if (legalBFs.Count > 1 && UI.AskPromptUI.Instance != null)
+            {
+                try
+                {
+                    int pick = await UI.AskPromptUI.Instance.WaitForConfirm(
+                        "面朝下放置",
+                        $"选择战场（1 任意符能）",
+                        $"战场 {legalBFs[0] + 1}",
+                        $"战场 {legalBFs[1] + 1}") ? 0 : 1;
+                    chosenBF = legalBFs[pick];
+                }
+                catch { return; }
+                // 重验
+                if (_gs.BF[chosenBF].Ctrl != GameRules.OWNER_PLAYER ||
+                    _gs.BF[chosenBF].PlayerStandby != null ||
+                    !_gs.PHand.Contains(card))
+                {
+                    ShowPlayError("[面朝下] 状态已变更，操作取消", card);
+                    return;
+                }
+            }
+
+            // 扣 1 任意符能（选颜色优先非主域符能，减少"卡死自己"）
+            Data.RuneType spentType = Data.RuneType.Blazing;
+            foreach (Data.RuneType rt in System.Enum.GetValues(typeof(Data.RuneType)))
+            {
+                if (_gs.GetSch(GameRules.OWNER_PLAYER, rt) > 0)
+                {
+                    _gs.SpendSch(GameRules.OWNER_PLAYER, rt, 1);
+                    spentType = rt;
+                    break;
+                }
+            }
+
+            // 面朝下放置
+            _gs.PHand.Remove(card);
+            card.IsStandby = true;
+            card.StandbyBFIndex = chosenBF;
+            card.StandbyReadyToFlip = false; // 这回合不能翻
+            _gs.BF[chosenBF].PlayerStandby = card;
+            TurnManager.BroadcastMessage_Static(
+                $"[待命] 面朝下放置到战场 {chosenBF + 1}，支付 1 {spentType.ToChinese()}符能");
+            RefreshUI();
+        }
+
+        /// <summary>
+        /// B8 full: 翻开打出待命牌（Rule 23）。0 费（无视基础费用）。
+        /// 玩家可在任意时机（即便对手回合）触发，但必须 StandbyReadyToFlip=true。
+        /// 翻开打出按卡牌原效果结算，但目标必须来自此牌所在战场。
+        /// </summary>
+        public async Task FlipAndPlayStandbyAsync(int bfId, string owner)
+        {
+            if (_gs == null || _gs.GameOver) return;
+            if (bfId < 0 || bfId >= GameRules.BATTLEFIELD_COUNT) return;
+
+            var bf = _gs.BF[bfId];
+            UnitInstance card = owner == GameRules.OWNER_PLAYER ? bf.PlayerStandby : bf.EnemyStandby;
+            if (card == null)
+            {
+                FireHintToast("该战场无面朝下牌");
+                return;
+            }
+            if (!card.StandbyReadyToFlip)
+            {
+                FireHintToast("待命牌在放下这一回合不能翻开");
+                return;
+            }
+
+            // 从待命区移除
+            if (owner == GameRules.OWNER_PLAYER) bf.PlayerStandby = null;
+            else                                 bf.EnemyStandby  = null;
+            card.IsStandby = false;
+            card.StandbyReadyToFlip = false;
+
+            TurnManager.BroadcastMessage_Static($"[待命] 翻开 {card.UnitName}（0费打出）");
+
+            // 根据卡类型走相应流程（费用设为 0，已在 IsStandby 时记录 BF 约束）
+            if (card.CardData.IsEquipment)
+            {
+                // 装备：放到基地（0 费，跳过 cost 检查）
+                _gs.GetBase(owner).Add(card);
+                if (_entryEffects != null) _entryEffects.OnUnitEntered(card, owner, _gs);
+            }
+            else if (card.CardData.IsSpell)
+            {
+                // 法术：立刻结算（目标来自 bfId）
+                _gs.GetDiscard(owner).Add(card); // 法术打出后弃置
+                UnitInstance t = null;
+                if (card.CardData.SpellTargetType != SpellTargetType.None)
+                {
+                    // 从 bfId 选目标
+                    var list = new System.Collections.Generic.List<UnitInstance>();
+                    if (card.CardData.SpellTargetType == SpellTargetType.EnemyUnit ||
+                        card.CardData.SpellTargetType == SpellTargetType.AnyUnit)
+                    {
+                        list.AddRange(owner == GameRules.OWNER_PLAYER ? bf.EnemyUnits : bf.PlayerUnits);
+                    }
+                    if (card.CardData.SpellTargetType == SpellTargetType.FriendlyUnit ||
+                        card.CardData.SpellTargetType == SpellTargetType.AnyUnit)
+                    {
+                        list.AddRange(owner == GameRules.OWNER_PLAYER ? bf.PlayerUnits : bf.EnemyUnits);
+                    }
+                    list.RemoveAll(u => u.UntargetableBySpells);
+                    if (list.Count == 0)
+                    {
+                        // Rule 23.1.d.1：无合法目标 → 无法翻开打出，已从待命区移除视为失败
+                        TurnManager.BroadcastMessage_Static($"[待命] {card.UnitName} 无合法目标，打出失败");
+                        RefreshUI();
+                        return;
+                    }
+                    t = list[0]; // 简化：自动选第一个
+                }
+                _spellSys?.CastSpell(card, owner, t, _gs);
+            }
+            else
+            {
+                // 单位：放到基地（休眠）
+                _gs.GetBase(owner).Add(card);
+                card.Exhausted = true;
+                if (_entryEffects != null) _entryEffects.OnUnitEntered(card, owner, _gs);
+            }
+            RefreshUI();
+            await System.Threading.Tasks.Task.CompletedTask;
+        }
+
+        /// <summary>
+        /// 军团（Legion, Rule 24）费用减免：
+        ///   - 卡牌带 Inspire 关键词 + 本回合已打过其他牌 → 费用 -= LegionCostReduction（最低 0）。
+        /// 各卡减免量由 CardData.LegionCostReduction 配置（noxus_recruit=2；未来其他 Legion 卡可定制）。
         /// </summary>
         private int ComputeLegionAdjustedCost(UnitInstance unit, GameState gs)
         {
             int baseCost = unit.CardData.Cost;
-            if (unit.CardData.HasKeyword(CardKeyword.Inspire) && gs.CardsPlayedThisTurn >= 1)
+            if (unit.CardData.HasKeyword(CardKeyword.Inspire) &&
+                unit.CardData.LegionCostReduction > 0 &&
+                gs.CardsPlayedThisTurn >= 1)
             {
-                return Mathf.Max(0, baseCost - 2);
+                return Mathf.Max(0, baseCost - unit.CardData.LegionCostReduction);
             }
             return baseCost;
         }

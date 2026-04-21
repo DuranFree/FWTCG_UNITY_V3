@@ -185,6 +185,9 @@ def update_asset(card):
     enc_desc = to_unicode_escape(desc)
 
     # Use functions for replacements to avoid backslash interpretation in \u escapes
+    # legion cost reduction default 0; overridden for noxus_recruit via extra field below
+    legion = 2 if cid == "noxus_recruit" else 0
+
     replacements = [
         (r'(_cardName: )".*?"',           lambda m: m.group(1) + f'"{enc_name}"'),
         (r'(_cost: )\d+',                  lambda m: m.group(1) + str(cost)),
@@ -218,6 +221,17 @@ def update_asset(card):
                              lambda m: m.group(1) + str(sec_rune), new_content)
         new_content = re.sub(r'(_secondaryRuneCost: )\d+',
                              lambda m: m.group(1) + str(sec_rcost), new_content)
+
+    # B9: legionCostReduction 字段（如果尚未存在就插入在 _isHero 后）
+    if '_legionCostReduction:' not in new_content:
+        new_content = re.sub(
+            r'(_isHero: \d+\n)',
+            lambda m: m.group(1) + f'  _legionCostReduction: {legion}\n',
+            new_content, count=1
+        )
+    else:
+        new_content = re.sub(r'(_legionCostReduction: )\d+',
+                             lambda m: m.group(1) + str(legion), new_content)
 
     if new_content != content:
         with open(path, 'w', encoding='utf-8', newline='\n') as f:

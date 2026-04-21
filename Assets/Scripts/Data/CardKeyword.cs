@@ -13,7 +13,8 @@ namespace FWTCG.Data
         Haste       = 1 << 0,  // 急速: unit-only, optional pay [1]+[C] to enter active (Rule 717)
         Barrier     = 1 << 1,  // 壁垒: must take lethal damage first in combat (Rule 727)
         SpellShield = 1 << 2,  // 法盾: opponent pays extra sch to target (Rule 721)
-        Inspire     = 1 << 3,  // 鼓舞: condition — triggers only if another card played this turn (Rule 724)
+        Inspire     = 1 << 3,  // 军团 (Legion, Rule 24): 条件关键词 — 本回合已打出过其他牌时，[文本]效果生效
+                               // 历史命名为 Inspire；术语统一为"军团"，别名 Legion。
         Conquest    = 1 << 4,  // 征服: trigger on conquering a BF
         Deathwish   = 1 << 5,  // 绝念: trigger on death
         Reactive    = 1 << 6,  // 反应: can be played as reaction
