@@ -294,3 +294,8 @@
 - [x] FloatingTipUI 飘屏动画（fade-in 0.12s + 向上飘 60px + hold 0.9s + fade-out 0.35s）— UI-OVERHAUL-1a
 - [x] FloatingTipUI 多色映射（法力=白 / 各符能=本体色 / 警告=黄）— UI-OVERHAUL-1a
 - [x] 拖拽 cluster ghost 残影全部删除（只保留主 ghost 单张拖拽视觉）— UI-OVERHAUL-1a
+
+### UI-OVERHAUL-1b — 符文呼吸灯配色
+- [x] RuneTapFill 由蓝色改为绿色（#2DFF59）— "准备横置"呼吸灯 — UI-OVERHAUL-1b
+- [x] RuneRecFill 保持红色（#FF2626）— "准备回收"呼吸灯 — UI-OVERHAUL-1b
+- [x] RuneBorderGlow 连接 GameManager.PreparedTapIdxs / PreparedRecycleIdxs（RefreshUI 时同步驱动）— UI-OVERHAUL-1b

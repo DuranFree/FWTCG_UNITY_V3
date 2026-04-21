@@ -93,3 +93,6 @@
 - [ ] GameManager.OnDragHandGroupToBase/OnSpellGroupDraggedOut/PlaySpellGroupAsync 成为死代码 — UI-OVERHAUL-1a 单选化后，future 确认无依赖可删 — UI-OVERHAUL-1a
 - [ ] GameManager.GetSelectedHandUnits/GetSelectedBaseUnits 返回 List 但单选下恒 ≤ 1 项 — 可逐步改为单元素字段 — UI-OVERHAUL-1a
 - [ ] _pendingDragHasteDecision / SetDragHasteDecision / DragNeedsHasteChoice 暂留但失效 — 1b 资源准备机制合并时移除 — UI-OVERHAUL-1a
+- [ ] RuneAutoConsume.Compute / ExecuteRunePlan 仍被 AI / Mulligan 使用，玩家路径已切 prepared 机制 — UI-OVERHAUL-1b
+- [ ] OnCardHoverEnter/OnHeroHoverEnter 等 hover 入口 no-op 保留方法签名，1c 再决定是否恢复 hover 预览 — UI-OVERHAUL-1b
+- [ ] Haste 关键词仍硬编码为 false — 1c 整合确定按钮时按"多准备 +1 法力 + +1 符能 → 自动激活"规则补完 — UI-OVERHAUL-1b

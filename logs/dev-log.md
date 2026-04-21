@@ -2396,3 +2396,49 @@
 
 **Tests**: 编译 0 error 3 warning（均历史无关）；MCP EditMode 1130/1140 通过，10 项失败皆 `known-bugs.md` 已登记历史项
 **引擎场景验证**：MCP `get_gameobject EndTurnButton` 确认 Image.color = `(0.957, 0.761, 0.227)` = `#f4c23a` 黄色 ✓
+
+---
+
+## UI-OVERHAUL-1b：符文手动标记 + 待结算资源池 — 2026-04-21
+
+**Status**: ✅ Completed
+
+**What was done**:
+- `GameManager.cs`：
+  - 新增字段 `_preparedTapIdxs` / `_preparedRecycleIdxs`（HashSet<int>）保存玩家手动标记的符文下标
+  - 公开只读访问器 `GetPreparedTapIdxs()` / `GetPreparedRecycleIdxs()` + 写方法 `ClearPreparedRunes()`
+  - `CommitPreparedRunes()` 真正执行 tap（Tapped=true + PMana+1）+ recycle（从 PRunes 移除 → PRuneDeck 底部 → AddSch +1）
+  - `CountPreparedRecyclesOfType(type)` 统计准备回收的某符能数量（用于主/副符能校验）
+  - `ValidateAndCommitPreparedFor(card)` 核心校验：mana + 主/副 sch 含 prepared 是否满足 cost → 不够调 FloatingTipUI 飘屏列出缺口 + 弹回（FireCardPlayFailed） + ClearPreparedRunes + 返回 false；满足 → CommitPreparedRunes + 返回 true
+  - `OnRuneClicked` 彻底重写为标记 toggle：左键 tap-idx toggle（互斥 recycle）/ 右键 recycle-idx toggle（互斥 tap）/ 已横置符文不可标记
+  - `OnTapAllRunesClicked` 改为"全部标记为待横置"
+  - `PlayHandCardWithRuneConfirmAsync` / `PlayHeroWithRuneConfirmAsync` 简化：去 `RuneAutoConsume.Compute` + `AskPromptUI.WaitForConfirm` 消耗询问弹窗，直接走 ValidateAndCommitPreparedFor → 成功调 TryPlayCard/TryPlayHeroAsync
+  - `OnEndTurnClicked` 回合结束自动 ClearPreparedRunes
+  - `RefreshUI` 非行动阶段清空 prepared + 每次同步 `_ui.SetRuneHighlights(preparedTapIdxs, preparedRecycleIdxs)` 驱动呼吸灯
+  - `OnCardHoverEnter/OnHeroHoverEnter/OnCardHoverExit/OnHeroHoverExit` 全部简化为 no-op（玩家手动模式下 auto plan 高亮会误导）
+- `GameUI.cs`：
+  - 公开 `RootCanvasRef`（FloatingTipUI 需要根 Canvas）
+  - `RuneTapFill` 由蓝色 `(0.15, 0.50, 1.00)` 改为绿色 `(0.18, 1.00, 0.35)`，`RuneTapOutline` 同步绿色，与"准备横置"语义一致
+- 新建 `Assets/Tests/EditMode/UIOverhaul1bTests.cs`（9 项）：
+  - OnRuneClicked toggle / 互斥（左→右切换）/ 已横置守卫 / 越界忽略
+  - ClearPreparedRunes 双集合清空
+  - CommitPreparedRunes: tap only / recycle only / 混合路径全覆盖
+- 更新 `DOT6ReplacementTests.GameUI_RunePulseConstants`：RuneTapFill 期望改绿
+
+**Decisions made**:
+- 资源池采用"pending + commit"模式：玩家点符文只加标记，不改 _gs；出牌成功时一次性 commit。这样失败路径天然无副作用（ClearPreparedRunes 即可）
+- 失败时（资源不足）立即清空标记，避免下次出牌误 commit 失效标记；后续若希望"失败保留标记便于调整"可在 1c "取消"按钮落地时重新评估
+- Haste 依然硬编码 false（1a 决策延续），待 1c"确定按钮"机制整合后再决定：目前最简方案是"prepared tap 数量 > cost + 1 且 prepared recycle 对应类型 ≥ runeCost + 1 → 自动激活"
+- Hover auto-plan 高亮禁用为 no-op 而非删除方法，保留方法签名便于 1c 恢复"可选 hover 预览"
+
+**Technical debt**:
+- [ ] `RuneAutoConsume.Compute` 及 `ExecuteRunePlan` 仍被 AI 自动出牌 + Mulligan 场景使用 — 玩家路径不再走它；未来若 AI 也切单选标记可删 — UI-OVERHAUL-1b
+- [ ] Hover 自动高亮（OnCardHoverEnter 等）暂 no-op 保留签名 — 1c 会再决定是否恢复"hover 预览可选" — UI-OVERHAUL-1b
+- [ ] Haste 关键词判定硬编码 false — 1c 整合"确定按钮"时按"多准备 +1 法力 + +1 符能 → 自动激活"规则实现 — UI-OVERHAUL-1b
+
+**Problems encountered**:
+- `PlayHandCardWithRuneConfirmAsync` 去掉 await 后变 async 无 await warning — 改为普通 Task 返回，调用方 `await` 仍兼容
+- 测试构造 `RuneInstance(RuneType)` 签名错误（正确为 `(int uid, RuneType)`）→ 修正
+- `DOT6ReplacementTests.GameUI_RunePulseConstants` 原断言蓝色 RuneTapFill 失败 → 改为绿色期望
+
+**Tests**: 编译 0 error 0 warning；EditMode 1140/1150 通过（10 项失败皆 known-bugs.md 登记的历史项）

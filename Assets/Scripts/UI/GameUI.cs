@@ -637,6 +637,8 @@ namespace FWTCG.UI
         }
 
         private Canvas GetRootCanvas() => _rootCanvas;
+        /// <summary>UI-OVERHAUL-1b: 外部（GameManager、FloatingTipUI 调用点）需要访问根 Canvas。</summary>
+        public Canvas RootCanvasRef => _rootCanvas;
 
         /// <summary>DEV-30 F1: Returns the canvas-local position of a named zone. Used by SpellVFX for conquest burst.</summary>
         public Vector2 GetZoneCanvasPos(string zone)
@@ -840,11 +842,11 @@ namespace FWTCG.UI
             }
         }
 
-        // Blue = needs tap for mana  |  Red = needs recycle for sch
-        public static readonly Color RuneTapFill    = new Color(0.15f, 0.50f, 1.0f, 1f);
-        public static readonly Color RuneTapOutline = new Color(0.45f, 0.80f, 1.0f, 1f);
-        public static readonly Color RuneRecFill    = new Color(1.0f,  0.15f, 0.15f, 1f);
-        public static readonly Color RuneRecOutline = new Color(1.0f,  0.50f, 0.50f, 1f);
+        // UI-OVERHAUL-1b: Green = prepared tap (待横置)  |  Red = prepared recycle (待回收)
+        public static readonly Color RuneTapFill    = new Color(0.18f, 1.00f, 0.35f, 1f);
+        public static readonly Color RuneTapOutline = new Color(0.50f, 1.00f, 0.55f, 1f);
+        public static readonly Color RuneRecFill    = new Color(1.00f, 0.15f, 0.15f, 1f);
+        public static readonly Color RuneRecOutline = new Color(1.00f, 0.50f, 0.50f, 1f);
         public const float RUNE_PULSE_FREQ = 3.5f; // rad/s multiplier (~1.75 Hz)
 
         private Tween CreateRuneHighlightPulseTween()

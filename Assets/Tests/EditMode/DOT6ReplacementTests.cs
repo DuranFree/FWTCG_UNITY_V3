@@ -228,7 +228,8 @@ namespace FWTCG.Tests
         [Test] public void GameUI_RunePulseConstants()
         {
             Assert.AreEqual(3.5f, GameUI.RUNE_PULSE_FREQ, "RUNE_PULSE_FREQ should be 3.5");
-            Assert.AreEqual(new Color(0.15f, 0.50f, 1.0f, 1f), GameUI.RuneTapFill, "RuneTapFill color");
+            // UI-OVERHAUL-1b: RuneTapFill 改为绿色（"准备横置"呼吸灯）
+            Assert.AreEqual(new Color(0.18f, 1.00f, 0.35f, 1f), GameUI.RuneTapFill, "RuneTapFill color (green)");
             Assert.AreEqual(new Color(1.0f, 0.15f, 0.15f, 1f), GameUI.RuneRecFill, "RuneRecFill color");
         }
 

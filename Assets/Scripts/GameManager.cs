@@ -154,6 +154,121 @@ namespace FWTCG
         private bool _bfClickInFlight;            // DEV-17: true while OnBattlefieldClicked awaits post-combat delay
         private bool? _pendingDragHasteDecision;  // DEV-22: pre-answered Haste choice from drag flow prompt
 
+        // ── UI-OVERHAUL-1b: 符文手动标记池（左键=待横置 / 右键=待回收，互斥） ─────
+        private readonly HashSet<int> _preparedTapIdxs     = new HashSet<int>();
+        private readonly HashSet<int> _preparedRecycleIdxs = new HashSet<int>();
+
+        /// <summary>外部（UI）只读访问当前待横置符文下标。</summary>
+        public IReadOnlyCollection<int> GetPreparedTapIdxs()     => _preparedTapIdxs;
+        /// <summary>外部（UI）只读访问当前待回收符文下标。</summary>
+        public IReadOnlyCollection<int> GetPreparedRecycleIdxs() => _preparedRecycleIdxs;
+
+        /// <summary>清空所有符文准备标记（在回合切换或出牌完成后调用）。</summary>
+        public void ClearPreparedRunes()
+        {
+            _preparedTapIdxs.Clear();
+            _preparedRecycleIdxs.Clear();
+        }
+
+        /// <summary>统计已准备回收的符文中属于指定类型的数量。</summary>
+        private int CountPreparedRecyclesOfType(FWTCG.Data.RuneType type)
+        {
+            if (_gs == null) return 0;
+            int n = 0;
+            foreach (var idx in _preparedRecycleIdxs)
+                if (idx >= 0 && idx < _gs.PRunes.Count && _gs.PRunes[idx].RuneType == type) n++;
+            return n;
+        }
+
+        /// <summary>
+        /// 真正执行所有准备标记：tap 的 rune.Tapped=true + _gs.PMana+=N；
+        /// recycle 的从 _gs.PRunes 移除 + 放入 PRuneDeck 底部 + AddSch。
+        /// 完成后清空所有标记。
+        /// </summary>
+        private void CommitPreparedRunes()
+        {
+            if (_gs == null) { ClearPreparedRunes(); return; }
+
+            // Tap：小到大，不影响索引
+            var tapSorted = new List<int>(_preparedTapIdxs);
+            tapSorted.Sort();
+            foreach (int idx in tapSorted)
+            {
+                if (idx < 0 || idx >= _gs.PRunes.Count) continue;
+                var r = _gs.PRunes[idx];
+                if (r == null || r.Tapped) continue;
+                r.Tapped = true;
+                _gs.PMana += 1;
+            }
+
+            // Recycle：大到小 remove，避免索引偏移
+            var recSorted = new List<int>(_preparedRecycleIdxs);
+            recSorted.Sort((a, b) => b.CompareTo(a));
+            foreach (int idx in recSorted)
+            {
+                if (idx < 0 || idx >= _gs.PRunes.Count) continue;
+                var r = _gs.PRunes[idx];
+                if (r == null || r.Tapped) continue;
+                _gs.PRunes.RemoveAt(idx);
+                _gs.PRuneDeck.Add(r);
+                _gs.AddSch(GameRules.OWNER_PLAYER, r.RuneType, 1);
+            }
+
+            ClearPreparedRunes();
+        }
+
+        /// <summary>
+        /// UI-OVERHAUL-1b: 校验玩家当前 prepared 标记 + 现有资源能否支付 <paramref name="card"/>。
+        /// 不够 → 飘屏列出缺口 + 清空标记 + 返回 false；
+        /// 足够 → Commit 所有标记（真正 tap/recycle）+ 返回 true。
+        /// </summary>
+        private bool ValidateAndCommitPreparedFor(UnitInstance card)
+        {
+            if (_gs == null || card == null) return false;
+            int cost           = ComputeLegionAdjustedCost(card, _gs);
+            int manaAvailable  = _gs.PMana + _preparedTapIdxs.Count;
+            int manaShort      = cost - manaAvailable;
+
+            int primaryShort = 0, secondaryShort = 0;
+            if (card.CardData.RuneCost > 0)
+            {
+                int have = _gs.GetSch(GameRules.OWNER_PLAYER, card.CardData.RuneType)
+                         + CountPreparedRecyclesOfType(card.CardData.RuneType);
+                primaryShort = card.CardData.RuneCost - have;
+            }
+            if (card.CardData.HasSecondaryRune)
+            {
+                int have2 = _gs.GetSch(GameRules.OWNER_PLAYER, card.CardData.SecondaryRuneType)
+                          + CountPreparedRecyclesOfType(card.CardData.SecondaryRuneType);
+                secondaryShort = card.CardData.SecondaryRuneCost - have2;
+            }
+
+            if (manaShort > 0 || primaryShort > 0 || secondaryShort > 0)
+            {
+                // 飘屏提示缺口
+                var lines = new List<FloatingTipUI.Line>();
+                if (manaShort > 0) lines.Add(FloatingTipUI.ManaShortLine(manaShort));
+                if (primaryShort > 0)
+                    lines.Add(FloatingTipUI.RuneShortLine(card.CardData.RuneType, primaryShort));
+                if (secondaryShort > 0)
+                    lines.Add(FloatingTipUI.RuneShortLine(card.CardData.SecondaryRuneType, secondaryShort));
+                var canvas = _ui != null ? _ui.RootCanvasRef : null;
+                if (canvas != null) FloatingTipUI.Show(canvas, lines);
+
+                UI.GameEventBus.FireCardPlayFailed(card);
+                TurnManager.BroadcastMessage_Static(
+                    $"[提示] {card.UnitName} 资源未准备到位（法力缺{Mathf.Max(0, manaShort)}，主符能缺{Mathf.Max(0, primaryShort)}，副符能缺{Mathf.Max(0, secondaryShort)}）");
+
+                // 失败：清空标记，避免下次出牌误 commit 失效标记
+                ClearPreparedRunes();
+                RefreshUI();
+                return false;
+            }
+
+            CommitPreparedRunes();
+            return true;
+        }
+
         // ── DEV-22: Drag query helpers (used by CardDragHandler) ─────────────
 
         /// <summary>Exposes game state for Bot and tooling.</summary>
@@ -866,13 +981,17 @@ namespace FWTCG
             _selectedUnitLoc = null;
             _selectedBaseUnits.Clear();
             _selectedHandUnits.Clear();
+            ClearPreparedRunes(); // UI-OVERHAUL-1b: 回合结束清空未 commit 的符文标记
             _turnMgr.EndTurn();
             RefreshUI();
         }
 
         /// <summary>
-        /// Called when the player clicks a rune button.
-        /// recycle=false → tap for mana; recycle=true → recycle for schematic energy.
+        /// UI-OVERHAUL-1b: 符文点击改为"标记"（非立即执行）。
+        ///   - 左键 (recycle=false) → toggle 到 "待横置" 集合（绿色呼吸灯）
+        ///   - 右键 (recycle=true)  → toggle 到 "待回收" 集合（红色呼吸灯）
+        ///   - 同一符文两种标记互斥：标记 A 时清除 B
+        /// 真正的横置/回收在出牌成功时由 <see cref="CommitPreparedRunes"/> 执行。
         /// </summary>
         public void OnRuneClicked(int runeIdx, bool recycle)
         {
@@ -888,36 +1007,44 @@ namespace FWTCG
             }
 
             RuneInstance rune = runes[runeIdx];
+            if (rune == null) return;
+
+            // 已横置的符文不可再标记（也不能回收）
+            if (rune.Tapped)
+            {
+                TurnManager.BroadcastMessage_Static("[提示] 该符文已横置，无法再操作");
+                return;
+            }
 
             if (recycle)
             {
-                // Use RuneAutoConsume.CanRecycle as single source of truth (same rule as Compute()).
-                if (!RuneAutoConsume.CanRecycle(rune))
+                _preparedTapIdxs.Remove(runeIdx); // 互斥
+                if (_preparedRecycleIdxs.Contains(runeIdx))
                 {
-                    TurnManager.BroadcastMessage_Static("[提示] 已横置的符文无法回收");
-                    return;
+                    _preparedRecycleIdxs.Remove(runeIdx);
+                    TurnManager.BroadcastMessage_Static($"[取消标记] {rune.RuneType.ToChinese()} 符文不再准备回收");
                 }
-                // Recycle: remove from active runes, place at bottom of rune deck, gain +1 sch
-                runes.RemoveAt(runeIdx);
-                _gs.PRuneDeck.Add(rune);
-                _gs.AddSch(GameRules.OWNER_PLAYER, rune.RuneType, 1);
-                TurnManager.BroadcastMessage_Static(
-                    $"[回收] 符文 {rune.RuneType.ToChinese()} 回收，获得 1 点{rune.RuneType.ToChinese()}符能");
-                UI.GameEventBus.FireRuneRecycleFloat(GameRules.OWNER_PLAYER); // DEV-18b
+                else
+                {
+                    _preparedRecycleIdxs.Add(runeIdx);
+                    TurnManager.BroadcastMessage_Static(
+                        $"[标记回收] {rune.RuneType.ToChinese()} 符文（出牌时生效）");
+                }
             }
             else
             {
-                // Use RuneAutoConsume.CanTap as single source of truth (same rule as Compute()).
-                if (!RuneAutoConsume.CanTap(rune))
+                _preparedRecycleIdxs.Remove(runeIdx); // 互斥
+                if (_preparedTapIdxs.Contains(runeIdx))
                 {
-                    TurnManager.BroadcastMessage_Static("[提示] 该符文已横置");
-                    return;
+                    _preparedTapIdxs.Remove(runeIdx);
+                    TurnManager.BroadcastMessage_Static($"[取消标记] {rune.RuneType.ToChinese()} 符文不再准备横置");
                 }
-                rune.Tapped = true;
-                _gs.PMana += 1;
-                TurnManager.BroadcastMessage_Static(
-                    $"[横置] 符文 {rune.RuneType.ToChinese()} 横置，法力 → {_gs.PMana}");
-                UI.GameEventBus.FireRuneTapFloat(GameRules.OWNER_PLAYER); // DEV-18b
+                else
+                {
+                    _preparedTapIdxs.Add(runeIdx);
+                    TurnManager.BroadcastMessage_Static(
+                        $"[标记横置] {rune.RuneType.ToChinese()} 符文（出牌时生效）");
+                }
             }
 
             RefreshUI();
@@ -936,7 +1063,8 @@ namespace FWTCG
         // ── DEV-9: Action button handlers ───────────────────────────────────
 
         /// <summary>
-        /// Tap all un-tapped player runes for mana.
+        /// UI-OVERHAUL-1b: "全部横置"按钮改为"全部标记为待横置"。
+        /// 不再立即 tap，只是加到 _preparedTapIdxs（出牌时统一 commit）。
         /// </summary>
         public void OnTapAllRunesClicked()
         {
@@ -944,20 +1072,21 @@ namespace FWTCG
             if (_gs.Turn != GameRules.OWNER_PLAYER) return;
             if (_gs.Phase != GameRules.PHASE_ACTION) return;
 
-            int tapped = 0;
-            foreach (var rune in _gs.PRunes)
+            int marked = 0;
+            for (int i = 0; i < _gs.PRunes.Count; i++)
             {
-                if (!rune.Tapped)
+                var r = _gs.PRunes[i];
+                if (r == null || r.Tapped) continue;
+                if (_preparedTapIdxs.Add(i))
                 {
-                    rune.Tapped = true;
-                    _gs.PMana += 1;
-                    tapped++;
+                    _preparedRecycleIdxs.Remove(i); // 互斥
+                    marked++;
                 }
             }
-            if (tapped > 0)
-                TurnManager.BroadcastMessage_Static($"[全部横置] 横置 {tapped} 个符文，法力 → {_gs.PMana}");
+            if (marked > 0)
+                TurnManager.BroadcastMessage_Static($"[全部标记横置] 标记 {marked} 个符文（出牌时生效）");
             else
-                TurnManager.BroadcastMessage_Static("[提示] 没有可横置的符文");
+                TurnManager.BroadcastMessage_Static("[提示] 没有可标记的未横置符文");
 
             RefreshUI();
         }
@@ -1004,191 +1133,43 @@ namespace FWTCG
             return false; // can't afford
         }
 
-        // ── Hero hover: show rune cost preview ──────────────────────────────
+        // ── UI-OVERHAUL-1b: Hover 自动高亮已禁用（玩家手动标记符文，auto plan 会误导）──
 
-        private void OnHeroHoverEnter(UnitInstance unit)
-        {
-            if (_ui == null || _gs == null) return;
-            if (_gs.Turn != GameRules.OWNER_PLAYER || _gs.Phase != GameRules.PHASE_ACTION) return;
-            if (_gs.PHero != unit) return;
+        private void OnHeroHoverEnter(UnitInstance unit) { /* 手动模式下不做任何 auto highlight */ }
+        private void OnHeroHoverExit(UnitInstance unit)  { /* 同上 */ }
+        private void OnCardHoverEnter(UnitInstance unit) { /* 同上 */ }
+        private void OnCardHoverExit(UnitInstance unit)  { /* 同上 */ }
 
-            var plan = RuneAutoConsume.Compute(unit, _gs, GameRules.OWNER_PLAYER);
-            if (plan.NeedsOps)
-            {
-                _ui.SetRuneHighlights(plan.TapIndices, plan.RecycleIndices);
-                _ui.Refresh(_gs);
-            }
-        }
-
-        private void OnHeroHoverExit(UnitInstance unit)
-        {
-            if (_ui == null) return;
-            _ui.ClearRuneHighlights();
-            _ui.Refresh(_gs);
-        }
-
-        // ── Hero rune confirm flow ──────────────────────────────────────────
+        // ── UI-OVERHAUL-1b: Hero / Hand 出牌入口 ─────────────────────────────
+        //
+        // 流程：先校验"玩家已准备的 tap/recycle" + 现有 mana/sch 是否满足 cost；
+        //   - 不满足 → FloatingTipUI 飘屏列出缺口 + 弹回 + 清空准备标记
+        //   - 满足   → CommitPreparedRunes() 真正 tap/recycle + 走原出牌流程
 
         private async System.Threading.Tasks.Task PlayHeroWithRuneConfirmAsync(UnitInstance hero)
         {
-            if (_gs == null || _gs.GameOver) return;
-
-            var plan = RuneAutoConsume.Compute(hero, _gs, GameRules.OWNER_PLAYER);
-
-            if (!plan.CanAfford)
-            {
-                int haveMana = _gs.PMana;
-                int haveSch  = _gs.GetSch(GameRules.OWNER_PLAYER, hero.CardData.RuneType);
-                ShowPlayError(
-                    $"[提示] 资源不足：需要法力{hero.CardData.Cost}（当前{haveMana}）" +
-                    (hero.CardData.RuneCost > 0
-                        ? $"，需要符能{hero.CardData.RuneCost} {hero.CardData.RuneType.ToColoredText()}（当前{haveSch}）"
-                        : ""),
-                    hero);
-                return;
-            }
-
-            if (plan.NeedsOps)
-            {
-                _ui?.SetRuneHighlights(plan.TapIndices, plan.RecycleIndices);
-                _ui?.Refresh(_gs);
-
-                bool ok = false;
-                try
-                {
-                    ok = await (AskPromptUI.Instance?.WaitForConfirm(
-                        "英雄出场",
-                        plan.BuildConfirmText(hero),
-                        "确认出场",
-                        "取消") ?? System.Threading.Tasks.Task.FromResult(false));
-                }
-                catch (System.OperationCanceledException)
-                {
-                    ok = false;
-                }
-
-                _ui?.ClearRuneHighlights();
-                _ui?.Refresh(_gs);
-
-                if (!ok) return;
-
-                // Re-validate after async prompt
-                if (_gs == null || _gs.GameOver) return;
-                if (_gs.Turn != GameRules.OWNER_PLAYER || _gs.Phase != GameRules.PHASE_ACTION) return;
-                if (_gs.PHero != hero) return;
-
-                var freshPlan = RuneAutoConsume.Compute(hero, _gs, GameRules.OWNER_PLAYER);
-                if (!freshPlan.CanAfford)
-                {
-                    ShowPlayError("[提示] 资源状态已变更，操作已取消", hero);
-                    return;
-                }
-
-                ExecuteRunePlan(freshPlan, GameRules.OWNER_PLAYER);
-            }
-
-            // Final re-validate
-            if (_gs == null || _gs.GameOver) return;
-            if (_gs.Turn != GameRules.OWNER_PLAYER || _gs.Phase != GameRules.PHASE_ACTION) return;
-            if (_gs.PHero != hero) return;
-
-            _ = TryPlayHeroAsync(hero);
+            if (_gs == null || _gs.GameOver || hero == null) return;
+            if (!ValidateAndCommitPreparedFor(hero)) return;
+            await TryPlayHeroAsync(hero);
         }
 
-        // ── DEV-20: Rune auto-consume hover ──────────────────────────────────
+        // ── UI-OVERHAUL-1b: Hand 出牌入口（已去 AskPromptUI 弹窗 + RuneAutoConsume.Compute）
 
-        private void OnCardHoverEnter(UnitInstance unit)
+        private System.Threading.Tasks.Task PlayHandCardWithRuneConfirmAsync(UnitInstance unit)
         {
-            if (_ui == null || _gs == null) return;
-            if (_gs.Turn != GameRules.OWNER_PLAYER || _gs.Phase != GameRules.PHASE_ACTION) return;
-            if (!_gs.PHand.Contains(unit)) return;
+            if (_gs == null || _gs.GameOver || unit == null) return System.Threading.Tasks.Task.CompletedTask;
+            if (!_gs.PHand.Contains(unit)) return System.Threading.Tasks.Task.CompletedTask;
 
-            var plan = RuneAutoConsume.Compute(unit, _gs, GameRules.OWNER_PLAYER);
-            if (plan.NeedsOps)
-            {
-                _ui.SetRuneHighlights(plan.TapIndices, plan.RecycleIndices);
-                _ui.Refresh(_gs);
-            }
-        }
+            if (!ValidateAndCommitPreparedFor(unit)) return System.Threading.Tasks.Task.CompletedTask;
 
-        private void OnCardHoverExit(UnitInstance unit)
-        {
-            if (_ui == null) return;
-            _ui.ClearRuneHighlights();
-            _ui.Refresh(_gs);
-        }
+            // Re-validate once more before the final play
+            if (_gs == null || _gs.GameOver) return System.Threading.Tasks.Task.CompletedTask;
+            if (_gs.Turn != GameRules.OWNER_PLAYER || _gs.Phase != GameRules.PHASE_ACTION) return System.Threading.Tasks.Task.CompletedTask;
+            if (!_gs.PHand.Contains(unit)) return System.Threading.Tasks.Task.CompletedTask;
 
-        // ── DEV-20: Async card play with rune confirm dialog ─────────────────
-
-        private async System.Threading.Tasks.Task PlayHandCardWithRuneConfirmAsync(UnitInstance unit)
-        {
-            if (_gs == null || _gs.GameOver) return;
-
-            var plan = RuneAutoConsume.Compute(unit, _gs, GameRules.OWNER_PLAYER);
-
-            if (!plan.CanAfford)
-            {
-                // Not affordable even after consuming all runes — show error
-                int haveMana = _gs.PMana;
-                int haveSch  = _gs.GetSch(GameRules.OWNER_PLAYER, unit.CardData.RuneType);
-                ShowPlayError(
-                    $"[提示] 资源不足：需要法力{unit.CardData.Cost}（当前{haveMana}）" +
-                    (unit.CardData.RuneCost > 0
-                        ? $"，需要符能{unit.CardData.RuneCost} {unit.CardData.RuneType.ToColoredText()}（当前{haveSch}）"
-                        : ""),
-                    unit);
-                return;
-            }
-
-            if (plan.NeedsOps)
-            {
-                // Show rune highlights immediately
-                _ui?.SetRuneHighlights(plan.TapIndices, plan.RecycleIndices);
-                _ui?.Refresh(_gs);
-
-                bool ok = false;
-                try
-                {
-                    ok = await (AskPromptUI.Instance?.WaitForConfirm(
-                        "出牌确认",
-                        plan.BuildConfirmText(unit),
-                        "确认打出",
-                        "取消") ?? System.Threading.Tasks.Task.FromResult(false));
-                }
-                catch (System.OperationCanceledException)
-                {
-                    ok = false;
-                }
-
-                _ui?.ClearRuneHighlights();
-                _ui?.Refresh(_gs);
-
-                if (!ok) return;
-
-                // H-4: Re-validate state after await — turn/phase may have changed while prompt was open
-                if (_gs == null || _gs.GameOver) return;
-                if (_gs.Turn != GameRules.OWNER_PLAYER || _gs.Phase != GameRules.PHASE_ACTION) return;
-                if (!_gs.PHand.Contains(unit)) return;
-
-                // Re-compute plan to verify runes haven't changed
-                var freshPlan = RuneAutoConsume.Compute(unit, _gs, GameRules.OWNER_PLAYER);
-                if (!freshPlan.CanAfford)
-                {
-                    ShowPlayError("[提示] 资源状态已变更，操作已取消", unit);
-                    return;
-                }
-
-                ExecuteRunePlan(freshPlan, GameRules.OWNER_PLAYER);
-            }
-
-            // H-4: Re-validate once more before the final play
-            if (_gs == null || _gs.GameOver) return;
-            if (_gs.Turn != GameRules.OWNER_PLAYER || _gs.Phase != GameRules.PHASE_ACTION) return;
-            if (!_gs.PHand.Contains(unit)) return;
-
-            // Remove from selection only when the card is actually being played (not on drag start or cancel)
             _selectedHandUnits.Remove(unit);
             TryPlayCard(unit);
+            return System.Threading.Tasks.Task.CompletedTask;
         }
 
         private void ExecuteRunePlan(RuneAutoConsume.Plan plan, string owner)
@@ -2252,14 +2233,14 @@ namespace FWTCG
         private void RefreshUI()
         {
             if (_ui == null) return;
-            // Force-clear visual selections when it is no longer the player's action phase
-            // (prevents highlights getting stuck through turn transitions and AI turns).
-            // Do NOT clear selections while a confirmation popup is showing — freeze card state.
             if (!IsPlayerActionPhase() && !AskPromptUI.IsShowing)
             {
                 _selectedBaseUnits.Clear();
                 _selectedHandUnits.Clear();
+                ClearPreparedRunes(); // UI-OVERHAUL-1b: 非行动阶段自动清空符文标记
             }
+            // UI-OVERHAUL-1b: 把玩家的 prepared 标记驱动到 RuneBorderGlow 呼吸灯（绿=tap / 红=recycle）
+            _ui.SetRuneHighlights(new List<int>(_preparedTapIdxs), new List<int>(_preparedRecycleIdxs));
             _ui.Refresh(_gs, _selectedBaseUnits, _selectedHandUnits);
         }
 

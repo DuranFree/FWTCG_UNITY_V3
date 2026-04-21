@@ -469,3 +469,15 @@
 - [x] 结束回合按钮改黄色 — SceneBuilder EndTurnButton color + sprite tint 同步
 - [x] 新建 FloatingTipUI 飘屏组件 — 鼠标位置向上飘 + 渐变；多行排版；颜色助手（ManaShortLine/RuneShortLine/WarnLine）
 - [x] 新增 UIOverhaul1aTests（10 项）— 颜色常量断言 + CardDragHandler 签名断言 + FloatingTipUI 行为
+
+## UI-OVERHAUL-1b — 符文手动标记 + 待结算资源池
+- [x] GameManager 新增 `_preparedTapIdxs` / `_preparedRecycleIdxs` 资源池（HashSet<int>）
+- [x] OnRuneClicked 改标记模式：左键 toggle tap / 右键 toggle recycle / 互斥 / 已横置符文不可标记
+- [x] OnTapAllRunesClicked 改为"全部标记为待横置"（不立即 Tap）
+- [x] ClearPreparedRunes + CommitPreparedRunes（真正 tap/recycle + 扣 mana/加 sch）
+- [x] ValidateAndCommitPreparedFor(card)：校验 mana + sch（含 prepared） → 不够 → 飘屏缺口 + 弹回 + 清空；够 → Commit + 返回 true
+- [x] PlayHandCardWithRuneConfirmAsync / PlayHeroWithRuneConfirmAsync 重写：去掉 AskPromptUI 消耗询问弹窗 + RuneAutoConsume.Compute，改走 ValidateAndCommitPreparedFor
+- [x] OnEndTurnClicked + RefreshUI 非行动阶段自动 ClearPreparedRunes（防止跨回合残留）
+- [x] Hover 自动高亮（OnCardHoverEnter/OnHeroHoverEnter）禁用：玩家手动标记模式下 auto plan 会误导
+- [x] FloatingTipUI 接入出牌失败飘屏：法力缺口（白）+ 主符能缺口（符能本体色）+ 副符能缺口
+- [x] 新增 UIOverhaul1bTests（9 项）：OnRuneClicked toggle/互斥/已横置守卫 + CommitPreparedRunes tap/recycle/混合
