@@ -288,3 +288,9 @@
 - [x] SpellShowcasePanel / SpellTargetPopup 初始隐藏（CanvasGroup alpha=0，非 SetActive）— DEV-30c
 - [x] 区域标签字体放大（RunesLabel/BaseLabel fontSize 11→13）— DEV-30c
 - [x] 符文槽圆形精灵修复（Resources.GetBuiltinResource → AssetDatabase.GetBuiltinExtraResource，全部 3 处统一）— DEV-30c
+
+### UI-OVERHAUL-1a — 交互机制视觉
+- [x] 结束回合按钮改黄色（#f4c23a，sprite tint 同步）— UI-OVERHAUL-1a
+- [x] FloatingTipUI 飘屏动画（fade-in 0.12s + 向上飘 60px + hold 0.9s + fade-out 0.35s）— UI-OVERHAUL-1a
+- [x] FloatingTipUI 多色映射（法力=白 / 各符能=本体色 / 警告=黄）— UI-OVERHAUL-1a
+- [x] 拖拽 cluster ghost 残影全部删除（只保留主 ghost 单张拖拽视觉）— UI-OVERHAUL-1a

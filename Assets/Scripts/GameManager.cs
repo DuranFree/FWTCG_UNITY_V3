@@ -294,20 +294,17 @@ namespace FWTCG
         /// </summary>
         public void SetDragHasteDecision(bool useHaste) => _pendingDragHasteDecision = useHaste;
 
-        public void OnDragUnitsToBF(List<UnitInstance> units, int bfId)
+        /// <summary>
+        /// UI-OVERHAUL-1a: 单选化 — 只拖拽单张基地单位到战场。
+        /// </summary>
+        public void OnDragUnitToBF(UnitInstance unit, int bfId)
         {
             if (!IsPlayerActionPhase()) return;
-            if (units == null || units.Count == 0) return;
-            // Replace current selection with dragged group
+            if (unit == null || _gs == null || !_gs.PBase.Contains(unit) || unit.Exhausted) return;
             _selectedBaseUnits.Clear();
+            _selectedBaseUnits.Add(unit);
             _selectedUnit     = null;
             _selectedUnitLoc  = null;
-            foreach (var u in units)
-            {
-                if (_gs.PBase.Contains(u) && !u.Exhausted)
-                    _selectedBaseUnits.Add(u);
-            }
-            if (_selectedBaseUnits.Count == 0) return;
             OnBattlefieldClicked(bfId);
         }
 
@@ -414,12 +411,10 @@ namespace FWTCG
                 _ui.SetStandbyClickCallback(bfId => _ = FlipAndPlayStandbyAsync(bfId, GameRules.OWNER_PLAYER));
                 // DEV-22: wire drag callbacks and push zone RTs to CardDragHandler
                 _ui.SetDragCallbacks(
-                    onDragCardToBase:      OnDragCardToBase,
-                    onDragHandGroupToBase: OnDragHandGroupToBase,
-                    onSpellDragOut:        OnSpellDraggedOut,
-                    onSpellGroupDragOut:   OnSpellGroupDraggedOut,
-                    onDragHeroToBase:      OnDragHeroToBase,
-                    onDragUnitsToBF:       OnDragUnitsToBF
+                    onDragCardToBase: OnDragCardToBase,
+                    onSpellDragOut:   OnSpellDraggedOut,
+                    onDragHeroToBase: OnDragHeroToBase,
+                    onDragUnitToBF:   OnDragUnitToBF
                 );
                 _ui.SetupDragZones();
             }
@@ -628,41 +623,35 @@ namespace FWTCG
                 return;
             }
 
-            // ── Hand card: toggle multi-select (drag is the play action) ──
+            // ── Hand card: UI-OVERHAUL-1a 单选化 — 点击 A 清 B 再选 A，再次点 A 取消 ──
             if (_gs.PHand.Contains(unit))
             {
-                if (_selectedHandUnits.Contains(unit))
+                bool alreadySelected = _selectedHandUnits.Contains(unit);
+                _selectedHandUnits.Clear();
+                if (alreadySelected)
                 {
-                    _selectedHandUnits.Remove(unit);
-                    TurnManager.BroadcastMessage_Static($"[取消选择] {unit.UnitName}（已选{_selectedHandUnits.Count}张）");
+                    TurnManager.BroadcastMessage_Static($"[取消选择] {unit.UnitName}");
                 }
                 else
                 {
-                    // Spell cards: only one at a time — shake + hint if another spell already selected
-                    if (unit.CardData.IsSpell && _selectedHandUnits.Exists(u => u.CardData.IsSpell))
-                    {
-                        UI.GameEventBus.FireCardPlayFailed(unit);
-                        FireHintToast("一次只能打出一张法术牌");
-                        return;
-                    }
                     _selectedHandUnits.Add(unit);
-                    TurnManager.BroadcastMessage_Static($"[选择] {unit.UnitName}（已选{_selectedHandUnits.Count}张）— 拖拽出牌");
+                    TurnManager.BroadcastMessage_Static($"[选择] {unit.UnitName} — 拖拽出牌");
                 }
                 RefreshUI();
                 return;
             }
 
-            // ── Base unit: toggle multi-select ──
+            // ── Base unit: UI-OVERHAUL-1a 单选化 ──
             if (_gs.PBase.Contains(unit))
             {
-                // Clear any BF single-select
                 _selectedUnit = null;
                 _selectedUnitLoc = null;
 
-                if (_selectedBaseUnits.Contains(unit))
+                bool alreadySelected = _selectedBaseUnits.Contains(unit);
+                _selectedBaseUnits.Clear();
+                if (alreadySelected)
                 {
-                    _selectedBaseUnits.Remove(unit);
-                    TurnManager.BroadcastMessage_Static($"[取消选择] {unit.UnitName}（已选{_selectedBaseUnits.Count}个）");
+                    TurnManager.BroadcastMessage_Static($"[取消选择] {unit.UnitName}");
                 }
                 else
                 {
@@ -670,16 +659,10 @@ namespace FWTCG
                     {
                         TurnManager.BroadcastMessage_Static($"[提示] {unit.UnitName} 已休眠，无法移动");
                     }
-                    else if (unit.CardData.IsEquipment && _selectedBaseUnits.Exists(u => u.CardData.IsEquipment))
-                    {
-                        // Equipment single-select restriction: only one equipment can be activated at a time
-                        UI.GameEventBus.FireCardPlayFailed(unit);
-                        FireHintToast("一次只能使用一张装备牌");
-                    }
                     else
                     {
                         _selectedBaseUnits.Add(unit);
-                        TurnManager.BroadcastMessage_Static($"[选择] {unit.UnitName}（已选{_selectedBaseUnits.Count}个） — 点击战场一起上场");
+                        TurnManager.BroadcastMessage_Static($"[选择] {unit.UnitName} — 点击战场派遣");
                     }
                 }
                 RefreshUI();
@@ -1485,37 +1468,10 @@ namespace FWTCG
                 }
             }
 
-            // Rule 717: Haste — optional extra [1] mana + [1C] sch to enter active
+            // UI-OVERHAUL-1a: Haste 询问弹窗已移除。临时硬编码为 false；1b 将改为"玩家手动准备 +1 法力 + +1 符能则自动激活"。
             bool useHaste = false;
-            if (unit.CardData.HasKeyword(CardKeyword.Haste))
-            {
-                if (_pendingDragHasteDecision.HasValue)
-                {
-                    // Pre-answered by drag-flow prompt — skip showing the dialog again
-                    useHaste = _pendingDragHasteDecision.Value;
-                    _pendingDragHasteDecision = null;
-                }
-                else
-                {
-                    int extraManaNeeded = effectiveCost + 1;
-                    int extraSchNeeded  = unit.CardData.RuneCost + 1;
-                    int haveSch = _gs.GetSch(GameRules.OWNER_PLAYER, unit.CardData.RuneType);
-                    bool canAfford = _gs.PMana >= extraManaNeeded && haveSch >= extraSchNeeded;
-
-                    if (canAfford && AskPromptUI.Instance != null)
-                    {
-                        try
-                        {
-                            useHaste = await AskPromptUI.Instance.WaitForConfirm(
-                                "急速",
-                                $"额外支付 [1] 法力 + [1{unit.CardData.RuneType.ToColoredText()}] 符能，让 {unit.UnitName} 以活跃状态进场？",
-                                "使用急速",
-                                "休眠进场");
-                        }
-                        catch { useHaste = false; }
-                    }
-                }
-            }
+            if (_pendingDragHasteDecision.HasValue) _pendingDragHasteDecision = null;
+            await Task.Yield(); // 保留 async 签名所需的 yield
 
             // H-5: Re-validate after async Haste prompt — turn/resources may have changed
             if (_gs == null || _gs.GameOver) return;
@@ -1663,35 +1619,10 @@ namespace FWTCG
                 }
             }
 
-            // Haste prompt
+            // UI-OVERHAUL-1a: Haste 询问弹窗已移除（1b 将改为资源准备机制自动判定）
             bool useHaste = false;
-            if (hero.CardData.HasKeyword(CardKeyword.Haste))
-            {
-                if (_pendingDragHasteDecision.HasValue)
-                {
-                    useHaste = _pendingDragHasteDecision.Value;
-                    _pendingDragHasteDecision = null;
-                }
-                else
-                {
-                    int extraManaNeeded = effectiveCost + 1;
-                    int extraSchNeeded  = hero.CardData.RuneCost + 1;
-                    int haveSch = _gs.GetSch(GameRules.OWNER_PLAYER, hero.CardData.RuneType);
-                    bool canAfford = _gs.PMana >= extraManaNeeded && haveSch >= extraSchNeeded;
-                    if (canAfford && AskPromptUI.Instance != null)
-                    {
-                        try
-                        {
-                            useHaste = await AskPromptUI.Instance.WaitForConfirm(
-                                "急速",
-                                $"额外支付 [1] 法力 + [1{hero.CardData.RuneType.ToColoredText()}] 符能，让 {hero.UnitName} 以活跃状态进场？",
-                                "使用急速",
-                                "休眠进场");
-                        }
-                        catch { useHaste = false; }
-                    }
-                }
-            }
+            if (_pendingDragHasteDecision.HasValue) _pendingDragHasteDecision = null;
+            await Task.Yield();
 
             // Re-validate after async prompt
             if (_gs == null || _gs.GameOver) return;

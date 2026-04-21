@@ -342,14 +342,14 @@ namespace FWTCG.Bot
                 yield break;
             }
 
-            // 3. 基地单位上战场
+            // 3. 基地单位上战场 — UI-OVERHAUL-1a: 单选化，每回合只派单张
             var baseUnits = gs.PBase.Where(u => !u.Exhausted).ToList();
             if (baseUnits.Count > 0)
             {
                 int bfId = PickBestBattlefield(gs, baseUnits);
-                _currentGame?.Log($"[操作] 派遣 {baseUnits.Count} 个单位到战场 {bfId}");
+                _currentGame?.Log($"[操作] 派遣 {baseUnits[0].UnitName} 到战场 {bfId}");
                 RecordTiming("move_to_bf_start");
-                gm.OnDragUnitsToBF(baseUnits, bfId);
+                gm.OnDragUnitToBF(baseUnits[0], bfId);
                 yield return new WaitForSeconds(ActionDelay);
                 _lastProgressTime = Time.time;
                 yield break;

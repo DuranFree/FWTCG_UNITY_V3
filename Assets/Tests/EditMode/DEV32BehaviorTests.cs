@@ -270,7 +270,7 @@ namespace FWTCG.Tests
             Assert.DoesNotThrow(() => dh.OnDragToBase?.Invoke(null));
             Assert.DoesNotThrow(() => dh.OnSpellDragOut?.Invoke(null));
             Assert.DoesNotThrow(() => dh.OnDragToBF?.Invoke(null, 0));
-            Assert.DoesNotThrow(() => dh.OnDragToBF?.Invoke(new List<UnitInstance>(), 1));
+            Assert.DoesNotThrow(() => dh.OnDragToBF?.Invoke(null, 1)); // UI-OVERHAUL-1a: 单元素
 
             Object.DestroyImmediate(go);
         }

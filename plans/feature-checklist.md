@@ -458,3 +458,14 @@
 ### LegendSkillShowcase（新文件）
 - [x] 传奇技能特写（全屏变暗 + 卡牌面板缩放弹入 + hold 0.8s + 缩出）— DOT-8
 - [x] LegendSkillShowcase.cs 单例 + GameEventBus.OnLegendSkillFired 订阅 — DOT-8
+
+## UI-OVERHAUL-1a — 交互机制统一化（第 1 阶段）
+- [x] 删除 cluster ghost 多选拖拽系统 — CardDragHandler 清空 _cluster* 字段/方法/调用
+- [x] 拖拽回调单元素化 — OnDragHandGroupToBase / OnSpellGroupDragOut 字段删除；OnDragToBF 签名改 (UnitInstance, int)
+- [x] 手牌点击单选化 — 点击 A 清空 B 的 selected 再选 A，再次点 A 取消
+- [x] 基地点击单选化 — 同上
+- [x] 删除 Haste 询问弹窗 — GameManager TryPlayUnitAsync / TryPlayHeroAsync + CardDragHandler DropFlowRoutine 共 3 处
+- [x] 新增颜色常量 ActionBtnEndTurn（黄）/ ActionBtnConfirm（绿）/ ActionBtnCancel（红）
+- [x] 结束回合按钮改黄色 — SceneBuilder EndTurnButton color + sprite tint 同步
+- [x] 新建 FloatingTipUI 飘屏组件 — 鼠标位置向上飘 + 渐变；多行排版；颜色助手（ManaShortLine/RuneShortLine/WarnLine）
+- [x] 新增 UIOverhaul1aTests（10 项）— 颜色常量断言 + CardDragHandler 签名断言 + FloatingTipUI 行为

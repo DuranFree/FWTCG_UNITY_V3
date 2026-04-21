@@ -1767,8 +1767,8 @@ namespace FWTCG.Editor
             skipReactionBtn = CreateActionButton(actionPanel.transform, "SkipReactionBtn", "跳过响应", GameColors.ActionBtnSecondary);
             skipReactionBtn.gameObject.SetActive(false);
 
-            // 结束回合 — Pencil: 108×34
-            endTurnButton = CreateActionButton(actionPanel.transform, "EndTurnButton", "结束回合", GameColors.ActionBtnPrimary);
+            // 结束回合 — Pencil: 108×34 — UI-OVERHAUL-1: 黄色主题
+            endTurnButton = CreateActionButton(actionPanel.transform, "EndTurnButton", "结束回合", GameColors.ActionBtnEndTurn);
             var endLE = endTurnButton.gameObject.GetComponent<LayoutElement>() ?? endTurnButton.gameObject.AddComponent<LayoutElement>();
             endLE.preferredHeight = 34f;
             // VFX-7d / SVG-gen: apply EndTurn button sprite if available
@@ -1779,7 +1779,7 @@ namespace FWTCG.Editor
                 var endImg = endTurnButton.GetComponent<Image>();
                 endImg.sprite = endTurnSpr;
                 endImg.type = Image.Type.Simple;
-                endImg.color = Color.white;
+                endImg.color = GameColors.ActionBtnEndTurn; // tint sprite 为黄色
             }
             // 迅捷/反应 — 紫色按钮（和结束回合同样式，只是色相换成紫），状态由 GameUI 动态切换亮/暗/呼吸
             reactBtn = CreateActionButton(actionPanel.transform, "ReactButton", "迅捷/反应", Color.white);

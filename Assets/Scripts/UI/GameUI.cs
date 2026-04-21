@@ -222,12 +222,10 @@ namespace FWTCG.UI
         private Action<UnitInstance> _onHeroHoverExit;
 
         // ── DEV-22: Drag callbacks ────────────────────────────────────────────
-        private Action<UnitInstance>            _onDragCardToBase;      // hand unit (single) → base
-        private Action<List<UnitInstance>>    _onDragHandGroupToBase; // hand units (multi) → base
-        private Action<UnitInstance>            _onSpellDragOut;      // hand spell → target popup
-        private Action<List<UnitInstance>>      _onSpellGroupDragOut; // multiple hand spells → group cast
-        private Action<UnitInstance>            _onDragHeroToBase;    // hero zone card → base
-        private Action<List<UnitInstance>, int> _onDragUnitsToBF;    // base units → BF
+        private Action<UnitInstance>            _onDragCardToBase;   // hand unit → base
+        private Action<UnitInstance>            _onSpellDragOut;     // hand spell → target popup
+        private Action<UnitInstance>            _onDragHeroToBase;   // hero zone card → base
+        private Action<UnitInstance, int>       _onDragUnitToBF;     // base unit → BF (UI-OVERHAUL-1a: 单元素)
 
         // ── Rune highlight state (set by SetRuneHighlights) ───────────────────
         private System.Collections.Generic.HashSet<int> _runeHighlightTap     = new System.Collections.Generic.HashSet<int>();
@@ -759,19 +757,15 @@ namespace FWTCG.UI
         /// DEV-22: Set drag-to-play callbacks (called by GameManager.Start after SetCallbacks).
         /// </summary>
         public void SetDragCallbacks(
-            Action<UnitInstance>            onDragCardToBase,
-            Action<List<UnitInstance>>      onDragHandGroupToBase,
-            Action<UnitInstance>            onSpellDragOut,
-            Action<List<UnitInstance>>      onSpellGroupDragOut,
-            Action<UnitInstance>            onDragHeroToBase,
-            Action<List<UnitInstance>, int> onDragUnitsToBF)
+            Action<UnitInstance>       onDragCardToBase,
+            Action<UnitInstance>       onSpellDragOut,
+            Action<UnitInstance>       onDragHeroToBase,
+            Action<UnitInstance, int>  onDragUnitToBF)
         {
-            _onDragCardToBase      = onDragCardToBase;
-            _onDragHandGroupToBase = onDragHandGroupToBase;
-            _onSpellDragOut        = onSpellDragOut;
-            _onSpellGroupDragOut   = onSpellGroupDragOut;
-            _onDragHeroToBase      = onDragHeroToBase;
-            _onDragUnitsToBF       = onDragUnitsToBF;
+            _onDragCardToBase = onDragCardToBase;
+            _onSpellDragOut   = onSpellDragOut;
+            _onDragHeroToBase = onDragHeroToBase;
+            _onDragUnitToBF   = onDragUnitToBF;
         }
 
         /// <summary>
@@ -1573,11 +1567,9 @@ namespace FWTCG.UI
                         var dh = cv.GetComponent<CardDragHandler>();
                         if (dh != null)
                         {
-                            dh.OnDragToBase          = _onDragCardToBase;
-                            dh.OnDragHandGroupToBase = _onDragHandGroupToBase;
-                            dh.OnSpellDragOut        = _onSpellDragOut;
-                            dh.OnSpellGroupDragOut   = _onSpellGroupDragOut;
-                            dh.OnDragToBF            = _onDragUnitsToBF;
+                            dh.OnDragToBase   = _onDragCardToBase;
+                            dh.OnSpellDragOut = _onSpellDragOut;
+                            dh.OnDragToBF     = _onDragUnitToBF;
                         }
                     }
                 }

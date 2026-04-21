@@ -98,6 +98,10 @@ namespace FWTCG.UI
         public static readonly Color ActionBtnPrimary   = Hex("#c8aa6e"); // gold
         public static readonly Color ActionBtnSecondary = new Color(0.5f, 0.5f, 0.55f, 1f);
         public static readonly Color ActionBtnDanger    = new Color(0.85f, 0.2f, 0.2f, 1f);
+        // UI-OVERHAUL-1: 回合按钮=黄，确定按钮=绿，取消按钮=红
+        public static readonly Color ActionBtnEndTurn   = Hex("#f4c23a"); // yellow
+        public static readonly Color ActionBtnConfirm   = Hex("#5fd064"); // bright green
+        public static readonly Color ActionBtnCancel    = Hex("#d24a4a"); // red
 
         // ── Info strip ───────────────────────────────────────────────────────
         public static readonly Color InfoStripBg = new Color(0.02f, 0.05f, 0.1f, 0.9f);

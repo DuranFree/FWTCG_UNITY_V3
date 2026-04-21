@@ -11,21 +11,15 @@ using FWTCG.Data;
 namespace FWTCG.UI
 {
     /// <summary>
-    /// DEV-22: Drag-to-play card handler.
+    /// Drag-to-play card handler. UI-OVERHAUL-1a: 单选化 + 删除 cluster ghost。
     ///
     /// Attach to the same GameObject as CardView.
     /// Supports:
     ///   - Hand unit card: drag to base zone → play from hand
     ///   - Hand spell card: drag out of hand zone → trigger spell (shows target popup)
     ///   - Base unit: drag to BF zone → move to battlefield
-    ///   - Multi-select: ghost copies of other selected cards follow the dragged card.
     ///
-    /// Cancel behaviour (right-click OR release on source zone):
-    ///   - Ghosts animate back to origin with ease-in/ease-out
-    ///   - Selection highlight is preserved (no deselect on cancel)
-    ///
-    /// Static zone RTs are set once by GameUI on startup.
-    /// Callbacks route back to GameManager via GameUI.
+    /// Cancel behaviour: right-click during drag 或 release on source zone → ghost 归位。
     /// </summary>
     public class CardDragHandler : MonoBehaviour,
         IBeginDragHandler, IDragHandler, IEndDragHandler, IPointerDownHandler
@@ -44,12 +38,11 @@ namespace FWTCG.UI
         public static Canvas        RootCanvas;
 
         // ── Drag callbacks (set by GameUI per refresh cycle) ─────────────────
-        public System.Action<UnitInstance>            OnDragToBase;
-        public System.Action<List<UnitInstance>>    OnDragHandGroupToBase;
-        public System.Action<UnitInstance>           OnSpellDragOut;
-        public System.Action<List<UnitInstance>>    OnSpellGroupDragOut;
-        public System.Action<UnitInstance>           OnDragHeroToBase;
-        public System.Action<List<UnitInstance>, int> OnDragToBF;
+        // UI-OVERHAUL-1a: group 回调全部移除，只保留单元素回调
+        public System.Action<UnitInstance>      OnDragToBase;
+        public System.Action<UnitInstance>      OnSpellDragOut;
+        public System.Action<UnitInstance>      OnDragHeroToBase;
+        public System.Action<UnitInstance, int> OnDragToBF;
 
         // ── Internal state ───────────────────────────────────────────────────
         private CardView _cardView;
@@ -59,26 +52,20 @@ namespace FWTCG.UI
         private bool _hiddenDuringDrag;   // true while original card is hidden (alpha=0)
         public bool IsHiddenDuringDrag => _hiddenDuringDrag;
 
-        // Main drag ghost
+        // Main drag ghost (单张拖拽时的半透明副本)
         private GameObject _ghost;
-        private Vector2    _dragOriginCanvasPos; // legacy canvas-space (兼容旧代码)
+        private Vector2    _dragOriginCanvasPos; // legacy canvas-space
         private Vector3    _dragOriginWorldPos;  // world-space origin（SS-Camera 下正确的参考）
 
-        // Cluster: ghost copies of other selected cards
-        private readonly List<GameObject> _clusterGhosts      = new List<GameObject>();
-        private readonly List<CardView>   _clusterOrigViews   = new List<CardView>();
-        private readonly List<Vector2>    _clusterGhostOrigins = new List<Vector2>(); // legacy canvas-space
-        private readonly List<Vector3>    _clusterGhostWorldOrigins = new List<Vector3>(); // world-space (SS-Camera 安全)
-        private Coroutine _clusterMoveCoroutine;
-        private Sequence  _cancelReturnSeq; // DOT-4: replaced coroutine
-        private Vector2   _dragScreenPos; // updated in OnDrag
+        private Sequence _cancelReturnSeq; // DOT-4: replaced coroutine
+        private Vector2   _dragScreenPos;
 
         private CanvasGroup _selfCanvasGroup;
         private GameObject  _dragOriginOverlay;  // green tint at origin during drag
 
         private float _pointerDownTime = -1f;
         private const float DragDelay  = 0.1f;   // seconds before drag is recognized
-        private bool  _dragPending;               // OnBeginDrag fired but 0.1 s not yet elapsed
+        private bool  _dragPending;
 
         private enum DragSource { Hand, Base, Hero, Other }
         private DragSource _dragSource;
@@ -101,7 +88,6 @@ namespace FWTCG.UI
                 StartCancelDrag();
 
             // Commit a pending drag once 0.1 s has elapsed since pointer-down.
-            // This prevents accidental drags from fast clicks.
             if (_dragPending && !_isDragging && !_isCancelling
                 && _pointerDownTime >= 0f
                 && Time.unscaledTime - _pointerDownTime >= DragDelay)
@@ -119,7 +105,6 @@ namespace FWTCG.UI
             _dragPending       = false;
             BlockPointerEvents = false;
             TweenHelper.KillSafe(ref _cancelReturnSeq);
-            RestoreCluster();
             if (_ghost != null) { Destroy(_ghost); _ghost = null; }
         }
 
@@ -135,8 +120,6 @@ namespace FWTCG.UI
         public void OnBeginDrag(PointerEventData eventData)
         {
             if (!CanStartDrag()) return;
-            // Mark drag as pending; Update() will commit it after DragDelay seconds.
-            // This prevents accidental drags from fast clicks where the mouse moves slightly.
             _dragPending   = true;
             _dragScreenPos = eventData.position;
         }
@@ -153,14 +136,13 @@ namespace FWTCG.UI
             _isCancelling      = false;
             BlockPointerEvents = true;
             _dragSource        = DetectDragSource();
-            _dragRotation      = 0f; // VFX-7e
-            _prevDragPos       = ScreenToCanvas(Input.mousePosition); // VFX-7e
+            _dragRotation      = 0f;
+            _prevDragPos       = ScreenToCanvas(Input.mousePosition);
 
             // Store origin of dragged card (world-space, SS-Camera 安全).
             if (RootCanvas != null && _rt != null)
             {
                 _dragOriginWorldPos = _rt.position;
-                // 兼容旧字段：保留 canvas-space 转换（给仍用该字段的代码用）
                 var originCorners = new Vector3[4];
                 _rt.GetWorldCorners(originCorners);
                 Vector2 cardScreenPos = new Vector2(
@@ -173,14 +155,10 @@ namespace FWTCG.UI
             Vector2 currentScreenPos = (Vector2)Input.mousePosition;
             CreateGhost(currentScreenPos);
 
-            // Hide original card AFTER ghost is created (so ghost clones from full alpha).
-            // Use both alpha=0 and a flag to prevent RefreshUnitList from resetting alpha.
+            // Hide original card AFTER ghost is created.
             _hiddenDuringDrag = true;
             if (_selfCanvasGroup != null)
                 _selfCanvasGroup.alpha = 0f;
-
-            if (_dragSource == DragSource.Base || _dragSource == DragSource.Hand || _dragSource == DragSource.Hero)
-                GatherCluster();
 
             if (_ghost != null)
                 _ghost.transform.SetAsLastSibling();
@@ -189,7 +167,7 @@ namespace FWTCG.UI
         // ── IDragHandler ─────────────────────────────────────────────────────
 
         // VFX-7e: drag rotation
-        public const float DRAG_ROTATE_MAX = 10f;  // max ±degrees
+        public const float DRAG_ROTATE_MAX = 10f;
         public const float DRAG_ROTATE_SPEED = 4f;
         private float _dragRotation;
         private Vector2 _prevDragPos;
@@ -206,21 +184,18 @@ namespace FWTCG.UI
                 var ghostRT = _ghost.GetComponent<RectTransform>();
                 ghostRT.localPosition = new Vector3(canvasPos.x, canvasPos.y, 0f);
 
-                // VFX-7e: tilt ghost based on horizontal movement direction
                 float deltaX = canvasPos.x - _prevDragPos.x;
                 float targetAngle = -Mathf.Clamp(deltaX * 2f, -DRAG_ROTATE_MAX, DRAG_ROTATE_MAX);
                 _dragRotation = Mathf.Lerp(_dragRotation, targetAngle, Time.deltaTime * DRAG_ROTATE_SPEED);
                 ghostRT.localRotation = Quaternion.Euler(0f, 0f, _dragRotation);
             }
             _prevDragPos = canvasPos;
-
         }
 
         // ── IEndDragHandler ──────────────────────────────────────────────────
 
         public void OnEndDrag(PointerEventData eventData)
         {
-            // Released before 0.1 s delay elapsed — treat as a tap, not a drag
             if (_dragPending) { _dragPending = false; return; }
             if (!_isDragging || _isCancelling) return;
 
@@ -232,98 +207,41 @@ namespace FWTCG.UI
 
             _isDragging = false;
             _isCancelling = true;
-            _dragRotation = 0f; // VFX-7e: reset rotation
+            _dragRotation = 0f;
 
-            // Stop cluster follow — ghosts freeze in current positions
-            if (_clusterMoveCoroutine != null)
-            {
-                StopCoroutine(_clusterMoveCoroutine);
-                _clusterMoveCoroutine = null;
-            }
-
-            // Save unit refs before RestoreCluster clears _clusterOrigViews
-            var draggedUnit  = _cardView?.Unit;
-            var clusterUnits = new List<UnitInstance>();
-            foreach (var cv in _clusterOrigViews)
-                if (cv?.Unit != null) clusterUnits.Add(cv.Unit);
-
-            StartCoroutine(DropFlowRoutine(eventData.position, draggedUnit, clusterUnits));
+            var draggedUnit = _cardView?.Unit;
+            StartCoroutine(DropFlowRoutine(eventData.position, draggedUnit));
         }
 
         /// <summary>
-        /// Orchestrates the full drop flow:
-        ///   1. Show Haste prompt if needed (ghosts frozen while user decides).
-        ///      - User cancels → animate ghosts back to origin (cancel play).
-        ///      - User confirms → set pending Haste decision on GameManager.
-        ///   2. Record ghost positions, cleanup, call HandleDrop.
-        ///   3. Wait for layout, then animate each new CardView from ghost pos → hover → final.
+        /// Orchestrates drop flow: record ghost position → trigger game logic → wait for prompts → land animation.
         /// </summary>
-        private IEnumerator DropFlowRoutine(
-            Vector2 dropScreenPos,
-            UnitInstance draggedUnit,
-            List<UnitInstance> clusterUnits)
+        private IEnumerator DropFlowRoutine(Vector2 dropScreenPos, UnitInstance draggedUnit)
         {
             var gm = GameManager.Instance;
 
-            // ── Step 1: Haste prompt — hide ghosts while dialog is open ──────────
-            bool needsHaste = draggedUnit != null && gm != null && gm.DragNeedsHasteChoice(draggedUnit);
-            if (needsHaste && AskPromptUI.Instance != null)
-            {
-                SetGhostsVisible(false); // hide mid-air ghosts while popup is open
-
-                var task = AskPromptUI.Instance.WaitForConfirm(
-                    "急速",
-                    $"额外支付 [1] 法力 + [1{draggedUnit.CardData.RuneType.ToColoredText()}] 符能，让 {draggedUnit.UnitName} 以活跃状态进场？",
-                    "使用急速",
-                    "取消打出");
-
-                yield return new WaitUntil(() => task.IsCompleted || task.IsFaulted || task.IsCanceled);
-
-                bool confirmed = task.IsCompleted && !task.IsFaulted && task.Result;
-                if (!confirmed)
-                {
-                    // Restore ghost so it's visible during the return animation
-                    SetGhostsVisible(true);
-                    _isCancelling = false;
-                    _isDragging   = false;
-                    _isCancelling = true;
-                    CancelReturnTween();
-                    // Wait for cancel tween to finish
-                    while (_cancelReturnSeq != null && _cancelReturnSeq.IsActive())
-                        yield return null;
-                    yield break;
-                }
-
-                gm.SetDragHasteDecision(true);
-                // Ghost stays hidden — it will be destroyed in Step 2 below
-            }
-
-            // ── Step 2: Record ghost positions (keep ghosts alive for now) ─────
-            Vector2 mainGhostPos = _ghost != null
+            // ── Step 1: Record ghost position ─────────────────────────────────
+            Vector2 ghostPos = _ghost != null
                 ? (Vector2)_ghost.GetComponent<RectTransform>().localPosition
                 : ScreenToCanvas(dropScreenPos);
+            var fromPositions = new List<Vector2> { ghostPos };
 
-            var fromPositions = new List<Vector2> { mainGhostPos };
-            foreach (var g in _clusterGhosts)
-                fromPositions.Add(g != null ? (Vector2)g.GetComponent<RectTransform>().localPosition : mainGhostPos);
-
-            // Capture drag source before HandleDrop (which may destroy 'this' via RefreshUI)
             DragSource capturedSource = _dragSource;
 
-            // ── Step 3: Trigger game logic ────────────────────────────────────────
+            // ── Step 2: Trigger game logic ────────────────────────────────────
             HandleDrop(dropScreenPos);
 
-            // ── Step 3.5: If a confirm dialog opened, hide ghost and wait ────────
+            // ── Step 3: Wait for any confirm dialog to close ──────────────────
             bool hasPrompt = AskPromptUI.IsShowing || SpellTargetPopup.IsShowing;
             if (hasPrompt)
             {
-                SetGhostsVisible(false);
+                SetGhostVisible(false);
                 yield return null;
                 while (AskPromptUI.IsShowing || SpellTargetPopup.IsShowing)
                     yield return null;
             }
 
-            // ── Step 3.6: Check if card was consumed or rejected ─────────────────
+            // ── Step 4: Check if card was consumed or rejected ────────────────
             bool stillInSource = false;
             if (gm != null && draggedUnit != null)
             {
@@ -338,7 +256,7 @@ namespace FWTCG.UI
             if (stillInSource && _ghost != null)
             {
                 // Play failed or user cancelled — shake ghost then return to origin
-                SetGhostsVisible(true);
+                SetGhostVisible(true);
                 var ghostRT = _ghost.GetComponent<RectTransform>();
                 if (ghostRT != null)
                 {
@@ -358,38 +276,30 @@ namespace FWTCG.UI
                 yield break;
             }
 
-            // ── Step 4: Cleanup ghosts (play succeeded) ──────────────────────────
+            // ── Step 5: Cleanup ghost (play succeeded) ────────────────────────
             RemoveDragOriginOverlay();
-            RestoreCluster();
             if (_ghost != null) { Destroy(_ghost); _ghost = null; }
 
-            // ── Step 5: Animate on a temporary host ──────────────────────────────
-            SpawnDropAnimation(capturedSource, draggedUnit, clusterUnits, fromPositions);
+            // ── Step 6: Animate on a temporary host ───────────────────────────
+            SpawnDropAnimation(capturedSource, draggedUnit, fromPositions);
             _isCancelling      = false;
             BlockPointerEvents = false;
         }
 
-        /// <summary>Show or hide all drag ghosts (main + cluster) without moving them.</summary>
-        private void SetGhostsVisible(bool visible)
+        /// <summary>Show or hide the drag ghost without moving it.</summary>
+        private void SetGhostVisible(bool visible)
         {
             if (_ghost != null)
             {
                 var cg = _ghost.GetComponent<CanvasGroup>();
                 if (cg != null) cg.alpha = visible ? 0.72f : 0f;
             }
-            foreach (var g in _clusterGhosts)
-            {
-                if (g == null) continue;
-                var cg = g.GetComponent<CanvasGroup>();
-                if (cg != null) cg.alpha = visible ? 1f : 0f;
-            }
         }
 
         // ── Cancel drag ──────────────────────────────────────────────────────
 
         /// <summary>
-        /// Returns true when the drop position doesn't correspond to a valid target zone,
-        /// meaning the drag should be cancelled and cards should animate back.
+        /// Returns true when the drop position doesn't correspond to a valid target zone.
         /// </summary>
         private bool ShouldCancelDrop(Vector2 screenPos)
         {
@@ -405,9 +315,7 @@ namespace FWTCG.UI
                 {
                     var unit = _cardView?.Unit;
                     if (unit == null) return true;
-                    // Spell: valid drop = outside hand zone
                     if (unit.CardData.IsSpell) return overHand;
-                    // Unit: valid drop = base zone
                     return !overBase;
                 }
                 case DragSource.Hero:
@@ -419,29 +327,23 @@ namespace FWTCG.UI
             }
         }
 
-        /// <summary>
-        /// Begins cancel animation: stops follow coroutine, animates ghosts back to origins.
-        /// Selection state is intentionally preserved (no deselect callbacks fired).
-        /// </summary>
         public const float CANCEL_RETURN_DURATION = 0.21f;
-        public const float CANCEL_STAGGER_DELAY  = 0.05f;
 
         private void StartCancelDrag()
         {
             if (_isCancelling) return;
             _isCancelling = true;
-            _isDragging   = false; // stops ClusterFollowRoutine
+            _isDragging   = false;
 
             CancelReturnTween();
         }
 
-        /// <summary>DOT-4: Cancel-return animation via DOTween Sequence (replaced coroutine).</summary>
+        /// <summary>Cancel-return animation via DOTween Sequence.</summary>
         private void CancelReturnTween()
         {
             TweenHelper.KillSafe(ref _cancelReturnSeq);
             _cancelReturnSeq = DOTween.Sequence();
 
-            // Main ghost 返回世界坐标原点（SS-Camera 安全）
             if (_ghost != null)
             {
                 var gT = _ghost.transform;
@@ -456,27 +358,6 @@ namespace FWTCG.UI
                         .SetEase(Ease.InOutQuad)
                         .SetTarget(gT));
                 }
-            }
-
-            // Cluster ghosts with staggered delays
-            for (int i = 0; i < _clusterGhosts.Count; i++)
-            {
-                var g = _clusterGhosts[i];
-                if (g == null) continue;
-                var gT = g.transform;
-                if (gT == null) continue;
-
-                Vector3 origin = i < _clusterGhostWorldOrigins.Count
-                    ? _clusterGhostWorldOrigins[i] : _dragOriginWorldPos;
-                float delay = (i + 1) * CANCEL_STAGGER_DELAY;
-
-                _cancelReturnSeq.Insert(delay,
-                    DOTween.To(
-                        () => gT.position,
-                        v => gT.position = v,
-                        origin, CANCEL_RETURN_DURATION)
-                    .SetEase(Ease.InOutQuad)
-                    .SetTarget(gT));
             }
 
             _cancelReturnSeq.OnComplete(() =>
@@ -495,9 +376,7 @@ namespace FWTCG.UI
 
             if (_ghost != null) { Destroy(_ghost); _ghost = null; }
 
-            RestoreCluster();
-
-            // Clear all hand/base selections on cancel so cards return to neutral state
+            // Clear all selections on cancel so cards return to neutral state
             GameManager.Instance?.ClearAllSelections();
 
             StartCoroutine(UnblockEventsAfterCancel());
@@ -516,7 +395,6 @@ namespace FWTCG.UI
         {
             var unit = _cardView != null ? _cardView.Unit : null;
             if (unit == null) return;
-            // Defense-in-depth: game state may have changed during async prompts between drag and drop
             if (GameManager.Instance == null) return;
 
             Camera cam = RootCanvas != null ? RootCanvas.worldCamera : null;
@@ -532,32 +410,11 @@ namespace FWTCG.UI
                     if (unit.CardData.IsSpell)
                     {
                         if (!overHand)
-                        {
-                            var gm2      = GameManager.Instance;
-                            var sel2     = gm2 != null ? gm2.GetSelectedHandUnits() : null;
-                            var spellGroup = new List<UnitInstance>();
-                            if (sel2 != null)
-                                foreach (var s in sel2) if (s.CardData.IsSpell) spellGroup.Add(s);
-                            if (!spellGroup.Contains(unit)) spellGroup.Add(unit);
-
-                            if (spellGroup.Count > 1)
-                                OnSpellGroupDragOut?.Invoke(spellGroup);
-                            else
-                                OnSpellDragOut?.Invoke(unit);
-                        }
+                            OnSpellDragOut?.Invoke(unit);
                     }
                     else if (overBase)
                     {
-                        var gm  = GameManager.Instance;
-                        var sel = gm != null ? gm.GetSelectedHandUnits() : null;
-                        if (sel != null && sel.Count > 0)
-                        {
-                            var group = new List<UnitInstance>(sel);
-                            if (!group.Contains(unit)) group.Add(unit);
-                            OnDragHandGroupToBase?.Invoke(group);
-                        }
-                        else
-                            OnDragToBase?.Invoke(unit);
+                        OnDragToBase?.Invoke(unit);
                     }
                     break;
 
@@ -568,11 +425,8 @@ namespace FWTCG.UI
 
                 case DragSource.Base:
                     int bfIdx = overBf1 ? 0 : overBf2 ? 1 : -1;
-                    if (bfIdx >= 0 && OnDragToBF != null)
-                    {
-                        var units = BuildDragGroup(unit);
-                        OnDragToBF.Invoke(units, bfIdx);
-                    }
+                    if (bfIdx >= 0)
+                        OnDragToBF?.Invoke(unit, bfIdx);
                     break;
             }
         }
@@ -585,7 +439,7 @@ namespace FWTCG.UI
             _dragOriginOverlay = new GameObject("DragOriginOverlay", typeof(Image), typeof(CanvasGroup));
             _dragOriginOverlay.transform.SetParent(transform, false);
             var img = _dragOriginOverlay.GetComponent<Image>();
-            img.color = new Color(0.1f, 0.85f, 0.25f, 0.4f);   // semi-transparent green
+            img.color = new Color(0.1f, 0.85f, 0.25f, 0.4f);
             var rt = _dragOriginOverlay.GetComponent<RectTransform>();
             rt.anchorMin = Vector2.zero;
             rt.anchorMax = Vector2.one;
@@ -605,17 +459,16 @@ namespace FWTCG.UI
         // ── Independent drop animation ────────────────────────────────────────
 
         /// <summary>
-        /// Starts the landing animation on a temporary host GO so it survives
+        /// Starts landing animation on a temporary host GO so it survives
         /// RefreshUI potentially destroying this CardDragHandler's GameObject.
         /// </summary>
-        private void SpawnDropAnimation(DragSource dragSource, UnitInstance mainUnit,
-                                        List<UnitInstance> clusterUnits, List<Vector2> fromPositions)
+        private void SpawnDropAnimation(DragSource dragSource, UnitInstance mainUnit, List<Vector2> fromPositions)
         {
             if (RootCanvas == null) return;
             var hostGO = new GameObject("DropAnimHost");
             hostGO.transform.SetParent(RootCanvas.transform, false);
             var host = hostGO.AddComponent<DropAnimHost>();
-            host.Run(dragSource, mainUnit, clusterUnits, fromPositions);
+            host.Run(dragSource, mainUnit, fromPositions);
         }
 
         // ── Helpers ──────────────────────────────────────────────────────────
@@ -648,7 +501,6 @@ namespace FWTCG.UI
 
             var dh   = _ghost.GetComponent<CardDragHandler>(); if (dh   != null) Destroy(dh);
             var btn  = _ghost.GetComponent<Button>();           if (btn  != null) Destroy(btn);
-            // Remove any CardHoverScale so the ghost never reacts to its own hover
             var chs = _ghost.GetComponent<CardHoverScale>(); if (chs != null) Destroy(chs);
 
             var cg = _ghost.GetComponent<CanvasGroup>() ?? _ghost.AddComponent<CanvasGroup>();
@@ -656,7 +508,6 @@ namespace FWTCG.UI
             cg.blocksRaycasts = false;
             cg.interactable   = false;
 
-            // Force ghost to render above all other cards (including CardHoverScale override canvases)
             var ghostCanvas = _ghost.GetComponent<Canvas>() ?? _ghost.AddComponent<Canvas>();
             ghostCanvas.overrideSorting = true;
             ghostCanvas.sortingOrder    = 9999;
@@ -674,210 +525,51 @@ namespace FWTCG.UI
             ghostRT.localPosition = new Vector3(localPos.x, localPos.y, 0f);
         }
 
-        // Gather ghost copies of other selected cards so they follow this drag.
-        // Originals stay in their HLG — only ghost copies move on the canvas root.
-        private void GatherCluster()
+        private Vector2 ScreenToCanvas(Vector2 screenPos)
         {
-            _clusterGhosts.Clear();
-            _clusterOrigViews.Clear();
-            _clusterGhostOrigins.Clear();
-
-            var gm = GameManager.Instance;
-            if (gm == null) return;
-
-            List<UnitInstance> selected = _dragSource == DragSource.Hand
-                ? gm.GetSelectedHandUnits()
-                : gm.GetSelectedBaseUnits();
-
-            if (selected == null || selected.Count == 0) return;
-            if (RootCanvas == null) return;
-
-            var thisUnit = _cardView.Unit;
-            Camera uiCam = RootCanvas.worldCamera;
-
-            foreach (var unit in selected)
-            {
-                if (unit == thisUnit) continue;
-                var cv = FindCardViewInScene(unit);
-                if (cv == null) continue;
-                var rt = cv.GetComponent<RectTransform>();
-                if (rt == null) continue;
-
-                // 世界坐标起点（SS-Camera 下 rt.position 即真实 world 位置）
-                Vector3 originWorldPos = rt.position;
-                Vector2 cardSize = rt.rect.size;
-
-                // Hide original in-place — ghost replaces it visually
-                cv.SuspendLift();
-                var origCG = cv.GetComponent<CanvasGroup>() ?? cv.gameObject.AddComponent<CanvasGroup>();
-                origCG.alpha = 0f;
-                _clusterOrigViews.Add(cv);
-
-                var ghost = Instantiate(cv.gameObject, RootCanvas.transform);
-                ghost.name = "ClusterGhost";
-
-                var dh2  = ghost.GetComponent<CardDragHandler>(); if (dh2  != null) Destroy(dh2);
-                var btn2 = ghost.GetComponent<Button>();           if (btn2 != null) Destroy(btn2);
-                // VFX-7h: Cluster ghost 上的 CardHoverScale 必须移除，否则它会继续执行 Update 把缩放弹到 1.1x
-                var chs2 = ghost.GetComponent<CardHoverScale>();    if (chs2 != null) Destroy(chs2);
-
-                var gcg = ghost.GetComponent<CanvasGroup>() ?? ghost.AddComponent<CanvasGroup>();
-                gcg.alpha          = 1f;
-                gcg.blocksRaycasts = false;
-                gcg.interactable   = false;
-
-                var ghostRT = ghost.GetComponent<RectTransform>();
-                ghostRT.anchorMin = new Vector2(0.5f, 0.5f);
-                ghostRT.anchorMax = new Vector2(0.5f, 0.5f);
-                ghostRT.pivot     = new Vector2(0.5f, 0.5f);
-                ghostRT.sizeDelta = cardSize;
-                ghostRT.localScale = Vector3.one * 0.88f;
-                ghostRT.localRotation = Quaternion.identity;
-
-                _clusterGhosts.Add(ghost);
-                _clusterGhostWorldOrigins.Add(originWorldPos); // world-space origin (用来做 cancel 返回)
-                _clusterGhostOrigins.Add(Vector2.zero);        // 旧字段占位
-
-                // 起点 = 鼠标当前世界位置（通过世界坐标下设置 transform.position）
-                Camera mouseCam = RootCanvas.worldCamera;
-                if (mouseCam != null)
-                {
-                    Vector3 mouseScreen = Input.mousePosition;
-                    mouseScreen.z = Mathf.Abs(mouseCam.transform.position.z - ghost.transform.position.z);
-                    ghost.transform.position = mouseCam.ScreenToWorldPoint(mouseScreen);
-                }
-                else
-                {
-                    ghost.transform.position = (Vector3)(Vector2)Input.mousePosition;
-                }
-            }
-
-            if (_clusterGhosts.Count > 0)
-                _clusterMoveCoroutine = StartCoroutine(ClusterFollowRoutine());
+            if (RootCanvas == null) return screenPos;
+            RectTransformUtility.ScreenPointToLocalPointInRectangle(
+                RootCanvas.GetComponent<RectTransform>(), screenPos, RootCanvas.worldCamera, out var canvasPos);
+            return canvasPos;
         }
 
-        /// <summary>
-        /// Each cluster ghost follows the mouse with a progressively slower lerp speed,
-        /// creating a natural staggered trailing feel based on selection order.
-        /// </summary>
-        private IEnumerator ClusterFollowRoutine()
-        {
-            // 让玩家能看到正在拖的卡数量：每张 ghost 相对主 ghost 做小幅右上错位
-            const float CLUSTER_STAGGER_X = 14f;
-            const float CLUSTER_STAGGER_Y = 10f;
-
-            while (_isDragging)
-            {
-                Vector2 canvasTarget = ScreenToCanvas(_dragScreenPos);
-
-                for (int i = 0; i < _clusterGhosts.Count; i++)
-                {
-                    var g = _clusterGhosts[i];
-                    if (g == null) continue;
-                    var gRT = g.GetComponent<RectTransform>();
-                    if (gRT == null) continue;
-
-                    // 每张 ghost 相对主 ghost 错位 (i+1)*stagger，露出下面卡片的一角
-                    Vector2 offsetTarget = canvasTarget
-                        + new Vector2(CLUSTER_STAGGER_X * (i + 1), CLUSTER_STAGGER_Y * (i + 1));
-
-                    float lerpSpeed = Mathf.Max(9f - i * 2f, 3f);
-                    gRT.localPosition = Vector2.Lerp(gRT.localPosition, offsetTarget, Time.deltaTime * lerpSpeed);
-                }
-
-                // Z-order: 索引大的在最底，索引小的在上，主 ghost 最上
-                for (int i = _clusterGhosts.Count - 1; i >= 0; i--)
-                    if (_clusterGhosts[i] != null) _clusterGhosts[i].transform.SetAsLastSibling();
-                if (_ghost != null) _ghost.transform.SetAsLastSibling();
-
-                yield return null;
-            }
-        }
-
-        private void RestoreCluster()
-        {
-            if (_clusterMoveCoroutine != null)
-            {
-                StopCoroutine(_clusterMoveCoroutine);
-                _clusterMoveCoroutine = null;
-            }
-
-            foreach (var g in _clusterGhosts)
-                if (g != null) Destroy(g);
-            _clusterGhosts.Clear();
-            _clusterGhostOrigins.Clear();
-            _clusterGhostWorldOrigins.Clear();
-
-            // Restore original cards: alpha + lift — do NOT touch selection state
-            foreach (var cv in _clusterOrigViews)
-            {
-                if (cv == null) continue;
-                var cg = cv.GetComponent<CanvasGroup>();
-                if (cg != null) cg.alpha = 1f;
-                cv.ResumeLift();
-            }
-            _clusterOrigViews.Clear();
-        }
-
-        private List<UnitInstance> BuildDragGroup(UnitInstance dragged)
-        {
-            var gm = GameManager.Instance;
-            var selected = gm != null ? gm.GetSelectedBaseUnits() : null;
-            if (selected != null && selected.Contains(dragged))
-                return new List<UnitInstance>(selected);
-            return new List<UnitInstance> { dragged };
-        }
-
-        // DEV-26: replaced FindObjectsOfType (O(n) scene scan) with GameUI.FindCardView lookup
         private static CardView FindCardViewInScene(UnitInstance unit)
             => GameUI.Instance != null ? GameUI.Instance.FindCardView(unit) : null;
 
         // ── Drop land animation (independent host) ───────────────────────────
 
         /// <summary>
-        /// Runs the landing animation on its own temporary GameObject so it is never
+        /// Runs landing animation on its own temporary GameObject so it is never
         /// killed when RefreshUI destroys the source CardView's GameObject.
         /// </summary>
         private sealed class DropAnimHost : MonoBehaviour
         {
-            // Safety net: all CanvasGroups whose alpha we set to 0.
-            // OnDestroy guarantees they are restored to 1 even if the
-            // coroutine is interrupted, the host is destroyed early,
-            // or any other unexpected interruption occurs.
             private readonly List<CanvasGroup> _managedCGs = new List<CanvasGroup>();
             private readonly List<CanvasGroup> _fadeInCGs  = new List<CanvasGroup>();
-            // DOT-4 Codex H-1: track overlay GOs + master sequence for OnDestroy cleanup
             private readonly List<GameObject> _overlayObjs = new List<GameObject>();
             private Sequence _masterSeq;
 
-            public void Run(DragSource dragSource, UnitInstance mainUnit,
-                            List<UnitInstance> clusterUnits, List<Vector2> fromPositions)
+            public void Run(DragSource dragSource, UnitInstance mainUnit, List<Vector2> fromPositions)
             {
-                StartCoroutine(AnimRoutine(dragSource, mainUnit, clusterUnits, fromPositions));
+                StartCoroutine(AnimRoutine(dragSource, mainUnit, fromPositions));
             }
 
             private void OnDestroy()
             {
-                // DOT-4 Codex H-1: kill master sequence to prevent callbacks on dead objects
                 TweenHelper.KillSafe(ref _masterSeq);
-                // Destroy overlay GOs that may still exist mid-animation
                 foreach (var obj in _overlayObjs)
                     if (obj != null) Destroy(obj);
                 _overlayObjs.Clear();
-                // SAFETY NET: restore alpha=1 for any cards we hid.
                 foreach (var cg in _managedCGs)
                     if (cg != null) cg.alpha = 1f;
                 _managedCGs.Clear();
-                // SAFETY NET: restore fade-in cards too
                 foreach (var cg in _fadeInCGs)
                     if (cg != null) { DOTween.Kill(cg.gameObject); cg.alpha = 1f; }
                 _fadeInCGs.Clear();
             }
 
-            private IEnumerator AnimRoutine(DragSource dragSource, UnitInstance mainUnit,
-                                            List<UnitInstance> clusterUnits, List<Vector2> fromPositions)
+            private IEnumerator AnimRoutine(DragSource dragSource, UnitInstance mainUnit, List<Vector2> fromPositions)
             {
-                // Wait for the unit to leave its source zone (game-state driven).
                 int waitFrames = 0;
                 var gm = GameManager.Instance;
                 while (waitFrames < 60)
@@ -896,7 +588,6 @@ namespace FWTCG.UI
                     if (!stillInSource) break;
                     waitFrames++;
                 }
-                // Two extra frames for HLG to finish repositioning children
                 yield return null;
                 yield return null;
                 Canvas.ForceUpdateCanvases();
@@ -904,166 +595,95 @@ namespace FWTCG.UI
                 const float phase1Dur      = 0.18f;
                 const float phase2Dur      = 0.16f;
                 const float hoverHeight    = 70f;
-                const float stagger        = 0.04f;
-                const float slingshotDur   = 0.05f; // DOT-8: pullback duration
-                const float slingshotDist  = 18f;   // DOT-8: pullback distance px
+                const float slingshotDur   = 0.05f;
+                const float slingshotDist  = 18f;
 
-                var allUnits = new List<UnitInstance>();
-                if (mainUnit != null) allUnits.Add(mainUnit);
-                allUnits.AddRange(clusterUnits);
+                if (mainUnit == null) yield break;
+                var cv = FindCardViewInScene(mainUnit);
+                if (cv == null) yield break;
 
-                var overlayItems = new List<(RectTransform overlayRT, Vector2 from, Vector2 to)>();
-                var overlayObjs  = new List<GameObject>();
+                var cvRT = cv.GetComponent<RectTransform>();
+                if (cvRT == null) yield break;
 
-                for (int i = 0; i < allUnits.Count; i++)
+                var corners = new Vector3[4];
+                cvRT.GetWorldCorners(corners);
+                Vector2 screenCenter = new Vector2(
+                    (corners[0].x + corners[2].x) * 0.5f,
+                    (corners[0].y + corners[2].y) * 0.5f);
+                Vector2 finalPos = Vector2.zero;
+                if (RootCanvas != null)
+                    RectTransformUtility.ScreenPointToLocalPointInRectangle(
+                        RootCanvas.GetComponent<RectTransform>(), screenCenter,
+                        RootCanvas.worldCamera, out finalPos);
+
+                Vector2 fromPos = fromPositions != null && fromPositions.Count > 0 ? fromPositions[0] : finalPos;
+                if (RootCanvas == null) yield break;
+
+                cv.CancelEnterAnim();
+
+                var cardCG = cv.GetComponent<CanvasGroup>() ?? cv.gameObject.AddComponent<CanvasGroup>();
+                cardCG.alpha = 0f;
+                _managedCGs.Add(cardCG);
+
+                if (Vector2.Distance(fromPos, finalPos) < 5f)
                 {
-                    var unit = allUnits[i];
-                    if (unit == null) continue;
-                    var cv = FindCardViewInScene(unit);
-                    if (cv == null) continue;
-
-                    var cvRT = cv.GetComponent<RectTransform>();
-                    if (cvRT == null) continue;
-
-                    // Get final canvas-space position using SS-Overlay safe corners
-                    var corners = new Vector3[4];
-                    cvRT.GetWorldCorners(corners);
-                    Vector2 screenCenter = new Vector2(
-                        (corners[0].x + corners[2].x) * 0.5f,
-                        (corners[0].y + corners[2].y) * 0.5f);
-                    Vector2 finalPos = Vector2.zero;
-                    if (RootCanvas != null)
-                        RectTransformUtility.ScreenPointToLocalPointInRectangle(
-                            RootCanvas.GetComponent<RectTransform>(), screenCenter,
-                            RootCanvas.worldCamera, out finalPos);
-
-                    Vector2 fromPos = i < fromPositions.Count ? fromPositions[i] : fromPositions[0];
-
-                    if (RootCanvas == null) continue;
-
-                    // Cancel EnterAnimRoutine to prevent scale/position animation conflict.
-                    cv.CancelEnterAnim();
-
-                    // Hide the real card while the overlay flies in (or fades in).
-                    // OnDestroy safety net guarantees alpha is restored even if
-                    // this coroutine is interrupted for any reason.
-                    var cardCG = cv.GetComponent<CanvasGroup>() ?? cv.gameObject.AddComponent<CanvasGroup>();
-                    cardCG.alpha = 0f;
-                    _managedCGs.Add(cardCG);
-
-                    // If from and to are very close (e.g. after a confirm dialog where
-                    // RefreshUI already placed the card at its final position), skip the
-                    // fly-in overlay but still fade-in the real card to avoid a pop-in.
-                    if (Vector2.Distance(fromPos, finalPos) < 5f)
-                    {
-                        _fadeInCGs.Add(cardCG);
-                        continue;
-                    }
-
-                    var overlay = Instantiate(cv.gameObject, RootCanvas.transform);
-                    overlay.name = "LandGhost";
-                    var dh2  = overlay.GetComponent<CardDragHandler>(); if (dh2  != null) Destroy(dh2);
-                    var btn2 = overlay.GetComponent<Button>();           if (btn2  != null) Destroy(btn2);
-
-                    var ocg = overlay.GetComponent<CanvasGroup>() ?? overlay.AddComponent<CanvasGroup>();
-                    ocg.alpha = 1f; ocg.blocksRaycasts = false; ocg.interactable = false;
-
-                    var oRT = overlay.GetComponent<RectTransform>();
-                    oRT.anchorMin  = oRT.anchorMax = new Vector2(0.5f, 0.5f);
-                    oRT.pivot      = new Vector2(0.5f, 0.5f);
-                    oRT.sizeDelta  = cvRT.rect.size;
-                    oRT.localScale = Vector3.one;
-                    oRT.localPosition = new Vector3(fromPos.x, fromPos.y, 0f);
-                    overlay.transform.SetAsLastSibling();
-                    overlayObjs.Add(overlay);
-
-                    overlayItems.Add((oRT, fromPos, finalPos));
+                    _fadeInCGs.Add(cardCG);
+                    // fade in real card
+                    cardCG.DOFade(1f, 0.15f).SetTarget(cardCG.gameObject);
+                    yield break;
                 }
 
-                // DOT-4: Drop landing animation via DOTween Sequences
-                // Store overlay refs for OnDestroy cleanup (Codex H-1)
-                _overlayObjs.AddRange(overlayObjs);
+                var overlay = Instantiate(cv.gameObject, RootCanvas.transform);
+                overlay.name = "LandGhost";
+                var dh2  = overlay.GetComponent<CardDragHandler>(); if (dh2  != null) Destroy(dh2);
+                var btn2 = overlay.GetComponent<Button>();           if (btn2 != null) Destroy(btn2);
 
-                if (overlayItems.Count > 0)
-                {
-                    _masterSeq = DOTween.Sequence().SetTarget(this);
-                    for (int i = 0; i < overlayItems.Count; i++)
-                    {
-                        var item = overlayItems[i];
-                        Vector2 hover = item.to + new Vector2(0f, hoverHeight);
-                        float delay = i * stagger;
+                var ocg = overlay.GetComponent<CanvasGroup>() ?? overlay.AddComponent<CanvasGroup>();
+                ocg.alpha = 1f; ocg.blocksRaycasts = false; ocg.interactable = false;
 
-                        var cardSeq = DOTween.Sequence();
-                        // DOT-8: Phase 0 — slingshot pullback (opposite direction of travel)
-                        Vector2 travelDir = (hover - item.from).normalized;
-                        Vector2 pullPos   = item.from - travelDir * slingshotDist;
-                        cardSeq.Append(
-                            DOTween.To(() => (Vector2)item.overlayRT.localPosition,
-                                       v => item.overlayRT.localPosition = new Vector3(v.x, v.y, 0f),
-                                       pullPos, slingshotDur)
-                            .SetEase(Ease.InQuad)
-                            .SetTarget(item.overlayRT));
-                        // Phase 1: fly to hover (OutBack gives spring feel)
-                        cardSeq.Append(
-                            DOTween.To(() => (Vector2)item.overlayRT.localPosition,
-                                       v => item.overlayRT.localPosition = new Vector3(v.x, v.y, 0f),
-                                       hover, phase1Dur)
-                            .SetEase(Ease.OutBack)
-                            .SetTarget(item.overlayRT));
-                        // Phase 2: drop to final with bounce landing
-                        cardSeq.Append(
-                            DOTween.To(() => (Vector2)item.overlayRT.localPosition,
-                                       v => item.overlayRT.localPosition = new Vector3(v.x, v.y, 0f),
-                                       item.to, phase2Dur)
-                            .SetEase(Ease.OutBounce)
-                            .SetTarget(item.overlayRT));
+                var oRT = overlay.GetComponent<RectTransform>();
+                oRT.anchorMin  = oRT.anchorMax = new Vector2(0.5f, 0.5f);
+                oRT.pivot      = new Vector2(0.5f, 0.5f);
+                oRT.sizeDelta  = cvRT.rect.size;
+                oRT.localScale = Vector3.one;
+                oRT.localPosition = new Vector3(fromPos.x, fromPos.y, 0f);
+                overlay.transform.SetAsLastSibling();
+                _overlayObjs.Add(overlay);
 
-                        _masterSeq.Insert(delay, cardSeq);
-                    }
+                _masterSeq = DOTween.Sequence().SetTarget(this);
+                Vector2 hover = finalPos + new Vector2(0f, hoverHeight);
+                Vector2 travelDir = (hover - fromPos).normalized;
+                Vector2 pullPos   = fromPos - travelDir * slingshotDist;
 
-                    // DOT-4 Codex H-2: OnKill also sets flag to prevent coroutine hang
-                    bool tweenDone = false;
-                    _masterSeq.OnComplete(() => tweenDone = true);
-                    _masterSeq.OnKill(() => tweenDone = true);
-                    while (!tweenDone) yield return null;
-                    _masterSeq = null;
-                }
+                _masterSeq.Append(
+                    DOTween.To(() => (Vector2)oRT.localPosition,
+                               v => oRT.localPosition = new Vector3(v.x, v.y, 0f),
+                               pullPos, slingshotDur)
+                    .SetEase(Ease.InQuad).SetTarget(oRT));
+                _masterSeq.Append(
+                    DOTween.To(() => (Vector2)oRT.localPosition,
+                               v => oRT.localPosition = new Vector3(v.x, v.y, 0f),
+                               hover, phase1Dur)
+                    .SetEase(Ease.OutBack).SetTarget(oRT));
+                _masterSeq.Append(
+                    DOTween.To(() => (Vector2)oRT.localPosition,
+                               v => oRT.localPosition = new Vector3(v.x, v.y, 0f),
+                               finalPos, phase2Dur)
+                    .SetEase(Ease.OutBounce).SetTarget(oRT));
 
-                // Restore alpha + cleanup (also done in OnDestroy as safety net)
-                foreach (var cg in _managedCGs)
-                    if (cg != null) cg.alpha = 1f;
-                _managedCGs.Clear();
+                bool tweenDone = false;
+                _masterSeq.OnComplete(() => tweenDone = true);
+                _masterSeq.OnKill(() => tweenDone = true);
+                while (!tweenDone) yield return null;
 
-                // Fade-in cards that were too close for a fly-in overlay (e.g. after confirm dialog)
-                const float fadeInDur = 0.25f;
-                foreach (var cg in _fadeInCGs)
-                {
-                    if (cg != null)
-                        DOTween.To(() => cg.alpha, a => { if (cg != null) cg.alpha = a; }, 1f, fadeInDur)
-                            .SetEase(Ease.OutQuad)
-                            .SetTarget(cg.gameObject);
-                }
-                _fadeInCGs.Clear();
+                // Reveal real card
+                cardCG.alpha = 1f;
+                if (overlay != null) Destroy(overlay);
+                _overlayObjs.Remove(overlay);
+                _managedCGs.Remove(cardCG);
 
-                foreach (var obj in overlayObjs)
-                    if (obj != null) Destroy(obj);
-                _overlayObjs.Clear();
-
-                Destroy(gameObject); // clean up this temporary host
+                Destroy(gameObject);
             }
-        }
-
-        // ── Canvas coordinate helper ─────────────────────────────────────────
-
-        private Vector2 ScreenToCanvas(Vector2 screenPos)
-        {
-            if (RootCanvas == null) return Vector2.zero;
-            RectTransformUtility.ScreenPointToLocalPointInRectangle(
-                RootCanvas.GetComponent<RectTransform>(),
-                screenPos,
-                RootCanvas.worldCamera,
-                out Vector2 local);
-            return local;
         }
     }
 }

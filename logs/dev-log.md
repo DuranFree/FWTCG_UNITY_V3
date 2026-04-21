@@ -2351,3 +2351,48 @@
 - stash 验证老测试失败确实先于本次清理就存在
 
 **Tests**: 1109/1119 EditMode 通过；10 项失败全部经 stash 验证为历史问题，与本次清理无因果关系
+
+---
+
+## UI-OVERHAUL-1a：交互机制统一化（第 1 阶段）— 2026-04-21
+
+**Status**: ✅ Completed
+
+**What was done**:
+- `GameColors.cs` 新增 3 常量：`ActionBtnEndTurn (#f4c23a 黄)`、`ActionBtnConfirm (#5fd064 绿)`、`ActionBtnCancel (#d24a4a 红)`
+- `SceneBuilder.cs` EndTurnButton 颜色 `ActionBtnPrimary → ActionBtnEndTurn`，sprite tint 从 `Color.white` 改为 `ActionBtnEndTurn` 避免 sprite 原色压过
+- `CardDragHandler.cs` 整体重写 790→600 行：
+  - 删除 cluster ghost 多选系统（`_clusterGhosts` / `_clusterOrigViews` / `_clusterGhostOrigins` / `_clusterGhostWorldOrigins` / `_clusterMoveCoroutine` / `GatherCluster` / `ClusterFollowRoutine` / `RestoreCluster` / `BuildDragGroup` / `SetGhostsVisible` cluster 段 / `CANCEL_STAGGER_DELAY`）
+  - 删除回调字段 `OnDragHandGroupToBase` / `OnSpellGroupDragOut`；`OnDragToBF` 签名改 `Action<UnitInstance, int>`
+  - `DropFlowRoutine` 简化：去 `clusterUnits` 参数，只处理单 unit
+  - `DropAnimHost.Run` 改为单 unit + 单 fromPos，AnimRoutine 从多卡循环改为单卡流
+  - 保留主 `_ghost`（单张拖拽的视觉反馈）
+- `GameUI.cs` `SetDragCallbacks` 签名由 6 参简化为 4 参，连线代码同步
+- `GameManager.cs`：
+  - 删除 Haste 询问弹窗 3 处（`TryPlayUnitAsync`/`TryPlayHeroAsync`/`CardDragHandler.DropFlowRoutine`）；`useHaste` 临时硬编码为 false，1b 将改为资源准备机制自动判定
+  - `OnDragUnitsToBF(List, int)` → `OnDragUnitToBF(UnitInstance, int)` 单元素化
+  - 手牌/基地点击改单选逻辑：点 A 清 B 再选 A；再次点 A 取消；移除 `[取消选择] XX（已选N张）` 等多选文案
+  - 删除 "一次只能打出一张法术牌"/"一次只能使用一张装备牌" toast（单选本来就只有一张）
+- `GameBot.cs` 同步单元素调用：`OnDragUnitsToBF(baseUnits, bfId)` → `OnDragUnitToBF(baseUnits[0], bfId)`
+- 新建 `Assets/Scripts/UI/FloatingTipUI.cs`：鼠标位置 / 多行 / 多色飘屏组件，静态 `Show` / `ShowSingle` 工厂 + 颜色助手 `ManaShortLine/RuneShortLine/WarnLine`
+- 新建 `Assets/Tests/EditMode/UIOverhaul1aTests.cs`（10 项）验证颜色常量、CardDragHandler 签名重构、FloatingTipUI 行为
+- 更新老测试：`DEV22DragTests.OnDragToBF` / `DEV32BehaviorTests.OnDragToBF` 签名测试改单元素；`DOT4ReplacementTests.CancelConstants` 去掉 `CANCEL_STAGGER_DELAY` 期望；`ClusterFollowRoutine_StillCoroutine` 反转为 `_Removed`
+
+**Decisions made**:
+- 保留主拖拽 ghost（单张幻影跟随鼠标）作为拖拽视觉反馈，仅删除多选的 cluster ghost；可在后续 Phase 若用户明确希望直接拖原卡再移除
+- Haste 临时硬编码 false；1b 将改为"玩家手动准备 +1 法力 + +1 符能 → 自动激活"
+- 取消/结束回合按钮的颜色语义提前在 `GameColors` 中建常量，1c 直接复用
+- FloatingTipUI 非单例设计：每次 `Show` 新建 GO 播完自毁，避免并发冲突
+
+**Technical debt**:
+- [ ] `GameManager.OnDragHandGroupToBase` / `OnSpellGroupDraggedOut` / `PlaySpellGroupAsync` 方法保留但成为死代码 — 未来如无依赖可删 — UI-OVERHAUL-1a
+- [ ] `GameManager.GetSelectedHandUnits` / `GetSelectedBaseUnits` 返回 List 但单选下恒 ≤ 1 项 — 调用方可逐步改用单元素字段 — UI-OVERHAUL-1a
+- [ ] `_pendingDragHasteDecision` / `SetDragHasteDecision` / `DragNeedsHasteChoice` 暂保留但在 1a 无效 — 1b 重构时统一移除 — UI-OVERHAUL-1a
+
+**Problems encountered**:
+- `CardDragHandler` 整体重写后老测试 `ClusterFollowRoutine_StillCoroutine` 断言失败 — 已反转期望为 `_Removed`
+- 第一次全量 run 时 DEV5LegendTests 7 项偶发 `MissingReferenceException`（LegendSkillShowcase 单例残留），重跑后消失；非本次改动引入
+- `FloatingTipUI` 首版漏 using `FWTCG.Data` 导致 `ToChinese` 扩展方法找不到，补全后通过
+
+**Tests**: 编译 0 error 3 warning（均历史无关）；MCP EditMode 1130/1140 通过，10 项失败皆 `known-bugs.md` 已登记历史项
+**引擎场景验证**：MCP `get_gameobject EndTurnButton` 确认 Image.color = `(0.957, 0.761, 0.227)` = `#f4c23a` 黄色 ✓

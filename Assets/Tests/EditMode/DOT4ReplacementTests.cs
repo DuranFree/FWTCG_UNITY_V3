@@ -217,8 +217,8 @@ namespace FWTCG.Tests
         [Test]
         public void CardDragHandler_CancelConstants()
         {
-            Assert.AreEqual(0.42f, CardDragHandler.CANCEL_RETURN_DURATION, 0.001f);
-            Assert.AreEqual(0.05f, CardDragHandler.CANCEL_STAGGER_DELAY, 0.001f);
+            // UI-OVERHAUL-1a: CANCEL_STAGGER_DELAY 已随 cluster ghost 一并删除
+            Assert.AreEqual(0.21f, CardDragHandler.CANCEL_RETURN_DURATION, 0.001f);
         }
 
         [Test]
@@ -246,14 +246,12 @@ namespace FWTCG.Tests
         }
 
         [Test]
-        public void CardDragHandler_ClusterFollowRoutine_StillCoroutine()
+        public void CardDragHandler_ClusterFollowRoutine_Removed()
         {
-            // ClusterFollowRoutine has per-frame mouse tracking, kept as coroutine
+            // UI-OVERHAUL-1a: cluster ghost 系统已整体删除，ClusterFollowRoutine 不应再存在
             var method = typeof(CardDragHandler).GetMethod("ClusterFollowRoutine",
                 BindingFlags.NonPublic | BindingFlags.Instance);
-            Assert.IsNotNull(method, "ClusterFollowRoutine must still exist");
-            Assert.AreEqual(typeof(System.Collections.IEnumerator), method.ReturnType,
-                "ClusterFollowRoutine should remain a coroutine (per-frame mouse tracking)");
+            Assert.IsNull(method, "ClusterFollowRoutine 应已删除（cluster ghost 系统移除）");
         }
 
         [Test]

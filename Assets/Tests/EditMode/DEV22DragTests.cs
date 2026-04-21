@@ -120,9 +120,9 @@ namespace FWTCG.Tests
 
             bool called  = false;
             int  bfIndex = -1;
-            dh.OnDragToBF = (units, bfId) => { called = true; bfIndex = bfId; };
+            dh.OnDragToBF = (unit, bfId) => { called = true; bfIndex = bfId; };
 
-            dh.OnDragToBF?.Invoke(new List<UnitInstance>(), 1);
+            dh.OnDragToBF?.Invoke(null, 1);
             Assert.IsTrue(called);
             Assert.AreEqual(1, bfIndex);
 
