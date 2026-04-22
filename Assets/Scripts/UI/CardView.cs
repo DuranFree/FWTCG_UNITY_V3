@@ -312,6 +312,8 @@ namespace FWTCG.UI
             // DEV-29: cleanup death ghost
             if (_deathGhost  != null) { Destroy(_deathGhost); _deathGhost = null; }
             if (_orbitDot != null) Destroy(_orbitDot);
+            for (int i = 0; i < _cometTail.Length; i++)
+                if (_cometTail[i] != null) { Destroy(_cometTail[i]); _cometTail[i] = null; }
             // H-3: destroy floating tooltip to prevent canvas leak when card is removed
             if (_statusTooltip != null) { Destroy(_statusTooltip); _statusTooltip = null; _currentStatusTip = null; }
             // VFX-3: clear dissolve material on all images before destroying clone
@@ -953,22 +955,17 @@ namespace FWTCG.UI
                     ? new Color(0.25f, 1f, 0.45f, 1f) // 玩家：亮绿
                     : new Color(1f, 0.3f, 0.3f, 1f);  // 敌方：红
 
-                // Hotfix-9: 细线环绕光 — 三层 Outline 叠加（1.5px 实线 + 2.5px 半透 + 3.5px 淡透）
-                // 呼吸 tween 由 StartSelectionBreath 驱动 alpha 往复。
-                // 禁用大面积 halo（视觉过厚）
+                // Hotfix-10: 极细单层线（0.8px）+ 外 1 层淡晕（1.5px）— 不再用 3 层厚 halo
                 if (_selectionHalo != null) _selectionHalo.SetActive(false);
                 _selOutlines[0].enabled = true;
                 _selOutlines[0].effectColor    = baseCol;
-                _selOutlines[0].effectDistance = new Vector2(1.5f, -1.5f);
+                _selOutlines[0].effectDistance = new Vector2(0.8f, -0.8f);
                 _selOutlines[0].useGraphicAlpha = false;
                 _selOutlines[1].enabled = true;
-                _selOutlines[1].effectColor    = new Color(baseCol.r, baseCol.g, baseCol.b, 0.55f);
-                _selOutlines[1].effectDistance = new Vector2(2.8f, -2.8f);
+                _selOutlines[1].effectColor    = new Color(baseCol.r, baseCol.g, baseCol.b, 0.25f);
+                _selOutlines[1].effectDistance = new Vector2(1.5f, -1.5f);
                 _selOutlines[1].useGraphicAlpha = false;
-                _selOutlines[2].enabled = true;
-                _selOutlines[2].effectColor    = new Color(baseCol.r, baseCol.g, baseCol.b, 0.25f);
-                _selOutlines[2].effectDistance = new Vector2(4.2f, -4.2f);
-                _selOutlines[2].useGraphicAlpha = false;
+                _selOutlines[2].enabled = false; // 砍掉最外层
             }
             else
             {
@@ -1762,36 +1759,91 @@ namespace FWTCG.UI
         public const float ORBIT_RADIUS = 60f;
         public const float ORBIT_PERIOD = 6f;
 
+        // Hotfix-10: 流星头 + 3 个尾部光点（相位依次延迟 0.06/0.12/0.18 周期，形成拖尾）
+        private GameObject[] _cometTail = new GameObject[3];
+
         private void StartOrbit()
         {
+            // 主流星头
             if (_orbitDot == null)
             {
-                _orbitDot = new GameObject("OrbitDot");
-                _orbitDot.transform.SetParent(transform, false);
-                var rt = _orbitDot.AddComponent<RectTransform>();
-                rt.sizeDelta = new Vector2(10f, 10f);
-                rt.anchorMin = rt.anchorMax = new Vector2(0.5f, 0.5f);
-                rt.pivot = new Vector2(0.5f, 0.5f);
-                var img = _orbitDot.AddComponent<Image>();
-                img.color = new Color(1f, 0.92f, 0.6f, 0.9f);
-                img.raycastTarget = false;
-                _orbitDot.transform.SetAsLastSibling();
+                _orbitDot = CreateCometDot("CometHead", size: 8f, alpha: 1f);
             }
             _orbitDot.SetActive(true);
-            TweenHelper.KillSafe(ref _orbitTween);
-            var dotRT = _orbitDot.GetComponent<RectTransform>();
-            _orbitTween = DOVirtual.Float(0f, 360f, ORBIT_PERIOD, v =>
+            // 拖尾 3 颗，尺寸 alpha 递减
+            float[] tailSizes  = { 6f, 4.5f, 3f };
+            float[] tailAlphas = { 0.70f, 0.45f, 0.22f };
+            for (int i = 0; i < _cometTail.Length; i++)
             {
-                if (dotRT == null) return;
-                float rad = v * Mathf.Deg2Rad;
-                dotRT.anchoredPosition = new Vector2(Mathf.Cos(rad) * ORBIT_RADIUS, Mathf.Sin(rad) * ORBIT_RADIUS);
+                if (_cometTail[i] == null)
+                    _cometTail[i] = CreateCometDot($"CometTail{i}", tailSizes[i], tailAlphas[i]);
+                _cometTail[i].SetActive(true);
+            }
+
+            TweenHelper.KillSafe(ref _orbitTween);
+            var rt = (RectTransform)transform;
+            var headRT = _orbitDot.GetComponent<RectTransform>();
+            var tailRTs = new RectTransform[_cometTail.Length];
+            for (int i = 0; i < _cometTail.Length; i++)
+                tailRTs[i] = _cometTail[i].GetComponent<RectTransform>();
+            float[] phaseLag = { 0.06f, 0.12f, 0.18f }; // 尾部相位滞后比例（周期的 6/12/18%）
+
+            _orbitTween = DOVirtual.Float(0f, 1f, ORBIT_PERIOD, t =>
+            {
+                if (headRT == null || rt == null) return;
+                Vector2 size = rt.rect.size;
+                // 流星沿卡矩形边框内侧跑（留 3px margin，避免与 outline 抢位）
+                const float margin = 3f;
+                float w = size.x - 2 * margin;
+                float h = size.y - 2 * margin;
+                headRT.anchoredPosition = PerimeterPos(t, w, h);
+                for (int i = 0; i < tailRTs.Length; i++)
+                {
+                    if (tailRTs[i] == null) continue;
+                    float tailT = t - phaseLag[i];
+                    if (tailT < 0f) tailT += 1f;
+                    tailRTs[i].anchoredPosition = PerimeterPos(tailT, w, h);
+                }
             }).SetEase(Ease.Linear).SetLoops(-1, LoopType.Restart).SetTarget(gameObject);
+        }
+
+        /// <summary>Hotfix-10: 返回矩形周长上 t∈[0,1) 的位置（center-anchored）。顺时针从 top-left 开始。</summary>
+        private static Vector2 PerimeterPos(float t, float w, float h)
+        {
+            float peri = 2f * (w + h);
+            float d = t * peri;
+            if (d < w)             return new Vector2(-w * 0.5f + d,            h * 0.5f);              // top edge
+            if (d < w + h)         return new Vector2( w * 0.5f,                h * 0.5f - (d - w));    // right edge
+            if (d < 2f * w + h)    return new Vector2( w * 0.5f - (d - w - h), -h * 0.5f);              // bottom edge
+                                    return new Vector2(-w * 0.5f,               -h * 0.5f + (d - 2f * w - h)); // left edge
+        }
+
+        private GameObject CreateCometDot(string name, float size, float alpha)
+        {
+            var go = new GameObject(name);
+            go.transform.SetParent(transform, false);
+            var rt = go.AddComponent<RectTransform>();
+            rt.sizeDelta = new Vector2(size, size);
+            rt.anchorMin = rt.anchorMax = new Vector2(0.5f, 0.5f);
+            rt.pivot = new Vector2(0.5f, 0.5f);
+            var img = go.AddComponent<Image>();
+            // 复用 soft halo sprite（gaussian 圆），让点自带柔光不是硬方块
+            img.sprite = GetSoftHaloSprite();
+            Color col = _isPlayerCard
+                ? new Color(0.75f, 1f, 0.85f, alpha)   // 玩家：淡绿-白
+                : new Color(1f, 0.85f, 0.85f, alpha);  // 敌方：淡红-白
+            img.color = col;
+            img.raycastTarget = false;
+            go.transform.SetAsLastSibling();
+            return go;
         }
 
         private void StopOrbit()
         {
             TweenHelper.KillSafe(ref _orbitTween);
             if (_orbitDot != null) _orbitDot.SetActive(false);
+            for (int i = 0; i < _cometTail.Length; i++)
+                if (_cometTail[i] != null) _cometTail[i].SetActive(false);
         }
 
         // 选中边框呼吸：在基色与高亮色之间往复
