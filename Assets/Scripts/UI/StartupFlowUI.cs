@@ -252,6 +252,13 @@ namespace FWTCG.UI
 
         private Task ShowCoinFlip(GameState gs)
         {
+            // Hotfix-7: 守卫同 ShowMulligan
+            if (this == null || !gameObject.activeInHierarchy)
+            {
+                var t = new TaskCompletionSource<bool>();
+                t.TrySetResult(true);
+                return t.Task;
+            }
             _activeCoinTcs = new TaskCompletionSource<bool>();
             StartCoroutine(CoinFlipFlowRoutine(gs, _activeCoinTcs));
             return _activeCoinTcs.Task;
@@ -622,6 +629,14 @@ namespace FWTCG.UI
 
         private Task ShowMulligan(GameState gs)
         {
+            // Hotfix-7: 守卫 — OnDestroy 触发 TrySetResult 后 continuation 会跑到这里，
+            // 此时 GameObject 已 inactive，StartCoroutine 会抛错
+            if (this == null || !gameObject.activeInHierarchy)
+            {
+                var t = new TaskCompletionSource<bool>();
+                t.TrySetResult(true);
+                return t.Task;
+            }
             _activeMulliganTcs = new TaskCompletionSource<bool>();
             StartCoroutine(MulliganFlowRoutine(gs, _activeMulliganTcs));
             return _activeMulliganTcs.Task;

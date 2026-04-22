@@ -24,16 +24,29 @@ namespace FWTCG.UI
         public const float DOT_MAX_SIZE    = 5f;
 
         private static Sprite _circleSprite;
-        private static bool   _circleSpriteTried;
         private static Sprite GetCircleSprite()
         {
-            // Hotfix-4: UI/Skin/Knob.psd 在新 Unity 版本不可用，try 一次后缓存结果避免每帧 spam
-            if (_circleSprite == null && !_circleSpriteTried)
+            // Hotfix-7: UI/Skin/Knob.psd 在新 Unity 版本不可用（Resources.GetBuiltinResource 直接
+            // log error 不抛异常，try/catch 抓不到）。改用程序生成的圆形 sprite。
+            if (_circleSprite != null) return _circleSprite;
+            const int W = 32;
+            var tex = new Texture2D(W, W, TextureFormat.RGBA32, false);
+            tex.filterMode = FilterMode.Bilinear;
+            tex.wrapMode   = TextureWrapMode.Clamp;
+            float cx = (W - 1) / 2f, cy = (W - 1) / 2f;
+            float r  = W * 0.5f;
+            var px = new Color32[W * W];
+            for (int y = 0; y < W; y++)
+            for (int x = 0; x < W; x++)
             {
-                _circleSpriteTried = true;
-                try { _circleSprite = Resources.GetBuiltinResource<Sprite>("UI/Skin/Knob.psd"); }
-                catch { _circleSprite = null; }
+                float dx = x - cx, dy = y - cy;
+                float d = Mathf.Sqrt(dx * dx + dy * dy);
+                // 圆内纯白，边缘 1px 抗锯齿
+                float a = Mathf.Clamp01(r - d);
+                px[y * W + x] = new Color32(255, 255, 255, (byte)(a * 255));
             }
+            tex.SetPixels32(px); tex.Apply();
+            _circleSprite = Sprite.Create(tex, new Rect(0, 0, W, W), new Vector2(0.5f, 0.5f), 100f);
             return _circleSprite;
         }
 

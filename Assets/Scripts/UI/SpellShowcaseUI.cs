@@ -462,7 +462,7 @@ namespace FWTCG.UI
             nameText.fontSize  = Mathf.RoundToInt(slotW * 0.10f);
             nameText.alignment = TextAnchor.MiddleCenter;
             nameText.color     = new Color(240f/255f, 230f/255f, 210f/255f);
-            nameText.font      = Resources.GetBuiltinResource<Font>("Arial.ttf");
+            nameText.font      = (Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf") ?? Resources.GetBuiltinResource<Font>("Arial.ttf"));
             nameText.fontStyle = FontStyle.Bold;
             nameText.resizeTextForBestFit = true;
             nameText.resizeTextMinSize    = 8;
@@ -481,7 +481,7 @@ namespace FWTCG.UI
             descText.fontSize         = Mathf.RoundToInt(slotW * 0.075f);
             descText.alignment        = TextAnchor.UpperCenter;
             descText.color            = new Color(180f/255f, 180f/255f, 180f/255f);
-            descText.font             = Resources.GetBuiltinResource<Font>("Arial.ttf");
+            descText.font             = (Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf") ?? Resources.GetBuiltinResource<Font>("Arial.ttf"));
             descText.horizontalOverflow = HorizontalWrapMode.Wrap;
             descText.verticalOverflow   = VerticalWrapMode.Truncate;
 
