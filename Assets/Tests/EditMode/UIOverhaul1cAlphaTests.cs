@@ -7,9 +7,8 @@ using FWTCG.Data;
 namespace FWTCG.Tests
 {
     /// <summary>
-    /// UI-OVERHAUL-1c-α: 确定/取消按钮骨架 + 本回合入场栈数据结构测试。
-    /// 只覆盖骨架逻辑（栈记录 / 查询 / 清空 + 按钮条件查询）；
-    /// 真正的 combat 延迟触发 + 回滚留给 1c-β / 1c-γ。
+    /// UI-OVERHAUL-1c-α: 确定按钮亮/暗条件查询骨架测试。
+    /// （取消按钮 + 撤销栈已在 2026-04-22 删除，游戏机制不再允许撤销）
     /// </summary>
     [TestFixture]
     public class UIOverhaul1cAlphaTests
@@ -58,34 +57,7 @@ namespace FWTCG.Tests
                 "战场有我方单位应返回 true（确定按钮亮色）");
         }
 
-        // ── HasThisTurnPlayActions / RecordPlayAction / ClearThisTurnPlayStack ─
-        [Test]
-        public void PlayStack_StartsEmpty()
-        {
-            Assert.IsFalse(_gm.HasThisTurnPlayActions(), "新回合栈应为空");
-        }
-
-        [Test]
-        public void RecordPlayAction_IncreasesStack()
-        {
-            _gm.RecordPlayAction(new GameManager.PlayStackEntry
-            {
-                Kind = GameManager.PlayActionKind.HandToBase,
-                ManaSpent = 2,
-            });
-            Assert.IsTrue(_gm.HasThisTurnPlayActions(), "记录后栈应非空（取消按钮亮色）");
-        }
-
-        [Test]
-        public void ClearThisTurnPlayStack_Empties()
-        {
-            _gm.RecordPlayAction(new GameManager.PlayStackEntry { Kind = GameManager.PlayActionKind.BaseToBF });
-            _gm.RecordPlayAction(new GameManager.PlayStackEntry { Kind = GameManager.PlayActionKind.HandToBase });
-            _gm.ClearThisTurnPlayStack();
-            Assert.IsFalse(_gm.HasThisTurnPlayActions(), "清空后栈应为空");
-        }
-
-        // ── OnConfirmClicked / OnCancelClicked stub 不抛异常 ──────────────────
+        // ── OnConfirmClicked stub 不抛异常 ──────────────────────────────────
         [Test]
         public void OnConfirmClicked_NoBattlefieldUnits_DoesNotThrow()
         {
@@ -93,19 +65,48 @@ namespace FWTCG.Tests
                 "空战场时点击确定应安全返回（广播提示，不崩溃）");
         }
 
+        // ── HasPreparedRunes + 确定按钮激活条件 ──────────────────────────────
         [Test]
-        public void OnCancelClicked_EmptyStack_DoesNotThrow()
+        public void HasPreparedRunes_Empty_False()
         {
-            Assert.DoesNotThrow(() => _gm.OnCancelClicked(),
-                "空栈时点击取消应安全返回（广播提示，不崩溃）");
+            Assert.IsFalse(_gm.HasPreparedRunes(),
+                "无 prepared 符文时应返回 false（确定按钮暗淡）");
         }
 
         [Test]
-        public void OnCancelClicked_WithStack_ClearsStack_Stub()
+        public void HasPreparedRunes_AfterMarkTap_True()
         {
-            _gm.RecordPlayAction(new GameManager.PlayStackEntry { Kind = GameManager.PlayActionKind.HandToBase });
-            _gm.OnCancelClicked();
-            Assert.IsFalse(_gm.HasThisTurnPlayActions(), "1c-α stub: 点击取消后栈应清空（实际回滚留给 1c-γ）");
+            _gs.PRunes.Add(new RuneInstance(0, RuneType.Blazing));
+            _gm.OnRuneClicked(0, recycle: false);
+
+            Assert.IsTrue(_gm.HasPreparedRunes(),
+                "标记 tap 后应返回 true（确定按钮亮起）");
+        }
+
+        [Test]
+        public void HasPreparedRunes_AfterMarkRecycle_True()
+        {
+            _gs.PRunes.Add(new RuneInstance(0, RuneType.Blazing));
+            _gm.OnRuneClicked(0, recycle: true);
+
+            Assert.IsTrue(_gm.HasPreparedRunes(),
+                "标记 recycle 后应返回 true（确定按钮亮起）");
+        }
+
+        // ── OnConfirmClicked 独立 commit prepared 符文 ────────────────────────
+        [Test]
+        public void OnConfirmClicked_PreparedTapOnly_CommitsRuneAndGrantsMana()
+        {
+            _gs.PMana = 0;
+            _gs.PRunes.Add(new RuneInstance(0, RuneType.Blazing));
+            _gm.OnRuneClicked(0, recycle: false);
+            Assert.IsTrue(_gm.HasPreparedRunes());
+
+            _gm.OnConfirmClicked();
+
+            Assert.IsFalse(_gm.HasPreparedRunes(), "commit 后 prepared 集合应清空");
+            Assert.IsTrue(_gs.PRunes[0].Tapped, "符文应被真正横置");
+            Assert.AreEqual(1, _gs.PMana, "横置应 +1 法力");
         }
     }
 }

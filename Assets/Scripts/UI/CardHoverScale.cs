@@ -160,6 +160,48 @@ namespace FWTCG.UI
             {
                 ApplyHoverVisuals();
             }
+
+            // Hotfix-8: 取消选中后若鼠标不在本卡上 → 归零 scale + lift
+            // （OnPointerExit 已在 IsSelected=true 时被 return 跳过，需要此分支补做）
+            if (!IsSelected && !CardDragHandler.BlockPointerEvents && !Input.GetMouseButton(0)
+                && (transform.localScale.x > 1.01f || _isLifted || _liftCurrentOffset > 0.1f))
+            {
+                Camera cam = _overrideCanvas != null ? _overrideCanvas.worldCamera : null;
+                bool mouseOver = _rt != null
+                    && RectTransformUtility.RectangleContainsScreenPoint(_rt, Input.mousePosition, cam);
+                if (!mouseOver)
+                {
+                    if (_overrideCanvas != null) _overrideCanvas.overrideSorting = false;
+                    TweenHelper.KillSafe(ref _scaleTween);
+                    _scaleTween = transform.DOScale(1f, TWEEN_DURATION)
+                        .SetEase(Ease.OutCubic).SetTarget(gameObject);
+                    if (_isLifted || _liftCurrentOffset > 0.1f)
+                    {
+                        _isLifted = false;
+                        TweenHelper.KillSafe(ref _liftTween);
+                        _liftTween = DOTween.To(() => _liftCurrentOffset,
+                                                v => _liftCurrentOffset = v,
+                                                0f, TWEEN_DURATION)
+                            .SetEase(Ease.OutCubic).SetTarget(gameObject);
+                    }
+                }
+            }
+        }
+
+        /// <summary>Force-exit hover state immediately (used when popup steals focus).</summary>
+        public void ForceUnhover()
+        {
+            TweenHelper.KillSafe(ref _scaleTween);
+            TweenHelper.KillSafe(ref _liftTween);
+            transform.localScale = Vector3.one;
+            _liftCurrentOffset = 0f;
+            _isLifted = false;
+            if (_overrideCanvas != null) _overrideCanvas.overrideSorting = false;
+            if (_liftHookSubscribed)
+            {
+                Canvas.willRenderCanvases -= EnforceLift;
+                _liftHookSubscribed = false;
+            }
         }
 
         private void OnDestroy()
