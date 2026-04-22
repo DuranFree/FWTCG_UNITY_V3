@@ -57,7 +57,8 @@ namespace FWTCG.UI
         private Vector2    _dragOriginCanvasPos; // legacy canvas-space
         private Vector3    _dragOriginWorldPos;  // world-space origin（SS-Camera 下正确的参考）
 
-        private Sequence _cancelReturnSeq; // DOT-4: replaced coroutine
+        // Bug fix (post-1c): cancel animation moved to DropCancelHost (independent GO)
+        private Sequence _cancelReturnSeq; // kept for backward-compat OnDestroy cleanup
         private Vector2   _dragScreenPos;
 
         private CanvasGroup _selfCanvasGroup;
@@ -255,24 +256,14 @@ namespace FWTCG.UI
 
             if (stillInSource && _ghost != null)
             {
-                // Play failed or user cancelled — shake ghost then return to origin
+                // Play failed or user cancelled — handover ghost to independent host that survives
+                // this GameObject being destroyed by RefreshUI rebuilding the hand.
                 SetGhostVisible(true);
-                var ghostRT = _ghost.GetComponent<RectTransform>();
-                if (ghostRT != null)
-                {
-                    var shakeSeq = TweenHelper.ShakeUI(ghostRT, CardView.SHAKE_STRENGTH, CardView.SHAKE_DURATION, CardView.SHAKE_VIBRATO);
-                    if (shakeSeq != null)
-                    {
-                        bool shakeDone = false;
-                        shakeSeq.OnComplete(() => shakeDone = true);
-                        shakeSeq.OnKill(() => shakeDone = true);
-                        while (!shakeDone) yield return null;
-                    }
-                }
-                _isCancelling = true;
-                CancelReturnTween();
-                while (_cancelReturnSeq != null && _cancelReturnSeq.IsActive())
-                    yield return null;
+                DropCancelHost.Spawn(_ghost, _dragOriginWorldPos, shake: true);
+                _ghost = null; // transferred to host
+                _isCancelling      = false;
+                BlockPointerEvents = false;
+                RemoveDragOriginOverlay();
                 yield break;
             }
 
@@ -335,57 +326,16 @@ namespace FWTCG.UI
             _isCancelling = true;
             _isDragging   = false;
 
-            CancelReturnTween();
-        }
-
-        /// <summary>Cancel-return animation via DOTween Sequence.</summary>
-        private void CancelReturnTween()
-        {
-            TweenHelper.KillSafe(ref _cancelReturnSeq);
-            _cancelReturnSeq = DOTween.Sequence();
-
+            // Handover ghost to independent host so cancel-return animation survives
+            // this GameObject being destroyed (e.g. right-click cancel during RefreshUI)
             if (_ghost != null)
             {
-                var gT = _ghost.transform;
-                if (gT != null)
-                {
-                    Vector3 target = _dragOriginWorldPos;
-                    _cancelReturnSeq.Join(
-                        DOTween.To(
-                            () => gT.position,
-                            v => gT.position = v,
-                            target, CANCEL_RETURN_DURATION)
-                        .SetEase(Ease.InOutQuad)
-                        .SetTarget(gT));
-                }
+                DropCancelHost.Spawn(_ghost, _dragOriginWorldPos, shake: false);
+                _ghost = null;
             }
-
-            _cancelReturnSeq.OnComplete(() =>
-            {
-                _cancelReturnSeq = null;
-                FinishDragCancel();
-            });
-        }
-
-        private void FinishDragCancel()
-        {
-            _cancelReturnSeq = null;
-            _isCancelling          = false;
-
             RemoveDragOriginOverlay();
-
-            if (_ghost != null) { Destroy(_ghost); _ghost = null; }
-
-            // Clear all selections on cancel so cards return to neutral state
             GameManager.Instance?.ClearAllSelections();
-
-            StartCoroutine(UnblockEventsAfterCancel());
-        }
-
-        private IEnumerator UnblockEventsAfterCancel()
-        {
-            yield return null;
-            yield return null;
+            _isCancelling      = false;
             BlockPointerEvents = false;
         }
 
@@ -542,6 +492,78 @@ namespace FWTCG.UI
         /// Runs landing animation on its own temporary GameObject so it is never
         /// killed when RefreshUI destroys the source CardView's GameObject.
         /// </summary>
+        /// <summary>
+        /// Bug fix (post-1c): ghost 弹回动画 host，独立 GameObject 挂 RootCanvas 下，
+        /// 生命周期与 CardDragHandler 彻底解耦——RefreshUI 销毁 hand CardView 也不会中断弹回。
+        /// </summary>
+        private sealed class DropCancelHost : MonoBehaviour
+        {
+            private GameObject _ghost;
+            private Sequence _seq;
+
+            public static void Spawn(GameObject ghost, Vector3 targetWorldPos, bool shake)
+            {
+                if (ghost == null) return;
+                if (RootCanvas == null)
+                {
+                    // no canvas context: hard destroy ghost to avoid leak
+                    Destroy(ghost);
+                    return;
+                }
+                var hostGO = new GameObject("DropCancelHost");
+                hostGO.transform.SetParent(RootCanvas.transform, false);
+                var host = hostGO.AddComponent<DropCancelHost>();
+                host._ghost = ghost;
+                host.StartCoroutine(host.Run(targetWorldPos, shake));
+            }
+
+            private IEnumerator Run(Vector3 targetWorldPos, bool shake)
+            {
+                if (_ghost == null) { Destroy(gameObject); yield break; }
+
+                // Shake first (failed-play feedback)
+                if (shake)
+                {
+                    var rt = _ghost.GetComponent<RectTransform>();
+                    if (rt != null)
+                    {
+                        var shakeSeq = TweenHelper.ShakeUI(rt, CardView.SHAKE_STRENGTH, CardView.SHAKE_DURATION, CardView.SHAKE_VIBRATO);
+                        if (shakeSeq != null)
+                        {
+                            bool done = false;
+                            shakeSeq.OnComplete(() => done = true);
+                            shakeSeq.OnKill(() => done = true);
+                            while (!done) yield return null;
+                        }
+                    }
+                }
+
+                // Return to origin
+                if (_ghost != null)
+                {
+                    var gT = _ghost.transform;
+                    _seq = DOTween.Sequence().SetTarget(this);
+                    _seq.Append(
+                        DOTween.To(() => gT.position, v => gT.position = v, targetWorldPos, CANCEL_RETURN_DURATION)
+                        .SetEase(Ease.InOutQuad));
+                    bool seqDone = false;
+                    _seq.OnComplete(() => seqDone = true);
+                    _seq.OnKill(() => seqDone = true);
+                    while (!seqDone) yield return null;
+                }
+
+                if (_ghost != null) Destroy(_ghost);
+                GameManager.Instance?.ClearAllSelections();
+                Destroy(gameObject);
+            }
+
+            private void OnDestroy()
+            {
+                TweenHelper.KillSafe(ref _seq);
+                if (_ghost != null) Destroy(_ghost);
+            }
+        }
+
         private sealed class DropAnimHost : MonoBehaviour
         {
             private readonly List<CanvasGroup> _managedCGs = new List<CanvasGroup>();

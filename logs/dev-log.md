@@ -2541,3 +2541,27 @@
 
 **Tests**: 编译 0 error 0 warning；EditMode 1155/1165 通过，10 项失败皆 known-bugs.md 登记的历史项
 **引擎场景验证**：1c-α 阶段已通过 MCP 确认 ConfirmBtn 存在 + 文本"确定" + active；1c-β/γ 的 combat 流改动与按钮动效需 Play Mode 人工验收
+
+---
+
+## UI-OVERHAUL HOTFIX-1：拖拽 ghost 停留空中 bug 修复 — 2026-04-21
+
+**Status**: ✅ Completed
+
+**What was done**:
+- 根因：1b 的 `ValidateAndCommitPreparedFor` 失败路径会 `RefreshUI` → 重建手牌 CardView → 销毁 CardDragHandler GameObject → `DropFlowRoutine` 协程中断，但 ghost (Instantiate 在 RootCanvas 下) 还活着 → 永远留在释放点
+- 新增 `CardDragHandler.DropCancelHost`（nested class，独立 MonoBehaviour 挂 RootCanvas 下）：
+  - `Spawn(ghost, targetWorldPos, shake)` 静态工厂
+  - 协程：shake (optional) → DOTween move to origin → destroy ghost + destroy host
+  - 生命周期与 CardDragHandler 完全解耦
+- `DropFlowRoutine` step 4（stillInSource + _ghost != null）改为 `DropCancelHost.Spawn(_ghost, _dragOriginWorldPos, shake: true)` + `_ghost = null` + `yield break`
+- `StartCancelDrag`（右键中途取消路径）同样改为 spawn host 接管，this 立即清理 selection + unblock events
+- 移除 `CancelReturnTween` / `FinishDragCancel` / `UnblockEventsAfterCancel` 方法体（字段 `_cancelReturnSeq` 保留给 OnDestroy KillSafe 做兜底）
+- 更新 `DOT4ReplacementTests.CardDragHandler_HasCancelReturnTween`：断言改为验证 `DropCancelHost` nested type 存在
+
+**Decisions made**:
+- 选择"独立 host"而非"让 ValidateAndCommitPreparedFor 不调 RefreshUI"：后者会让符文呼吸灯等 UI 状态不同步；前者彻底消除 ghost 生命周期依赖
+- shake 参数化：右键中途取消 `shake=false`（直接弹回），DropFlowRoutine 失败 `shake=true`（传达"出牌失败"反馈）
+- `_cancelReturnSeq` 字段保留但标注为 backward-compat OnDestroy 兜底，后续 cleanup 可删
+
+**Tests**: 编译 0 error 0 warning；EditMode 1155/1165 通过（10 项失败皆 known-bugs.md 登记的历史项）

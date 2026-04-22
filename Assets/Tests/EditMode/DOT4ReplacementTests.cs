@@ -192,9 +192,11 @@ namespace FWTCG.Tests
         [Test]
         public void CardDragHandler_HasCancelReturnTween()
         {
-            var method = typeof(CardDragHandler).GetMethod("CancelReturnTween",
-                BindingFlags.NonPublic | BindingFlags.Instance);
-            Assert.IsNotNull(method, "CancelReturnTween must exist");
+            // Post-1c bug fix: CancelReturnTween 方法已改由独立 DropCancelHost 托管，
+            // 避免 RefreshUI 销毁 CardDragHandler GameObject 时中断弹回。
+            var nested = typeof(CardDragHandler).GetNestedType("DropCancelHost",
+                BindingFlags.NonPublic);
+            Assert.IsNotNull(nested, "DropCancelHost nested type must exist");
         }
 
         [Test]
