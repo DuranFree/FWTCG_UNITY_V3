@@ -99,7 +99,14 @@ namespace FWTCG.UI
                 txt.color      = line.Color;
                 txt.fontSize   = Mathf.RoundToInt(LINE_FONT);
                 txt.alignment  = TextAnchor.MiddleCenter;
-                txt.font       = Resources.GetBuiltinResource<Font>("Arial.ttf");
+                // Hotfix-4: Arial.ttf 在 Unity 新版已移除，用 LegacyRuntime.ttf；try/catch 防崩
+                Font font = null;
+                try { font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf"); } catch { }
+                if (font == null)
+                {
+                    try { font = Resources.GetBuiltinResource<Font>("Arial.ttf"); } catch { }
+                }
+                if (font != null) txt.font = font;
                 txt.raycastTarget = false;
                 txt.supportRichText = true;
                 // 轻描边效果：增加可读性

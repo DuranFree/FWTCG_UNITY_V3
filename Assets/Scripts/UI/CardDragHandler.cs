@@ -243,7 +243,10 @@ namespace FWTCG.UI
             DragSource capturedSource = _dragSource;
 
             // ── Step 2: Trigger game logic ────────────────────────────────────
-            HandleDrop(dropScreenPos);
+            // Hotfix-4: 防护网 — HandleDrop 内部任何异常（如字体加载失败）都不能中断协程
+            // 否则 ghost 永远留在释放点，这是 0b0fdcd 之前卡停留空中的根因
+            try { HandleDrop(dropScreenPos); }
+            catch (System.Exception ex) { Debug.LogError($"[CardDragHandler] HandleDrop 异常（已捕获，流程继续）: {ex}"); }
 
             // ── Step 3: Wait for any confirm dialog to close ──────────────────
             bool hasPrompt = AskPromptUI.IsShowing || SpellTargetPopup.IsShowing;
