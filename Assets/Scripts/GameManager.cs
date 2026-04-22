@@ -158,44 +158,6 @@ namespace FWTCG
         private readonly HashSet<int> _preparedTapIdxs     = new HashSet<int>();
         private readonly HashSet<int> _preparedRecycleIdxs = new HashSet<int>();
 
-        // ── UI-OVERHAUL-1c: 本回合入场栈（手→基地 / 基地→战场） ───────────────
-        /// <summary>
-        /// 本回合入场操作的记录。取消按钮点击时按 LIFO 回滚；回合结束 / 确定按钮点击时清空。
-        /// </summary>
-        public enum PlayActionKind { HandToBase, BaseToBF, HeroToBase }
-
-        public struct PlayStackEntry
-        {
-            public PlayActionKind Kind;
-            public UnitInstance   Unit;
-            public int            BFIndex;         // BaseToBF 才用
-            // 入场消耗（用于回滚）
-            public int            ManaSpent;       // 基础 cost 扣的 mana（含 Haste +1）
-            public FWTCG.Data.RuneType PrimaryType;
-            public int            PrimarySchSpent;
-            public bool           HasSecondary;
-            public FWTCG.Data.RuneType SecondaryType;
-            public int            SecondarySchSpent;
-            public bool           UsedHaste;
-            // 本次 CommitPreparedRunes 的快照（用于回滚 Tap/Recycle）
-            public List<int>          CommittedTappedUids;  // 哪些 rune uid 被 Tapped
-            public List<RuneInstance> CommittedRecycled;    // 哪些 rune 被回收
-        }
-        private readonly List<PlayStackEntry> _thisTurnPlayStack = new List<PlayStackEntry>();
-
-        /// <summary>
-        /// CommitPreparedRunes 完成后把"这一次 commit 的 tap/recycle 快照"填回最近一条 PlayStackEntry。
-        /// 允许回滚时精确还原 Tapped 状态 + PRunes 列表 + PRuneDeck。
-        /// </summary>
-        public struct PreparedCommitSnapshot
-        {
-            public List<int>          TappedUids;
-            public List<RuneInstance> Recycled;
-        }
-
-        /// <summary>外部查询：本回合是否有入场操作（用于取消按钮亮/暗）。</summary>
-        public bool HasThisTurnPlayActions() => _thisTurnPlayStack.Count > 0;
-
         /// <summary>外部查询：战场是否有我方单位（用于确定按钮亮/暗）。</summary>
         public bool HasAnyPlayerUnitOnBattlefield()
         {
@@ -205,11 +167,9 @@ namespace FWTCG
             return false;
         }
 
-        /// <summary>记录一个入场动作到栈（1c-β 的 combat 延迟触发 + 1c-γ 的回滚将调用）。</summary>
-        public void RecordPlayAction(PlayStackEntry entry) => _thisTurnPlayStack.Add(entry);
-
-        /// <summary>清空本回合入场栈（回合结束 / 确定按钮触发结算后调用）。</summary>
-        public void ClearThisTurnPlayStack() => _thisTurnPlayStack.Clear();
+        /// <summary>外部查询：是否有待提交的符文操作（用于确定按钮亮/暗）。</summary>
+        public bool HasPreparedRunes()
+            => _preparedTapIdxs.Count > 0 || _preparedRecycleIdxs.Count > 0;
 
         /// <summary>外部（UI）只读访问当前待横置符文下标。</summary>
         public IReadOnlyCollection<int> GetPreparedTapIdxs()     => _preparedTapIdxs;
@@ -236,16 +196,10 @@ namespace FWTCG
         /// <summary>
         /// 真正执行所有准备标记：tap 的 rune.Tapped=true + _gs.PMana+=N；
         /// recycle 的从 _gs.PRunes 移除 + 放入 PRuneDeck 底部 + AddSch。
-        /// 返回 snapshot 让调用方附到 PlayStackEntry 以支持 1c-γ 回滚。
         /// </summary>
-        private PreparedCommitSnapshot CommitPreparedRunes()
+        private void CommitPreparedRunes()
         {
-            var snap = new PreparedCommitSnapshot
-            {
-                TappedUids = new List<int>(),
-                Recycled   = new List<RuneInstance>(),
-            };
-            if (_gs == null) { ClearPreparedRunes(); return snap; }
+            if (_gs == null) { ClearPreparedRunes(); return; }
 
             // Tap：小到大，不影响索引
             var tapSorted = new List<int>(_preparedTapIdxs);
@@ -257,7 +211,6 @@ namespace FWTCG
                 if (r == null || r.Tapped) continue;
                 r.Tapped = true;
                 _gs.PMana += 1;
-                snap.TappedUids.Add(r.Uid);
             }
 
             // Recycle：大到小 remove，避免索引偏移
@@ -271,22 +224,9 @@ namespace FWTCG
                 _gs.PRunes.RemoveAt(idx);
                 _gs.PRuneDeck.Add(r);
                 _gs.AddSch(GameRules.OWNER_PLAYER, r.RuneType, 1);
-                snap.Recycled.Add(r);
             }
 
             ClearPreparedRunes();
-            return snap;
-        }
-
-        /// <summary>1c-γ 回滚用：栈顶最后一条 entry 附加 CommittedTapped/Recycled 快照。</summary>
-        private void AttachCommitSnapshotToLatestEntry(PreparedCommitSnapshot snap)
-        {
-            if (_thisTurnPlayStack.Count == 0) return;
-            int i = _thisTurnPlayStack.Count - 1;
-            var e = _thisTurnPlayStack[i];
-            e.CommittedTappedUids = snap.TappedUids;
-            e.CommittedRecycled   = snap.Recycled;
-            _thisTurnPlayStack[i] = e;
         }
 
         /// <summary>
@@ -347,7 +287,7 @@ namespace FWTCG
             }
 
             // Commit prepared runes（真正 tap/recycle）
-            var snap = CommitPreparedRunes();
+            CommitPreparedRunes();
 
             // 扣 mana + 扣 sch（包括 Haste 额外 +1 +1）
             int manaTotal   = cost + (useHaste ? 1 : 0);
@@ -358,20 +298,6 @@ namespace FWTCG
             if (card.CardData.HasSecondaryRune && secondaryNeed > 0)
                 _gs.SpendSch(GameRules.OWNER_PLAYER, card.CardData.SecondaryRuneType, secondaryNeed);
 
-            // 记录入场栈条目，便于 1c-γ 回滚（Unit 会由调用方补填）
-            var entry = new PlayStackEntry
-            {
-                ManaSpent           = manaTotal,
-                PrimaryType         = card.CardData.RuneType,
-                PrimarySchSpent     = primaryTotal,
-                HasSecondary        = card.CardData.HasSecondaryRune,
-                SecondaryType       = card.CardData.HasSecondaryRune ? card.CardData.SecondaryRuneType : default,
-                SecondarySchSpent   = secondaryNeed,
-                UsedHaste           = useHaste,
-                CommittedTappedUids = snap.TappedUids,
-                CommittedRecycled   = snap.Recycled,
-            };
-            _pendingStackEntry = entry;
             _lastCommitUsedHaste = useHaste;
 
             if (useHaste)
@@ -381,8 +307,6 @@ namespace FWTCG
             return true;
         }
 
-        // 1c-β: commit 后、调用方 RecordPlayAction 前保存 entry
-        private PlayStackEntry _pendingStackEntry;
         private bool _lastCommitUsedHaste;
 
         // ── DEV-22: Drag query helpers (used by CardDragHandler) ─────────────
@@ -561,6 +485,9 @@ namespace FWTCG
             if (_reactiveWindowUI == null) _reactiveWindowUI = GetComponent<ReactiveWindowUI>();
             if (_legendSys == null) _legendSys = GetComponent<LegendSystem>();
             if (_spellDuelUI == null) _spellDuelUI = gameObject.AddComponent<SpellDuelUI>(); // DEV-30 F2
+            // Hotfix-12: 确保 EntryEffectVFX 单例存在（自动挂在 GameManager 上）
+            if (FWTCG.UI.EntryEffectVFX.Instance == null)
+                gameObject.AddComponent<FWTCG.UI.EntryEffectVFX>();
 
             // Wire react button
             if (_reactBtn != null) _reactBtn.onClick.AddListener(OnReactClicked);
@@ -993,12 +920,6 @@ namespace FWTCG
                         else
                         {
                             _combatSys.MoveUnit(u, "base", bfId, GameRules.OWNER_PLAYER, _gs);
-                            _thisTurnPlayStack.Add(new PlayStackEntry
-                            {
-                                Kind    = PlayActionKind.BaseToBF,
-                                Unit    = u,
-                                BFIndex = bfId,
-                            });
                         }
                     }
                 }
@@ -1083,15 +1004,17 @@ namespace FWTCG
             _selectedBaseUnits.Clear();
             _selectedHandUnits.Clear();
             ClearPreparedRunes();
-            ClearThisTurnPlayStack();
             _turnMgr.EndTurn();
             RefreshUI();
         }
 
-        // ── UI-OVERHAUL-1c-β/γ: 确定 / 取消按钮真实实现 ──────────────────────
+        // ── UI-OVERHAUL-1c-β: 确定按钮实现 ────────────────────────────────────
 
         /// <summary>
-        /// 1c-β: 全局"确定"按钮 — 遍历所有战场触发 combat / spell duel。
+        /// 1c-β: 全局"确定"按钮 —
+        ///   - 有 prepared 符文 → 先独立 commit（tap/recycle 真正执行，获得 mana/sch）
+        ///   - 有战场己方单位 → 再遍历所有战场触发 combat / spell duel
+        ///   - 两者皆无 → 提示忽略
         /// </summary>
         public async void OnConfirmClicked()
         {
@@ -1099,9 +1022,25 @@ namespace FWTCG
             if (_gs.Turn != GameRules.OWNER_PLAYER) return;
             if (_gs.Phase != GameRules.PHASE_ACTION) return;
             if (_bfClickInFlight) return;
-            if (!HasAnyPlayerUnitOnBattlefield())
+
+            bool hadPreparedRunes = HasPreparedRunes();
+            bool hasBfUnits       = HasAnyPlayerUnitOnBattlefield();
+
+            if (!hadPreparedRunes && !hasBfUnits)
             {
-                TurnManager.BroadcastMessage_Static("[提示] 战场无我方单位，无法触发确定");
+                TurnManager.BroadcastMessage_Static("[提示] 无可确定的操作");
+                return;
+            }
+
+            if (hadPreparedRunes)
+            {
+                CommitPreparedRunes();
+                TurnManager.BroadcastMessage_Static("[符文] 已提交准备的横置/回收操作");
+            }
+
+            if (!hasBfUnits)
+            {
+                RefreshUI();
                 return;
             }
 
@@ -1113,7 +1052,6 @@ namespace FWTCG
             finally
             {
                 _bfClickInFlight = false;
-                ClearThisTurnPlayStack(); // combat 已结算，无法回滚
                 if (!_gs.GameOver) RefreshUI();
             }
         }
@@ -1141,108 +1079,6 @@ namespace FWTCG
             if (anyCombat)
             {
                 await System.Threading.Tasks.Task.Delay(550); // hit flash + death anim 余韵
-            }
-        }
-
-        /// <summary>
-        /// 1c-γ: 全局"取消"按钮 — LIFO 回滚本回合所有入场操作：
-        ///   - Tap/Recycle 符文：还原 Tapped / 从 RuneDeck 拿回 + 撤销 sch 增加
-        ///   - 扣除的 mana / sch：还原
-        ///   - HandToBase: PBase.Remove → PHand.Add，unit.Exhausted/PlayedThisTurn 还原
-        ///   - HeroToBase: PBase.Remove → PHero 恢复
-        ///   - BaseToBF:   BF.PlayerUnits.Remove → PBase.Add
-        /// </summary>
-        public void OnCancelClicked()
-        {
-            if (_gs == null || _gs.GameOver) return;
-            if (_gs.Turn != GameRules.OWNER_PLAYER) return;
-            if (_gs.Phase != GameRules.PHASE_ACTION) return;
-            if (_thisTurnPlayStack.Count == 0)
-            {
-                TurnManager.BroadcastMessage_Static("[提示] 本回合没有可撤销的操作");
-                return;
-            }
-
-            int rolled = 0;
-            for (int i = _thisTurnPlayStack.Count - 1; i >= 0; i--)
-            {
-                var e = _thisTurnPlayStack[i];
-                RollbackEntry(e);
-                rolled++;
-            }
-            _thisTurnPlayStack.Clear();
-            _gs.CardsPlayedThisTurn = Mathf.Max(0, _gs.CardsPlayedThisTurn - rolled);
-
-            TurnManager.BroadcastMessage_Static($"[取消] 已回滚本回合 {rolled} 个操作");
-            RefreshUI();
-        }
-
-        /// <summary>单条 entry 回滚（按单位位置/资源消耗/符文快照逐项撤销）。</summary>
-        private void RollbackEntry(PlayStackEntry e)
-        {
-            if (_gs == null || e.Unit == null) return;
-
-            // 1. 单位位置还原
-            switch (e.Kind)
-            {
-                case PlayActionKind.HandToBase:
-                    if (_gs.PBase.Contains(e.Unit)) _gs.PBase.Remove(e.Unit);
-                    _gs.PHand.Add(e.Unit);
-                    e.Unit.PlayedThisTurn = false;
-                    e.Unit.Exhausted      = false;
-                    break;
-
-                case PlayActionKind.HeroToBase:
-                    if (_gs.PBase.Contains(e.Unit)) _gs.PBase.Remove(e.Unit);
-                    _gs.PHero = e.Unit;
-                    e.Unit.PlayedThisTurn = false;
-                    e.Unit.Exhausted      = false;
-                    break;
-
-                case PlayActionKind.BaseToBF:
-                    if (e.BFIndex >= 0 && e.BFIndex < GameRules.BATTLEFIELD_COUNT)
-                    {
-                        if (_gs.BF[e.BFIndex].PlayerUnits.Contains(e.Unit))
-                            _gs.BF[e.BFIndex].PlayerUnits.Remove(e.Unit);
-                    }
-                    _gs.PBase.Add(e.Unit);
-                    e.Unit.Exhausted = false; // 派遣前未休眠
-                    break;
-            }
-
-            // 2. 扣除的 mana / sch 还原（仅 Hand/HeroToBase 有资源消耗）
-            if (e.Kind == PlayActionKind.HandToBase || e.Kind == PlayActionKind.HeroToBase)
-            {
-                _gs.PMana += e.ManaSpent;
-                if (e.PrimarySchSpent > 0)
-                    _gs.AddSch(GameRules.OWNER_PLAYER, e.PrimaryType, e.PrimarySchSpent);
-                if (e.HasSecondary && e.SecondarySchSpent > 0)
-                    _gs.AddSch(GameRules.OWNER_PLAYER, e.SecondaryType, e.SecondarySchSpent);
-
-                // 3. Rune tap/recycle 快照撤销
-                if (e.CommittedTappedUids != null)
-                {
-                    foreach (int uid in e.CommittedTappedUids)
-                    {
-                        var r = _gs.PRunes.Find(x => x != null && x.Uid == uid);
-                        if (r != null && r.Tapped)
-                        {
-                            r.Tapped = false;
-                            _gs.PMana -= 1; // commit 时 PMana+=1，回滚撤销
-                        }
-                    }
-                }
-                if (e.CommittedRecycled != null)
-                {
-                    foreach (var r in e.CommittedRecycled)
-                    {
-                        if (r == null) continue;
-                        // 从 PRuneDeck 尾部移除（commit 时 Add 到尾）
-                        if (_gs.PRuneDeck.Contains(r)) _gs.PRuneDeck.Remove(r);
-                        _gs.PRunes.Add(r);
-                        _gs.SpendSch(GameRules.OWNER_PLAYER, r.RuneType, 1);
-                    }
-                }
             }
         }
 
@@ -1703,14 +1539,6 @@ namespace FWTCG
             TurnManager.BroadcastMessage_Static(
                 $"[打出] {unit.UnitName}（剩余法力 {_gs.PMana}）");
 
-            // UI-OVERHAUL-1c-β: 记录入场栈（HandToBase）— _pendingStackEntry 由 ValidateAndCommit 填好资源数据
-            var entry = _pendingStackEntry;
-            entry.Kind    = PlayActionKind.HandToBase;
-            entry.Unit    = unit;
-            entry.BFIndex = -1;
-            _thisTurnPlayStack.Add(entry);
-            _pendingStackEntry = default;
-
             // Trigger entry effects
             if (_entryEffects != null)
                 _entryEffects.OnUnitEntered(unit, GameRules.OWNER_PLAYER, _gs);
@@ -1791,14 +1619,6 @@ namespace FWTCG
             _gs.CardsPlayedThisTurn++;
             FireCardPlayed(hero, GameRules.OWNER_PLAYER);
             TurnManager.BroadcastMessage_Static($"[英雄出场] {hero.UnitName}（剩余法力 {_gs.PMana}）");
-
-            // UI-OVERHAUL-1c-β: 记录入场栈（HeroToBase）
-            var entry = _pendingStackEntry;
-            entry.Kind    = PlayActionKind.HeroToBase;
-            entry.Unit    = hero;
-            entry.BFIndex = -1;
-            _thisTurnPlayStack.Add(entry);
-            _pendingStackEntry = default;
 
             if (_entryEffects != null)
                 _entryEffects.OnUnitEntered(hero, GameRules.OWNER_PLAYER, _gs);
