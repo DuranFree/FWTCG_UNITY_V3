@@ -398,7 +398,11 @@ namespace FWTCG.UI
             float dt = Time.deltaTime;
             _handFanCurrentAngle = Mathf.LerpAngle(_handFanCurrentAngle, _handFanAngle,   dt * FAN_LERP_SPEED);
             _handFanCurrentX     = Mathf.Lerp     (_handFanCurrentX,     _handFanTargetX, dt * FAN_LERP_SPEED);
-            _handFanCurrentY     = Mathf.Lerp     (_handFanCurrentY,     _handFanTargetY, dt * FAN_LERP_SPEED);
+
+            // 选中时：y 目标抬高 LiftOffset，否则 fan LateUpdate 会吃掉 lift tween，
+            // 造成"选中但不抬起 / 切换后不回弹"视觉 bug
+            float effectiveTargetY = _selected ? _handFanTargetY + LiftOffset : _handFanTargetY;
+            _handFanCurrentY     = Mathf.Lerp     (_handFanCurrentY,     effectiveTargetY, dt * FAN_LERP_SPEED);
 
             var rt = (RectTransform)transform;
             rt.anchoredPosition = new Vector2(_handFanCurrentX, _handFanCurrentY);
@@ -497,7 +501,15 @@ namespace FWTCG.UI
             {
                 if (Input.GetMouseButton(0)) return;
                 if (_unit != null && _onRightClick != null && !_faceDown)
+                {
+                    // Strip the source card's hover/selection visuals so it stops competing with the popup
+                    var hover = GetComponent<CardHoverScale>();
+                    if (hover != null) hover.ForceUnhover();
+                    StopHandSpread();
+                    StopOrbit();
+                    StopSelectionBreath();
                     _onRightClick(_unit);
+                }
             }
         }
 
@@ -941,31 +953,79 @@ namespace FWTCG.UI
                     ? new Color(0.25f, 1f, 0.45f, 1f) // 玩家：亮绿
                     : new Color(1f, 0.3f, 0.3f, 1f);  // 敌方：红
 
-                // Layer 0: 硬边（alpha 1, 1px）
+                // Hotfix-9: 细线环绕光 — 三层 Outline 叠加（1.5px 实线 + 2.5px 半透 + 3.5px 淡透）
+                // 呼吸 tween 由 StartSelectionBreath 驱动 alpha 往复。
+                // 禁用大面积 halo（视觉过厚）
+                if (_selectionHalo != null) _selectionHalo.SetActive(false);
                 _selOutlines[0].enabled = true;
-                _selOutlines[0].effectColor = baseCol;
-                _selOutlines[0].effectDistance = new Vector2(1f, -1f);
+                _selOutlines[0].effectColor    = baseCol;
+                _selOutlines[0].effectDistance = new Vector2(1.5f, -1.5f);
                 _selOutlines[0].useGraphicAlpha = false;
-
-                // Layer 1: 中圈软光晕（alpha 0.55, 2.5px）
                 _selOutlines[1].enabled = true;
-                Color c1 = baseCol; c1.a = 0.55f;
-                _selOutlines[1].effectColor = c1;
-                _selOutlines[1].effectDistance = new Vector2(2.5f, -2.5f);
+                _selOutlines[1].effectColor    = new Color(baseCol.r, baseCol.g, baseCol.b, 0.55f);
+                _selOutlines[1].effectDistance = new Vector2(2.8f, -2.8f);
                 _selOutlines[1].useGraphicAlpha = false;
-
-                // Layer 2: 外圈扩散光晕（alpha 0.22, 5px）
                 _selOutlines[2].enabled = true;
-                Color c2 = baseCol; c2.a = 0.22f;
-                _selOutlines[2].effectColor = c2;
-                _selOutlines[2].effectDistance = new Vector2(5f, -5f);
+                _selOutlines[2].effectColor    = new Color(baseCol.r, baseCol.g, baseCol.b, 0.25f);
+                _selOutlines[2].effectDistance = new Vector2(4.2f, -4.2f);
                 _selOutlines[2].useGraphicAlpha = false;
             }
             else
             {
                 for (int i = 0; i < 3; i++)
                     if (_selOutlines[i] != null) _selOutlines[i].enabled = false;
+                if (_selectionHalo != null) _selectionHalo.SetActive(false);
             }
+        }
+
+        // Selection halo: a single soft gaussian sprite child rendered behind the card,
+        // sized 1.18× card so the falloff bleeds out without forming a hard frame.
+        private GameObject _selectionHalo;
+        private Image _selectionHaloImg;
+        private void EnsureSelectionHalo(Color tint)
+        {
+            if (_selectionHalo == null)
+            {
+                _selectionHalo = new GameObject("SelectionHalo", typeof(RectTransform));
+                _selectionHalo.transform.SetParent(transform, false);
+                _selectionHalo.transform.SetAsFirstSibling(); // behind everything else on the card
+                var hRT = _selectionHalo.GetComponent<RectTransform>();
+                hRT.anchorMin = Vector2.zero; hRT.anchorMax = Vector2.one;
+                hRT.offsetMin = new Vector2(-22f, -22f);
+                hRT.offsetMax = new Vector2( 22f,  22f);
+                _selectionHaloImg = _selectionHalo.AddComponent<Image>();
+                _selectionHaloImg.sprite = GetSoftHaloSprite();
+                _selectionHaloImg.raycastTarget = false;
+            }
+            _selectionHalo.SetActive(true);
+            _selectionHaloImg.color = new Color(tint.r, tint.g, tint.b, 0.55f);
+        }
+
+        // Cached gaussian-falloff sprite reused for every selection halo
+        private static Sprite _softHaloSprite;
+        private static Sprite GetSoftHaloSprite()
+        {
+            if (_softHaloSprite != null) return _softHaloSprite;
+            const int W = 128;
+            var tex = new Texture2D(W, W, TextureFormat.RGBA32, false);
+            tex.filterMode = FilterMode.Bilinear;
+            tex.wrapMode = TextureWrapMode.Clamp;
+            float cx = (W - 1) / 2f, cy = (W - 1) / 2f;
+            float sigma = W * 0.30f;
+            float twoSigSq = 2f * sigma * sigma;
+            var px = new Color32[W * W];
+            for (int y = 0; y < W; y++)
+            for (int x = 0; x < W; x++)
+            {
+                float dx = x - cx, dy = y - cy;
+                float r2 = dx * dx + dy * dy;
+                float g = Mathf.Exp(-r2 / twoSigSq);
+                px[y * W + x] = new Color32(255, 255, 255, (byte)(g * 255));
+            }
+            tex.SetPixels32(px);
+            tex.Apply();
+            _softHaloSprite = Sprite.Create(tex, new Rect(0, 0, W, W), new Vector2(0.5f, 0.5f), 100f);
+            return _softHaloSprite;
         }
 
         private void HideAllCardOverlays()
@@ -1059,10 +1119,10 @@ namespace FWTCG.UI
 
         private void PlayClickPunch()
         {
-            // Punch around current scale (hover keeps card at 1.18× — punch is additive)
+            // Hotfix-9: 轻量点击反馈 — 振幅 0.08 → 0.025 避免和 HoverScale 冲突造成"两次点击"抖动
             TweenHelper.KillSafe(ref _clickPunchTween);
             Vector3 baseScale = transform.localScale;
-            _clickPunchTween = transform.DOPunchScale(new Vector3(0.08f, 0.08f, 0f), 0.22f, 6, 0.7f)
+            _clickPunchTween = transform.DOPunchScale(new Vector3(0.025f, 0.025f, 0f), 0.16f, 2, 0.4f)
                 .OnKill(() => { if (this != null) transform.localScale = baseScale; })
                 .SetTarget(gameObject);
         }
@@ -1070,18 +1130,27 @@ namespace FWTCG.UI
         private void StartSelectionBreath()
         {
             TweenHelper.KillSafe(ref _selectionBreathTween);
-            // Drive the alpha multiplier of all 3 selection outlines layers (already created by RefreshSelectedOutline)
-            _selectionBreathTween = DOVirtual.Float(0f, 1f, 1.1f, v =>
+            // Hotfix-9: 驱动三层 outline alpha 错相呼吸营造"流动"感
+            Color baseCol = _isPlayerCard
+                ? new Color(0.25f, 1f, 0.45f, 1f)
+                : new Color(1f, 0.3f, 0.3f, 1f);
+            _selectionBreathTween = DOVirtual.Float(0f, 1f, 1.4f, v =>
             {
-                if (this == null || _selOutlines == null) return;
-                float t = 0.5f - 0.5f * Mathf.Cos(v * Mathf.PI * 2f); // 0→1→0
-                float[] baseAlphas = { 1f, 0.55f, 0.22f };
-                float boost = Mathf.Lerp(0.6f, 1f, t); // 60%→100% pulsation
-                for (int i = 0; i < 3; i++)
+                if (this == null) return;
+                float tau = v * Mathf.PI * 2f;
+                // 三层相位偏移 0 / 0.33 / 0.66，形成流光错相
+                for (int i = 0; i < 3 && _selOutlines[i] != null; i++)
                 {
-                    if (_selOutlines[i] == null) continue;
+                    float phase = tau - i * (Mathf.PI * 0.66f);
+                    float t = 0.5f - 0.5f * Mathf.Cos(phase);
+                    float alpha = i switch
+                    {
+                        0 => Mathf.Lerp(0.75f, 1.00f, t),
+                        1 => Mathf.Lerp(0.30f, 0.65f, t),
+                        _ => Mathf.Lerp(0.12f, 0.35f, t),
+                    };
                     var c = _selOutlines[i].effectColor;
-                    c.a = baseAlphas[i] * boost;
+                    c.a = alpha;
                     _selOutlines[i].effectColor = c;
                 }
             }).SetEase(Ease.Linear).SetLoops(-1, LoopType.Restart).SetTarget(gameObject);
