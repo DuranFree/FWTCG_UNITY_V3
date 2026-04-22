@@ -955,17 +955,14 @@ namespace FWTCG.UI
                     ? new Color(0.25f, 1f, 0.45f, 1f) // 玩家：亮绿
                     : new Color(1f, 0.3f, 0.3f, 1f);  // 敌方：红
 
-                // Hotfix-10: 极细单层线（0.8px）+ 外 1 层淡晕（1.5px）— 不再用 3 层厚 halo
+                // Hotfix-11: 极细单线（0.3px ≈ 当前 0.8px 的 1/3），砍掉外淡晕与第三层
                 if (_selectionHalo != null) _selectionHalo.SetActive(false);
                 _selOutlines[0].enabled = true;
                 _selOutlines[0].effectColor    = baseCol;
-                _selOutlines[0].effectDistance = new Vector2(0.8f, -0.8f);
+                _selOutlines[0].effectDistance = new Vector2(0.3f, -0.3f);
                 _selOutlines[0].useGraphicAlpha = false;
-                _selOutlines[1].enabled = true;
-                _selOutlines[1].effectColor    = new Color(baseCol.r, baseCol.g, baseCol.b, 0.25f);
-                _selOutlines[1].effectDistance = new Vector2(1.5f, -1.5f);
-                _selOutlines[1].useGraphicAlpha = false;
-                _selOutlines[2].enabled = false; // 砍掉最外层
+                _selOutlines[1].enabled = false;
+                _selOutlines[2].enabled = false;
             }
             else
             {
@@ -1764,14 +1761,13 @@ namespace FWTCG.UI
 
         private void StartOrbit()
         {
-            // 主流星头
+            // Hotfix-11: 流星头/尾尺寸缩小 ~40% 以匹配更细的边框
             if (_orbitDot == null)
             {
-                _orbitDot = CreateCometDot("CometHead", size: 8f, alpha: 1f);
+                _orbitDot = CreateCometDot("CometHead", size: 5f, alpha: 1f);
             }
             _orbitDot.SetActive(true);
-            // 拖尾 3 颗，尺寸 alpha 递减
-            float[] tailSizes  = { 6f, 4.5f, 3f };
+            float[] tailSizes  = { 3.5f, 2.5f, 1.8f };
             float[] tailAlphas = { 0.70f, 0.45f, 0.22f };
             for (int i = 0; i < _cometTail.Length; i++)
             {
