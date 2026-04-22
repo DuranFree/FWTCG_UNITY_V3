@@ -100,13 +100,19 @@ namespace FWTCG.UI
 
         private void OnDestroy()
         {
+            // Hotfix-3: 最强兜底 — this 销毁时 ghost 必须清理，防止任何协程中断路径留下残余
+            if (_ghost != null)
+            {
+                Debug.Log("[CardDragHandler] OnDestroy: force-destroying leftover ghost");
+                Destroy(_ghost);
+                _ghost = null;
+            }
             _isDragging        = false;
             _isCancelling      = false;
             _hiddenDuringDrag  = false;
             _dragPending       = false;
             BlockPointerEvents = false;
             TweenHelper.KillSafe(ref _cancelReturnSeq);
-            if (_ghost != null) { Destroy(_ghost); _ghost = null; }
         }
 
         // ── IPointerDownHandler ──────────────────────────────────────────────
@@ -197,8 +203,15 @@ namespace FWTCG.UI
 
         public void OnEndDrag(PointerEventData eventData)
         {
+            Debug.Log($"[CardDragHandler] OnEndDrag: _dragPending={_dragPending} _isDragging={_isDragging} _isCancelling={_isCancelling} _ghost={(_ghost != null)}");
             if (_dragPending) { _dragPending = false; return; }
-            if (!_isDragging || _isCancelling) return;
+            if (!_isDragging || _isCancelling)
+            {
+                // 防御性兜底：任何路径下如果 ghost 还在，直接清掉避免残留
+                if (_ghost != null) { Destroy(_ghost); _ghost = null; }
+                RemoveDragOriginOverlay();
+                return;
+            }
 
             if (ShouldCancelDrop(eventData.position))
             {
@@ -322,7 +335,13 @@ namespace FWTCG.UI
 
         private void StartCancelDrag()
         {
-            if (_isCancelling) return;
+            Debug.Log("[CardDragHandler] StartCancelDrag");
+            if (_isCancelling)
+            {
+                // 兜底：即便 _isCancelling 已为 true，也要确保 ghost 不残留
+                if (_ghost != null) { Destroy(_ghost); _ghost = null; }
+                return;
+            }
             _isCancelling = true;
             _isDragging   = false;
 
