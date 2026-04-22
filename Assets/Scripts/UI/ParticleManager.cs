@@ -75,10 +75,16 @@ namespace FWTCG.UI
         }
 
         private static Sprite _circleSprite;
+        private static bool   _circleSpriteTried;
         private static Sprite GetCircleSprite()
         {
-            if (_circleSprite == null)
-                _circleSprite = Resources.GetBuiltinResource<Sprite>("UI/Skin/Knob.psd");
+            // Hotfix-6: Knob.psd 在新 Unity 版本不可用；try 一次后缓存失败结果避免每帧 spam
+            if (_circleSprite == null && !_circleSpriteTried)
+            {
+                _circleSpriteTried = true;
+                try { _circleSprite = Resources.GetBuiltinResource<Sprite>("UI/Skin/Knob.psd"); }
+                catch { _circleSprite = null; }
+            }
             return _circleSprite;
         }
 
