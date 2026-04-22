@@ -113,13 +113,16 @@ namespace FWTCG.UI
                     + new Vector2(Random.Range(-40f, 40f), 0f);
 
                 float dur = Random.Range(0.75f, 1.25f);
-                rt.DOAnchorPos(target, dur).SetEase(Ease.OutCubic).SetTarget(sg);
-                rt.DOScale(0.1f, dur).SetEase(Ease.InQuad).SetTarget(sg);
-                img.DOFade(0f, dur).SetEase(Ease.InQuad).SetTarget(sg)
-                    .OnComplete(() =>
-                    {
-                        if (sg != null) UnityEngine.Object.Destroy(sg);
-                    });
+                rt.DOAnchorPos(target, dur).SetEase(Ease.OutCubic).SetTarget(sg).LinkKillOnDestroy(sg);
+                rt.DOScale(0.1f, dur).SetEase(Ease.InQuad).SetTarget(sg).LinkKillOnDestroy(sg);
+                // OnKill 也销毁 sg：tween 被外部 KillAll 时 OnComplete 不 fire → sg 会泄漏为孤儿（800+ 在场景残留）
+                void DestroySpark()
+                {
+                    if (sg != null) UnityEngine.Object.Destroy(sg);
+                }
+                img.DOFade(0f, dur).SetEase(Ease.InQuad).SetTarget(sg).LinkKillOnDestroy(sg)
+                    .OnComplete(DestroySpark)
+                    .OnKill(DestroySpark);
             }
         }
 

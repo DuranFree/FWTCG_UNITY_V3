@@ -13,7 +13,7 @@ MonoBehaviour:
   m_Name: yi_hero
   m_EditorClassIdentifier: 
   _id: yi_hero
-  _cardName: "\u6613\u00B7\u950B\u8292\u6BD5\u73B0"
+  _cardName: "\u6613\xB7\u950B\u8292\u6BD5\u73B0"
   _cost: 7
   _runeType: 3
   _runeCost: 1

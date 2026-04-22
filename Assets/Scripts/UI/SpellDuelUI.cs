@@ -72,6 +72,10 @@ namespace FWTCG.UI
             if (IsShowing) return;
             IsShowing = true;
 
+            // SpellDuel 和 SpellShowcase 是互斥的全屏 overlay — 开 duel 时
+            // 强制关掉 showcase，避免同时显示导致输入锁死 / 视觉叠加
+            SpellShowcaseUI.Instance?.ForceHide();
+
             Canvas root = _rootCanvas != null ? _rootCanvas : FindRootCanvas();
             if (root == null) return;
 
@@ -234,7 +238,6 @@ namespace FWTCG.UI
             })
             .SetEase(Ease.InOutSine)
             .SetLoops(-1, LoopType.Yoyo)
-            .SetUpdate(true)
             .SetTarget(gameObject);
         }
 
@@ -250,7 +253,6 @@ namespace FWTCG.UI
                     _countdownBar.rectTransform.localScale = new Vector3(frac, 1f, 1f);
             })
             .SetEase(Ease.Linear)
-            .SetUpdate(true)
             .SetTarget(gameObject)
             .OnComplete(() =>
             {

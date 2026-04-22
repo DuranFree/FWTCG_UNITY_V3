@@ -127,7 +127,10 @@ namespace FWTCG.Systems
                 bf.Ctrl = owner;
 
                 bool controlChanged = (previousCtrl != owner);
-                if (controlChanged && !gs.BFConqueredThisTurn.Contains(bfId))
+                // B-SCORE-2 (Rule 30.1): 征服要求"该战场本回合尚未得过分"— 包括据守
+                bool alreadyScored = gs.BFConqueredThisTurn.Contains(bfId) ||
+                                     gs.BFScoredThisTurn.Contains(bfId);
+                if (controlChanged && !alreadyScored)
                 {
                     Log($"[征服] {DisplayName(owner)} 占领空战场{bfId + 1}");
                     score.AddScore(owner, 1, GameRules.SCORE_TYPE_CONQUER, bfId, gs);
@@ -285,9 +288,12 @@ namespace FWTCG.Systems
                 bf.Ctrl = attacker;
                 Log($"[战斗] {DisplayName(attacker)} 获胜，征服战场{bfId + 1}");
 
-                // #8: Conquest requires control change + not already scored
+                // #8: Conquest requires control change + BF not already scored this turn
+                // B-SCORE-2 (Rule 30.1)：包含据守历史检查
                 bool controlChanged = (previousCtrl != attacker);
-                if (controlChanged && !gs.BFConqueredThisTurn.Contains(bfId))
+                bool alreadyScored = gs.BFConqueredThisTurn.Contains(bfId) ||
+                                     gs.BFScoredThisTurn.Contains(bfId);
+                if (controlChanged && !alreadyScored)
                 {
                     score.AddScore(attacker, 1, GameRules.SCORE_TYPE_CONQUER, bfId, gs);
                 }

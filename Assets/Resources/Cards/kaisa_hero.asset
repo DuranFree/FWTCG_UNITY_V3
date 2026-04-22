@@ -13,7 +13,7 @@ MonoBehaviour:
   m_Name: kaisa_hero
   m_EditorClassIdentifier: 
   _id: kaisa_hero
-  _cardName: "\u5361\u838E\u00B7\u4E5D\u6B7B\u4E00\u751F"
+  _cardName: "\u5361\u838E\xB7\u4E5D\u6B7B\u4E00\u751F"
   _cost: 4
   _runeType: 0
   _runeCost: 0

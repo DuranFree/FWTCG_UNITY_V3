@@ -56,7 +56,7 @@ namespace FWTCG.UI
 
             Vector2 endPos = _rt.anchoredPosition + new Vector2(0f, 75f);
 
-            _seq = DOTween.Sequence().SetTarget(gameObject);
+            _seq = DOTween.Sequence().SetTarget(gameObject).LinkKillOnDestroy(gameObject);
             // Scale pop on spawn: 0.6 → 1.15 (OutBack overshoot) → 1.0
             _rt.localScale = Vector3.one * 0.6f;
             _seq.Append(_rt.DOScale(1.15f, duration * 0.2f).SetEase(Ease.OutBack));

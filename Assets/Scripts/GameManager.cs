@@ -595,6 +595,10 @@ namespace FWTCG
             // 2. 停止所有当前协程（GameLoop、RunWithStartup 等）
             StopAllCoroutines();
 
+            // 2b. KillAll 前先清理残留 dissolve material —— 否则 coroutine 被中断时
+            //     Image 仍持有 dissolve material + 可能空 sprite → 渲染 magenta
+            CleanupDissolveMaterials();
+
             // 3. 停掉所有 DOTween（清除残留动画）
             DOTween.KillAll();
 
@@ -616,9 +620,45 @@ namespace FWTCG
             _aiReactionTcs?.TrySetCanceled();
             _aiReactionTcs = null;
 
-            // 6. 重新初始化并启动完整流程（含硬币+换牌）
+            // 6. 关闭残留 UI（GameOver / 两个 Showcase / SpellDuel）——
+            //    DOTween.KillAll 后 OnComplete 不会 fire，必须主动清理否则面板卡屏
+            UI.GameUI.Instance?.HideGameOver();
+            UI.LegendSkillShowcase.Instance?.ForceHide();
+            UI.SpellShowcaseUI.Instance?.ForceHide();
+            UI.SpellDuelUI.Instance?.HideDuelOverlay();
+
+            // 7. 重新初始化并启动完整流程（含硬币+换牌）
             InitGame();
             StartCoroutine(RunWithStartup());
+        }
+
+        /// <summary>
+        /// 扫描所有 UI Image 和 RawImage，清掉名字带 "Dissolve" 的自定义材质。
+        /// 紫色 magenta 的主要来源：KillAll 打断 dissolve coroutine 后 Image 仍持有
+        /// dissolve material + sprite 可能被销毁 → shader 采样空纹理 → 渲染紫色。
+        /// </summary>
+        private static void CleanupDissolveMaterials()
+        {
+            foreach (var img in FindObjectsOfType<UnityEngine.UI.Image>(true))
+            {
+                if (img == null) continue;
+                var mat = img.material;
+                if (mat != null && mat != img.defaultMaterial &&
+                    (mat.shader == null || mat.shader.name.IndexOf("Dissolve", System.StringComparison.OrdinalIgnoreCase) >= 0))
+                {
+                    img.material = null;
+                }
+            }
+            foreach (var ri in FindObjectsOfType<UnityEngine.UI.RawImage>(true))
+            {
+                if (ri == null) continue;
+                var mat = ri.material;
+                if (mat != null && mat != ri.defaultMaterial &&
+                    (mat.shader == null || mat.shader.name.IndexOf("Dissolve", System.StringComparison.OrdinalIgnoreCase) >= 0))
+                {
+                    ri.material = null;
+                }
+            }
         }
 
         // ── Initialisation ────────────────────────────────────────────────────
@@ -1067,9 +1107,9 @@ namespace FWTCG
                 if (_gs.BF[bf].PlayerUnits.Count == 0) continue;
                 if (_gs.BF[bf].EnemyUnits.Count > 0)
                 {
-                    await System.Threading.Tasks.Task.Delay(500);
+                    await FWTCG.Core.GameTiming.Delay(500);
                     UI.GameEventBus.FireDuelBanner();
-                    await System.Threading.Tasks.Task.Delay(2000);
+                    await FWTCG.Core.GameTiming.Delay(2000);
                     UI.GameEventBus.FireSetBannerDelay(0.5f);
                     anyCombat = true;
                 }
@@ -1078,7 +1118,7 @@ namespace FWTCG
             }
             if (anyCombat)
             {
-                await System.Threading.Tasks.Task.Delay(550); // hit flash + death anim 余韵
+                await FWTCG.Core.GameTiming.Delay(550); // hit flash + death anim 余韵
             }
         }
 
@@ -1779,6 +1819,16 @@ namespace FWTCG
                 tcs2.TrySetResult(true);
             });
             if (_ui != null) await tcs2.Task;
+
+            // 金色幽灵飞完后再发能量球飞到被装备单位（顺序，不并行）
+            if (UI.EntryEffectVFX.Instance != null)
+            {
+                UI.EntryEffectVFX.Instance.PlayEquipOrb(
+                    mouseCanvasPos, target,
+                    $"+{bonus}战力", UI.GameColors.BuffColor);
+                await FWTCG.Core.GameTiming.Delay(400);
+            }
+
             RefreshUI();
         }
 
@@ -1968,7 +2018,7 @@ namespace FWTCG
                 $"[法术] {spell.UnitName}{targetName}！⚡ AI响应中…");
             RefreshUI();
 
-            await Task.Delay(GameRules.AI_ACTION_DELAY_MS);
+            await FWTCG.Core.GameTiming.Delay(GameRules.AI_ACTION_DELAY_MS);
             if (_gs.GameOver) { _aiReactionPending = false; return; }
 
             // DEV-27: enter SpellDuel_OpenLoop so Swift cards become legal (Rule 718)
@@ -1979,12 +2029,26 @@ namespace FWTCG
 
             if (negated)
             {
-                await Task.Delay(300); // brief pause so player reads the negation log
+                await FWTCG.Core.GameTiming.Delay(300); // brief pause so player reads the negation log
                 TurnManager.BroadcastMessage_Static($"[法术] {spell.UnitName} 被无效化！");
             }
             else if (!_gs.GameOver)
             {
-                // Showcase already shown immediately in TryPlaySpellAsync
+                // 等 showcase 完全播完（约 SpellShowcaseUI.TOTAL_DURATION 秒）再飞能量球。
+                // 避免球在展示还没结束时就飞出去抢戏。
+                // TOTAL_DURATION = FLY_IN + HOLD + DISSOLVE (~1.63s)，bot 10x 下 ≈0.16s。
+                await FWTCG.Core.GameTiming.Delay((int)(UI.SpellShowcaseUI.TOTAL_DURATION * 1000f));
+
+                // 展示完：飞能量球到 target（如果有）
+                if (target != null && UI.EntryEffectVFX.Instance != null)
+                {
+                    UI.EntryEffectVFX.Instance.PlaySpellOrbs(
+                        new System.Collections.Generic.List<UnitInstance> { target },
+                        spell.UnitName,
+                        UI.GameColors.SchColor);
+                    // 让球飞行 ~0.4s 再结算，保证视觉"命中"
+                    await FWTCG.Core.GameTiming.Delay(400);
+                }
 
                 if (_spellSys != null)
                     _spellSys.CastSpell(spell, GameRules.OWNER_PLAYER, target, _gs);
@@ -1996,7 +2060,7 @@ namespace FWTCG
             // Wait for death animation to complete before RefreshUI rebuilds containers.
             // DeathRoutine = Phase A dissolve ~0.6s + Phase B ghost fly ~0.5s = ~1.1s total.
             // 550ms was too short — caused grey ghost cards when base units died mid-animation.
-            await Task.Delay(1200);
+            await FWTCG.Core.GameTiming.Delay(1200);
 
             _aiReactionPending = false;
             RefreshUI();

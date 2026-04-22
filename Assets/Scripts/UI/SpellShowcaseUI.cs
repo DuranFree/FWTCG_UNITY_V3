@@ -150,6 +150,34 @@ namespace FWTCG.UI
             }
         }
 
+        /// <summary>
+        /// 强制关闭 showcase 并解除所有 await。RestartGameInPlace 用，
+        /// 避免 OnComplete 被 DOTween.KillAll 打断而 IsShowing 永远 true、
+        /// 调用方 await 永远不返回的死锁。
+        /// </summary>
+        public void ForceHide()
+        {
+            TweenHelper.KillSafe(ref _showSeq);
+            _activeTcs?.TrySetResult(true);
+            _activeTcs = null;
+            _queueTail = null;
+            IsShowing = false;
+            Hide();
+            if (_cardPanel != null) _cardPanel.gameObject.SetActive(false);
+            if (_groupPanel != null) _groupPanel.gameObject.SetActive(false);
+            if (_slotsRoot != null)
+            {
+                for (int i = _slotsRoot.childCount - 1; i >= 0; i--)
+                    Destroy(_slotsRoot.GetChild(i).gameObject);
+            }
+            // 清空遗留 sparks（OnComplete 被 KillAll 打断时 sg 会孤立堆积）
+            if (_sparksRoot != null)
+            {
+                for (int i = _sparksRoot.childCount - 1; i >= 0; i--)
+                    Destroy(_sparksRoot.GetChild(i).gameObject);
+            }
+        }
+
         private void OnDestroy()
         {
             TweenHelper.KillSafe(ref _showSeq);
@@ -234,7 +262,7 @@ namespace FWTCG.UI
 
             // Build animation sequence (unscaled time for pause-safe)
             TweenHelper.KillSafe(ref _showSeq);
-            var seq = DOTween.Sequence().SetUpdate(true);
+            var seq = DOTween.Sequence();
 
             // Fly in
             if (animPanel != null)
@@ -304,7 +332,7 @@ namespace FWTCG.UI
 
             // Build animation sequence (unscaled time for pause-safe)
             TweenHelper.KillSafe(ref _showSeq);
-            var seq = DOTween.Sequence().SetUpdate(true);
+            var seq = DOTween.Sequence();
 
             // Fly in
             if (_cardPanel != null)
@@ -315,14 +343,19 @@ namespace FWTCG.UI
             // Hold
             seq.AppendInterval(HOLD_DURATION);
 
-            // Dissolve outro — either shader-driven magical burn, or fallback fly-out
-            if (_dissolveMat != null && _artImage != null)
+            // Dissolve outro — bot 高速下跳过（同 CardView：KillAll 打断会留残影）
+            bool useDissolve = _dissolveMat != null && _artImage != null
+                               && FWTCG.Core.GameTiming.SpeedMultiplier <= 10f;
+            if (useDissolve)
             {
                 // Burst sparks at dissolve start + mid-way
                 seq.AppendCallback(() =>
                 {
                     if (_sparksRoot != null && _cardPanel != null)
-                        SpellDissolveFX.BurstSparks(_sparksRoot, 70, _cardPanel.sizeDelta.x, _cardPanel.sizeDelta.y);
+                    {
+                        int n = FWTCG.Core.GameTiming.SpeedMultiplier > 10f ? 10 : 70;
+                        SpellDissolveFX.BurstSparks(_sparksRoot, n, _cardPanel.sizeDelta.x, _cardPanel.sizeDelta.y);
+                    }
                 });
                 seq.Append(SpellDissolveFX.TweenAmount(_dissolveMat, 1.12f, DISSOLVE_DURATION));
                 if (_cardPanel != null)
@@ -330,7 +363,10 @@ namespace FWTCG.UI
                 seq.InsertCallback(FLY_IN_DURATION + HOLD_DURATION + DISSOLVE_DURATION * 0.35f, () =>
                 {
                     if (_sparksRoot != null && _cardPanel != null)
-                        SpellDissolveFX.BurstSparks(_sparksRoot, 35, _cardPanel.sizeDelta.x, _cardPanel.sizeDelta.y);
+                    {
+                        int n = FWTCG.Core.GameTiming.SpeedMultiplier > 10f ? 5 : 35;
+                        SpellDissolveFX.BurstSparks(_sparksRoot, n, _cardPanel.sizeDelta.x, _cardPanel.sizeDelta.y);
+                    }
                 });
                 if (_canvasGroup != null)
                     seq.Append(_canvasGroup.DOFade(0f, 0.23f).SetEase(Ease.InQuad));

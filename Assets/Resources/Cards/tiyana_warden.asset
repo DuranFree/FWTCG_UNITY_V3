@@ -13,7 +13,7 @@ MonoBehaviour:
   m_Name: tiyana_warden
   m_EditorClassIdentifier: 
   _id: tiyana_warden
-  _cardName: "\u7F07\u4E9A\u5A1C\u00B7\u5195\u536B"
+  _cardName: "\u7F07\u4E9A\u5A1C\xB7\u5195\u536B"
   _cost: 7
   _runeType: 2
   _runeCost: 1

@@ -334,6 +334,7 @@ namespace FWTCG.Systems
                 // This is a busy-wait using async Task.Delay to avoid blocking the main thread
                 while (!_actionComplete)
                 {
+                    // busy-wait 用固定 100ms（不按 speed 缩，避免 UI 响应过密）
                     await Task.Delay(100);
                     if (gs.GameOver) return;
                 }
@@ -357,7 +358,7 @@ namespace FWTCG.Systems
             {
                 _combatSys.ResolveAllBattlefields(who, gs, _scoreMgr);
                 // DEV-17: wait for hit flash + death animations fired by ResolveAllBattlefields
-                await Task.Delay(550);
+                await FWTCG.Core.GameTiming.Delay(550);
             }
         }
 
@@ -412,10 +413,7 @@ namespace FWTCG.Systems
             Debug.Log(msg);
         }
 
-        private static async Task Delay(int ms)
-        {
-            await Task.Delay(ms);
-        }
+        private static Task Delay(int ms) => FWTCG.Core.GameTiming.Delay(ms);
 
         private void ResetAllUnits(GameState gs)
         {

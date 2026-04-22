@@ -147,7 +147,6 @@ namespace FWTCG.UI
 
         // ── Action buttons (DEV-9) ───────────────────────────────────────────
         [SerializeField] private Button _tapAllRunesBtn;
-        [SerializeField] private Button _cancelRunesBtn;
         [SerializeField] private Button _confirmRunesBtn;
         [SerializeField] private Button _skipReactionBtn;
 
@@ -272,21 +271,49 @@ namespace FWTCG.UI
 
         // ── Unity lifecycle ───────────────────────────────────────────────────
 
+        /// <summary>
+        /// 给 base / BF 容器挂上 CardStackLayout 组件（已挂则跳过）。
+        /// HLG 的 spacing 会由 CardStackLayout 每帧动态调整：
+        ///   - 卡数少 → spacing = 4（正常）
+        ///   - 超出容器 → spacing 变负，卡按顺序叠加，新的在最上层
+        /// </summary>
+        private static void EnsureCardStackLayout(Transform container,
+            float minVisibleWidth = 20f, float defaultSpacing = 4f)
+        {
+            if (container == null) return;
+            var hlg = container.GetComponent<HorizontalLayoutGroup>();
+            if (hlg == null) return;
+            var csl = container.GetComponent<CardStackLayout>();
+            if (csl == null)
+                csl = container.gameObject.AddComponent<CardStackLayout>();
+            csl.MinVisibleWidth = minVisibleWidth;
+            csl.DefaultSpacing  = defaultSpacing;
+        }
+
         private void Awake()
         {
             Instance = this; // DEV-27: singleton ref for CardDragHandler.FindCardViewInScene
             NukeAllDecorativeBorders();
+            // 给 base / BF 容器挂上自适应叠卡布局，卡数超出容器时自动负间距叠加
+            EnsureCardStackLayout(_playerBaseContainer);
+            EnsureCardStackLayout(_enemyBaseContainer);
+            EnsureCardStackLayout(_bf1PlayerContainer);
+            EnsureCardStackLayout(_bf1EnemyContainer);
+            EnsureCardStackLayout(_bf2PlayerContainer);
+            EnsureCardStackLayout(_bf2EnemyContainer);
+            // 符文区同用自适应叠加（够位置就不叠，放不下就按顺序重叠）
+            // 符文比较小：DefaultSpacing=2（紧凑），MinVisibleWidth=10（极度挤压也露 10px）
+            EnsureCardStackLayout(_playerRuneContainer, minVisibleWidth: 10f, defaultSpacing: 2f);
+            EnsureCardStackLayout(_enemyRuneContainer,  minVisibleWidth: 10f, defaultSpacing: 2f);
             if (_gameOverPanel != null) _gameOverPanel.SetActive(false);
             if (_bannerPanel != null) _bannerPanel.SetActive(false);
             if (_endTurnButton != null) _endTurnButton.onClick.AddListener(HandleEndTurn);
             if (_bf1Button != null) _bf1Button.onClick.AddListener(() => _onBFClicked?.Invoke(0));
             if (_bf2Button != null) _bf2Button.onClick.AddListener(() => _onBFClicked?.Invoke(1));
 
-            // UI-OVERHAUL-1c-α: 全局"确定/取消"按钮 handler
+            // UI-OVERHAUL-1c-α: 全局"确定"按钮 handler
             if (_confirmRunesBtn != null)
                 _confirmRunesBtn.onClick.AddListener(() => GameManager.Instance?.OnConfirmClicked());
-            if (_cancelRunesBtn != null)
-                _cancelRunesBtn.onClick.AddListener(() => GameManager.Instance?.OnCancelClicked());
 
             // B8 full: 查找待命区槽位并挂 Button 以触发翻开打出
             if (_rootCanvas != null)
@@ -815,6 +842,15 @@ namespace FWTCG.UI
         /// </summary>
         public void SetRuneHighlights(List<int> tapIndices, List<int> recycleIndices)
         {
+            // 先把上一轮高亮的 rune border glow 重置，避免 tween 被 kill 后残留颜色
+            // 根因：pulse tween 每帧写 border.Image.color + Outline.effectColor，只 KillSafe 不还原
+            // 表现：点"确定"提交 prepared 后，绿色 / 红色呼吸灯残留在 rune 上
+            if (_playerRuneContainer != null)
+            {
+                foreach (int idx in _runeHighlightTap)     ResetRuneBorderGlow(idx);
+                foreach (int idx in _runeHighlightRecycle) ResetRuneBorderGlow(idx);
+            }
+
             _runeHighlightTap.Clear();
             _runeHighlightRecycle.Clear();
             if (tapIndices     != null) foreach (int i in tapIndices)     _runeHighlightTap.Add(i);
@@ -1693,12 +1729,12 @@ namespace FWTCG.UI
                 if (_runeButtonPrefab == null) break;
                 GameObject newGo = Instantiate(_runeButtonPrefab, container);
 
-                // LayoutElement to prevent vertical stretching (added once)
+                // LayoutElement to prevent vertical stretching — 符文整体缩小 10% (46→41)
                 var le = newGo.AddComponent<LayoutElement>();
-                le.preferredWidth = 46f;
-                le.preferredHeight = 46f;
-                le.minWidth = 46f;
-                le.minHeight = 46f;
+                le.preferredWidth = 41f;
+                le.preferredHeight = 41f;
+                le.minWidth = 41f;
+                le.minHeight = 41f;
 
                 // Ensure RuneCircle/RuneArt hierarchy exists (may be absent if prefab refs lost)
                 EnsureRuneCircle(newGo);
@@ -1846,6 +1882,21 @@ namespace FWTCG.UI
             // VFX-7c: detect win/lose and enhance
             bool isWin = msg != null && (msg.Contains("胜") || msg.Contains("Win") || msg.Contains("赢"));
             CreateGameOverSequence(_gameOverPanel, isWin);
+        }
+
+        /// <summary>
+        /// Bot 专用：关闭 GameOver 面板（配合 RestartGameInPlace 使用，避免面板残留卡屏幕）。
+        /// </summary>
+        public void HideGameOver()
+        {
+            TweenHelper.KillSafe(ref _gameOverSeq);
+            if (_gameOverPanel != null)
+            {
+                var cg = _gameOverPanel.GetComponent<CanvasGroup>();
+                if (cg != null) cg.alpha = 0f;
+                _gameOverPanel.SetActive(false);
+            }
+            if (_endTurnButton != null) _endTurnButton.interactable = true;
         }
 
         public const float GAMEOVER_FADE_DUR = 0.5f;
@@ -2117,12 +2168,12 @@ namespace FWTCG.UI
             if (_skipReactionBtn != null)
                 _skipReactionBtn.interactable = isPlayerAction;
 
-            // UI-OVERHAUL-1c-α/γ: 确定 / 取消按钮动态亮/暗 + 激活动效
+            // UI-OVERHAUL-1c-α/γ: 确定按钮动态亮/暗 + 激活动效
+            // 亮起条件：行动阶段 +（战场有我方单位 或 有待提交的 prepared 符文）
             var gm = GameManager.Instance;
-            bool confirmActive = isPlayerAction && gm != null && gm.HasAnyPlayerUnitOnBattlefield();
-            bool cancelActive  = isPlayerAction && gm != null && gm.HasThisTurnPlayActions();
+            bool confirmActive = isPlayerAction && gm != null
+                                 && (gm.HasAnyPlayerUnitOnBattlefield() || gm.HasPreparedRunes());
             ApplyActionButtonState(_confirmRunesBtn, confirmActive, ref _confirmBtnWasActive, ref _confirmPulseTween);
-            ApplyActionButtonState(_cancelRunesBtn,  cancelActive,  ref _cancelBtnWasActive,  ref _cancelPulseTween);
 
             // DEV-19: end turn button persistent pulse during player action
             UpdateEndTurnPulse(isPlayerAction);
@@ -2130,9 +2181,7 @@ namespace FWTCG.UI
 
         // UI-OVERHAUL-1c-γ: 按钮激活动效状态
         private bool _confirmBtnWasActive;
-        private bool _cancelBtnWasActive;
         private Tween _confirmPulseTween;
-        private Tween _cancelPulseTween;
 
         /// <summary>
         /// UI-OVERHAUL-1c-γ: 按钮 active/dim 状态切换 + 激活动效（瞬间 punch + 长亮 pulse）。
@@ -2179,12 +2228,64 @@ namespace FWTCG.UI
                                    .SetEase(Ease.InOutSine)
                                    .SetLoops(-1, LoopType.Yoyo)
                                    .SetTarget(btn.gameObject);
+                    // 激活瞬间扩散光环粒子
+                    SpawnActivationRipple(btn);
                 }
                 else if (rt != null)
                 {
                     rt.localScale = Vector3.one;
                 }
                 wasActive = active;
+            }
+        }
+
+        /// <summary>
+        /// 激活瞬间从按钮向外扩散的 3 圈光环（错峰 stagger，scale + alpha 淡出）。
+        /// 取按钮自身 Image color 做粒子色调，保持视觉统一。
+        /// </summary>
+        private static void SpawnActivationRipple(Button btn)
+        {
+            if (btn == null) return;
+            var btnRT = btn.GetComponent<RectTransform>();
+            if (btnRT == null) return;
+
+            var btnImg  = btn.GetComponent<Image>();
+            Color baseCol = btnImg != null ? btnImg.color : Color.white;
+            // 提亮到近白色，保留色调
+            Color rippleCol = Color.Lerp(baseCol, Color.white, 0.55f);
+            rippleCol.a = 0.55f;
+
+            const int RIPPLE_COUNT = 3;
+            const float BASE_DUR   = 0.55f;
+            const float STAGGER    = 0.08f;
+            const float MAX_SCALE  = 1.85f;
+
+            for (int i = 0; i < RIPPLE_COUNT; i++)
+            {
+                var go = new GameObject("ActivationRipple");
+                go.transform.SetParent(btnRT, false);
+                var rt = go.AddComponent<RectTransform>();
+                rt.anchorMin = Vector2.zero;
+                rt.anchorMax = Vector2.one;
+                rt.offsetMin = Vector2.zero;
+                rt.offsetMax = Vector2.zero;
+                rt.localScale = Vector3.one;
+
+                var img = go.AddComponent<Image>();
+                img.color = rippleCol;
+                img.raycastTarget = false;
+                img.sprite = btnImg != null ? btnImg.sprite : null; // 跟随按钮形状；sprite null 时为矩形
+                img.type = Image.Type.Simple;
+
+                var cg = go.AddComponent<CanvasGroup>();
+                cg.alpha = rippleCol.a;
+                cg.blocksRaycasts = false;
+                cg.interactable = false;
+
+                float delay = i * STAGGER;
+                rt.DOScale(MAX_SCALE, BASE_DUR).SetDelay(delay).SetEase(Ease.OutQuad).SetTarget(go);
+                cg.DOFade(0f, BASE_DUR).SetDelay(delay).SetEase(Ease.OutQuad).SetTarget(go)
+                  .OnComplete(() => { if (go != null) Destroy(go); });
             }
         }
 
@@ -2740,7 +2841,7 @@ namespace FWTCG.UI
                 seq.Append(rt.DOScale(rt.localScale * 2.5f, SCORE_RING_DURATION).SetEase(Ease.Linear));
                 seq.Join(ringImg.DOFade(0f, SCORE_RING_DURATION).SetEase(Ease.Linear));
                 seq.OnComplete(() => Destroy(ringGo));
-                seq.SetTarget(ringGo);
+                seq.SetTarget(ringGo).LinkKillOnDestroy(ringGo);
             }
         }
 
@@ -2749,7 +2850,8 @@ namespace FWTCG.UI
         // ── DEV-19: End-turn button persistent pulse ───────────────────────────
 
         public const float ENDTURN_PULSE_PERIOD = 2f;
-        public const float ENDTURN_PULSE_MIN_ALPHA = 0.60f;
+        // Bumped from 0.60 → 0.82: 0.60 在深色背景下把黄色洗得发灰，玩家误以为按钮不是黄色
+        public const float ENDTURN_PULSE_MIN_ALPHA = 0.82f;
 
         private void UpdateEndTurnPulse(bool active)
         {
@@ -2854,7 +2956,7 @@ namespace FWTCG.UI
             fImg.raycastTarget = false;
             fImg.DOFade(0f, 0.5f).SetEase(Ease.OutQuad)
                 .OnComplete(() => { if (flashGo != null) Destroy(flashGo); })
-                .SetTarget(flashGo);
+                .SetTarget(flashGo).LinkKillOnDestroy(flashGo);
         }
 
         private static void EnsureRuneCircle(GameObject runeGo)
@@ -2980,6 +3082,16 @@ namespace FWTCG.UI
         private void OnFatalHitHandler(UnitInstance unit)
         {
             TweenHelper.KillSafe(ref _slowMotionTween);
+
+            // Bot 高速运行时完全跳过慢动作 —— 否则每次致命一击都把 timeScale 拉回 1，
+            // 之前设置的 SpeedMultiplier(5x/10x/20x) 全部被清零，看起来像"slider 不生效"。
+            float baseScale = FWTCG.Core.GameTiming.SpeedMultiplier;
+            if (baseScale > 1.01f)
+            {
+                // bot 模式：不播慢动作，直接保持当前 timeScale
+                return;
+            }
+
             Time.timeScale = 1f; // H-1: reset before re-entering so double fatal hit can't trap at SLOW_SCALE
             var seq = DOTween.Sequence().SetUpdate(true).SetTarget(gameObject);
             seq.Append(DOTween.To(() => Time.timeScale, v => Time.timeScale = v, SLOW_SCALE, SLOW_IN_DUR)
@@ -3018,10 +3130,10 @@ namespace FWTCG.UI
             rt.anchoredPosition = new Vector2(-hw - 300f, 0f); // start offscreen left
 
             TweenHelper.KillSafe(ref _turnSweepSeq); // M-2
-            _turnSweepSeq = DOTween.Sequence().SetUpdate(true).SetTarget(gameObject);
-            _turnSweepSeq.Append(rt.DOAnchorPos(Vector2.zero, 0.5f).SetEase(Ease.OutBack).SetUpdate(true));
+            _turnSweepSeq = DOTween.Sequence().SetTarget(gameObject);
+            _turnSweepSeq.Append(rt.DOAnchorPos(Vector2.zero, 0.5f).SetEase(Ease.OutBack));
             _turnSweepSeq.AppendInterval(1.0f);
-            _turnSweepSeq.Append(rt.DOAnchorPos(new Vector2(hw + 300f, 0f), 0.35f).SetEase(Ease.InQuad).SetUpdate(true));
+            _turnSweepSeq.Append(rt.DOAnchorPos(new Vector2(hw + 300f, 0f), 0.35f).SetEase(Ease.InQuad));
             _turnSweepSeq.OnComplete(() =>
             {
                 if (_turnSweepText != null) _turnSweepText.gameObject.SetActive(false);
@@ -3099,7 +3211,7 @@ namespace FWTCG.UI
                 img.color = ConfettiColor();
                 float dur    = UnityEngine.Random.Range(1.5f, 2.8f);
                 float rotAmt = UnityEngine.Random.Range(-540f, 540f);
-                var seq = DOTween.Sequence().SetTarget(go);
+                var seq = DOTween.Sequence().SetTarget(go).LinkKillOnDestroy(go);
                 seq.Append(rt.DOAnchorPosY(-hh - 20f, dur).SetEase(Ease.Linear));
                 seq.Join(rt.DOLocalRotate(new Vector3(0f, 0f, rotAmt), dur, RotateMode.FastBeyond360));
                 seq.Join(img.DOFade(0f, dur * 0.6f).SetDelay(dur * 0.4f));
@@ -3245,14 +3357,14 @@ namespace FWTCG.UI
             var seq = DOTween.Sequence();
             seq.Append(ghostRT.DOAnchorPos(to, EQUIP_FLY_DURATION).SetEase(Ease.InOutQuad));
             seq.Join(cg.DOFade(0.7f, EQUIP_FLY_DURATION)); // 1→0.7 slight fade
-            seq.SetUpdate(true); // unscaled time
+            // scaled time — equip fly must respect bot speed multiplier
             seq.OnComplete(() =>
             {
                 Destroy(ghost);
                 _pendingEquipOnDone = null;
                 onDone?.Invoke();
             });
-            seq.SetTarget(ghost);
+            seq.SetTarget(ghost).LinkKillOnDestroy(ghost);
         }
     }
 }

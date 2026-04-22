@@ -271,7 +271,7 @@ namespace FWTCG.Editor
                 out var manaDisplay, out var phaseDisplay,
                 out var endTurnButton, out var schDisplay, out var reactBtn,
                 out var playerRuneInfoText, out var playerDeckInfoText,
-                out var tapAllRunesBtn, out var cancelRunesBtn,
+                out var tapAllRunesBtn,
                 out var confirmRunesBtn, out var skipReactionBtn);
 
             // MessagePanel removed — not in Pencil design, GameUI handles null gracefully
@@ -544,7 +544,7 @@ namespace FWTCG.Editor
                 bf1CtrlBadge, bf2CtrlBadge,
                 bf1CtrlBadgeText, bf2CtrlBadgeText,
                 playerHeroContainer, enemyHeroContainer,
-                tapAllRunesBtn, cancelRunesBtn, confirmRunesBtn, skipReactionBtn,
+                tapAllRunesBtn, confirmRunesBtn, skipReactionBtn,
                 playerRuneInfoText, enemyRuneInfoText,
                 playerDeckInfoText, enemyDeckInfoText,
                 // DEV-10 additions
@@ -1455,19 +1455,7 @@ namespace FWTCG.Editor
 
             // LegendArt will be overlaid at runtime by RefreshLegendArt (ignoreLayout)
 
-            // Bottom half dark overlay (same as regular cards)
-            var bottomOvl = new GameObject("BottomOverlay");
-            bottomOvl.transform.SetParent(go.transform, false);
-            var boImg = bottomOvl.AddComponent<Image>();
-            boImg.color = new Color(0f, 0f, 0f, 0.78f);
-            boImg.raycastTarget = false;
-            var boRT = bottomOvl.GetComponent<RectTransform>();
-            boRT.anchorMin = new Vector2(0f, 0f);
-            boRT.anchorMax = new Vector2(1f, 0.50f);
-            boRT.offsetMin = new Vector2(3f, 3f);
-            boRT.offsetMax = new Vector2(-3f, 0f);
-            var boLE = bottomOvl.AddComponent<LayoutElement>();
-            boLE.ignoreLayout = true;
+            // BottomOverlay removed per design — legend art shows full card
 
             // Legend name text — INSIDE bottom overlay (top portion of black area)
             var textGO = new GameObject(isPlayer ? "LegendText" : "EnemyLegendText");
@@ -1481,15 +1469,13 @@ namespace FWTCG.Editor
             textLE.ignoreLayout = true;
             legendText = textGO.AddComponent<Text>();
             legendText.text = isPlayer ? "卡莎" : "易大师";
-            legendText.color = Color.white;
+            legendText.color = new Color(0f, 0f, 0f, 0f); // hidden (kept as ref for GameUI updates)
             legendText.fontSize = 10;
             legendText.fontStyle = FontStyle.Bold;
             legendText.alignment = TextAnchor.MiddleCenter;
             legendText.horizontalOverflow = HorizontalWrapMode.Wrap;
             legendText.verticalOverflow   = VerticalWrapMode.Overflow;
             if (_font != null) legendText.font = _font;
-            textGO.AddComponent<Shadow>().effectColor = new Color(0f, 0f, 0f, 1f);
-            textGO.AddComponent<Outline>().effectColor = new Color(0f, 0f, 0f, 0.7f);
 
             // Description text — INSIDE bottom overlay (below name)
             var descGO = new GameObject("LegendDesc");
@@ -1502,15 +1488,13 @@ namespace FWTCG.Editor
             var descLE = descGO.AddComponent<LayoutElement>();
             descLE.ignoreLayout = true;
             var descText = descGO.AddComponent<Text>();
-            descText.text = ""; // filled at runtime
-            descText.color = Color.white;
+            descText.text = "";
+            descText.color = new Color(0f, 0f, 0f, 0f); // hidden
             descText.fontSize = 7;
             descText.alignment = TextAnchor.UpperCenter;
             descText.horizontalOverflow = HorizontalWrapMode.Wrap;
             descText.verticalOverflow   = VerticalWrapMode.Truncate;
             if (_font != null) descText.font = _font;
-            descGO.AddComponent<Shadow>().effectColor = new Color(0f, 0f, 0f, 1f);
-            descGO.AddComponent<Outline>().effectColor = new Color(0f, 0f, 0f, 0.7f);
 
             // VFX-7k: glow overlay for hover highlight
             var glowGO = new GameObject("LegendGlowOverlay");
@@ -1712,17 +1696,18 @@ namespace FWTCG.Editor
             out Text manaDisplay, out Text phaseDisplay,
             out Button endTurnButton, out Text schDisplay, out Button reactBtn,
             out Text playerRuneInfoText, out Text playerDeckInfoText,
-            out Button tapAllRunesBtn, out Button cancelRunesBtn,
+            out Button tapAllRunesBtn,
             out Button confirmRunesBtn, out Button skipReactionBtn)
         {
             // Outer container holding both strips
             var go = new GameObject("BottomBar");
             go.transform.SetParent(parent, false);
 
-            // Pencil: action buttons at bottom-right (x=1538-1646, y=926-999)
+            // Action buttons at bottom-right — expanded to fit 4 always-visible buttons
+            // (Cancel + Confirm + EndTurn + React) without overlap
             var rt = go.AddComponent<RectTransform>();
             rt.anchorMin = new Vector2(1538f/1920f, 1f - 999f/1080f);
-            rt.anchorMax = new Vector2(1646f/1920f, 1f - 921f/1080f);
+            rt.anchorMax = new Vector2(1646f/1920f, 1f - 854f/1080f);
             rt.offsetMin = Vector2.zero;
             rt.offsetMax = Vector2.zero;
 
@@ -1733,10 +1718,12 @@ namespace FWTCG.Editor
             infoRT.anchorMin = Vector2.zero; infoRT.anchorMax = Vector2.zero;
             infoRT.sizeDelta = Vector2.zero;
 
-            manaDisplay = CreateTMPText(infoStrip.transform, "ManaDisplay", "", GameColors.PlayerGreen, 12, TextAnchor.MiddleLeft);
-            schDisplay  = CreateTMPText(infoStrip.transform, "SchDisplay", "", GameColors.GoldLight, 12, TextAnchor.MiddleLeft);
-            playerRuneInfoText = CreateTMPText(infoStrip.transform, "PlayerRuneInfo", "", GameColors.GoldDark, 12, TextAnchor.MiddleCenter);
-            playerDeckInfoText = CreateTMPText(infoStrip.transform, "PlayerDeckInfo", "", GameColors.GoldDark, 12, TextAnchor.MiddleCenter);
+            // Info texts kept as refs for GameUI dynamic updates but rendered invisible (alpha=0)
+            // — previously they spilled over into the visible action button area
+            manaDisplay = CreateTMPText(infoStrip.transform, "ManaDisplay", "", new Color(0f, 0f, 0f, 0f), 12, TextAnchor.MiddleLeft);
+            schDisplay  = CreateTMPText(infoStrip.transform, "SchDisplay",  "", new Color(0f, 0f, 0f, 0f), 12, TextAnchor.MiddleLeft);
+            playerRuneInfoText = CreateTMPText(infoStrip.transform, "PlayerRuneInfo", "", new Color(0f, 0f, 0f, 0f), 12, TextAnchor.MiddleCenter);
+            playerDeckInfoText = CreateTMPText(infoStrip.transform, "PlayerDeckInfo", "", new Color(0f, 0f, 0f, 0f), 12, TextAnchor.MiddleCenter);
 
             // ── Action panel — full width, semi-transparent ──
             var actionPanel = new GameObject("ActionPanel");
@@ -1760,17 +1747,15 @@ namespace FWTCG.Editor
             phaseDisplay.gameObject.SetActive(false);
             tapAllRunesBtn = CreateActionButton(actionPanel.transform, "TapAllRunesBtn", "全部横置", GameColors.ActionBtnSecondary);
             tapAllRunesBtn.gameObject.SetActive(false);
-            // UI-OVERHAUL-1c-α: 复用 CancelRunesBtn / ConfirmRunesBtn 作为全局"确定/取消"入口
-            cancelRunesBtn = CreateActionButton(actionPanel.transform, "CancelBtn", "取消", GameColors.ActionBtnCancel);
-            // 常驻显示（interactable 由 GameUI 根据 playStack 状态动态控制）
+            // UI-OVERHAUL-1c-α: 复用 ConfirmRunesBtn 作为全局"确定"入口（取消按钮已删除，出牌不可撤销）
             confirmRunesBtn = CreateActionButton(actionPanel.transform, "ConfirmBtn", "确定", GameColors.ActionBtnConfirm);
             skipReactionBtn = CreateActionButton(actionPanel.transform, "SkipReactionBtn", "跳过响应", GameColors.ActionBtnSecondary);
             skipReactionBtn.gameObject.SetActive(false);
 
-            // 结束回合 — Pencil: 108×34 — UI-OVERHAUL-1: 黄色主题
+            // 结束回合 — 统一高度 30
             endTurnButton = CreateActionButton(actionPanel.transform, "EndTurnButton", "结束回合", GameColors.ActionBtnEndTurn);
             var endLE = endTurnButton.gameObject.GetComponent<LayoutElement>() ?? endTurnButton.gameObject.AddComponent<LayoutElement>();
-            endLE.preferredHeight = 34f;
+            endLE.preferredHeight = 30f;
             // VFX-7d / SVG-gen: apply EndTurn button sprite if available
             var endTurnSpr = AssetDatabase.LoadAssetAtPath<Sprite>("Assets/Resources/UI/Generated/btn_end_turn.png")
                 ?? AssetDatabase.LoadAssetAtPath<Sprite>("Assets/Sprites/UI/button_endturn.png");
@@ -1792,7 +1777,7 @@ namespace FWTCG.Editor
                 reactImg.color = Color.white; // 用白色让 sprite 原色透出；GameUI 会根据状态调整亮度
             }
             var reactLE = reactBtn.gameObject.GetComponent<LayoutElement>() ?? reactBtn.gameObject.AddComponent<LayoutElement>();
-            reactLE.preferredHeight = 24f;
+            reactLE.preferredHeight = 30f;
 
             // DEV-19: ButtonCharge hover sweep on key buttons
             AddButtonCharge(endTurnButton.gameObject);
@@ -1809,7 +1794,7 @@ namespace FWTCG.Editor
         {
             return CreateBottomBar(parent, out manaDisplay, out phaseDisplay,
                 out endTurnButton, out schDisplay, out reactBtn,
-                out _, out _, out _, out _, out _, out _);
+                out _, out _, out _, out _, out _);
         }
 
         private static Button CreateActionButton(Transform parent, string name, string label, Color bgColor)
@@ -3278,17 +3263,7 @@ namespace FWTCG.Editor
             artRT.offsetMin = new Vector2(2f, 2f);
             artRT.offsetMax = new Vector2(-2f, -2f);
 
-            // ── Bottom half overlay (gradient fade from transparent to dark) ──
-            var bottomOverlay = new GameObject("BottomOverlay");
-            bottomOverlay.transform.SetParent(root.transform, false);
-            var bottomImg = bottomOverlay.AddComponent<Image>();
-            bottomImg.color = new Color(0f, 0f, 0f, 0.75f);
-            bottomImg.raycastTarget = false;
-            var bottomRT = bottomOverlay.GetComponent<RectTransform>();
-            bottomRT.anchorMin = new Vector2(0f, 0f);
-            bottomRT.anchorMax = new Vector2(1f, 0.48f);
-            bottomRT.offsetMin = new Vector2(3f, 3f);   // VFX-7a: inset to not cover frame border
-            bottomRT.offsetMax = new Vector2(-3f, 0f);
+            // BottomOverlay removed per design — bottom card area now shows art directly
 
             // ── CardName — bottom half, centered ──
             var cardName = CreateTMPText(root.transform, "CardName", "卡名", Color.white, 10, TextAnchor.MiddleCenter);
@@ -3522,7 +3497,7 @@ namespace FWTCG.Editor
         {
             var root = new GameObject("RunePrefab");
             var rootRT = root.AddComponent<RectTransform>();
-            rootRT.sizeDelta = new Vector2(46f, 46f);
+            rootRT.sizeDelta = new Vector2(41f, 41f); // 46 → 41（整体缩 10%）
 
             var knobSprite = AssetDatabase.GetBuiltinExtraResource<Sprite>("UI/Skin/Knob.psd");
 
@@ -4036,7 +4011,7 @@ namespace FWTCG.Editor
             Image bf1CtrlBadge, Image bf2CtrlBadge,
             Text bf1CtrlBadgeText, Text bf2CtrlBadgeText,
             Transform playerHeroContainer, Transform enemyHeroContainer,
-            Button tapAllRunesBtn, Button cancelRunesBtn,
+            Button tapAllRunesBtn,
             Button confirmRunesBtn, Button skipReactionBtn,
             Text playerRuneInfoText, Text enemyRuneInfoText,
             Text playerDeckInfoText, Text enemyDeckInfoText,
@@ -4141,7 +4116,6 @@ namespace FWTCG.Editor
 
             // ── DEV-9: Action buttons ──
             so.FindProperty("_tapAllRunesBtn").objectReferenceValue   = tapAllRunesBtn;
-            so.FindProperty("_cancelRunesBtn").objectReferenceValue   = cancelRunesBtn;
             so.FindProperty("_confirmRunesBtn").objectReferenceValue  = confirmRunesBtn;
             so.FindProperty("_skipReactionBtn").objectReferenceValue  = skipReactionBtn;
 

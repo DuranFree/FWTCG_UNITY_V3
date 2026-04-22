@@ -138,7 +138,7 @@ namespace FWTCG.UI
             var rippleRT  = rippleGO.GetComponent<RectTransform>();
             rippleImg.color = new Color(TRAIL_COLOR.r, TRAIL_COLOR.g, TRAIL_COLOR.b, 0.8f);
 
-            var rippleSeq = DOTween.Sequence().SetTarget(rippleGO);
+            var rippleSeq = DOTween.Sequence().SetTarget(rippleGO).LinkKillOnDestroy(rippleGO);
             rippleSeq.Append(rippleRT.DOScale(4f, DURATION).SetEase(Ease.OutCubic));
             rippleSeq.Join(rippleImg.DOFade(0f, DURATION).SetEase(Ease.InQuad));
             rippleSeq.OnComplete(() => Destroy(rippleGO));
@@ -155,7 +155,7 @@ namespace FWTCG.UI
                 float angle = i * (360f / HEX) * Mathf.Deg2Rad;
                 Vector2 endPos = origin + new Vector2(Mathf.Cos(angle) * 38f, Mathf.Sin(angle) * 38f);
 
-                var hexSeq = DOTween.Sequence().SetTarget(hexGO);
+                var hexSeq = DOTween.Sequence().SetTarget(hexGO).LinkKillOnDestroy(hexGO);
                 hexSeq.Append(hexRT.DOAnchorPos(endPos, DURATION).SetEase(Ease.OutCubic));
                 hexSeq.Join(hexRT.DOLocalRotate(new Vector3(0f, 0f, 180f), DURATION, RotateMode.FastBeyond360).SetEase(Ease.Linear));
                 hexSeq.Join(hexImg.DOFade(0f, DURATION).SetEase(Ease.InQuad));

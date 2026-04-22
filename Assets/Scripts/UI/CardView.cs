@@ -1972,10 +1972,10 @@ namespace FWTCG.UI
                 {
                     _enterAnimSeq = null;
                     _enterAnimSetup = null;
-                    // DEV-30 V6: trigger foil sweep after card enters
-                    EnsureShineOverlay();
-                    if (_shineMat != null)
-                        StartFoilSweep();
+                    // DEV-30 V6: foil sweep 装饰暂时禁用 — 在某些时序下 UI/CardShine shader 会回退
+                    // 导致整张卡渲染成紫色。等定位 root cause 后再开启。
+                    // EnsureShineOverlay();
+                    // if (_shineMat != null) StartFoilSweep();
                 });
         }
 
@@ -2001,6 +2001,7 @@ namespace FWTCG.UI
             rt.offsetMin = Vector2.zero; rt.offsetMax = Vector2.zero;
             _shineOverlay = go.AddComponent<Image>();
             _shineOverlay.raycastTarget = false;
+            _shineOverlay.enabled = false; // only enabled during StartFoilSweep; prevents magenta if shader fails to compile
             var shader = Shader.Find("UI/CardShine");
             if (shader == null) return;
             _shineMat = new Material(shader);
@@ -2016,6 +2017,7 @@ namespace FWTCG.UI
         {
             if (_shineMat == null) return;
             TweenHelper.KillSafe(ref _foilSweep);
+            if (_shineOverlay != null) _shineOverlay.enabled = true;
             _shineMat.SetFloat("_ShineIntensity", 0.7f);
             _foilSweep = DOVirtual.Float(0f, 1f, FOIL_SWEEP_DURATION, t =>
             {
@@ -2026,6 +2028,7 @@ namespace FWTCG.UI
               .OnComplete(() =>
               {
                   if (_shineMat != null) _shineMat.SetFloat("_ShineIntensity", 0f);
+                  if (_shineOverlay != null) _shineOverlay.enabled = false;
                   _foilSweep = null;
               });
         }
@@ -2175,6 +2178,7 @@ namespace FWTCG.UI
                 // DOT-7 + enhance: punch on death start, then bezier fly
                 bool phaseBDone = false;
                 _deathSeq = DOTween.Sequence()
+                    .SetTarget(ghost).LinkKillOnDestroy(ghost)
                     .Append(ghostRT.DOPunchScale(Vector3.one * 0.18f, 0.12f, 2, 0f))
                     .Append(DOVirtual.Float(0f, 1f, DEATH_PHASE_B, t =>
                     {
@@ -2207,7 +2211,11 @@ namespace FWTCG.UI
         // Phase-A shrink+red-tint (flyTarget path) or shrink+fade (no-flyTarget path).
         private IEnumerator DissolveOrFallbackRoutine(Vector3 startScale)
         {
-            bool useDissolve = _killDissolveMat != null && _cardBg != null;
+            // bot 高速（>3x）下跳过 dissolve shader 路径：
+            //   - 20x 下死亡频繁，KillAll 打断 OnComplete 留下 dissolve material + null sprite → magenta
+            //   - fallback 的 shrink+fade 没材质副作用，视觉上也接受
+            bool useDissolve = _killDissolveMat != null && _cardBg != null
+                               && FWTCG.Core.GameTiming.SpeedMultiplier <= 10f;
 
             if (useDissolve)
             {
@@ -2215,8 +2223,12 @@ namespace FWTCG.UI
                 _clonedDissolveMat = cloned;
                 cloned.SetFloat("noise_fade", 0f);
 
+                // 只给有 sprite 的 Image 应用 dissolve 材质。
+                // UIDissolve shader 读 _MainTex 采样；sprite=null 的 Image（徽章背景、文字底板等）
+                // 采样不到纹理 → 回退为默认颜色渲染成紫色 magenta。这就是卡牌身上紫色块的根因。
                 var images = GetComponentsInChildren<Image>(true);
-                foreach (var img in images) img.material = cloned;
+                foreach (var img in images)
+                    if (img != null && img.sprite != null) img.material = cloned;
 
                 // TweenMatFX drives noise_fade 0 → 1
                 bool dissolveDone = false;

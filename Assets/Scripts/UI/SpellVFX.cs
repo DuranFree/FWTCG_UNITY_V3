@@ -339,7 +339,7 @@ namespace FWTCG.UI
                     Mathf.Cos(angle) * BURST_RADIUS,
                     Mathf.Sin(angle) * BURST_RADIUS);
 
-                var seq = DOTween.Sequence().SetTarget(go);
+                var seq = DOTween.Sequence().SetTarget(go).LinkKillOnDestroy(go);
                 seq.Append(rt.DOAnchorPos(endPos, BURST_DURATION).SetEase(Ease.OutQuad));
                 seq.Join(rt.DOSizeDelta(new Vector2(BURST_END_SIZE, BURST_END_SIZE), BURST_DURATION).SetEase(Ease.Linear));
                 seq.Join(img.DOFade(0f, BURST_DURATION).SetEase(Ease.Linear));

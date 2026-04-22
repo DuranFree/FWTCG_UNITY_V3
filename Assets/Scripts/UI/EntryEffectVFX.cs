@@ -40,6 +40,70 @@ namespace FWTCG.UI
             StartCoroutine(PlayRoutine(caster, targets, label, color));
         }
 
+        /// <summary>
+        /// 法术 / 装备专用：从指定 canvas 位置（比如 showcase 中心、装备卡位置）
+        /// 飞能量球到每个 target 的卡面位置。不播 caster flash / ring（那部分由
+        /// showcase 或装备飞行动画自己完成了）。
+        /// 必须在 showcase 完全播完后调用，避免与展示并行。
+        /// </summary>
+        public void PlayOrbsFromPos(Vector2 fromCanvasPos, List<UnitInstance> targets, string label, Color color)
+        {
+            if (targets == null || targets.Count == 0 || !gameObject.activeInHierarchy) return;
+            Canvas canvas = GameUI.Instance?.RootCanvasRef;
+            if (canvas == null) return;
+            foreach (var t in targets)
+            {
+                if (t == null) continue;
+                var tCV = GameUI.Instance?.FindCardView(t);
+                if (tCV == null) continue;
+                StartCoroutine(FlyOrbFromPos(fromCanvasPos, tCV, color, label, canvas));
+            }
+        }
+
+        /// <summary>
+        /// 屏幕中心飞球 —— 法术 showcase 播完后用。中心 = canvas 坐标 (0,0)。
+        /// </summary>
+        public void PlaySpellOrbs(List<UnitInstance> targets, string label, Color color)
+            => PlayOrbsFromPos(Vector2.zero, targets, label, color);
+
+        /// <summary>
+        /// 装备生效后飞球：装备卡位置 → 被装备单位。
+        /// </summary>
+        public void PlayEquipOrb(Vector2 fromCanvasPos, UnitInstance targetUnit, string label, Color color)
+        {
+            if (targetUnit == null) return;
+            PlayOrbsFromPos(fromCanvasPos,
+                new List<UnitInstance> { targetUnit }, label, color);
+        }
+
+        private IEnumerator FlyOrbFromPos(Vector2 fromPos, CardView to, Color color, string label, Canvas canvas)
+        {
+            if (to == null || canvas == null) yield break;
+            var orbGO = new GameObject("SpellOrb", typeof(RectTransform), typeof(CanvasRenderer), typeof(Image));
+            orbGO.transform.SetParent(canvas.transform, false);
+            var rt = orbGO.GetComponent<RectTransform>();
+            rt.anchorMin = rt.anchorMax = new Vector2(0.5f, 0.5f);
+            rt.pivot = new Vector2(0.5f, 0.5f);
+            rt.sizeDelta = new Vector2(28f, 28f);
+            var img = orbGO.GetComponent<Image>();
+            img.sprite = GetSoftGaussianSprite();
+            img.color = color;
+            img.raycastTarget = false;
+            rt.anchoredPosition = fromPos;
+
+            Vector2 toPos = GetCanvasPos(to, canvas);
+            const float DUR = 0.38f;
+            var seq = DOTween.Sequence().SetTarget(orbGO).LinkKillOnDestroy(orbGO);
+            seq.Append(DOTween.To(() => rt.anchoredPosition, v => rt.anchoredPosition = v, toPos, DUR)
+                .SetEase(Ease.InOutQuad));
+            seq.Join(rt.DOScale(1.3f, DUR * 0.5f).SetLoops(2, LoopType.Yoyo).SetEase(Ease.InOutSine));
+
+            yield return seq.WaitForCompletion();
+
+            FloatingTipUI.ShowSingle(canvas, label, color, toPos);
+            if (orbGO != null) Destroy(orbGO);
+        }
+
         private IEnumerator PlayRoutine(UnitInstance caster, List<UnitInstance> targets, string label, Color color)
         {
             // Step 1: 等单位入场动画落地
@@ -97,7 +161,7 @@ namespace FWTCG.UI
             rt.anchoredPosition = fromPos;
 
             const float DUR = 0.38f;
-            var seq = DOTween.Sequence().SetTarget(orbGO);
+            var seq = DOTween.Sequence().SetTarget(orbGO).LinkKillOnDestroy(orbGO);
             seq.Append(DOTween.To(() => rt.anchoredPosition, v => rt.anchoredPosition = v, toPos, DUR)
                 .SetEase(Ease.InOutQuad));
             // 路途中 scale 微跳动营造"能量脉冲"感
@@ -116,21 +180,43 @@ namespace FWTCG.UI
             var img = cv.GetComponent<Image>();
             if (img == null) return;
             Color orig = img.color;
+            // .SetTarget(cv.gameObject) 让 CardView.OnDestroy 的 DOTween.Kill(gameObject) 能清掉；
+            // DOColor 目标是 Graphic，卡牌销毁时 DOTween SafeMode 捕获 warning，这里再加一层
+            // 防护：tween 每帧检查 img 是否还在，不在就中止
             var seq = DOTween.Sequence().SetTarget(cv.gameObject);
-            seq.Append(img.DOColor(new Color(1.4f, 1.4f, 1.4f, orig.a), 0.08f));
-            seq.Append(img.DOColor(orig, 0.22f));
+            seq.Append(img.DOColor(new Color(1.4f, 1.4f, 1.4f, orig.a), 0.08f)
+                .OnUpdate(() => { if (img == null) seq.Kill(); }));
+            seq.Append(img.DOColor(orig, 0.22f)
+                .OnUpdate(() => { if (img == null) seq.Kill(); }));
         }
 
         private static void SpawnRingExpand(CardView cv, Color color)
         {
             if (cv == null) return;
+            // 找根 canvas 并把 ring 挂到 canvas 上（而非 cv），避免 cv 死亡时
+            // ring 被父级销毁导致 tween 访问已销毁 Image（出现紫色尸体帧 + warning）
+            var canvas = cv.GetComponentInParent<Canvas>();
+            if (canvas == null) return;
+
+            // 在 canvas 坐标系里取卡牌中心位置
+            var cvRT = cv.GetComponent<RectTransform>();
+            var canvasRT = canvas.GetComponent<RectTransform>();
+            if (cvRT == null || canvasRT == null) return;
+            var corners = new Vector3[4];
+            cvRT.GetWorldCorners(corners);
+            Vector2 screenCenter = new Vector2(
+                (corners[0].x + corners[2].x) * 0.5f,
+                (corners[0].y + corners[2].y) * 0.5f);
+            RectTransformUtility.ScreenPointToLocalPointInRectangle(
+                canvasRT, screenCenter, canvas.worldCamera, out Vector2 canvasPos);
+
             var ring = new GameObject("EntryRing", typeof(RectTransform), typeof(CanvasRenderer), typeof(Image));
-            ring.transform.SetParent(cv.transform, false);
+            ring.transform.SetParent(canvas.transform, false);
             var rt = ring.GetComponent<RectTransform>();
             rt.anchorMin = rt.anchorMax = new Vector2(0.5f, 0.5f);
             rt.pivot = new Vector2(0.5f, 0.5f);
-            var cvRT = cv.GetComponent<RectTransform>();
-            rt.sizeDelta = cvRT != null ? cvRT.rect.size : new Vector2(80f, 120f);
+            rt.sizeDelta = cvRT.rect.size;
+            rt.anchoredPosition = canvasPos;
             rt.localScale = Vector3.one;
             var img = ring.GetComponent<Image>();
             img.sprite = GetRingSprite();
@@ -138,7 +224,7 @@ namespace FWTCG.UI
             img.raycastTarget = false;
             ring.transform.SetAsLastSibling();
 
-            var seq = DOTween.Sequence().SetTarget(ring);
+            var seq = DOTween.Sequence().SetTarget(ring).LinkKillOnDestroy(ring);
             seq.Append(rt.DOScale(2.2f, 0.55f).SetEase(Ease.OutCubic));
             seq.Join(img.DOFade(0f, 0.55f).SetEase(Ease.OutCubic));
             seq.OnComplete(() => { if (ring != null) Destroy(ring); });

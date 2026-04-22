@@ -678,6 +678,16 @@ namespace FWTCG.AI
 
             if (!gs.GameOver)
             {
+                // 等 showcase 完全播完再飞能量球（顺序，不与展示并行）
+                await Delay((int)(SpellShowcaseUI.TOTAL_DURATION * 1000f));
+                if (target != null && EntryEffectVFX.Instance != null)
+                {
+                    EntryEffectVFX.Instance.PlaySpellOrbs(
+                        new System.Collections.Generic.List<UnitInstance> { target },
+                        spell.UnitName,
+                        GameColors.SchColor);
+                    await Delay(400); // 球飞行时间
+                }
                 spellSys.CastSpell(spell, GameRules.OWNER_ENEMY, target, gs);
                 // Wait for hit-flash + shake before next action destroys CardViews
                 await Delay(550);
@@ -868,6 +878,6 @@ namespace FWTCG.AI
         public static bool SkipDelays = false;
 
         private static Task Delay(int ms)
-            => SkipDelays ? Task.CompletedTask : Task.Delay(ms);
+            => SkipDelays ? Task.CompletedTask : FWTCG.Core.GameTiming.Delay(ms);
     }
 }

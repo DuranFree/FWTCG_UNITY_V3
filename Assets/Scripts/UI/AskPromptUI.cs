@@ -264,7 +264,6 @@ namespace FWTCG.UI
             {
                 _animTween = _panel.transform.DOScale(1f, SHOW_DURATION)
                     .SetEase(Ease.OutBack)
-                    .SetUpdate(true)
                     .SetTarget(_panel);
             }
             else if (_panel != null)
@@ -287,7 +286,6 @@ namespace FWTCG.UI
             {
                 _animTween = _panel.transform.DOScale(0f, HIDE_DURATION)
                     .SetEase(Ease.InBack)
-                    .SetUpdate(true)
                     .SetTarget(_panel)
                     .OnComplete(() =>
                     {

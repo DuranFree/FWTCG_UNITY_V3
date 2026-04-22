@@ -114,7 +114,7 @@ namespace FWTCG.Core
             { "strength_obelisk",   "【据守】额外召出1张符文" },
             { "star_peak",          "【据守】召出1枚休眠符文" },
             { "thunder_rune",       "【征服】回收1张符文" },
-            { "ascending_stairs",   "【被动】据守/征服时额外+1分" },
+            { "ascending_stairs",   "【被动】使赢得游戏所需的分数+1" },
             { "forgotten_monument", "【被动】第三回合前无据守分" },
         };
 

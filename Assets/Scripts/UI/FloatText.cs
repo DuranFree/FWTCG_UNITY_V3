@@ -128,7 +128,7 @@ namespace FWTCG.UI
             const float solidTime = duration * 0.35f;  // 0.315s
             const float fadeTime  = duration * 0.65f;  // 0.585s
 
-            _seq = DOTween.Sequence().SetTarget(gameObject);
+            _seq = DOTween.Sequence().SetTarget(gameObject).LinkKillOnDestroy(gameObject);
             _seq.Append(_rt.DOAnchorPos(endPos, duration).SetEase(Ease.OutQuad));
             _seq.Insert(solidTime, _text.DOFade(0f, fadeTime).SetEase(Ease.Linear));
             _seq.OnComplete(ReturnToPool);

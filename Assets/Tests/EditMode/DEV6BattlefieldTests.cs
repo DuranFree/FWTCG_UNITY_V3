@@ -105,42 +105,52 @@ namespace FWTCG.Tests
         }
 
         // ── ascending_stairs ──────────────────────────────────────────────────
+        // B-SCORE-1: 卡面 "使赢得游戏所需的分数 +1"。
+        // 不再在得分时额外 +1；改为通过 EffectiveWinScore 提升胜利门槛。
 
         [Test]
-        public void AscendingStairs_GivesBonusOnHold()
+        public void AscendingStairs_DoesNotGiveBonusOnHold()
         {
             SetBF(0, "ascending_stairs");
-
             int bonus = _bfSys.GetBonusScorePoints(0, GameRules.SCORE_TYPE_HOLD, _gs);
-            Assert.AreEqual(1, bonus);
+            Assert.AreEqual(0, bonus, "据守不再额外 +1 分");
         }
 
         [Test]
-        public void AscendingStairs_GivesBonusOnConquer()
+        public void AscendingStairs_DoesNotGiveBonusOnConquer()
         {
             SetBF(0, "ascending_stairs");
-
             int bonus = _bfSys.GetBonusScorePoints(0, GameRules.SCORE_TYPE_CONQUER, _gs);
-            Assert.AreEqual(1, bonus);
+            Assert.AreEqual(0, bonus, "征服不再额外 +1 分");
         }
 
         [Test]
-        public void AscendingStairs_NoBonusOnBurnout()
+        public void AscendingStairs_RaisesWinScoreBy1()
         {
             SetBF(0, "ascending_stairs");
-
-            int bonus = _bfSys.GetBonusScorePoints(0, GameRules.SCORE_TYPE_BURNOUT, _gs);
-            Assert.AreEqual(0, bonus);
+            SetBF(1, "none");
+            Assert.AreEqual(GameRules.WIN_SCORE + 1,
+                BattlefieldSystem.EffectiveWinScore(_gs),
+                "攀圣长阶 → 胜利门槛 +1");
         }
 
         [Test]
-        public void AscendingStairs_NoBonusForOtherBF()
+        public void AscendingStairs_NotPresent_KeepsDefaultWinScore()
         {
             SetBF(0, "none");
-            SetBF(1, "ascending_stairs");
+            SetBF(1, "none");
+            Assert.AreEqual(GameRules.WIN_SCORE,
+                BattlefieldSystem.EffectiveWinScore(_gs),
+                "无攀圣长阶 → 胜利门槛不变");
+        }
 
-            int bonus = _bfSys.GetBonusScorePoints(0, GameRules.SCORE_TYPE_HOLD, _gs);
-            Assert.AreEqual(0, bonus);
+        [Test]
+        public void GetBonusScorePoints_AscendingStairs_AlwaysZero()
+        {
+            SetBF(0, "ascending_stairs");
+            Assert.AreEqual(0, _bfSys.GetBonusScorePoints(0, GameRules.SCORE_TYPE_HOLD, _gs));
+            Assert.AreEqual(0, _bfSys.GetBonusScorePoints(0, GameRules.SCORE_TYPE_CONQUER, _gs));
+            Assert.AreEqual(0, _bfSys.GetBonusScorePoints(0, GameRules.SCORE_TYPE_BURNOUT, _gs));
         }
 
         // ── strength_obelisk ──────────────────────────────────────────────────

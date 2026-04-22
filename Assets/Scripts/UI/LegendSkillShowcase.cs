@@ -122,8 +122,10 @@ namespace FWTCG.UI
             // Phase 2: hold
             _showcaseSeq.AppendInterval(HOLD_DUR);
 
-            // Phase 3: magical dissolve + spark burst (matches SpellShowcaseUI visual style)
-            if (_dissolveMat != null && _cardBgImage != null)
+            // Phase 3: magical dissolve + spark burst — bot 高速下跳过（KillAll 打断留残影 magenta）
+            bool useDissolve = _dissolveMat != null && _cardBgImage != null
+                               && FWTCG.Core.GameTiming.SpeedMultiplier <= 10f;
+            if (useDissolve)
             {
                 SpellDissolveFX.ResetAmount(_dissolveMat);
                 // Legend skill treated as "player-side cast" direction by default; callers pass owner via PopulateLegendInfo.
@@ -131,7 +133,11 @@ namespace FWTCG.UI
                 _showcaseSeq.AppendCallback(() =>
                 {
                     if (_sparksRoot != null && _cardPanel != null)
-                        SpellDissolveFX.BurstSparks(_sparksRoot, 60, _cardPanel.sizeDelta.x, _cardPanel.sizeDelta.y);
+                    {
+                        // bot 高速运行时大幅减产，避免 tween 爆量
+                        int n = FWTCG.Core.GameTiming.SpeedMultiplier > 10f ? 10 : 60;
+                        SpellDissolveFX.BurstSparks(_sparksRoot, n, _cardPanel.sizeDelta.x, _cardPanel.sizeDelta.y);
+                    }
                 });
                 _showcaseSeq.Append(SpellDissolveFX.TweenAmount(_dissolveMat, 1.12f, EXIT_DUR * 2.2f));
                 if (_cardPanel != null)
@@ -139,7 +145,10 @@ namespace FWTCG.UI
                 _showcaseSeq.InsertCallback(DARKEN_DUR + ZOOM_DUR + HOLD_DUR + EXIT_DUR * 0.9f, () =>
                 {
                     if (_sparksRoot != null && _cardPanel != null)
-                        SpellDissolveFX.BurstSparks(_sparksRoot, 30, _cardPanel.sizeDelta.x, _cardPanel.sizeDelta.y);
+                    {
+                        int n = FWTCG.Core.GameTiming.SpeedMultiplier > 10f ? 5 : 30;
+                        SpellDissolveFX.BurstSparks(_sparksRoot, n, _cardPanel.sizeDelta.x, _cardPanel.sizeDelta.y);
+                    }
                 });
                 if (_darkOverlay != null)
                     _showcaseSeq.Append(_darkOverlay.DOFade(0f, EXIT_DUR).SetEase(Ease.InQuad));
@@ -170,6 +179,24 @@ namespace FWTCG.UI
                 SetVisible(false);
                 _showcaseSeq = null;
             });
+        }
+
+        /// <summary>
+        /// 强制关闭 showcase。RestartGameInPlace / DOTween.KillAll 之后手动调，
+        /// 避免 OnComplete 没 fire 导致面板永远 SetActive(true) 卡屏。
+        /// </summary>
+        public void ForceHide()
+        {
+            TweenHelper.KillSafe(ref _showcaseSeq);
+            if (_cardPanel != null) _cardPanel.localScale = Vector3.one;
+            if (_dissolveMat != null) SpellDissolveFX.ResetAmount(_dissolveMat);
+            SetVisible(false);
+            // 清空遗留 sparks
+            if (_sparksRoot != null)
+            {
+                for (int i = _sparksRoot.childCount - 1; i >= 0; i--)
+                    Destroy(_sparksRoot.GetChild(i).gameObject);
+            }
         }
 
         // ── Helpers ────────────────────────────────────────────────────────────

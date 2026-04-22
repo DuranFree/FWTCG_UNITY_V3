@@ -24,12 +24,16 @@ namespace FWTCG.Editor
         }
 
         // 配置
-        private int   _targetGames    = 10;
-        private float _actionDelay    = 0.15f;
-        private float _dialogDelay    = 0.1f;
-        private float _stuckTimeout   = 30f;
-        private bool  _alwaysConfirm  = true;
-        private float _speedMultiplier = 1f;
+        private int         _targetGames     = 10;
+        private float       _actionDelay     = 0.15f;
+        private float       _dialogDelay     = 0.1f;
+        private float       _stuckTimeout    = 30f;
+        private bool        _alwaysConfirm   = true;
+        private float       _speedMultiplier = 1f;
+        private int         _randomSeed      = 0;
+        private BotStrategy _strategy        = BotStrategy.Rotate;
+        private bool        _captureOnBug    = true;
+        private bool        _recordReplay    = true;
 
         private Vector2 _scroll;
 
@@ -79,15 +83,21 @@ namespace FWTCG.Editor
             EditorGUILayout.LabelField("配置", EditorStyles.boldLabel);
             using (new EditorGUI.IndentLevelScope(1))
             {
-                _targetGames    = EditorGUILayout.IntField("目标局数（0=无限）", _targetGames);
+                _targetGames     = EditorGUILayout.IntField("目标局数（0=无限）", _targetGames);
                 _speedMultiplier = EditorGUILayout.Slider("速度倍数", _speedMultiplier, 1f, 20f);
-                _actionDelay    = EditorGUILayout.Slider("操作间隔（秒）", _actionDelay, 0.05f, 2f);
-                _dialogDelay    = EditorGUILayout.Slider("弹窗等待（秒）", _dialogDelay, 0.05f, 1f);
-                _stuckTimeout   = EditorGUILayout.FloatField("卡死超时（秒）", _stuckTimeout);
-                _alwaysConfirm  = EditorGUILayout.Toggle("弹窗总是确认", _alwaysConfirm);
+                _strategy        = (BotStrategy)EditorGUILayout.EnumPopup("决策策略", _strategy);
+                _randomSeed      = EditorGUILayout.IntField("随机种子（0=随机）", _randomSeed);
+                _actionDelay     = EditorGUILayout.Slider("操作间隔（秒）", _actionDelay, 0.05f, 2f);
+                _dialogDelay     = EditorGUILayout.Slider("弹窗等待（秒）", _dialogDelay, 0.05f, 1f);
+                _stuckTimeout    = EditorGUILayout.FloatField("卡死超时（秒）", _stuckTimeout);
+                _alwaysConfirm   = EditorGUILayout.Toggle("弹窗总是确认", _alwaysConfirm);
+                _captureOnBug    = EditorGUILayout.Toggle("Bug 自动截图", _captureOnBug);
+                _recordReplay    = EditorGUILayout.Toggle("录制回放 jsonl", _recordReplay);
 
                 if (_speedMultiplier > 1f)
                     EditorGUILayout.HelpBox($"速度 {_speedMultiplier}x：AI 延迟跳过，动画加速，视觉效果不可用于手感判断。", MessageType.Info);
+                if (_strategy == BotStrategy.Rotate)
+                    EditorGUILayout.HelpBox("Rotate 策略：每局轮换 Greedy / Aggro / Random / Suicidal / RuneHoard，覆盖率最高。", MessageType.Info);
             }
         }
 
@@ -96,18 +106,55 @@ namespace FWTCG.Editor
             using (new EditorGUILayout.VerticalScope(EditorStyles.helpBox))
             {
                 EditorGUILayout.LabelField("🟢 Bot 运行中", EditorStyles.boldLabel);
-                EditorGUILayout.LabelField($"已完成局数:  {bot.GamesPlayed}");
-                EditorGUILayout.LabelField($"发现问题数:  {bot.BugsFound}");
+                EditorGUILayout.LabelField($"已完成局数:  {bot.GamesPlayed} / {bot.TargetGames}");
+                EditorGUILayout.Space(4);
+
+                // 严重度分级
+                EditorGUILayout.LabelField("Bug 统计", EditorStyles.miniBoldLabel);
+                var high   = GUI.color;
+                GUI.color = new Color(1f, 0.4f, 0.4f);
+                EditorGUILayout.LabelField($"  🔴 High   (紧急):  {bot.BugsHigh}");
+                GUI.color = new Color(1f, 0.85f, 0.3f);
+                EditorGUILayout.LabelField($"  🟡 Medium (关注):  {bot.BugsMedium}");
+                GUI.color = new Color(0.55f, 0.75f, 1f);
+                EditorGUILayout.LabelField($"  🔵 Low    (信息):  {bot.BugsLow}");
+                GUI.color = high;
+
+                EditorGUILayout.Space(4);
+                EditorGUILayout.LabelField("运行指标", EditorStyles.miniBoldLabel);
+                // FPS 变色
+                float fps = bot.LastFps;
+                GUI.color = fps <= 0f ? Color.gray : fps < 20f ? new Color(1f, 0.4f, 0.4f) :
+                            fps < 40f ? new Color(1f, 0.85f, 0.3f) : Color.white;
+                EditorGUILayout.LabelField($"  FPS (unscaled):  {(fps > 0 ? fps.ToString("F1") : "—")}");
+                GUI.color = high;
+
+                EditorGUILayout.LabelField($"  活跃 Tween:      {bot.ActiveTweens}");
+                EditorGUILayout.LabelField($"  GC 占用:         {bot.CurrentGcBytes / 1024 / 1024} MB");
             }
 
             EditorGUILayout.Space(6);
-            if (GUILayout.Button("■ 停止 Bot", GUILayout.Height(32)))
+            using (new EditorGUILayout.HorizontalScope())
             {
-                bot.StopBot();
+                if (GUILayout.Button("■ 停止 Bot", GUILayout.Height(32)))
+                    bot.StopBot();
+                if (GUILayout.Button("📄 打开 bug 日志", GUILayout.Height(32)))
+                    OpenLogFile("bot-bugs.md");
             }
 
             // 刷新 Editor 以实时更新数字
             Repaint();
+        }
+
+        private static void OpenLogFile(string filename)
+        {
+            string path = Path.Combine(Application.dataPath, "..", "logs", filename);
+            if (!File.Exists(path))
+            {
+                EditorUtility.DisplayDialog("日志不存在", $"未找到 {path}", "关闭");
+                return;
+            }
+            System.Diagnostics.Process.Start(Path.GetFullPath(path));
         }
 
         private void DrawReportSection()
@@ -155,12 +202,16 @@ namespace FWTCG.Editor
             }
 
             // 写入配置
-            bot.TargetGames          = _targetGames;
-            bot.ActionDelay          = _actionDelay;
-            bot.DialogDelay          = _dialogDelay;
-            bot.StuckTimeout         = _stuckTimeout;
-            bot.AlwaysConfirmDialogs = _alwaysConfirm;
-            bot.SpeedMultiplier      = _speedMultiplier;
+            bot.TargetGames            = _targetGames;
+            bot.ActionDelay            = _actionDelay;
+            bot.DialogDelay            = _dialogDelay;
+            bot.StuckTimeout           = _stuckTimeout;
+            bot.AlwaysConfirmDialogs   = _alwaysConfirm;
+            bot.SpeedMultiplier        = _speedMultiplier;
+            bot.Strategy               = _strategy;
+            bot.RandomSeed             = _randomSeed;
+            bot.CaptureScreenshotOnBug = _captureOnBug;
+            bot.RecordReplay           = _recordReplay;
 
             bot.StartBot();
         }

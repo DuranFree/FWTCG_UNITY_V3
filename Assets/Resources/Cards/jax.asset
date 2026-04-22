@@ -13,7 +13,7 @@ MonoBehaviour:
   m_Name: jax
   m_EditorClassIdentifier: 
   _id: jax
-  _cardName: "\u8D3E\u514B\u65AF\u00B7\u4E07\u822C\u7686\u6B66"
+  _cardName: "\u8D3E\u514B\u65AF\xB7\u4E07\u822C\u7686\u6B66"
   _cost: 5
   _runeType: 3
   _runeCost: 1

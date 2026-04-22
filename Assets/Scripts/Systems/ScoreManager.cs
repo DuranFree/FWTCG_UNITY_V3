@@ -59,11 +59,12 @@ namespace FWTCG.Systems
                 }
             }
 
-            // #2: Last-point rule for conquest scoring
+            // #2: Last-point rule for conquest scoring — 胜利门槛支持攀圣长阶 +1（B-SCORE-1）
+            int winScore = BattlefieldSystem.EffectiveWinScore(gs);
             if (type == GameRules.SCORE_TYPE_CONQUER)
             {
                 int currentScore = gs.GetScore(who);
-                if (currentScore + pts >= GameRules.WIN_SCORE)
+                if (currentScore + pts >= winScore)
                 {
                     // Check if ALL battlefields have been conquered this turn
                     HashSet<int> conqueredBFs = new HashSet<int>(gs.BFConqueredThisTurn);
@@ -103,7 +104,7 @@ namespace FWTCG.Systems
                 }
             }
 
-            string msg = $"[得分] {DisplayName(who)} +{pts} ({type}) → {gs.GetScore(who)}/{GameRules.WIN_SCORE}";
+            string msg = $"[得分] {DisplayName(who)} +{pts} ({type}) → {gs.GetScore(who)}/{winScore}";
             TurnManager.BroadcastMessage_Static(msg);
             OnScoreChanged?.Invoke(msg);
 
@@ -127,16 +128,19 @@ namespace FWTCG.Systems
         {
             if (gs.GameOver) return;
 
+            // B-SCORE-1: 攀圣长阶 → 胜利分数门槛 +1
+            int winScore = BattlefieldSystem.EffectiveWinScore(gs);
+
             string winner = null;
-            if (gs.PScore >= GameRules.WIN_SCORE) winner = GameRules.OWNER_PLAYER;
-            else if (gs.EScore >= GameRules.WIN_SCORE) winner = GameRules.OWNER_ENEMY;
+            if (gs.PScore >= winScore) winner = GameRules.OWNER_PLAYER;
+            else if (gs.EScore >= winScore) winner = GameRules.OWNER_ENEMY;
 
             if (winner != null)
             {
                 gs.GameOver = true;
                 string msg = winner == GameRules.OWNER_PLAYER
-                    ? $"玩家获胜！({gs.PScore}/{GameRules.WIN_SCORE})"
-                    : $"AI获胜！({gs.EScore}/{GameRules.WIN_SCORE})";
+                    ? $"玩家获胜！({gs.PScore}/{winScore})"
+                    : $"AI获胜！({gs.EScore}/{winScore})";
 
                 OnGameOver?.Invoke(msg);
             }

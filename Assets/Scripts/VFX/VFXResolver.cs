@@ -47,8 +47,35 @@ namespace FWTCG.VFX
             var prefab = Resources.Load<GameObject>($"Prefabs/FX/{fxName}");
             if (prefab == null)
                 prefab = Resources.Load<GameObject>($"FX/{fxName}");
-            _prefabCache[fxName] = prefab; // cache even null to avoid repeated lookups
+
+            // 验证：prefab 里所有 renderer 的 material 都要有合法 shader。
+            // 任何一个 shader 丢失 / InternalErrorShader → 返回 null，避免实例化后
+            // 渲染出 magenta 紫色方块覆盖在场景上。
+            if (prefab != null && HasBrokenMaterial(prefab))
+            {
+                Debug.LogWarning($"[VFXResolver] FX prefab '{fxName}' 有材质 shader 缺失，已禁用以避免紫色显示");
+                prefab = null;
+            }
+
+            _prefabCache[fxName] = prefab;
             return prefab;
+        }
+
+        private static bool HasBrokenMaterial(GameObject prefab)
+        {
+            foreach (var r in prefab.GetComponentsInChildren<Renderer>(true))
+            {
+                if (r == null) continue;
+                var mats = r.sharedMaterials;
+                if (mats == null) continue;
+                foreach (var m in mats)
+                {
+                    if (m == null) continue;
+                    var sh = m.shader;
+                    if (sh == null || sh.name == "Hidden/InternalErrorShader") return true;
+                }
+            }
+            return false;
         }
 
         // ── RuneType → base spawn FX ─────────────────────────────────────────

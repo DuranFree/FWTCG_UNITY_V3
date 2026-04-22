@@ -43,6 +43,9 @@ namespace FWTCG.UI
         private Material _blurMat;
         private RenderTexture _currentBlurRT;
         private Tween _fadeTween;
+        private Tween _scaleTween;
+        private Image _solidDimImg;
+        private Transform _scaleTarget;
         private bool _simplified;
 
         private void Awake()
@@ -301,12 +304,30 @@ namespace FWTCG.UI
             }
 
             TweenHelper.KillSafe(ref _fadeTween);
+            TweenHelper.KillSafe(ref _scaleTween);
+            EnsureSolidDim();
+            // Always render above other panels (Mulligan/AskPrompt/Reactive could appear later in hierarchy)
+            _panel.transform.SetAsLastSibling();
+            EnsureHighSortCanvas();
             if (_canvasGroup != null)
             {
                 _canvasGroup.alpha = 0f;
                 _canvasGroup.blocksRaycasts = true;
             }
             _panel.SetActive(true);
+
+            // Scale-in transition: panel starts small, eases to full size
+            if (_scaleTarget == null)
+                _scaleTarget = ResolveScaleTarget();
+            if (_scaleTarget != null)
+            {
+                _scaleTarget.localScale = new Vector3(0.4f, 0.4f, 1f);
+                _scaleTween = _scaleTarget.DOScale(1f, 0.28f)
+                    .SetEase(Ease.OutBack, 1.4f)
+                    .SetUpdate(true)
+                    .SetTarget(_panel);
+            }
+
             if (_canvasGroup != null)
             {
                 _fadeTween = _canvasGroup.DOFade(1f, FADE_IN_DURATION)
@@ -314,6 +335,53 @@ namespace FWTCG.UI
                     .SetUpdate(true)
                     .SetTarget(_panel);
             }
+        }
+
+        // Solid black layer that sits above BlurBG (kept blur if present) and below the popup panel,
+        // ensuring the source card behind is fully hidden, not just dimmed.
+        private void EnsureSolidDim()
+        {
+            if (_solidDimImg != null) { _solidDimImg.gameObject.SetActive(true); return; }
+            if (_panel == null) return;
+            var go = new GameObject("SolidDim", typeof(RectTransform));
+            go.transform.SetParent(_panel.transform, false);
+            // Render order: place right after BlurBG (or at index 0 if no blur)
+            int idx = 0;
+            for (int i = 0; i < _panel.transform.childCount; i++)
+            {
+                if (_panel.transform.GetChild(i).name == "BlurBG") { idx = i + 1; break; }
+            }
+            go.transform.SetSiblingIndex(idx);
+            var rt = go.GetComponent<RectTransform>();
+            rt.anchorMin = Vector2.zero; rt.anchorMax = Vector2.one;
+            rt.offsetMin = Vector2.zero; rt.offsetMax = Vector2.zero;
+            _solidDimImg = go.AddComponent<Image>();
+            _solidDimImg.color = new Color(0f, 0f, 0f, 1f); // fully opaque — kills any bleed-through
+            _solidDimImg.raycastTarget = false;
+        }
+
+        // Force popup to render above hover-cards (CardHoverScale uses sortingOrder=100)
+        private void EnsureHighSortCanvas()
+        {
+            if (_panel == null) return;
+            var c = _panel.GetComponent<Canvas>();
+            if (c == null)
+            {
+                c = _panel.AddComponent<Canvas>();
+                _panel.AddComponent<GraphicRaycaster>();
+            }
+            c.overrideSorting = true;
+            c.sortingOrder = 500;
+        }
+
+        // Find the actual centred panel (DetailPanel) inside _panel — fallback to art image if not found
+        private Transform ResolveScaleTarget()
+        {
+            if (_panel == null) return null;
+            var dp = _panel.transform.Find("DetailPanel");
+            if (dp != null) return dp;
+            if (_artImage != null) return _artImage.transform;
+            return _panel.transform;
         }
 
         private void EnsureBlurMaterial()

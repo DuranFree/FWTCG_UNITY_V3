@@ -117,7 +117,7 @@ namespace FWTCG.UI
             }
 
             // 动画：向上飘 FLOAT_DISTANCE + 淡入 + 停留 + 淡出
-            _seq = DOTween.Sequence().SetTarget(this);
+            _seq = DOTween.Sequence().SetTarget(this).LinkKillOnDestroy(gameObject);
             _seq.Append(_cg.DOFade(1f, FADE_IN_DUR).SetEase(Ease.OutCubic));
             _seq.Join(_rt.DOAnchorPosY(_rt.anchoredPosition.y + FLOAT_DISTANCE * 0.35f, FADE_IN_DUR).SetEase(Ease.OutCubic));
             _seq.AppendInterval(HOLD_DUR);

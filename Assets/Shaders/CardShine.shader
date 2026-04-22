@@ -124,4 +124,5 @@ Shader "UI/CardShine"
             ENDCG
         }
     }
+    FallBack "UI/Default"
 }

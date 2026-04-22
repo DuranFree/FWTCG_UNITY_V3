@@ -79,18 +79,27 @@ namespace FWTCG.Systems
 
         /// <summary>
         /// Returns extra points to add when scoring hold or conquest on this BF.
-        /// Applies: ascending_stairs (+1 on hold or conquer).
+        /// (目前无卡面效果会在此加分；攀圣长阶已改为胜利门槛 +1，见 EffectiveWinScore。)
         /// </summary>
         public int GetBonusScorePoints(int bfId, string scoreType, GameState gs)
         {
-            if (GetBFId(bfId, gs) == "ascending_stairs" &&
-                (scoreType == GameRules.SCORE_TYPE_HOLD ||
-                 scoreType == GameRules.SCORE_TYPE_CONQUER))
-            {
-                Log("[攀圣长阶] 额外+1分！");
-                return 1;
-            }
             return 0;
+        }
+
+        /// <summary>
+        /// Rule 101 / 攀圣长阶：任一战场为 ascending_stairs 时，获胜所需分数 +1。
+        /// </summary>
+        public static int EffectiveWinScore(GameState gs)
+        {
+            int bonus = 0;
+            if (gs != null && gs.BFNames != null)
+            {
+                for (int i = 0; i < gs.BFNames.Length; i++)
+                {
+                    if (gs.BFNames[i] == "ascending_stairs") bonus += 1;
+                }
+            }
+            return GameRules.WIN_SCORE + bonus;
         }
 
         // ── Hold phase effects ─────────────────────────────────────────────────

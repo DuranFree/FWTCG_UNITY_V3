@@ -91,6 +91,26 @@ namespace FWTCG
                 DOTween.Kill(go);
         }
 
+        /// <summary>
+        /// 关键防护：让 tween 跟一个 GameObject 生命周期绑定，GO 销毁时 tween 自动 Kill。
+        /// 防止"已销毁 Image/RectTransform 仍被 tween 访问"导致的 DOTween warning + 紫色尸体帧。
+        /// 使用：myImg.DOFade(0f, 0.5f).SetEase(Ease.OutQuad).LinkKillOnDestroy(myImg);
+        /// </summary>
+        public static T LinkKillOnDestroy<T>(this T tween, Component target) where T : Tween
+        {
+            if (tween != null && target != null)
+                tween.SetLink(target.gameObject, LinkBehaviour.KillOnDestroy);
+            return tween;
+        }
+
+        /// <summary>直接传 GameObject 版本。</summary>
+        public static T LinkKillOnDestroy<T>(this T tween, GameObject go) where T : Tween
+        {
+            if (tween != null && go != null)
+                tween.SetLink(go, LinkBehaviour.KillOnDestroy);
+            return tween;
+        }
+
         // ── DOT-enhance: new utility methods ──────────────────────────────
 
         /// <summary>Punch-scale a UI element (impact feel). Returns tween for KillSafe.</summary>

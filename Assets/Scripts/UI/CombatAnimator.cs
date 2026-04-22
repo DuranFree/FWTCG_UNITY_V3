@@ -161,7 +161,7 @@ namespace FWTCG.UI
             float dir = flyRight ? 1f : -1f;
             Vector2 target = origin + new Vector2(dir * FLY_OFFSET, 0f);
 
-            var seq = DOTween.Sequence().SetTarget(host);
+            var seq = DOTween.Sequence().SetTarget(host).LinkKillOnDestroy(host);
             // Phase 1: lunge toward enemy
             seq.Append(ghostRT.DOAnchorPos(target, FLY_DURATION).SetEase(Ease.OutQuad));
             // Phase 2: impact hold + punch scale on hit
@@ -202,7 +202,7 @@ namespace FWTCG.UI
             img.color = SHOCKWAVE_COLOR_GOLD;
             img.gameObject.SetActive(true);
 
-            var seq = DOTween.Sequence().SetTarget(img);
+            var seq = DOTween.Sequence().SetTarget(img).LinkKillOnDestroy(img);
             seq.Append(rt.DOScale(SHOCKWAVE_END_SCALE, SHOCKWAVE_DURATION).SetEase(Ease.OutCubic));
             seq.Join(img.DOFade(0f, SHOCKWAVE_DURATION).SetEase(Ease.InQuad));
             seq.OnComplete(() =>
