@@ -452,6 +452,10 @@ namespace FWTCG.UI
             var dh   = _ghost.GetComponent<CardDragHandler>(); if (dh   != null) Destroy(dh);
             var btn  = _ghost.GetComponent<Button>();           if (btn  != null) Destroy(btn);
             var chs = _ghost.GetComponent<CardHoverScale>(); if (chs != null) Destroy(chs);
+            // Hotfix-2: 关闭 ghost 的 CardView.LateUpdate 手牌扇形吸附，否则每帧 anchoredPosition
+            // 会被 Lerp 回克隆时的 fan 目标位置，与 DOTween 位移冲突导致 ghost 停留中央
+            var ghostCv = _ghost.GetComponent<CardView>();
+            if (ghostCv != null) ghostCv.ClearHandFanAngle();
 
             var cg = _ghost.GetComponent<CanvasGroup>() ?? _ghost.AddComponent<CanvasGroup>();
             cg.alpha          = 0.72f;
@@ -659,6 +663,10 @@ namespace FWTCG.UI
                 overlay.name = "LandGhost";
                 var dh2  = overlay.GetComponent<CardDragHandler>(); if (dh2  != null) Destroy(dh2);
                 var btn2 = overlay.GetComponent<Button>();           if (btn2 != null) Destroy(btn2);
+                var chs2 = overlay.GetComponent<CardHoverScale>();   if (chs2 != null) Destroy(chs2);
+                // Hotfix-2: 关闭 landing overlay 的 hand fan 吸附
+                var ovCv = overlay.GetComponent<CardView>();
+                if (ovCv != null) ovCv.ClearHandFanAngle();
 
                 var ocg = overlay.GetComponent<CanvasGroup>() ?? overlay.AddComponent<CanvasGroup>();
                 ocg.alpha = 1f; ocg.blocksRaycasts = false; ocg.interactable = false;
