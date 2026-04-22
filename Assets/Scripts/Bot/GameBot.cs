@@ -289,11 +289,13 @@ namespace FWTCG.Bot
         {
             float turnStart = Time.realtimeSinceStartup;
 
-            // 1. 横置所有符文获取法力
+            // 1. 标记所有未横置符文为"待横置"（1b 改为标记模式）
+            // 只做一次：已标记后跳过，避免死循环
             bool hasUntappedRunes = gs.PRunes.Any(r => !r.Tapped);
-            if (hasUntappedRunes)
+            bool alreadyPrepared = gm.HasPreparedRunes();
+            if (hasUntappedRunes && !alreadyPrepared)
             {
-                _currentGame?.Log($"[操作] 横置所有符文（{gs.PRunes.Count(r=>!r.Tapped)} 张）");
+                _currentGame?.Log($"[操作] 标记所有符文为待横置（{gs.PRunes.Count(r=>!r.Tapped)} 张，commit 时生效）");
                 gm.OnTapAllRunesClicked();
                 yield return new WaitForSeconds(ActionDelay);
                 _lastProgressTime = Time.time;
@@ -368,7 +370,12 @@ namespace FWTCG.Bot
 
         private bool CanAfford(GameState gs, UnitInstance unit)
         {
-            if (gs.PMana < unit.CardData.Cost) return false;
+            // Hotfix-13: 考虑 UI-OVERHAUL-1b 的 prepared 资源池 —
+            // 已标记待横置的符文 commit 时会 +mana；必须计入否则 bot 永不出牌
+            var gm = FWTCG.GameManager.Instance;
+            int preparedTapCount = gm != null ? gm.GetPreparedTapIdxs().Count : 0;
+            int availableMana = gs.PMana + preparedTapCount;
+            if (availableMana < unit.CardData.Cost) return false;
             if (unit.CardData.RuneCost > 0)
             {
                 int haveSch = gs.GetSch(GameRules.OWNER_PLAYER, unit.CardData.RuneType);
