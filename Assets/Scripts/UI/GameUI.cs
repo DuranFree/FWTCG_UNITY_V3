@@ -646,6 +646,19 @@ namespace FWTCG.UI
         /// <summary>UI-OVERHAUL-1b: 外部（GameManager、FloatingTipUI 调用点）需要访问根 Canvas。</summary>
         public Canvas RootCanvasRef => _rootCanvas;
 
+        /// <summary>Hotfix-5: 强制清除所有手牌 CardView 的视觉选中态（防御性）。</summary>
+        public void ForceClearAllHandSelections()
+        {
+            if (_playerHandContainer != null)
+            {
+                for (int i = 0; i < _playerHandContainer.childCount; i++)
+                {
+                    var cv = _playerHandContainer.GetChild(i).GetComponent<CardView>();
+                    if (cv != null) cv.SetSelected(false);
+                }
+            }
+        }
+
         /// <summary>DEV-30 F1: Returns the canvas-local position of a named zone. Used by SpellVFX for conquest burst.</summary>
         public Vector2 GetZoneCanvasPos(string zone)
         {
@@ -2124,23 +2137,31 @@ namespace FWTCG.UI
         /// <summary>
         /// UI-OVERHAUL-1c-γ: 按钮 active/dim 状态切换 + 激活动效（瞬间 punch + 长亮 pulse）。
         /// </summary>
+        // Cache original button base colors so the dim multiplier is applied to a stable baseline,
+        // not to the already-dimmed result (which compounded to invisible).
+        private readonly Dictionary<int, Color> _btnBaseImgColor = new();
+        private readonly Dictionary<int, Color> _btnBaseLblColor = new();
+
         private void ApplyActionButtonState(Button btn, bool active, ref bool wasActive, ref Tween pulseTween)
         {
             if (btn == null) return;
             btn.interactable = active;
+            int id = btn.GetInstanceID();
             var img = btn.GetComponent<Image>();
             if (img != null)
             {
-                var c = img.color;
-                float baseA = active ? 1f : 0.55f;
-                float mul   = active ? 1f : 0.45f;
-                img.color = new Color(c.r * mul, c.g * mul, c.b * mul, baseA);
+                if (!_btnBaseImgColor.ContainsKey(id)) _btnBaseImgColor[id] = img.color;
+                var b = _btnBaseImgColor[id];
+                float mul = active ? 1f : 0.55f;
+                float a   = active ? b.a : b.a * 0.85f;
+                img.color = new Color(b.r * mul, b.g * mul, b.b * mul, a);
             }
             var label = btn.GetComponentInChildren<Text>();
             if (label != null)
             {
-                var c = label.color;
-                label.color = new Color(c.r, c.g, c.b, active ? 1f : 0.55f);
+                if (!_btnBaseLblColor.ContainsKey(id)) _btnBaseLblColor[id] = label.color;
+                var b = _btnBaseLblColor[id];
+                label.color = new Color(b.r, b.g, b.b, active ? b.a : b.a * 0.6f);
             }
 
             var rt = btn.GetComponent<RectTransform>();

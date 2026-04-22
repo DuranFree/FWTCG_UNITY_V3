@@ -859,6 +859,11 @@ namespace FWTCG
             {
                 bool alreadySelected = _selectedHandUnits.Contains(unit);
                 _selectedHandUnits.Clear();
+                Debug.Log($"[OnUnitClicked] Hand click {unit.UnitName}, alreadySelected={alreadySelected}");
+
+                // Hotfix-5: 强制清除所有手牌 CardView 视觉选中态（防御 Refresh 路径漏掉的卡）
+                if (_ui != null) _ui.ForceClearAllHandSelections();
+
                 if (alreadySelected)
                 {
                     TurnManager.BroadcastMessage_Static($"[取消选择] {unit.UnitName}");
