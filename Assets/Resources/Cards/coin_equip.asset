@@ -1,0 +1,34 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 17e2dcccae127ad4fba868ec0487bae7, type: 3}
+  m_Name: coin_equip
+  m_EditorClassIdentifier:
+  _id: coin_equip
+  _cardName: "\u786C\u5E01"
+  _cost: 0
+  _runeType: 0
+  _runeCost: 0
+  _secondaryRuneType: 0
+  _secondaryRuneCost: 0
+  _atk: 0
+  _keywords: 0
+  _effectId: coin_equip
+  _isEquipment: 1
+  _equipAtkBonus: 1
+  _equipRuneType: 0
+  _equipRuneCost: 0
+  _isHero: 0
+  _legionCostReduction: 0
+  _isSpell: 0
+  _spellTargetType: 0
+  _description: "\u88C5\u914D[0]\uFF08\u652F\u4ED8[0]\uFF1A\u5C06\u6B64\u724C\u8D34\u9644\u5230\u4F60\u63A7\u5236\u7684\u4E00\u540D\u5355\u4F4D\u4E0A\u3002\uFF09+1\u6218\u529B"
+  _artSprite: {fileID: 0}

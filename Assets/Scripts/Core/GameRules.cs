@@ -247,8 +247,8 @@ namespace FWTCG.Core
 
         /// <summary>
         /// 返回法术在当前语境下的实际费用（考虑卡面条件性减费）。
-        /// balance_resolve 卡面："如果对手得分或胜利得分不超过3分，则此法术的费用将减少2。"
-        /// 解读：对手当前得分 ≤3，或对手距离胜利（WIN_SCORE - oppScore）≤3 时，自身费用 -2。
+        /// balance_resolve 卡面："如果对手分数离获胜分数不超过3，则此法术的费用减少[3]。"
+        /// 解读：对手距离胜利（EffectiveWinScore - oppScore）≤3 时，自身费用 -3。
         /// </summary>
         public static int GetSpellEffectiveCost(FWTCG.Core.UnitInstance spell, string caster, FWTCG.Core.GameState gs)
         {
@@ -257,9 +257,10 @@ namespace FWTCG.Core
             {
                 string opp = gs.Opponent(caster);
                 int oppScore = gs.GetScore(opp);
-                int toWin = WIN_SCORE - oppScore;
-                if (oppScore <= 3 || toWin <= 3)
-                    cost -= 2;
+                int winScore = FWTCG.Systems.BattlefieldSystem.EffectiveWinScore(gs);
+                int toWin = winScore - oppScore;
+                if (toWin <= 3)
+                    cost -= 3;
             }
             return cost < 0 ? 0 : cost;
         }

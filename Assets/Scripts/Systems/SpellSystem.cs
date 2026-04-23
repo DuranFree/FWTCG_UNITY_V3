@@ -108,7 +108,7 @@ namespace FWTCG.Systems
                     break;
 
                 case "akasi_storm":
-                    // 2 Radiant + 1 Blazing: deal 2 damage to random enemy unit, 6 times
+                    // 2 Blazing + 1 Radiant（dual）：进行六次：对一名敌方单位造成 2 点伤害（可选不同目标）
                     AkasiStorm(owner, gs);
                     break;
 
@@ -125,10 +125,9 @@ namespace FWTCG.Systems
                     break;
 
                 case "balance_resolve":
-                    // Haste: draw 1 + summon 1 rune from rune deck
-                    // DEV-3: skips the "conditional cost-2" part (needs targeting UI)
+                    // 迅捷：抽 1 牌 + 召出 1 枚休眠符文（卡面条件减费由 GameRules.GetSpellEffectiveCost 处理）
                     DrawCards(owner, 1, gs);
-                    SummonRune(owner, gs);
+                    SummonRune(owner, gs, dormant: true);
                     break;
 
                 case "slam":
@@ -397,7 +396,8 @@ namespace FWTCG.Systems
 
         private void FurnaceBlast(string owner, GameState gs, int bfOverride = -1)
         {
-            // 卡面："对同一位置的最多三名单位造成1点伤害。"
+            // 卡面："对同一位置的最多三名单位各造成1点伤害。"
+            // 实现选择：仅对敌方单位（卡面字面未限敌我，但实战/AI 均视为敌方伤害法术；己方单位不自残）
             // bfOverride >=0 用施法者指定战场；否则 AI 启发式选敌方单位数最多的战场
             string enemy = gs.Opponent(owner);
             int bestBf = -1;
@@ -459,7 +459,7 @@ namespace FWTCG.Systems
             Log($"[迎敌号令] {(owner == GameRules.OWNER_PLAYER ? "玩家" : "AI")} 本回合打出的单位活跃进场（已追溯 {count} 个）");
         }
 
-        private void SummonRune(string owner, GameState gs)
+        private void SummonRune(string owner, GameState gs, bool dormant = false)
         {
             List<RuneInstance> runeDeck = gs.GetRuneDeck(owner);
             List<RuneInstance> runes    = gs.GetRunes(owner);
@@ -468,8 +468,9 @@ namespace FWTCG.Systems
             {
                 RuneInstance r = runeDeck[0];
                 runeDeck.RemoveAt(0);
+                if (dormant) r.Tapped = true;
                 runes.Add(r);
-                Log($"[平衡意志] 召出符文 {r.RuneType.ToChinese()}（符文区共 {runes.Count} 张）");
+                Log($"[平衡意志] 召出{(dormant ? "休眠" : "")}符文 {r.RuneType.ToChinese()}（符文区共 {runes.Count} 张）");
             }
             else
             {
@@ -579,6 +580,8 @@ namespace FWTCG.Systems
 
         /// <summary>
         /// 星芒凝汇第二目标：自动挑选与第一目标不同的另一个敌方存活单位并造成 6 点伤害。
+        /// 卡面未限定"敌方"，但与 D-13 furnace_blast 同性质——自打友方永远非最优，
+        /// 且玩家 UI 选目标已限定敌方，二段自动选敌保持一致性。
         /// </summary>
         private void Starburst_DealToSecondTarget(string owner, UnitInstance first, GameState gs)
         {

@@ -3640,7 +3640,7 @@ namespace FWTCG.Editor
 
             // e519a76 贾克斯·万般皆武
             CD("jax",                "贾克斯·万般皆武", 5, 5, RuneType.Crushing, 1,
-               "法盾（敌方法术需额外支付[1]才能选中。）当你打出我时，让你基地的装备卡获得【反应】。",
+               "法盾（敌方法术需额外支付[1]才能选中。）当你打出我时，让你手牌中的装备卡获得【反应】。",
                CardKeyword.SpellShield, "jax_enter");
 
             // 863d9bc2 缇亚娜·冕卫 — DUAL domain Calm+Body
@@ -3687,6 +3687,13 @@ namespace FWTCG.Editor
                CardKeyword.None, "dorans_equip",
                isEquipment: true, equipAtkBonus: 2,
                equipRuneType: RuneType.Crushing, equipRuneCost: 1);
+
+            // Coin equipment token — bad_poro 征服时召出的休眠装备指示物（不入牌组，仅 Resources 加载）
+            CD("coin_equip",         "硬币",         0, 0, RuneType.Blazing, 0,
+               "装配[0]（支付[0]：将此牌贴附到你控制的一名单位上。）+1战力",
+               CardKeyword.None, "coin_equip",
+               isEquipment: true, equipAtkBonus: 1,
+               equipRuneType: RuneType.Blazing, equipRuneCost: 0);
 
             // ── Kaisa spells ──────────────────────────────────────────────────
             // OGN-009 海克斯射线

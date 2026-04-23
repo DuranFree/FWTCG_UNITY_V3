@@ -85,16 +85,11 @@ namespace FWTCG.Systems
         private bool IsAloneInZone(UnitInstance unit, int bfId, GameState gs)
         {
             string owner = unit.Owner;
-            // Check if there were any other allies on the same BF
-            // (At time of death, unit is already removed from the list,
-            //  so 0 remaining allies = was alone)
-            if (bfId < 0) return false;
-
-            List<UnitInstance> bfUnits = owner == GameRules.OWNER_PLAYER
-                ? gs.BF[bfId].PlayerUnits
-                : gs.BF[bfId].EnemyUnits;
-
-            return bfUnits.Count == 0;
+            // 卡面"此处"涵盖战场与基地：死亡后队列已移除本单位，剩 0 即为孤独阵亡。
+            List<UnitInstance> zoneUnits = bfId < 0
+                ? gs.GetBase(owner)
+                : (owner == GameRules.OWNER_PLAYER ? gs.BF[bfId].PlayerUnits : gs.BF[bfId].EnemyUnits);
+            return zoneUnits.Count == 0;
         }
 
         private void DrawCard(string owner, GameState gs)

@@ -197,7 +197,7 @@ namespace FWTCG.Core
         {
             var parts = new System.Collections.Generic.List<string>();
             if (BuffTokens > 0)
-                parts.Add($"+{BuffTokens}/+{BuffTokens} 强化标记");
+                parts.Add($"+{BuffTokens} 战力增益标记");
             if (TempAtkBonus > 0)
                 parts.Add($"+{TempAtkBonus} 临时战力加成");
             // Exclude equipment bonus from external-buff calculation so it doesn't double-appear

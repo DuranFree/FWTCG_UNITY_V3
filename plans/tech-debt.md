@@ -108,3 +108,23 @@
 - ✅ akasi_storm 六次目标 UI — CARD-FIX-2 已实现：GameState.AkasiStormTargets 预选列表 + PrepareAkasiStormTargetsAsync 逐次弹窗（允许取消空位兜底） — Phase CARD-FIX-2
 - ✅ furnace_blast 位置选择 UI — CARD-FIX-2 已实现：AskPromptUI 二选一（战场 0/1），GameState.FurnaceBlastBfOverride 传递给 SpellSystem — Phase CARD-FIX-2
 - ✅ 反应窗口法术 RuneCost 漏扣（pre-existing）— 已修：玩家 + AI 两侧 SpendSchForSpell 扣主/次符能 — Phase CARD-FIX-2 patch
+
+### 2026-04-23 卡面对账修复（card-vs-code-diff）
+- ✅ D-1 balance_resolve 费用减免 2→3 — GameRules.GetSpellEffectiveCost 按卡面 [3]
+- ✅ D-2 balance_resolve 召出符文未休眠 — SummonRune 加 dormant 参数，Tapped=true
+- ✅ D-4 balance_resolve 触发条件多余分支 — 去掉 oppScore≤3，仅保留 toWin≤3（改用 EffectiveWinScore）
+- ✅ D-5 jax 卡面文本三方不一致 — 卡面改为「手牌中的装备」与代码一致（SceneBuilder+asset 同步）
+- ✅ D-7 trifarian_warcamp/back_alley_bar 单边限制 — 去掉 `owner != OWNER_PLAYER`，AI 单位也触发
+- ✅ D-10 增益指示物误加 HP — ApplyAtkBuffToken 只 +atk，HiranaConquest 消耗对称只 -atk；UnitInstance 描述改为「+N 战力增益标记」
+- ✅ D-11 wailing_poro 基地孤独阵亡不触发 — IsAloneInZone bfId<-1 时查 Base list
+- ✅ D-12 AkasiStorm 注释符能写反 — 改为 "2 Blazing + 1 Radiant (dual)"
+- ✅ D-13 furnace_blast 注释文档化"仅对敌方"
+- [ ] D-3 foresight_mech 主被动「机械属性单位获得预知」+ 顶牌置底 UI — 需建模单位属性子类型 + AskPromptUI 扩展，归入后续 Phase
+- [ ] D-6 flash_counter「装备卡对目标的法术或技能效果」反制 — 当前卡池所有装备都是被动型无触发源，保留代码现状；新增可触发装备时需扩展 triggerSource
+- [ ] D-8 guilty_pleasure 玩家弃牌选择 UI — 目前自动挑首张非法术，玩家无选择权，需弹窗扩展
+- ✅ CardFaceVsCodeTests 11 项新测试全绿；全套 1179/1179 无回归
+
+### 2026-04-23 复核补修（card-vs-code follow-up）
+- ✅ N-1 bad_poro 征服「硬币」装备指示物 — 新建 coin_equip.asset（0费、装配[0]、+1战力）+ CombatSystem.SummonCoinEquipment 召出休眠 coin 入基地，替换旧「摸 1 张牌」占位
+- ✅ N-2 starburst 第二目标 — 文档化「仅敌方」决策（同 D-13），玩家 UI 已限定敌方一致
+- ✅ 2 项新测试（BadPoro_CoinEquipAsset_Exists / BadPoro_ConquestSummonsDormantCoin_IntoBase），全套 1181/1181 pass

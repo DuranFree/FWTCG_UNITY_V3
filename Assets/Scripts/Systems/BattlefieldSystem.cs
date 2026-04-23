@@ -133,26 +133,24 @@ namespace FWTCG.Systems
         // ── Unit movement effects ─────────────────────────────────────────────
 
         /// <summary>
-        /// Called when a player unit enters a battlefield.
-        /// Applies: trifarian_warcamp (buff token on entry, player units only).
+        /// Called when any unit (player or AI) enters a battlefield.
+        /// Applies: trifarian_warcamp (+1 战力 buff token on entry).
         /// </summary>
         public void OnUnitEnterBattlefield(UnitInstance unit, int bfId, string owner, GameState gs)
         {
-            if (owner != GameRules.OWNER_PLAYER) return;
             if (GetBFId(bfId, gs) == "trifarian_warcamp")
             {
-                ApplyBuffToken(unit);
+                ApplyAtkBuffToken(unit);
                 Log($"[崔法利战营] {unit.UnitName} 进入战营，获得增益指示物(+1战力)！");
             }
         }
 
         /// <summary>
-        /// Called when a player unit leaves a battlefield (to another BF, not recall).
-        /// Applies: back_alley_bar (+1 temp atk this turn, player units only).
+        /// Called when any unit leaves a battlefield (to another BF, not recall).
+        /// Applies: back_alley_bar (+1 temp atk this turn).
         /// </summary>
         public void OnUnitLeaveBattlefield(UnitInstance unit, int fromBfId, string owner, GameState gs)
         {
-            if (owner != GameRules.OWNER_PLAYER) return;
             if (GetBFId(fromBfId, gs) == "back_alley_bar")
             {
                 unit.TempAtkBonus += 1;
@@ -325,7 +323,7 @@ namespace FWTCG.Systems
             if (gs.GetMana(owner) >= 1 && baseUnits.Count > 0)
             {
                 gs.AddMana(owner, -1);
-                ApplyBuffToken(baseUnits[0]);
+                ApplyAtkBuffToken(baseUnits[0]);
                 Log($"[试炼者之阶] 据守！支付1法力，{baseUnits[0].UnitName} 获得+1战力增益。");
             }
         }
@@ -386,9 +384,8 @@ namespace FWTCG.Systems
             if (buffed != null)
             {
                 buffed.BuffTokens--;
-                // Rule 139.2: power floor 0, not 1
+                // 卡面：增益指示物仅+1战力，消耗时只扣战力；Rule 139.2 战力下限 0。
                 buffed.CurrentAtk = Mathf.Max(0, buffed.CurrentAtk - 1);
-                buffed.CurrentHp  = Mathf.Max(0, buffed.CurrentHp  - 1);
                 DrawCard(attacker, gs);
                 Log($"[希拉娜修道院] 征服！消耗 {buffed.UnitName} 的增益指示物，抽1张牌。");
             }
@@ -460,11 +457,15 @@ namespace FWTCG.Systems
 
         // ── Shared helpers ────────────────────────────────────────────────────
 
-        private void ApplyBuffToken(UnitInstance unit)
+        /// <summary>
+        /// 增益指示物（+1战力）— 卡面（trifarian_warcamp/aspirant_climb）均只增战力，HP 不变。
+        /// hirana 消耗指示物时用 ConsumeAtkBuffToken 对称扣除。
+        /// 受 Rule 702 约束 BuffTokens ∈ [0,1]。
+        /// </summary>
+        private void ApplyAtkBuffToken(UnitInstance unit)
         {
             unit.BuffTokens++;
             unit.CurrentAtk++;
-            unit.CurrentHp++;
         }
 
         private void DrawCard(string owner, GameState gs)

@@ -553,9 +553,8 @@ namespace FWTCG.Systems
                 {
                     case "bad_poro_conquer":
                         // bad_poro 卡面："当我征服一处战场时，打出1枚休眠的「硬币」装备指示物。"
-                        // 硬币装备指示物尚未建模，简化为摸一张牌作为占位。
                         FWTCG.UI.SpellShowcaseUI.Instance?.ShowAsync(unit, attacker);
-                        DrawOneCardForConquest(attacker, gs, unit);
+                        SummonCoinEquipment(attacker, gs, unit);
                         break;
 
                     case "kaisa_hero_conquer":
@@ -604,6 +603,25 @@ namespace FWTCG.Systems
 
             Log($"[中娅沙漏] 销毁自身，保护 {unit.UnitName} 休眠返回基地");
             return true;
+        }
+
+        /// <summary>
+        /// bad_poro 征服触发：召出 1 枚休眠的「硬币」装备指示物到征服方基地。
+        /// 硬币装备：0 费、装配[0]、+1战力（由 coin_equip.asset 定义）。
+        /// </summary>
+        private void SummonCoinEquipment(string owner, GameState gs, UnitInstance source)
+        {
+            var coinData = Resources.Load<FWTCG.Data.CardData>("Cards/coin_equip");
+            if (coinData == null)
+            {
+                Log($"[征服触发] {source.UnitName}：coin_equip 资源未找到，跳过");
+                return;
+            }
+            var coin = new UnitInstance(GameState.NextUid(), coinData, owner);
+            coin.Exhausted = true; // 休眠进场
+            gs.GetBase(owner).Add(coin);
+            Log($"[征服触发] {source.UnitName}：召出 1 枚休眠的「硬币」装备指示物（基地 {gs.GetBase(owner).Count} 张）");
+            FWTCG.UI.GameEventBus.FireUnitEntered(coin, owner);
         }
 
         /// <summary>Shared: draw 1 card as a conquest-triggered effect.</summary>
