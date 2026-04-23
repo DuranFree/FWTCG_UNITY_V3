@@ -70,8 +70,20 @@ namespace FWTCG.UI
         /// <summary>
         /// Called on turn change: must play a random card — reactive cards cannot be skipped.
         /// </summary>
+        /// <summary>
+        /// DEV-31 cleanup: 严格防御版 AutoPlayRandom — 不仅检测 chosen 是否在手，
+        /// 先遍历 _pendingCards 过滤掉所有已失效的牌（可能因为其他效果离手），
+        /// 然后再从剩余有效项里随机。仍无效则 SkipReaction。
+        /// </summary>
+        private void FilterStalePendingCards()
+        {
+            if (_pendingCards == null || _gs == null) return;
+            _pendingCards.RemoveAll(c => c == null || !_gs.PHand.Contains(c));
+        }
+
         private void AutoPlayRandom()
         {
+            FilterStalePendingCards();
             if (_tcs == null || _tcs.Task.IsCompleted) return;
             if (_pendingCards == null || _pendingCards.Count == 0) { SkipReaction(); return; }
             var chosen = _pendingCards[UnityEngine.Random.Range(0, _pendingCards.Count)];

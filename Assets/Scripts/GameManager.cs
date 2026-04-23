@@ -377,20 +377,6 @@ namespace FWTCG
         }
 
         /// <summary>
-        /// DEV-22: Multi-select hand unit drag — plays all units in the group to base.
-        /// </summary>
-        public void OnDragHandGroupToBase(List<UnitInstance> units)
-        {
-            if (!IsPlayerActionPhase()) return;
-            if (units == null || units.Count == 0) return;
-            foreach (var u in units)
-            {
-                if (_gs != null && _gs.PHand.Contains(u) && !u.CardData.IsSpell)
-                    _ = PlayHandCardWithRuneConfirmAsync(u);
-            }
-        }
-
-        /// <summary>
         /// DEV-22: Spell dragged outside hand zone — equivalent to clicking the spell.
         /// Enters targeting mode (or casts immediately for SpellTargetType.None).
         /// </summary>
@@ -402,34 +388,8 @@ namespace FWTCG
             _ = PlayHandCardWithRuneConfirmAsync(unit);
         }
 
-        /// <summary>
-        /// DEV-22: Multiple selected spell cards dragged out of hand — shows group showcase then casts all.
-        /// </summary>
-        public void OnSpellGroupDraggedOut(List<UnitInstance> spells)
-        {
-            if (!IsPlayerActionPhase()) return;
-            if (spells == null || spells.Count == 0) return;
-            _ = PlaySpellGroupAsync(spells);
-        }
-
-        private async System.Threading.Tasks.Task PlaySpellGroupAsync(List<UnitInstance> spells)
-        {
-            // Filter to valid hand spells only, preserving selection order
-            var valid = new List<UnitInstance>();
-            foreach (var s in spells)
-                if (_gs != null && _gs.PHand.Contains(s) && s.CardData.IsSpell) valid.Add(s);
-            if (valid.Count == 0) return;
-
-            // Cast each spell using the normal single-spell flow:
-            //   - SpellTargetType.None  → auto-resolve (random/AoE), no popup
-            //   - SpellTargetType != None → show target selection popup
-            foreach (var spell in valid)
-            {
-                if (_gs == null || _gs.GameOver) break;
-                if (_gs.PHand.Contains(spell))
-                    await PlayHandCardWithRuneConfirmAsync(spell);
-            }
-        }
+        // DEV-31 cleanup: OnDragHandGroupToBase / OnSpellGroupDraggedOut / PlaySpellGroupAsync 已移除
+        // UI-OVERHAUL-1a 单选化后无调用；UIOverhaul1aTests 会断言这些名字不存在
 
         /// <summary>
         /// Hero card dragged from hero zone to base — routes through rune confirm flow

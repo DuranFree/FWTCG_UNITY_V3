@@ -25,7 +25,7 @@
 - ✅ 入场 Foil Sweep 未实现 — DEV-30 V6 已实现：EnsureShineOverlay + FoilSweepRoutine，CardShine.shader 克隆材质，OnDestroy 销毁 — Phase DEV-8→DEV-30
 - [ ] kaisa_legend/yi_legend CardData 缺少卡图（需 tempPic 中找传奇卡图片，或用户提供）— Phase DEV-10
 - ✅ 弃牌堆/放逐堆 Button onClick — 已通过 GameUI.SetPileClickCallback + WirePileButtons() 在运行时连线，实现正常 — Phase DEV-10
-- [ ] DamagePopup 每次 new GameObject（GC churn）— 高频伤害时压力大，应改为对象池 — Phase DEV-17（Codex Medium/Low）
+- ✅ DamagePopup 每次 new GameObject（GC churn）— DEV-31 cleanup 已修：Stack&lt;DamagePopup&gt; 池；Create 优先复用，动画完成 SetActive(false) 回池；ClearPool 场景切换清理 — Phase DEV-17→DEV-31 cleanup
 - ✅ Ephemeral 单位打出时未设置 IsEphemeral/SummonedOnRound — 已修复：UnitInstance 构造函数从 CardData.HasKeyword(Ephemeral) 初始化 IsEphemeral；TryPlayUnit 打出瞬息单位时设置 SummonedOnRound=gs.Round — Phase DEV-18（Claude 审查 High → 已解决）
 - ✅ AI 出牌不触发 OnCardPlayed/BoardFlash — CARD-FIX-1 hotfix 已修：SimpleAI 英雄 / 单位 / CastAISpell 三处均 FireCardPlayed(card, owner) — Phase DEV-18→CARD-FIX-1
 - ✅ Ephemeral 销毁未加入弃牌堆 — 已修复：DestroyEphemeralUnits 两处（base + battlefield）均加 gs.GetDiscard(owner).Add(u) — Phase DEV-18→DEV-28
@@ -45,7 +45,7 @@
 - ✅ CardDragHandler: PortalVFX.EnsureBuilt fallback — DEV-31 已修复：改用 GetComponentInParent<Canvas>() + rootCanvas 解析，移除 FindObjectOfType — Phase DEV-22→DEV-31
 - ✅ CardDragHandler: HandleDrop 重验证 — DEV-31 已修复：HandleDrop 开头加 `if (GameManager.Instance == null) return` 深度防御 — Phase DEV-22→DEV-31
 - ✅ DEV-22 测试套件缺行为测试 — DEV-32 已补充：CanStartDrag=false 保护、BlockPointerEvents 清理、多回调覆盖、null 回调安全 — Phase DEV-22→DEV-32
-- [ ] ReactiveWindowUI._gs 仅在 WaitForReaction 时更新，AutoPlayRandom guard 仅能防止失效卡；若需更严格防御应在 SkipReaction 前遍历 _pendingCards — Phase DEV-22 patch（Codex Low）
+- ✅ ReactiveWindowUI AutoPlayRandom 严格防御 — DEV-31 cleanup 已修：新增 FilterStalePendingCards 先过滤离手卡再随机 — Phase DEV-22→DEV-31 cleanup
 - ✅ SceneryUI.DividerOrbLoop 基准位置 — 已确认：DEV-26 已修复，仅缓存 baseY，X 轴读实时值 — Phase DEV-23 → DEV-31 confirmed resolved
 - [ ] GlassPanelFX Shader.Find 运行时查找 — 代码已有 LogWarning 兜底，属项目配置项；待打包前在 Project Settings → Graphics → Always Included Shaders 添加 FWTCG/GlassPanel — Phase DEV-25（配置待处理）
 - [ ] ShowStatusTooltip AutoDismissTooltip 只监听鼠标按下，键盘/游戏手柄操作无法关闭 tooltip — 低优先级，当前目标平台为 PC — Phase DEV-25（Low）
@@ -90,7 +90,7 @@
 - ✅ PlayManaFillStagger InsertCallback 创建的 PunchScale tween 未挂 SetTarget，KillSafe 无法级联 kill — 已修复：改用 seq.Insert + SetTarget，DOT-8 Medium fix — DOT-8（Codex MEDIUM-5）
 - [ ] CardBackManager.SetPlayerCardBack 写入 PlayerPrefs，但 Load() 硬编码 Back01 忽略 PlayerPrefs；SetPlayerCardBack 功能性死代码，再次 domain reload 后选择被覆盖 — DOT-8（Codex MEDIUM-4，功能未完整实现，暂不修复）
 - ✅ 历史测试未跟上代码演化（11 项 DOT*/DEV21* 失败）— DEV-31 cleanup 已修：DOT_MAX_SIZE 5 / HOVER_SCALE 1.18 / ENDTURN_PULSE 0.82 / SHAKE 0.08+12 / Chaos teal 全部同步源码；StartupFlowUI 5 项 SHUFFLE_* / _shuffleGhosts 测试删除（字段不存在）— 记录于 Detail Popup 清理 Phase→DEV-31 cleanup
-- [ ] GameManager.OnDragHandGroupToBase/OnSpellGroupDraggedOut/PlaySpellGroupAsync 成为死代码 — UI-OVERHAUL-1a 单选化后，future 确认无依赖可删 — UI-OVERHAUL-1a
+- ✅ GameManager.OnDragHandGroupToBase/OnSpellGroupDraggedOut/PlaySpellGroupAsync 死代码 — DEV-31 cleanup 已删：UI-OVERHAUL-1a 单选化后 CardDragHandler 无调用，三个方法全部移除 — UI-OVERHAUL-1a→DEV-31 cleanup
 - [ ] GameManager.GetSelectedHandUnits/GetSelectedBaseUnits 返回 List 但单选下恒 ≤ 1 项 — 可逐步改为单元素字段 — UI-OVERHAUL-1a
 - ✅ _pendingDragHasteDecision / SetDragHasteDecision / DragNeedsHasteChoice 暂留但失效 — DEV-31 cleanup 已删：CardDragHandler 不再调用，字段 + 两个方法全部移除 — UI-OVERHAUL-1a→DEV-31 cleanup
 - [ ] RuneAutoConsume.Compute / ExecuteRunePlan 仍被 AI / Mulligan 使用，玩家路径已切 prepared 机制 — UI-OVERHAUL-1b
