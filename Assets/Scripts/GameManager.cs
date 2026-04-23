@@ -2870,8 +2870,9 @@ namespace FWTCG
             var baseDead = new List<UnitInstance>();
             foreach (var u in new List<UnitInstance>(baseList))
             {
-                u.CurrentHp -= dmg;
-                FireUnitDamaged(u, dmg, "DEBUG");
+                // DEV-32 A3: 统一走 DamageRouter
+                Systems.DamageRouter.Apply(u, dmg, _gs,
+                    Systems.DamageRouter.DamageKind.Debug, "DEBUG");
                 if (u.CurrentHp <= 0) baseDead.Add(u);
             }
             foreach (var u in baseDead)
@@ -2889,8 +2890,8 @@ namespace FWTCG
                 var bfDead = new List<UnitInstance>();
                 foreach (var u in new List<UnitInstance>(bfList))
                 {
-                    u.CurrentHp -= dmg;
-                    FireUnitDamaged(u, dmg, "DEBUG");
+                    Systems.DamageRouter.Apply(u, dmg, _gs,
+                        Systems.DamageRouter.DamageKind.Debug, "DEBUG");
                     if (u.CurrentHp <= 0) bfDead.Add(u);
                 }
                 foreach (var u in bfDead)

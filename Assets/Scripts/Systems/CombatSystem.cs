@@ -235,8 +235,8 @@ namespace FWTCG.Systems
             string bfDisplayName = rawBfId != null ? GameRules.GetBattlefieldDisplayName(rawBfId) : $"战场{bfId + 1}";
             Log($"[法术对决] {bfDisplayName}: {DisplayName(attacker)}({attackerPower}) vs {DisplayName(defender)}({defenderPower})");
 
-            List<UnitInstance> deadDefenders = DistributeDamage(attackerPower, defenderUnits);
-            List<UnitInstance> deadAttackers = DistributeDamage(defenderPower, attackerUnits);
+            List<UnitInstance> deadDefenders = DistributeDamage(attackerPower, defenderUnits, gs);
+            List<UnitInstance> deadAttackers = DistributeDamage(defenderPower, attackerUnits, gs);
 
             // Remove dead units and trigger deathwish
             RemoveDeadUnits(deadDefenders, bf, defender, gs);
@@ -375,7 +375,7 @@ namespace FWTCG.Systems
         /// Within each group, order is preserved. Excess damage carries over.
         /// Returns list of units with CurrentHp <= 0 (dead).
         /// </summary>
-        private List<UnitInstance> DistributeDamage(int totalDamage, List<UnitInstance> targets)
+        private List<UnitInstance> DistributeDamage(int totalDamage, List<UnitInstance> targets, GameState gs)
         {
             List<UnitInstance> dead = new List<UnitInstance>();
             int remaining = totalDamage;
@@ -389,17 +389,13 @@ namespace FWTCG.Systems
             {
                 if (remaining <= 0) break;
 
-                int dmg = Mathf.Min(remaining, u.CurrentHp);
-                u.CurrentHp -= dmg;
+                // DEV-32 A3: DamageRouter.Combat 种类 — 防透支（最多扣到 0，溢出不计）+ 无 BF 加成
+                int dmg = DamageRouter.Apply(u, remaining, gs,
+                    DamageRouter.DamageKind.Combat, "战斗");
                 remaining -= dmg;
-                if (dmg > 0) GameManager.FireUnitDamaged(u, dmg, "战斗");
 
                 if (u.CurrentHp <= 0)
-                {
                     dead.Add(u);
-                    // Excess damage carries over
-                    // (already subtracted only what was needed)
-                }
             }
 
             return dead;

@@ -201,13 +201,10 @@ namespace FWTCG.Systems
             // By the time we are here, the caster has already paid the SpellShield cost
             // (checked in GameManager / AI targeting). Damage resolves normally.
 
-            // void_gate: +1 damage to units on that BF
-            if (_bfSys != null)
-                amount += _bfSys.GetSpellDamageBonus(target, gs);
-
-            target.CurrentHp -= amount;
-            Log($"[伤害] {target.UnitName} 受到 {amount} 点法术伤害（剩余HP: {target.CurrentHp}）");
-            GameManager.FireUnitDamaged(target, amount, _currentSpellName);
+            // DEV-32 A3: 统一通过 DamageRouter（负责 void_gate 加成 + 扣 HP + FireUnitDamaged）
+            int dealt = DamageRouter.Apply(target, amount, gs,
+                DamageRouter.DamageKind.Spell, _currentSpellName, _bfSys);
+            Log($"[伤害] {target.UnitName} 受到 {dealt} 点法术伤害（剩余HP: {target.CurrentHp}）");
 
             if (target.CurrentHp <= 0)
                 RemoveDeadUnit(target, gs);
@@ -384,9 +381,10 @@ namespace FWTCG.Systems
                     foreach (var u in alive)
                         if (u.CurrentHp < picked.CurrentHp) picked = u;
                 }
-                picked.CurrentHp -= 2;
+                // DEV-32 A3: AreaSpell 种类 — 不应用 BF 加成（范围法术不走 void_gate）
+                DamageRouter.Apply(picked, 2, gs,
+                    DamageRouter.DamageKind.AreaSpell, _currentSpellName);
                 Log($"[狂暴之风] 第{hit + 1}击 → {picked.UnitName}（剩余HP: {picked.CurrentHp}）");
-                GameManager.FireUnitDamaged(picked, 2, _currentSpellName);
                 if (picked.CurrentHp <= 0 && !dead.Contains(picked))
                     dead.Add(picked);
             }
