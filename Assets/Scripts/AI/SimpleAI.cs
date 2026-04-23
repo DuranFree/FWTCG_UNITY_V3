@@ -387,6 +387,15 @@ namespace FWTCG.AI
         /// <summary>
         /// Select best target for a spell based on owner's perspective.
         /// </summary>
+        /// <summary>返回敌方存活单位中 CurrentHp 最低的；无敌方返回 null。</summary>
+        public static UnitInstance PickLowestHpEnemy(GameState gs, string owner)
+        {
+            UnitInstance best = null;
+            foreach (var u in GetOpponentUnits(gs, owner))
+                if (u.CurrentHp > 0 && (best == null || u.CurrentHp < best.CurrentHp)) best = u;
+            return best;
+        }
+
         public static UnitInstance AiChooseSpellTarget(UnitInstance spell, GameState gs, string owner)
         {
             switch (spell.CardData.SpellTargetType)
@@ -723,6 +732,20 @@ namespace FWTCG.AI
                 }
                 spellSys.CastSpell(spell, owner, target, gs);
                 await Delay(550);
+
+                // stardrop 第二段：若首目标死亡则换最低 HP 敌，否则继续打首目标
+                if (spell.CardData.EffectId == "stardrop" && !gs.GameOver)
+                {
+                    UnitInstance second = target;
+                    if (second == null || second.CurrentHp <= 0)
+                        second = PickLowestHpEnemy(gs, owner);
+                    if (second != null)
+                    {
+                        Log($"{tag} [星落·再次] → {second.UnitName}");
+                        spellSys.StardropSecondStrike(second, gs);
+                        await Delay(400);
+                    }
+                }
 
                 // Echo: 支付 1 主符能后可重复效果（AI 自动：够就 echo）
                 if (!gs.GameOver && spell.CardData.HasKeyword(CardKeyword.Echo)

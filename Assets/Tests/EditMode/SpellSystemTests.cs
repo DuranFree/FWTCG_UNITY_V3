@@ -182,10 +182,13 @@ namespace FWTCG.Tests.EditMode
         [Test]
         public void Stardrop_Deals6TotalDamage_WhenTargetSurvivesFirst3()
         {
+            // 卡面："进行再次：对一名单位造成3点伤害。（可以选择不同的单位。）"
+            // CARD-FIX-2 起：第二段由施法者显式调 StardropSecondStrike（玩家 UI / AI 自动）
             var spell  = MakeSpellInHand(GameRules.OWNER_PLAYER, "stardrop", "stardrop", SpellTargetType.EnemyUnit);
             var target = MakeUnitInBase(GameRules.OWNER_ENEMY, "tough_unit", 3, 10);
 
             _spellSys.CastSpell(spell, GameRules.OWNER_PLAYER, target, _gs);
+            _spellSys.StardropSecondStrike(target, _gs); // 模拟施法者选择同一目标
 
             Assert.AreEqual(4, target.CurrentHp, "stardrop should deal 3+3=6 damage to 10HP unit (10-6=4)");
         }
@@ -433,6 +436,7 @@ namespace FWTCG.Tests.EditMode
             // Simulate: 1 sch targeting cost already paid before CastSpell
 
             _spellSys.CastSpell(spell, GameRules.OWNER_PLAYER, target, _gs);
+            _spellSys.StardropSecondStrike(target, _gs); // CARD-FIX-2: 第二段显式调
 
             // Both hits deal 3 damage → 10-3-3=4
             Assert.AreEqual(4, target.CurrentHp,

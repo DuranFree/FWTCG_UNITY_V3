@@ -2076,7 +2076,31 @@ namespace FWTCG
                 }
 
                 if (_spellSys != null)
+                {
+                    // furnace_blast 位置选择：施法前让玩家选战场
+                    if (spell.CardData.EffectId == "furnace_blast")
+                        _gs.FurnaceBlastBfOverride = await PickFurnaceBlastPositionAsync();
+
+                    // akasi_storm 预选 6 个目标（玩家逐次弹窗）
+                    if (spell.CardData.EffectId == "akasi_storm")
+                        await PrepareAkasiStormTargetsAsync();
+
                     _spellSys.CastSpell(spell, GameRules.OWNER_PLAYER, target, _gs);
+
+                    // stardrop 第二段：玩家选新目标（可同可不同，可取消）
+                    if (!_gs.GameOver && spell.CardData.EffectId == "stardrop")
+                    {
+                        await TryStardropSecondAsync(target);
+                    }
+
+                    // Echo 玩家路径：法术具 Echo 关键字 且 可付费 → 询问是否重复
+                    if (!_gs.GameOver &&
+                        spell.CardData.HasKeyword(CardKeyword.Echo) &&
+                        GameRules.CanAffordEcho(spell, GameRules.OWNER_PLAYER, _gs))
+                    {
+                        await TryEchoPromptAsync(spell, GameRules.OWNER_PLAYER, target);
+                    }
+                }
                 else
                     _gs.PDiscard.Add(spell);
             }
@@ -2403,6 +2427,139 @@ namespace FWTCG
                 if (plan.CanAfford) return true;
             }
             return false;
+        }
+
+        /// <summary>
+        /// furnace_blast 位置选择：弹 AskPromptUI 让玩家选战场 0 / 战场 1。
+        /// 返回 BF 索引；弹窗不可用或玩家不选则返回 -1（SpellSystem 兜底用 AI 启发式）。
+        /// </summary>
+        private async Task<int> PickFurnaceBlastPositionAsync()
+        {
+            if (UI.AskPromptUI.Instance == null) return -1;
+            try
+            {
+                string bf0Name = _gs.BFNames != null && _gs.BFNames.Length > 0 && !string.IsNullOrEmpty(_gs.BFNames[0])
+                    ? _gs.BFNames[0] : "战场1";
+                string bf1Name = _gs.BFNames != null && _gs.BFNames.Length > 1 && !string.IsNullOrEmpty(_gs.BFNames[1])
+                    ? _gs.BFNames[1] : "战场2";
+                bool pickFirst = await UI.AskPromptUI.Instance.WaitForConfirm(
+                    "风箱炎息 · 选位置",
+                    "对哪个战场的单位造成伤害？",
+                    bf0Name, bf1Name);
+                return pickFirst ? 0 : 1;
+            }
+            catch (System.OperationCanceledException)
+            {
+                return -1;
+            }
+        }
+
+        /// <summary>
+        /// akasi_storm 预选 6 次目标（玩家逐次弹窗）。取消 / 无弹窗则留空，SpellSystem 兜底选最低 HP。
+        /// </summary>
+        private async Task PrepareAkasiStormTargetsAsync()
+        {
+            _gs.AkasiStormTargets.Clear();
+            var popup = UI.SpellTargetPopup.Instance;
+            if (popup == null) return;
+            for (int i = 0; i < 6; i++)
+            {
+                TurnManager.ShowBanner_Static($"🌪 [艾卡西亚暴雨] 第 {i + 1}/6 次目标");
+                UnitInstance pick = null;
+                try
+                {
+                    pick = await popup.ShowAsync(SpellTargetType.EnemyUnit, _gs);
+                }
+                catch (System.OperationCanceledException) { pick = null; }
+                _gs.AkasiStormTargets.Add(pick); // null 也占位，由 SpellSystem 兜底
+            }
+        }
+
+        /// <summary>
+        /// stardrop 第二段：玩家选新目标（卡面"可以选择不同的单位"）。取消则兜底打首目标（若仍存活）。
+        /// </summary>
+        private async Task TryStardropSecondAsync(UnitInstance firstTarget)
+        {
+            if (_spellSys == null) return;
+            var popup = UI.SpellTargetPopup.Instance;
+            UnitInstance second = null;
+            if (popup != null)
+            {
+                TurnManager.ShowBanner_Static("✨ [星落·再次] 选择第二次目标");
+                try
+                {
+                    second = await popup.ShowAsync(SpellTargetType.EnemyUnit, _gs);
+                }
+                catch (System.OperationCanceledException) { second = null; }
+            }
+            if (second == null || second.CurrentHp <= 0)
+                second = (firstTarget != null && firstTarget.CurrentHp > 0) ? firstTarget : null;
+            if (second == null) return;
+            _spellSys.StardropSecondStrike(second, _gs);
+            await FWTCG.Core.GameTiming.Delay(400);
+            RefreshUI();
+        }
+
+        /// <summary>
+        /// Echo 玩家路径：法术结算后询问是否支付 1 主符能重复效果。
+        /// 若法术需目标（EnemyUnit / FriendlyUnit / AnyUnit），重新开 SpellTargetPopup 选新目标。
+        /// </summary>
+        private async Task TryEchoPromptAsync(UnitInstance spell, string owner, UnitInstance firstTarget)
+        {
+            if (UI.AskPromptUI.Instance == null || _spellSys == null) return;
+
+            bool confirm;
+            try
+            {
+                string runeLabel = spell.CardData.RuneType.ToChinese();
+                confirm = await UI.AskPromptUI.Instance.WaitForConfirm(
+                    "回响",
+                    $"消耗 1 点{runeLabel}符能再次发动 {spell.UnitName}？",
+                    "回响", "取消");
+            }
+            catch (System.OperationCanceledException)
+            {
+                return;
+            }
+            if (!confirm) return;
+
+            // 再次确认可付（玩家权衡期间可能有其他效果影响符能池）
+            if (!GameRules.CanAffordEcho(spell, owner, _gs)) return;
+            GameRules.SpendEchoCost(spell, owner, _gs);
+
+            // 选新目标（若法术需目标）
+            UnitInstance echoTarget = firstTarget;
+            if (spell.CardData.SpellTargetType != SpellTargetType.None)
+            {
+                var popup = UI.SpellTargetPopup.Instance;
+                if (popup != null)
+                {
+                    try
+                    {
+                        echoTarget = await popup.ShowAsync(spell.CardData.SpellTargetType, _gs);
+                    }
+                    catch (System.OperationCanceledException)
+                    {
+                        echoTarget = firstTarget;
+                    }
+                    // 玩家取消 → 回退到首目标（若仍存活）或空
+                    if (echoTarget == null || echoTarget.CurrentHp <= 0)
+                        echoTarget = (firstTarget != null && firstTarget.CurrentHp > 0) ? firstTarget : null;
+                }
+            }
+
+            TurnManager.ShowBanner_Static($"⚡ [回响] {spell.UnitName}");
+            if (echoTarget != null && UI.EntryEffectVFX.Instance != null)
+            {
+                UI.EntryEffectVFX.Instance.PlaySpellOrbs(
+                    new System.Collections.Generic.List<UnitInstance> { echoTarget },
+                    spell.UnitName + "·回响",
+                    UI.GameColors.SchColor);
+                await FWTCG.Core.GameTiming.Delay(300);
+            }
+            _spellSys.EchoCast(spell, owner, echoTarget, _gs);
+            await FWTCG.Core.GameTiming.Delay(500);
+            RefreshUI();
         }
 
         /// <summary>

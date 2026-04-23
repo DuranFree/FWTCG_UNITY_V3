@@ -52,6 +52,17 @@ namespace FWTCG.Systems
         }
 
         /// <summary>
+        /// stardrop 第二段伤害（独立于 CastSpell，由施法者选目标后调用）。
+        /// 卡面："进行再次：对一名单位造成3点伤害。（可以选择不同的单位。）"
+        /// 目标可为首目标，也可换人；null 时不打。
+        /// </summary>
+        public void StardropSecondStrike(UnitInstance target, GameState gs)
+        {
+            if (target == null || target.CurrentHp <= 0) return;
+            DealDamage(target, 3, gs);
+        }
+
+        /// <summary>
         /// Echo 重复释放：再次结算一次效果（不移动手牌，不再次收费；成本由调用方已扣除）。
         /// 第二次结算可使用新目标（AI 由 AiChooseSpellTarget 选，玩家 2b UI 再实现）。
         /// </summary>
@@ -84,17 +95,9 @@ namespace FWTCG.Systems
 
                 case "stardrop":
                     // 卡面："进行再次：对一名单位造成3点伤害。（可以选择不同的单位。）"
-                    // 第 1 次：对选定目标造成 3 点伤害
+                    // 只处理第 1 段；第 2 段由施法者调 StardropSecondStrike 显式触发
+                    //（GameManager 玩家 UI 选新目标；SimpleAI 自动选最低 HP）
                     DealDamage(target, 3, gs);
-                    // 第 2 次：若第一目标已死，自动改打剩余敌方最低HP；否则仍打同一目标
-                    // （玩家 UI 选不同目标的路径 2b 再实现）
-                    {
-                        UnitInstance second = target;
-                        if (second == null || second.CurrentHp <= 0)
-                            second = PickLowestHpEnemy(owner, gs);
-                        if (second != null)
-                            DealDamage(second, 3, gs);
-                    }
                     break;
 
                 case "starburst":
@@ -139,8 +142,10 @@ namespace FWTCG.Systems
                     break;
 
                 case "furnace_blast":
-                    // Echo, 1 Blazing: deal 1 damage to up to 3 enemy units
-                    FurnaceBlast(owner, gs);
+                    // 回响①：对"同一位置"最多 3 名敌方单位各造成 1 点伤害
+                    // 位置选择：GameState.FurnaceBlastBfOverride >= 0 则用该战场；否则 AI 启发式
+                    FurnaceBlast(owner, gs, gs.FurnaceBlastBfOverride);
+                    gs.FurnaceBlastBfOverride = -1; // 重置，防止下次施法泄漏
                     break;
 
                 case "time_warp":
@@ -358,16 +363,27 @@ namespace FWTCG.Systems
             }
 
             // 卡面："进行六次：对一名单位造成2点伤害。（你可以选择不同的单位。）"
-            // 施法者逐次选目标；AI 启发式 = 每次选存活里 HP 最低者（最快清场）。
-            // 玩家逐次选目标的 UI 2b 再实现。
+            // 目标顺序：gs.AkasiStormTargets（玩家 UI 逐次选 / AI 可选 preselect）
+            //   每次若为 null 或已死 → 兜底选当前存活里 HP 最低者
             var dead = new List<UnitInstance>();
             for (int hit = 0; hit < 6; hit++)
             {
                 var alive = allEnemies.FindAll(u => u.CurrentHp > 0);
                 if (alive.Count == 0) break;
-                UnitInstance picked = alive[0];
-                foreach (var u in alive)
-                    if (u.CurrentHp < picked.CurrentHp) picked = u;
+
+                UnitInstance picked = null;
+                if (hit < gs.AkasiStormTargets.Count)
+                {
+                    var chosen = gs.AkasiStormTargets[hit];
+                    if (chosen != null && chosen.CurrentHp > 0 && allEnemies.Contains(chosen))
+                        picked = chosen;
+                }
+                if (picked == null)
+                {
+                    picked = alive[0];
+                    foreach (var u in alive)
+                        if (u.CurrentHp < picked.CurrentHp) picked = u;
+                }
                 picked.CurrentHp -= 2;
                 Log($"[狂暴之风] 第{hit + 1}击 → {picked.UnitName}（剩余HP: {picked.CurrentHp}）");
                 GameManager.FireUnitDamaged(picked, 2, _currentSpellName);
@@ -375,24 +391,36 @@ namespace FWTCG.Systems
                     dead.Add(picked);
             }
 
+            gs.AkasiStormTargets.Clear(); // 消费完清空
+
             foreach (UnitInstance u in dead)
                 RemoveDeadUnit(u, gs);
         }
 
-        private void FurnaceBlast(string owner, GameState gs)
+        private void FurnaceBlast(string owner, GameState gs, int bfOverride = -1)
         {
             // 卡面："对同一位置的最多三名单位造成1点伤害。"
-            // 位置 = 单个战场。AI 自动选敌方单位数最多的战场；玩家 UI 路径 2b 再实现。
+            // bfOverride >=0 用施法者指定战场；否则 AI 启发式选敌方单位数最多的战场
             string enemy = gs.Opponent(owner);
             int bestBf = -1;
             int bestCount = 0;
-            for (int i = 0; i < GameRules.BATTLEFIELD_COUNT; i++)
+            if (bfOverride >= 0 && bfOverride < GameRules.BATTLEFIELD_COUNT)
             {
+                bestBf = bfOverride;
                 var bfUnits = enemy == GameRules.OWNER_PLAYER
-                    ? gs.BF[i].PlayerUnits : gs.BF[i].EnemyUnits;
-                int live = 0;
-                foreach (var u in bfUnits) if (u.CurrentHp > 0) live++;
-                if (live > bestCount) { bestCount = live; bestBf = i; }
+                    ? gs.BF[bfOverride].PlayerUnits : gs.BF[bfOverride].EnemyUnits;
+                foreach (var u in bfUnits) if (u.CurrentHp > 0) bestCount++;
+            }
+            else
+            {
+                for (int i = 0; i < GameRules.BATTLEFIELD_COUNT; i++)
+                {
+                    var bfUnits = enemy == GameRules.OWNER_PLAYER
+                        ? gs.BF[i].PlayerUnits : gs.BF[i].EnemyUnits;
+                    int live = 0;
+                    foreach (var u in bfUnits) if (u.CurrentHp > 0) live++;
+                    if (live > bestCount) { bestCount = live; bestBf = i; }
+                }
             }
             if (bestBf < 0)
             {

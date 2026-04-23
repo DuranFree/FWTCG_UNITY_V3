@@ -93,6 +93,19 @@ namespace FWTCG.Core
         /// </summary>
         public Dictionary<string, bool> RallyCallActiveThisTurn { get; set; } = new Dictionary<string, bool>();
 
+        /// <summary>
+        /// furnace_blast 位置指定（-1 = 未指定，用 AI 启发式）。
+        /// 施法前由 GameManager/SimpleAI 设置，SpellSystem 结算后即归零。
+        /// </summary>
+        public int FurnaceBlastBfOverride { get; set; } = -1;
+
+        /// <summary>
+        /// akasi_storm "进行六次" 的预选目标列表（最多 6 个；遇 null 或已死自动跳过当次 / 回退启发式）。
+        /// 施法前由 GameManager（玩家逐次弹窗）/ SimpleAI（全 null 让兜底每次选最低 HP）填充。
+        /// SpellSystem 结算后 Clear。
+        /// </summary>
+        public List<UnitInstance> AkasiStormTargets { get; set; } = new List<UnitInstance>();
+
         // ── Battlefield names (selected from faction pools at game start) ─────
         public string[] BFNames { get; set; } = new string[GameRules.BATTLEFIELD_COUNT];
 
