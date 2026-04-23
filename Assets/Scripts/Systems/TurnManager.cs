@@ -24,7 +24,7 @@ namespace FWTCG.Systems
 
         // ── Action-phase gate ─────────────────────────────────────────────────
         private bool _actionComplete = false;
-        private bool _endTurnRequested = false;
+        // DEV-31 cleanup: _endTurnRequested 已移除（与 _actionComplete 功能重叠，无读者）
 
         public string CurrentPhase => _gs != null ? _gs.Phase : GameRules.PHASE_AWAKEN;
 
@@ -69,7 +69,6 @@ namespace FWTCG.Systems
         public void EndTurn()
         {
             _actionComplete = true;
-            _endTurnRequested = true;
         }
 
         /// <summary>
@@ -80,7 +79,6 @@ namespace FWTCG.Systems
         {
             _gs = gs;
             _actionComplete = false;
-            _endTurnRequested = false;
 
             gs.Turn = who;
             gs.Phase = GameRules.PHASE_AWAKEN;

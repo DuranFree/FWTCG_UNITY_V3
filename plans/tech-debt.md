@@ -31,7 +31,7 @@
 - ✅ Ephemeral 销毁未加入弃牌堆 — 已修复：DestroyEphemeralUnits 两处（base + battlefield）均加 gs.GetDiscard(owner).Add(u) — Phase DEV-18→DEV-28
 - ✅ EventBanner.DrainQueue 协程在 OnDisable 时不会停止 — DEV-31 cleanup 已修：OnDisable 加 StopCoroutine(_showRoutine) — Phase DEV-18b→DEV-31 cleanup
 - ✅ AskPromptUI._cardViewPrefab 为 null 时 card-pick 静默跳过 — 已确认：SceneBuilder 已连线，优雅降级属设计预期，不修复 — Phase DEV-19 → DEV-31 WONTFIX
-- [ ] ScoreRingRoutine 使用 AddComponent 动态生成 ring Image — 大量快速得分时可积累多个同时运行，实际游戏节奏不触发 — Phase DEV-19（Codex Low）
+- ✅ ScoreRingRoutine 活跃 ring 跟踪 — DEV-31 cleanup 已修：List&lt;GameObject&gt; _activeScoreRings，OnComplete 移除，GameUI.OnDestroy 统一清理 — Phase DEV-19→DEV-31 cleanup
 - ✅ GameUI.RefreshScoreTrack 多分得分只动画最终圆圈 — 见下方 DEV-32 条（重复，此处归并） — Phase DEV-19→DEV-32
 - [ ] GameUI.NotifyReactButtonState 有空反应路径 — 仅调用 FireHintToast("")，未调用 PlayReactRibbonReveal（设计确认：ribbon reveal 由 GameManager 直接调用）— Phase DEV-19（Codex Low）
 - ✅ ToastUI 去重仅按原始消息文本 — 已确认：null/empty 守卫已在 DEV-26 修复（行80），跨源折叠属设计预期 — Phase DEV-19 patch → DEV-31 confirmed resolved
@@ -39,7 +39,7 @@
 - ✅ GameUI.ShowCombatResult 无协程句柄 — 已确认：_crHideRoutine 字段已存在并正确使用 — Phase DEV-19 patch → DEV-31 confirmed resolved
 - [ ] RuneAutoConsume.Compute 与 OnRuneClicked 符文可回收规则不一致 — Compute 跳过已横置符文，但 OnRuneClicked recycle 路径现已同步禁止，DEV-20 H-2 已修复互斥；更深层需统一符文状态机 — Phase DEV-20（Codex Medium）
 - ✅ ReactiveWindowUI 无 OnDisable 回退 — DEV-31 已修复：OnDisable 加 `_tcs?.TrySetCanceled()`，组件禁用时取消悬挂 Task — Phase DEV-20→DEV-31
-- [ ] SpellVFX.BurstParticles/LegendFlame 协程被中断时粒子 GO 泄漏 — OnDestroy 已加子节点批量 Destroy 兜底，低风险（SpellVFX 生命周期与场景同步）— Phase DEV-21（Codex Medium，DEV-26 部分缓解）
+- ✅ SpellVFX.BurstParticles/LegendFlame 协程被中断时粒子 GO 泄漏 — DEV-31 cleanup 加固：LegendFlame 循环加 null check，配合 OnDestroy 的 _ownedParticles 批量清理兜底；BurstParticles 用 LinkKillOnDestroy 已自动兜底 — Phase DEV-21→DEV-31 cleanup
 - ✅ Swift 关键词仅数据/UI层，法术对决实际判断仍只看 Reactive — DEV-27 已实现：TurnStateMachine CanPlaySpell Rule 718，AiTryReact + 玩家反应窗口两处筛选加 Swift — Phase DEV-25b→DEV-27
 - ✅ TryPlayUnitAsync 缺少 Haste prompt 的行为测试 — DEV-32 已补充：HasteAffordability 4项测试 + HasteRevalidation 回退测试，覆盖资源不足/状态变更后回退路径 — Phase DEV-25b→DEV-32
 - ✅ CardDragHandler: PortalVFX.EnsureBuilt fallback — DEV-31 已修复：改用 GetComponentInParent<Canvas>() + rootCanvas 解析，移除 FindObjectOfType — Phase DEV-22→DEV-31
@@ -56,7 +56,7 @@
 - ✅ _enterAnimPlayed 不重置 — 已修复：Setup isNewUnit 时重置为 false — Phase DEV-28→DEV-29
 - ✅ CombatAnimator.OnDestroy Remove-then-Destroy 顺序缺注释 — DEV-31 已补注释：说明单线程协程安全原因（Remove 先于 Destroy 防止 OnDestroy 双重销毁）— Phase DEV-29→DEV-31
 - ✅ ClearHeroAura 双重销毁风险 — DEV-31 cleanup 已修：先置 _heroAura=null 再 Destroy go，防止 fake-null 二次进入 — Phase DEV-29→DEV-31 cleanup
-- [ ] ClearTargetHighlights GetComponent 每帧每子节点调用 — 与 ShowTargetHighlights 显式 null 检查写法不一致；性能可接受，风格不统一 — Phase DEV-29（Codex Low）
+- ✅ ClearTargetHighlights GetComponent 风格统一 — DEV-31 cleanup 已修：与 ShowTargetHighlights 同样显式 null 检查（var cv = GetComponent; if null continue） — Phase DEV-29→DEV-31 cleanup
 - ✅ CreateOverlayImage sizeDelta 参数被忽略 — DEV-31 已修复：offsetMin/offsetMax 加入 sizeDelta*0.5 扩展，HeroAura 现可正确超出卡牌 4px — Phase DEV-28→DEV-31
 - ✅ SpellDuelUI.FindRootCanvas 每次 FindObjectsOfType — DEV-31 已修复：_rootCanvas 在 Awake() 缓存，ShowDuelOverlay 优先使用缓存值，避免每帧 O(n) 分配 — Phase DEV-30→DEV-31
 - ✅ SpellDuelUI 无重复实例保护 — DEV-31 已修复：Awake 加 `if (Instance != null && Instance != this) { Destroy(this); return; }` 单例守卫 — Phase DEV-30→DEV-31

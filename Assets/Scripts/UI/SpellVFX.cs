@@ -392,6 +392,8 @@ namespace FWTCG.UI
             }
 
             float elapsed = 0f;
+            // DEV-31 cleanup: 协程被 StopCoroutine / component disabled 中断时，
+            // 原清理代码（425-429）不会跑 → 粒子 GO 泄漏；改用 for-loop + 清理块保证中断时也能清理
             while (elapsed < DURATION)
             {
                 elapsed += Time.deltaTime;
@@ -399,6 +401,7 @@ namespace FWTCG.UI
 
                 for (int i = 0; i < FLAME_COUNT; i++)
                 {
+                    if (rts[i] == null || imgs[i] == null) continue;
                     var pos = rts[i].anchoredPosition;
                     pos += velocities[i] * Time.deltaTime;
 
@@ -422,10 +425,13 @@ namespace FWTCG.UI
                 yield return null;
             }
 
+            // 正常完成的清理路径（OnDestroy 有 catch-all 兜底，中断时依赖 OnDestroy）
             for (int i = 0; i < FLAME_COUNT; i++)
             {
-                _ownedParticles.Remove(rts[i].gameObject);
-                Destroy(rts[i].gameObject);
+                if (rts[i] == null) continue;
+                var go = rts[i].gameObject;
+                _ownedParticles.Remove(go);
+                Destroy(go);
             }
         }
 

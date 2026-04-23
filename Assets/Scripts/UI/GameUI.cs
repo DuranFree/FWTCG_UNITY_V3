@@ -391,6 +391,7 @@ namespace FWTCG.UI
         {
             // Kill all DOTween tweens targeting this gameObject
             DOTween.Kill(gameObject);
+            CleanupActiveScoreRings();
             TweenHelper.KillSafe(ref _runeHighlightPulseTween);
             TweenHelper.KillSafe(ref _bannerAnimSeq);
             TweenHelper.KillSafe(ref _phasePulseTween);
@@ -602,7 +603,7 @@ namespace FWTCG.UI
 
         public void ClearTargetHighlights()
         {
-            // DEV-29: matches ShowTargetHighlights — exclude hand container
+            // DEV-29 / DEV-31 cleanup: 与 ShowTargetHighlights 同样写法 — 显式 null 检查（风格统一）
             var containers = new Transform[]
             {
                 _playerBaseContainer, _enemyBaseContainer,
@@ -613,7 +614,11 @@ namespace FWTCG.UI
             {
                 if (c == null) continue;
                 foreach (Transform child in c)
-                    child.GetComponent<CardView>()?.SetTargeted(false);
+                {
+                    var cv = child.GetComponent<CardView>();
+                    if (cv == null) continue;
+                    cv.SetTargeted(false);
+                }
             }
         }
 
@@ -2831,6 +2836,10 @@ namespace FWTCG.UI
             SpawnScoreRing(circle);
         }
 
+        // DEV-31 cleanup: 跟踪活跃的 ScoreRing GO，GameUI 销毁时统一清理
+        private readonly System.Collections.Generic.List<GameObject> _activeScoreRings
+            = new System.Collections.Generic.List<GameObject>();
+
         private void SpawnScoreRing(Image circle)
         {
             Canvas rootCanvas = GetRootCanvas();
@@ -2854,15 +2863,32 @@ namespace FWTCG.UI
             rt.anchoredPosition = localPos;
             rt.sizeDelta        = circleRT.sizeDelta;
 
+            _activeScoreRings.Add(ringGO);
+
             if (ringImg != null && rt != null)
             {
                 var ringGo = ringImg.gameObject;
                 var seq = DOTween.Sequence();
                 seq.Append(rt.DOScale(rt.localScale * 2.5f, SCORE_RING_DURATION).SetEase(Ease.Linear));
                 seq.Join(ringImg.DOFade(0f, SCORE_RING_DURATION).SetEase(Ease.Linear));
-                seq.OnComplete(() => Destroy(ringGo));
+                seq.OnComplete(() =>
+                {
+                    _activeScoreRings.Remove(ringGo);
+                    Destroy(ringGo);
+                });
                 seq.SetTarget(ringGo).LinkKillOnDestroy(ringGo);
             }
+        }
+
+        /// <summary>DEV-31 cleanup: GameUI 销毁时清除所有尚未完成的 ScoreRing（防 scene reload 后遗留 tween）。</summary>
+        private void CleanupActiveScoreRings()
+        {
+            for (int i = _activeScoreRings.Count - 1; i >= 0; i--)
+            {
+                var go = _activeScoreRings[i];
+                if (go != null) Destroy(go);
+            }
+            _activeScoreRings.Clear();
         }
 
         public const float SCORE_RING_DURATION = 2f;
