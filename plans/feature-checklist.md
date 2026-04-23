@@ -108,15 +108,15 @@
 - ✅ void_seek（4点伤害+抽牌）— DEV-3
 - ✅ evolve_day（抽4张）— DEV-3
 - ✅ retreat_rune（反应，召回战场单位+回收符文）— DEV-4
-- ✅ furnace_blast（回响①，对同一位置最多3名单位造成1点伤害）— DEV-11 + CARD-FIX-1（按卡面修：同一战场目标 + AI 选敌方最多战场）
+- ✅ furnace_blast（回响①，对同一位置最多3名单位造成1点伤害）— DEV-11 + CARD-FIX-1 + CARD-FIX-2（玩家 UI：位置二选一弹窗 + Echo 付费确认）
 - ✅ guilty_pleasure（反应，弃牌造2点伤害）— DEV-4
 - ✅ starburst（6点伤害×1目标，DEV-3简化）— DEV-3
 - ✅ hex_ray（迅捷，3点伤害）— DEV-3
 - ✅ time_warp（额外回合，结算后放逐）— DEV-11 + CARD-FIX-1（按卡面修：discard→exile）
-- ✅ stardrop（3点伤害×2次）— DEV-3 + CARD-FIX-1（第二段若首目标死亡自动打最低 HP 敌，玩家 UI 选新目标留 CARD-FIX-2）
+- ✅ stardrop（3点伤害×2次，可选不同目标）— DEV-3 + CARD-FIX-1 + CARD-FIX-2（玩家 UI：SpellTargetPopup 选第二段目标）
 - ✅ smoke_bomb（反应，-4战力，自动选第一个敌方单位）— DEV-4
 - ✅ divine_ray（回响+2炽烈，2点伤害×2次）— DEV-11
-- ✅ akasi_storm（2点伤害×6次）— DEV-3 + CARD-FIX-1（按卡面：施法者逐次选，AI 改启发式选最低 HP，玩家 UI 留 CARD-FIX-2）
+- ✅ akasi_storm（2点伤害×6次，逐次可选不同单位）— DEV-3 + CARD-FIX-1 + CARD-FIX-2（玩家 UI：6 次 SpellTargetPopup 预选，允许空位兜底）
 - ✅ noxus_recruit 入场（鼓舞：下一个盟友+1战力）— DEV-11
 - ✅ alert_sentinel 绝念（抽1张）— DEV-2
 - ✅ yordel_instructor 入场（壁垒+抽牌）— DEV-2

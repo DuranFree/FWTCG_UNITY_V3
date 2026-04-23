@@ -2617,3 +2617,54 @@
 - Tiyana 旧 TiyanasInPlay 字典在测试文件多处使用（3 个 Test），统一重写测试以对应新语义
 - darius 事件驱动 vs 入场自检：darius 自己就是本回合第二张时需要入场即自检一次（CardsPlayedThisTurn≥2 && !_dariusBuffedThisTurn），否则 OnCardPlayed 监听器不会对自身触发
 - ScoreManager 使用 gs.TiyanasInPlay 被 IsTiyanaOnAnyBattlefield 替代，CombatSystem 死亡清理代码也同步删除
+
+## CARD-FIX-2：多段法术玩家 UI 路径 — 2026-04-23
+
+**Status**: ✅ Completed
+
+**触发**：承接 CARD-FIX-1 留债 — 为 Echo 机制 + 多段法术（stardrop/akasi/furnace）补全玩家 UI 路径。
+
+**改动**：
+
+Echo（回响①）玩家路径：
+- `GameManager.TryEchoPromptAsync`：AskPromptUI 询问"消耗 1 {rune}符能再次发动？"；玩家权衡期间可能被其他效果影响符能池，二次校验 CanAffordEcho
+- 需目标的法术（divine_ray 等）重开 SpellTargetPopup 选新目标；取消回退首目标
+- 接入 divine_ray / slam / furnace_blast 三张 Echo 法术
+
+stardrop "进行再次"：
+- `SpellSystem.StardropSecondStrike(target, gs)` 独立公共方法（第 2 段从 CastSpell 剥离）
+- 玩家：TryStardropSecondAsync + SpellTargetPopup 选第二目标；取消兜底打首目标（若存活）
+- AI：首目标死则 PickLowestHpEnemy 换目标，否则继续打首目标
+
+furnace_blast "同一位置"：
+- `GameState.FurnaceBlastBfOverride: int`（-1 = 未指定，AI 启发式兜底）
+- `PickFurnaceBlastPositionAsync`：AskPromptUI 二选一，按钮文本用 BFNames 实际战场名
+- `SpellSystem.FurnaceBlast` 新增 `bfOverride` 参数
+
+akasi_storm "进行六次"：
+- `GameState.AkasiStormTargets: List<UnitInstance>`（长度 ≤6，允许 null 占位）
+- `PrepareAkasiStormTargetsAsync`：6 次 SpellTargetPopup，玩家每次可选不同单位或取消（取消则 null）
+- `SpellSystem.AkasiStorm`：按列表顺序消费，遇 null / 已死 / 不存在时兜底选最低 HP
+
+**配套（pre-existing bug 修复）**：
+- 反应窗口法术 RuneCost 漏扣（玩家 + AI）— CARD-FIX-1 自审时发现，本 Phase 合并修复（SpendSchForSpell 扣主/次符能）
+
+**Decisions made**：
+- Echo 二次校验：玩家按是之后再查一次 CanAffordEcho，防止玩家权衡期间其他效果（如符文状态变化）影响可付费判定
+- stardrop / akasi / furnace 的"状态字段传参" 而非改 CastSpell 签名：保留现有 CastSpell(spell, owner, target, gs) 签名，把多余数据放 GameState，由 SpellSystem 消费后清空
+- akasi 允许 null 占位：玩家中途取消弹窗时以 null 表示"由兜底决定"，不退出循环（避免玩家因误操作失去剩余 5 次）
+- furnace BF 选择用二选一 AskPromptUI（BFNames 作按钮文本）而非新建战场高亮 UI — 最简可行方案
+
+**Technical debt**：
+- [ ] Echo / stardrop / akasi 的 UI 可交互测试（Play Mode）未自动化
+- [ ] akasi "取消 1 次只退当次"语义待 UX 确认（当前空位兜底合理）
+- [ ] furnace 战场选择 UX：未来可迁移到"点击战场高亮"而非对话框
+
+**Tests**：EditMode 1143/1154 通过，11 项失败仍为 pre-existing DOT*/DEV21*。SpellSystemTests 两项 stardrop 断言更新以反映 StardropSecondStrike 独立调用。
+
+**引擎场景验证**：本 Phase 纯 async UI 对接 + 数据流，无场景/视觉改动，按 CLAUDE.md §1 标注跳过；交互 UX 由玩家 Play Mode 验收。
+
+**代码审查**：Claude 自审（Codex 不可用：账号 plan 不支持 gpt-5.4）；未发现 High 级问题；本 Phase 合并修了 CARD-FIX-1 自审发现的 pre-existing reactive 符文漏扣 bug。
+
+**Problems encountered**：
+- stardrop 测试未随代码变更同步 → 更新两项 SpellSystemTests 显式调 StardropSecondStrike

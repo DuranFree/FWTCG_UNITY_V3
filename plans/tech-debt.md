@@ -103,7 +103,8 @@
 - [ ] Roam（BF→BF）延迟 combat 但不入回滚栈，取消按钮不能撤销 Roam 移动 — 低优先级 — UI-OVERHAUL-1c-γ
 - [ ] 玩家"确定"触发 combat 期间若敌方触发反应窗口，_bfClickInFlight 状态与反应窗口时序耦合未端到端验证 — 需 Play Mode 观察 — UI-OVERHAUL-1c-γ
 
-- [ ] Echo 机制玩家 UI 路径未实现 — CARD-FIX-1 仅接入 AI 自动 echo；玩家付费确认弹窗 + 第二段新目标选择 UI 留到 CARD-FIX-2 — Phase CARD-FIX-1
-- [ ] stardrop 第二段玩家选不同目标 UI 未实现 — 当前自动打最低 HP 敌，玩家 UI 需弹窗选目标 — Phase CARD-FIX-2
-- [ ] akasi_storm 六次目标 UI 未实现 — 当前 AI 自动选最低 HP，玩家需 6 次目标选择弹窗 — Phase CARD-FIX-2
-- [ ] furnace_blast 位置选择 UI 未实现 — 当前 AI 自动选敌方最多战场，玩家需战场选择 UI — Phase CARD-FIX-2
+- ✅ Echo 机制玩家 UI 路径 — CARD-FIX-2 已实现：AskPromptUI 付费确认 + SpellTargetPopup 选新目标；3 张 Echo 法术全部接入 — Phase CARD-FIX-1→CARD-FIX-2
+- ✅ stardrop 第二段玩家选不同目标 UI — CARD-FIX-2 已实现：SpellTargetPopup.ShowAsync(EnemyUnit) 选第二段目标 — Phase CARD-FIX-2
+- ✅ akasi_storm 六次目标 UI — CARD-FIX-2 已实现：GameState.AkasiStormTargets 预选列表 + PrepareAkasiStormTargetsAsync 逐次弹窗（允许取消空位兜底） — Phase CARD-FIX-2
+- ✅ furnace_blast 位置选择 UI — CARD-FIX-2 已实现：AskPromptUI 二选一（战场 0/1），GameState.FurnaceBlastBfOverride 传递给 SpellSystem — Phase CARD-FIX-2
+- ✅ 反应窗口法术 RuneCost 漏扣（pre-existing）— 已修：玩家 + AI 两侧 SpendSchForSpell 扣主/次符能 — Phase CARD-FIX-2 patch

@@ -45,3 +45,8 @@
 - ✅ stardrop 第二段固定打同目标（卡面"可以选择不同单位"）— 部分修复：第二段若首目标死亡自动换敌；玩家 UI 选新目标留 CARD-FIX-2 — 发现于卡面一致性审计，修复于 CARD-FIX-1
 - ✅ akasi_storm 六次随机选目标（卡面"你可以选择不同单位"）— 部分修复：AI 启发式选最低 HP；玩家 UI 留 CARD-FIX-2 — 发现于卡面一致性审计，修复于 CARD-FIX-1
 - ✅ furnace_blast 硬编码前 3 单位（卡面"同一位置最多三名"）— 部分修复：AI 选敌方最多战场；玩家位置选择 UI 留 CARD-FIX-2 — 发现于卡面一致性审计，修复于 CARD-FIX-1
+- ✅ 反应窗口法术 RuneCost 漏扣 — 已修：玩家+AI 两侧 SpendSchForSpell 扣主/次符能；pre-existing，CARD-FIX-1 自审发现 — 发现于 CARD-FIX-1 审查，修复于 CARD-FIX-2
+- ✅ stardrop 第二段玩家不能选不同目标（卡面"可以选择不同的单位"）— 已修：TryStardropSecondAsync + SpellTargetPopup — 发现于卡面审计，修复于 CARD-FIX-2
+- ✅ akasi_storm 玩家不能逐次选目标（卡面"你可以选择不同的单位"）— 已修：PrepareAkasiStormTargetsAsync 6 次弹窗预选 — 发现于卡面审计，修复于 CARD-FIX-2
+- ✅ furnace_blast 玩家不能选位置（卡面"同一位置"）— 已修：PickFurnaceBlastPositionAsync 二选一弹窗 — 发现于卡面审计，修复于 CARD-FIX-2
+- ✅ Echo（回响①）玩家无付费确认 UI — 已修：TryEchoPromptAsync 问 Y/N + 重开目标选择 — 发现于卡面审计，修复于 CARD-FIX-2
