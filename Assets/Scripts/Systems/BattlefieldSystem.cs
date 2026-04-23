@@ -225,7 +225,7 @@ namespace FWTCG.Systems
             if (GetBFId(bfId, gs) == "sunken_temple" && gs.PMana >= 2)
             {
                 FireBFShowcase("sunken_temple", defender);
-                gs.PMana -= 2;
+                gs.AddMana(GameRules.OWNER_PLAYER, -2); // A1
                 DrawCard(defender, gs);
                 Log("[沉没神庙] 防守失败！支付2法力，抽1张牌。");
             }

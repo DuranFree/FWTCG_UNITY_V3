@@ -293,16 +293,26 @@ namespace FWTCG.Core
         public int GetMana(string owner) =>
             owner == GameRules.OWNER_PLAYER ? PMana : EMana;
 
+        // DEV-32 A1: 可观察 mana 变更事件（owner, oldVal, newVal）
+        // ViewModel / 调试钩子可订阅；SetMana / AddMana 会触发，直接赋值 PMana/EMana 不会。
+        public event System.Action<string, int, int> OnManaChanged;
+
         public void SetMana(string owner, int value)
         {
+            int old = GetMana(owner);
             if (owner == GameRules.OWNER_PLAYER) PMana = value;
             else EMana = value;
+            if (old != value) OnManaChanged?.Invoke(owner, old, value);
         }
 
         public void AddMana(string owner, int amount)
         {
-            if (owner == GameRules.OWNER_PLAYER) PMana += amount;
-            else EMana += amount;
+            if (amount == 0) return;
+            int old = GetMana(owner);
+            int next = old + amount;
+            if (owner == GameRules.OWNER_PLAYER) PMana = next;
+            else EMana = next;
+            OnManaChanged?.Invoke(owner, old, next);
         }
 
         public int GetScore(string owner) =>

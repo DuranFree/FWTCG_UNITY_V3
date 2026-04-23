@@ -223,7 +223,7 @@ namespace FWTCG
                 var r = _gs.PRunes[idx];
                 if (r == null || r.Tapped) continue;
                 r.Tapped = true;
-                _gs.PMana += 1;
+                _gs.AddMana(GameRules.OWNER_PLAYER, 1); // A1: 走可观察 API
             }
 
             // Recycle：大到小 remove，避免索引偏移
@@ -305,7 +305,7 @@ namespace FWTCG
             // 扣 mana + 扣 sch（包括 Haste 额外 +1 +1）
             int manaTotal   = cost + (useHaste ? 1 : 0);
             int primaryTotal = primaryNeed + (useHaste ? 1 : 0);
-            _gs.PMana -= manaTotal;
+            _gs.AddMana(GameRules.OWNER_PLAYER, -manaTotal); // A1: 走可观察 API
             if (primaryTotal > 0)
                 _gs.SpendSch(GameRules.OWNER_PLAYER, card.CardData.RuneType, primaryTotal);
             if (card.CardData.HasSecondaryRune && secondaryNeed > 0)
@@ -1003,7 +1003,7 @@ namespace FWTCG
             if (_targetingSpell != null)
             {
                 _gs.PHand.Add(_targetingSpell);
-                _gs.PMana += _targetingSpell.CardData.Cost;
+                _gs.AddMana(GameRules.OWNER_PLAYER, _targetingSpell.CardData.Cost); // A1
                 _gs.CardsPlayedThisTurn--;
                 TurnManager.BroadcastMessage_Static($"[法术] 取消 {_targetingSpell.UnitName} 的发动，法力退还");
                 _targetingSpell = null;
@@ -1680,7 +1680,7 @@ namespace FWTCG
 
             _gs.PHand.Remove(equip);
             _gs.PBase.Add(equip);
-            _gs.PMana -= equip.CardData.Cost;
+            _gs.AddMana(GameRules.OWNER_PLAYER, -equip.CardData.Cost); // A1
             if (equip.CardData.RuneCost > 0)
                 _gs.SpendSch(GameRules.OWNER_PLAYER, equip.CardData.RuneType, equip.CardData.RuneCost);
             // Standby keyword = enters hibernating (face-down reactive); otherwise enters active
@@ -1855,7 +1855,7 @@ namespace FWTCG
         private void RefundSpellCosts(UnitInstance spell)
         {
             _gs.PHand.Add(spell);
-            _gs.PMana += GameRules.GetSpellEffectiveCost(spell, GameRules.OWNER_PLAYER, _gs);
+            _gs.AddMana(GameRules.OWNER_PLAYER, GameRules.GetSpellEffectiveCost(spell, GameRules.OWNER_PLAYER, _gs)); // A1
             if (spell.CardData.RuneCost > 0)
                 _gs.AddSch(GameRules.OWNER_PLAYER, spell.CardData.RuneType, spell.CardData.RuneCost);
             if (spell.CardData.HasSecondaryRune)
@@ -1906,7 +1906,7 @@ namespace FWTCG
             }
 
             // B1+B2: 扣除法力 + 主符能 + 次符能（法术专用池优先消耗）
-            _gs.PMana -= manaCost;
+            _gs.AddMana(GameRules.OWNER_PLAYER, -manaCost); // A1
             if (spell.CardData.RuneCost > 0)
                 _gs.SpendSchForSpell(GameRules.OWNER_PLAYER, spell.CardData.RuneType, spell.CardData.RuneCost);
             if (spell.CardData.HasSecondaryRune)
@@ -2115,7 +2115,7 @@ namespace FWTCG
             if (chosen == null) return false;
 
             // Pay cost and apply reactive
-            _gs.EMana -= GameRules.GetSpellEffectiveCost(chosen, GameRules.OWNER_ENEMY, _gs);
+            _gs.AddMana(GameRules.OWNER_ENEMY, -GameRules.GetSpellEffectiveCost(chosen, GameRules.OWNER_ENEMY, _gs)); // A1
             TurnManager.ShowBanner_Static($"⚡ [AI] 反应！{chosen.UnitName}");
             // Full-screen showcase for AI reactive card (matches player reactive + spell visual)
             if (_spellShowcase != null)
@@ -2652,7 +2652,7 @@ namespace FWTCG
 
                 // balance_resolve 条件减费也适用于反应/Swift 路径
                 int pickedCost = GameRules.GetSpellEffectiveCost(picked, GameRules.OWNER_PLAYER, _gs);
-                _gs.PMana -= pickedCost;
+                _gs.AddMana(GameRules.OWNER_PLAYER, -pickedCost); // A1
                 TurnManager.BroadcastMessage_Static(
                     $"[反应] 打出 {picked.UnitName}（费用{pickedCost}），剩余法力 {_gs.PMana}");
                 FireCardPlayed(picked, GameRules.OWNER_PLAYER); // triggers board flash
@@ -2796,7 +2796,7 @@ namespace FWTCG
         private void DebugAddMana()
         {
             if (_gs == null) return;
-            _gs.PMana += 5;
+            _gs.AddMana(GameRules.OWNER_PLAYER, 5); // A1 (DEBUG)
             TurnManager.BroadcastMessage_Static($"[DEBUG] +5法力 → {_gs.PMana}");
             RefreshUI();
         }
