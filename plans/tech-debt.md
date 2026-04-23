@@ -7,7 +7,7 @@
 - ✅ 卡牌图片未导入 — DEV-2 已解决单位卡图片；DEV-3 已复制并导入10张法术卡图片 — Phase DEV-3
 - ✅ StartupFlowUI 掷硬币无动画 — DEV-24 已实现完整翻转动画（CoinSpinRoutine 5次翻转+弹跳），VFX-6 追加金色粒子爆发 — Phase DEV-2→DEV-24→VFX-6
 - [ ] UI 引用在 batch mode 下通过 GameObject.Find 连线，运行时若场景结构变化会失效 — Phase DEV-1
-- [ ] balance_resolve 的"费用-2"条件效果未实现 — 需要手牌目标选择UI，推迟到 DEV-4 — Phase DEV-3
+- ✅ balance_resolve "费用-2"条件效果 — CARD-FIX-1 已实现：GameRules.GetSpellEffectiveCost（对手得分≤3 或距胜≤3 时自身费用-2），不需手牌目标 UI — Phase DEV-3→CARD-FIX-1
 - ✅ 反应法术（swindle/retreat_rune/scoff等）未实现 — DEV-4 已实现 ReactiveSystem（9张反应牌全效果）+ ReactiveWindowUI（TaskCompletionSource异步窗口）— Phase DEV-4
 - ✅ AI 不会使用法术 — DEV-4 已实现：SimpleAI 识别 IsSpell+非Reactive+自动选目标后施放 — Phase DEV-4
 - ✅ DEV-1/DEV-2 交互测试补写（EditMode）— 已补完：DEV1InteractionTests 22项 + DEV2InteractionTests 17项，全绿 — Phase DEV-3
@@ -102,3 +102,8 @@
 - [ ] Confirm 按钮"粒子从按钮向上飘"用户原需求未实现，当前用 DOPunchScale + Yoyo scale pulse 代替 — UI-OVERHAUL-1c-γ
 - [ ] Roam（BF→BF）延迟 combat 但不入回滚栈，取消按钮不能撤销 Roam 移动 — 低优先级 — UI-OVERHAUL-1c-γ
 - [ ] 玩家"确定"触发 combat 期间若敌方触发反应窗口，_bfClickInFlight 状态与反应窗口时序耦合未端到端验证 — 需 Play Mode 观察 — UI-OVERHAUL-1c-γ
+
+- [ ] Echo 机制玩家 UI 路径未实现 — CARD-FIX-1 仅接入 AI 自动 echo；玩家付费确认弹窗 + 第二段新目标选择 UI 留到 CARD-FIX-2 — Phase CARD-FIX-1
+- [ ] stardrop 第二段玩家选不同目标 UI 未实现 — 当前自动打最低 HP 敌，玩家 UI 需弹窗选目标 — Phase CARD-FIX-2
+- [ ] akasi_storm 六次目标 UI 未实现 — 当前 AI 自动选最低 HP，玩家需 6 次目标选择弹窗 — Phase CARD-FIX-2
+- [ ] furnace_blast 位置选择 UI 未实现 — 当前 AI 自动选敌方最多战场，玩家需战场选择 UI — Phase CARD-FIX-2

@@ -35,3 +35,13 @@
 - ✅ 拖拽 ghost / landing overlay 被 CardView.LateUpdate 手牌扇形吸附覆盖 DOTween 位置 — 已修复：CreateGhost + DropAnimHost 两处 Instantiate 后立即调 ClearHandFanAngle 关闭 _handFanEnabled；原因：ghost 从原卡克隆保留 _handFanEnabled=true，每帧 LateUpdate Lerp anchoredPosition 到手牌 fan 位置，与 DOTween 位移冲突导致卡停在屏幕中央 — 发现于 UI-OVERHAUL 1c Play Mode 验收
 - ✅ 拖拽释放卡停留释放位置（真正根因）— 已修复：Arial.ttf 在 Unity 新版已不是内置字体，FloatingTipUI.Build 调用抛 ArgumentException，异常顺链传出 ValidateAndCommitPreparedFor → PlayHandCardWithRuneConfirmAsync → OnSpellDraggedOut → HandleDrop → DropFlowRoutine 协程异常中止，ghost 从未被清理。修复：FloatingTipUI 改用 LegacyRuntime.ttf + try/catch；CardDragHandler.HandleDrop 外层加 try/catch 防护网，未来任何 HandleDrop 内异常都不会中断协程 — 发现于 Play Mode console ArgumentException 追溯
 - ✅ MouseTrail Knob.psd 每次点击 spam 6 条 error — 已修复：try/catch + 缓存失败状态，避免重复加载 — 发现于 hotfix-4 同次 console 排查
+- ✅ thousand_tail 敌方 -3 永久修改 CurrentAtk（回合结束不复位）— 已修复：改用 TempAtkBonus（回合末清零），保持 EffectiveAtk ≥ 1 底线 — 发现于卡面一致性审计，修复于 CARD-FIX-1
+- ✅ darius 入场即触发 +2/活跃（与卡面"本回合第二张牌时"不符）— 已修复：订阅 GameEventBus.OnCardPlayed，恰好第二张瞬间触发；自身作为第二张时入场自检 — 发现于卡面一致性审计，修复于 CARD-FIX-1
+- ✅ tiyana 只阻止 HOLD 得分（与卡面"对手无法得分"不符）— 已修复：ScoreManager 阻止所有得分类型（HOLD/CONQUER/BURNOUT）；改为动态查战场存在 — 发现于卡面一致性审计，修复于 CARD-FIX-1
+- ✅ time_warp 结算后进弃牌堆（与卡面"然后放逐此牌"不符）— 已修复：SpellSystem 特判 time_warp 入 GetExile — 发现于卡面一致性审计，修复于 CARD-FIX-1
+- ✅ balance_resolve "费用-2"条件效果从未实现 — 已修复：GameRules.GetSpellEffectiveCost 统一处理（对手得分≤3 或距胜≤3 时） — 发现于卡面一致性审计，修复于 CARD-FIX-1
+- ✅ rally_call 激活所有己方单位（与卡面"本回合打出"不符）— 已修复：持续修饰符 RallyCallActiveThisTurn + 只追溯 PlayedThisTurn 的单位 — 发现于卡面一致性审计，修复于 CARD-FIX-1
+- ✅ jax 被动"手牌装备获得反应"从未落地 — 已修复：IsJaxInPlay 动态查 + 反应窗口双路径接收装备 — 发现于卡面一致性审计，修复于 CARD-FIX-1
+- ✅ stardrop 第二段固定打同目标（卡面"可以选择不同单位"）— 部分修复：第二段若首目标死亡自动换敌；玩家 UI 选新目标留 CARD-FIX-2 — 发现于卡面一致性审计，修复于 CARD-FIX-1
+- ✅ akasi_storm 六次随机选目标（卡面"你可以选择不同单位"）— 部分修复：AI 启发式选最低 HP；玩家 UI 留 CARD-FIX-2 — 发现于卡面一致性审计，修复于 CARD-FIX-1
+- ✅ furnace_blast 硬编码前 3 单位（卡面"同一位置最多三名"）— 部分修复：AI 选敌方最多战场；玩家位置选择 UI 留 CARD-FIX-2 — 发现于卡面一致性审计，修复于 CARD-FIX-1

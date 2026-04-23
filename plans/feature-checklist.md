@@ -108,23 +108,23 @@
 - ✅ void_seek（4点伤害+抽牌）— DEV-3
 - ✅ evolve_day（抽4张）— DEV-3
 - ✅ retreat_rune（反应，召回战场单位+回收符文）— DEV-4
-- ✅ furnace_blast（回响，1点伤害×3单位）— DEV-11
+- ✅ furnace_blast（回响①，对同一位置最多3名单位造成1点伤害）— DEV-11 + CARD-FIX-1（按卡面修：同一战场目标 + AI 选敌方最多战场）
 - ✅ guilty_pleasure（反应，弃牌造2点伤害）— DEV-4
 - ✅ starburst（6点伤害×1目标，DEV-3简化）— DEV-3
 - ✅ hex_ray（迅捷，3点伤害）— DEV-3
-- ✅ time_warp（额外回合，extraTurnPending=true）— DEV-11
-- ✅ stardrop（3点伤害×2次）— DEV-3
+- ✅ time_warp（额外回合，结算后放逐）— DEV-11 + CARD-FIX-1（按卡面修：discard→exile）
+- ✅ stardrop（3点伤害×2次）— DEV-3 + CARD-FIX-1（第二段若首目标死亡自动打最低 HP 敌，玩家 UI 选新目标留 CARD-FIX-2）
 - ✅ smoke_bomb（反应，-4战力，自动选第一个敌方单位）— DEV-4
 - ✅ divine_ray（回响+2炽烈，2点伤害×2次）— DEV-11
-- ✅ akasi_storm（2点伤害×6次随机敌方）— DEV-3
+- ✅ akasi_storm（2点伤害×6次）— DEV-3 + CARD-FIX-1（按卡面：施法者逐次选，AI 改启发式选最低 HP，玩家 UI 留 CARD-FIX-2）
 - ✅ noxus_recruit 入场（鼓舞：下一个盟友+1战力）— DEV-11
 - ✅ alert_sentinel 绝念（抽1张）— DEV-2
 - ✅ yordel_instructor 入场（壁垒+抽牌）— DEV-2
 - ✅ bad_poro 征服触发（征服时摸1张牌）— DEV-12
 - ✅ rengar 入场（反应+强攻+1炽烈符能）— DEV-11
 - ✅ kaisa_hero 入场（征服触发+1炽烈符能）— DEV-11
-- ✅ darius 入场（本回合已出牌时+2战力）— DEV-2
-- ✅ thousand_tail 入场（敌方单位战力-3，最低1）— DEV-2
+- ✅ darius 入场（本回合第二张牌触发+2/活跃）— DEV-2 + CARD-FIX-1（按卡面：OnCardPlayed 监听第二张瞬间触发）
+- ✅ thousand_tail 入场（所有敌方单位本回合-3战力，最低1）— DEV-2 + CARD-FIX-1（按卡面：TempAtkBonus 改回合末清零）
 - ✅ foresight_mech 预知（查看牌堆顶）— DEV-2（日志显示，无UI）
 
 ### 易大师卡组效果（22张法术 + 装备 + 单位入场）
@@ -132,14 +132,14 @@
 - ✅ duel_stance（反应，+1/+1永久增益，DEV-4简化自动选目标）— DEV-4
 - ✅ well_trained（反应，+2战力+抽牌，自动选第一个己方单位）— DEV-4
 - ✅ wind_wall（反应，无效任意法术）— DEV-4
-- ✅ rally_call（迅捷，单位活跃进场+抽牌）— DEV-3
-- ✅ balance_resolve（抽牌+召出符文，条件费用-2推迟）— DEV-3
+- ✅ rally_call（迅捷，本回合打出的单位活跃进场 + 抽牌）— DEV-3 + CARD-FIX-1（按卡面：持续修饰符 RallyCallActiveThisTurn + 追溯本回合已打出）
+- ✅ balance_resolve（抽牌+召出符文 + 对手得分或距胜≤3 时费用-2）— DEV-3 + CARD-FIX-1（条件减费 GetSpellEffectiveCost 落地）
 - ✅ flash_counter（反应，反制敌方法术）— DEV-4
 - ✅ slam（回响，眩晕单位）— DEV-3
 - ✅ strike_ask_later（+5战力，2摧破符能）— DEV-3
 - ✅ yi_hero 入场（游走+急速+1摧破符能，急速付费走 TryPlayUnitAsync）— DEV-11 + DEV-25b
-- ✅ jax 入场（法盾+入场效果）— DEV-2（日志显示）
-- ✅ tiyana_warden 被动（阻止对手据守得分）— DEV-2
+- ✅ jax 入场持续被动（owner 手牌中装备获得【反应】）— DEV-2 + CARD-FIX-1（GameRules.IsJaxInPlay 动态查询 + 反应窗口装备路径）
+- ✅ tiyana_warden 被动（位于战场上时对手无法得分 — 所有类型）— DEV-2 + CARD-FIX-1（按卡面：动态查战场 + 阻止所有得分类型）
 - ✅ wailing_poro 绝念（孤独阵亡时抽1张）— DEV-2
 - ✅ zhonya（待命，死亡保护）— DEV-13（基础）+ DEV-18（IsStandby字段 + Rule 716完整实现）
 - ✅ trinity_force（据守额外+1分，+2战力，1摧破符能）— DEV-11入场效果+DEV-13附着系统

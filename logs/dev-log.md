@@ -2565,3 +2565,55 @@
 - `_cancelReturnSeq` 字段保留但标注为 backward-compat OnDestroy 兜底，后续 cleanup 可删
 
 **Tests**: 编译 0 error 0 warning；EditMode 1155/1165 通过（10 项失败皆 known-bugs.md 登记的历史项）
+
+## CARD-FIX-1：按贴图修复 10 张卡行为不符 — 2026-04-23
+
+**Status**: ✅ Completed（批 1 + 批 2a 两次提交汇总为一个 Phase）
+
+**触发**：用户审计发现多张卡牌行为与卡面贴图文字描述不符，要求按贴图原文逐张修复。
+
+**修复清单（10 张卡）**：
+
+批 1（9a954b6）— 纯逻辑修复：
+- `thousand_tail`：敌方-3 战力改用 TempAtkBonus（回合末清零），保持 ≥1 底线（原改 CurrentAtk 永久削弱）
+- `darius_second_card`：订阅 GameEventBus.OnCardPlayed，恰好第二张牌瞬间触发 +2/活跃（原入场即固定触发）
+- `tiyana_enter`：动态查战场存在（IsTiyanaOnAnyBattlefield）替代静态 TiyanasInPlay 字典；阻止所有得分类型（原只阻止 HOLD）
+- `time_warp`：结算后放逐（GetExile）而非弃牌（原入 GetDiscard）
+- `balance_resolve`：GameRules.GetSpellEffectiveCost 统一处理条件减费（对手得分 ≤3 或距胜 ≤3 时费用-2）
+- `rally_call`：持续修饰符 GameState.RallyCallActiveThisTurn + TurnManager.DoAwaken 清零 + 追溯本回合已打出的疲惫单位（原只激活所有己方单位，与卡面"本回合打出"不符）
+
+批 2a（7638ec5）— jax 被动 + Echo AI 路径 + 多段法术校正：
+- `jax_enter`：GameRules.IsJaxInPlay 动态查询；反应窗口（玩家 + AI 双路径）接受装备作反应牌，直接部署到基地
+- Echo 基础设施：GameRules.CanAffordEcho / SpendEchoCost（主符能池优先消耗 1 点）；SpellSystem 拆 CastSpell → ResolveSpellEffect + EchoCast；SimpleAI.CastAISpell 自动 Echo 循环
+- `stardrop` "进行再次"：第二段若首目标死亡自动改打最低 HP 敌（PickLowestHpEnemy）
+- `akasi_storm` "进行六次"：AI 逐次选最低 HP（原随机）
+- `furnace_blast` "同一位置最多3名"：AI 选敌方单位最多的战场（原硬编码前 3 个单位）
+
+**配套**：
+- 移除废弃 GameState.TiyanasInPlay 字典 + CombatSystem 相关维护代码
+- DEV2InteractionTests / SpellSystemTests 调整以匹配新语义
+- SimpleAI.CanAfford / SpendCost 新增 UnitInstance 重载以套用条件费用
+
+**Decisions made**：
+- 批次拆分：批 1（纯逻辑）→ 批 2a（AI 路径）→ 批 2b（留作后续，玩家 UI 路径）。按用户"推荐就拆"指示
+- Echo 成本固定为"1 主符能"（卡面"回响①"的通用理解）；法术专用池优先消耗
+- tiyana "无法得分" 严格解读：所有类型（HOLD/CONQUER/BURNOUT）均阻止
+- balance_resolve 条件参数：从卡面"对手得分或胜利得分不超过3分"解读为 oppScore≤3 或 WIN_SCORE-oppScore≤3
+- furnace_blast "位置" = 战场（BF0/BF1），不含基地
+- 玩家 Echo 付费确认 UI、stardrop/akasi/furnace 目标选择 UI 全部留 CARD-FIX-2
+
+**Technical debt（CARD-FIX-2 承接）**：
+- [ ] Echo 机制玩家付费确认弹窗（AskPromptUI）— CARD-FIX-1
+- [ ] stardrop 第二段玩家选不同目标 UI — CARD-FIX-2
+- [ ] akasi_storm 六次目标弹窗（SpellTargetPopup 复用）— CARD-FIX-2
+- [ ] furnace_blast 位置选择弹窗（战场高亮 + 点击确认）— CARD-FIX-2
+
+**Tests**：EditMode 1143/1154 通过；11 项失败全部为 pre-existing DOT*/DEV21* 动画常量测试（源码已演化，测试未跟上，不属本 Phase 新引入）。6 张修复卡的相关测试（DEV2InteractionTests / SpellSystemTests）全绿。
+
+**引擎场景验证**：本 Phase 无视听改动（纯逻辑 + AI 路径），按 CLAUDE.md §1 标注跳过。
+**代码审查**：Claude 自审查 + Codex adversarial-review（单独 dispatched）。
+
+**Problems encountered**：
+- Tiyana 旧 TiyanasInPlay 字典在测试文件多处使用（3 个 Test），统一重写测试以对应新语义
+- darius 事件驱动 vs 入场自检：darius 自己就是本回合第二张时需要入场即自检一次（CardsPlayedThisTurn≥2 && !_dariusBuffedThisTurn），否则 OnCardPlayed 监听器不会对自身触发
+- ScoreManager 使用 gs.TiyanasInPlay 被 IsTiyanaOnAnyBattlefield 替代，CombatSystem 死亡清理代码也同步删除

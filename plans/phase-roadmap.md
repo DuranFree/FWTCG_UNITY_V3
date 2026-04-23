@@ -45,6 +45,8 @@
 | VFX-6 | 掷硬币 2D 翻转动画 | CoinFlipFX（scaleX 翻转 + 粒子爆发） |
 | VFX-7 | UI & 高亮视觉迁移（15项） | 边框/法力图标/胜负屏/拖拽旋转/脉冲/卡背/背景/双色发光/战斗动画/状态FX等 |
 | VFX-8 | 投射物系统（可选） | Projectile.cs + 飞行动画 |
+| CARD-FIX-1 | 卡面规则一致性修复（批1+批2a） | thousand_tail/darius/tiyana/time_warp/balance_resolve/rally_call 纯逻辑 + jax/stardrop/akasi/furnace 的 AI 路径 + Echo 基础设施 |
+| CARD-FIX-2 | 多段法术玩家 UI 路径 | Echo 付费确认弹窗 + stardrop/akasi/furnace 目标/位置选择 UI |
 | DEV-31 | Tech-Debt Cleanup | 清理 tech-debt.md 中所有未解决项 |
 | DEV-32 | 架构优化 | Final Architecture Review |
 
