@@ -122,7 +122,7 @@ namespace FWTCG.AI
                 gs.CardsPlayedThisTurn++;
                 GameManager.FireCardPlayed(heroCard, owner); // 触发 OnCardPlayed（darius 监听需要）
                 Log($"{tag} 英雄出场：{heroCard.UnitName}（费用{heroCard.CardData.Cost}），剩余法力 {gs.GetMana(owner)}");
-                entryEffects?.OnUnitEntered(heroCard, owner, gs);
+                UI.GameEventBus.FireUnitEntered(heroCard, owner); // DEV-32 A6 事件化
                 // CheckKaisaEvolution 已废弃（原卡没有进化机制）
 
                 await Delay(GameRules.AI_ACTION_DELAY_MS);
@@ -173,7 +173,7 @@ namespace FWTCG.AI
                 gs.CardsPlayedThisTurn++;
                 GameManager.FireCardPlayed(toPlay, owner); // 触发 OnCardPlayed（darius 监听需要）
                 Log($"{tag} 出 {toPlay.UnitName}（费用{toPlay.CardData.Cost}，战力{toPlay.CurrentAtk}），剩余法力 {gs.GetMana(owner)}");
-                entryEffects?.OnUnitEntered(toPlay, owner, gs);
+                UI.GameEventBus.FireUnitEntered(toPlay, owner); // DEV-32 A6
                 // CheckKaisaEvolution 已废弃（原卡没有进化机制）
 
                 await Delay(GameRules.AI_ACTION_DELAY_MS);

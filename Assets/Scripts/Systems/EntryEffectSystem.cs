@@ -20,11 +20,24 @@ namespace FWTCG.Systems
         private void OnEnable()
         {
             FWTCG.UI.GameEventBus.OnCardPlayed += OnAnyCardPlayed;
+            // DEV-32 A6: 订阅 OnUnitEntered，取代 GameManager/SimpleAI 的直接调用
+            FWTCG.UI.GameEventBus.OnUnitEntered += OnUnitEnteredViaEvent;
         }
 
         private void OnDisable()
         {
             FWTCG.UI.GameEventBus.OnCardPlayed -= OnAnyCardPlayed;
+            FWTCG.UI.GameEventBus.OnUnitEntered -= OnUnitEnteredViaEvent;
+        }
+
+        /// <summary>
+        /// DEV-32 A6: 事件总线入口 — 从注入的 gs 引用读取 GameState，转调现有 OnUnitEntered 实现。
+        /// 保留 OnUnitEntered(unit, owner, gs) 公开方法以便测试直接调用。
+        /// </summary>
+        private void OnUnitEnteredViaEvent(UnitInstance unit, string owner)
+        {
+            if (_gsRef == null) return;
+            OnUnitEntered(unit, owner, _gsRef);
         }
 
         /// <summary>

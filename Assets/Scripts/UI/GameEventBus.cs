@@ -105,6 +105,22 @@ namespace FWTCG.UI
         public static event Action<UnitInstance, string> OnCardPlayed;
         public static void FireCardPlayed(UnitInstance unit, string owner) => OnCardPlayed?.Invoke(unit, owner);
 
+        /// <summary>
+        /// DEV-32 A6: 单位进入基地/战场。EntryEffectSystem 订阅处理入场效果。
+        /// 替代原先 GameManager/SimpleAI 对 EntryEffectSystem 的直接调用。
+        /// </summary>
+        public static event Action<UnitInstance, string> OnUnitEntered;
+        public static void FireUnitEntered(UnitInstance unit, string owner)
+            => OnUnitEntered?.Invoke(unit, owner);
+
+        /// <summary>
+        /// DEV-32 A6: 一批单位阵亡（结算绝念）。bfId=-1 表示基地阵亡。
+        /// DeathwishSystem 订阅处理 alert_sentinel / wailing_poro 等死亡触发。
+        /// </summary>
+        public static event Action<System.Collections.Generic.List<UnitInstance>, int> OnUnitsDied;
+        public static void FireUnitsDied(System.Collections.Generic.List<UnitInstance> units, int bfId)
+            => OnUnitsDied?.Invoke(units, bfId);
+
         /// <summary>Fired to show a hint toast in the UI. Any system may call FireHintToast.</summary>
         public static event Action<string> OnHintToast;
         public static void FireHintToast(string msg) => OnHintToast?.Invoke(msg);

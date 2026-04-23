@@ -252,8 +252,9 @@ namespace FWTCG.Systems
 
             for (int chainDepth = 0; chainDepth < maxChainDepth && allDead.Count > 0; chainDepth++)
             {
+                // DEV-32 A6: 事件总线化 — DeathwishSystem 订阅 OnUnitsDied（仍保留 _deathwish != null 守卫以防事件未连通）
                 if (_deathwish == null) break;
-                _deathwish.OnUnitsDied(allDead, bfId, gs);
+                FWTCG.UI.GameEventBus.FireUnitsDied(allDead, bfId);
 
                 // Check for new deaths caused by deathwish effects this chain step
                 var newDeadDefenders = FindNewlyDead(GetBFUnits(defender, bf), gs);

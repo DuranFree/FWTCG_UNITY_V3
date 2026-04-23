@@ -642,6 +642,8 @@ namespace FWTCG
             _turnMgr.Inject(_gs, _scoreMgr, _combatSys, _ai, _entryEffects,
                             _spellSys, _reactiveSys, _reactiveWindowUI, _legendSys, _bfSys);
             _entryEffects?.Inject(_gs); // darius OnCardPlayed 监听器需要 GameState 引用
+            // DEV-32 A6: DeathwishSystem 事件总线化后也需 gs 引用
+            GetComponent<Systems.DeathwishSystem>()?.Inject(_gs);
 
             // Random first player
             _gs.First = Random.value > 0.5f ? GameRules.OWNER_PLAYER : GameRules.OWNER_ENEMY;
@@ -1457,7 +1459,7 @@ namespace FWTCG
             {
                 // 装备：放到基地（0 费，跳过 cost 检查）
                 _gs.GetBase(owner).Add(card);
-                if (_entryEffects != null) _entryEffects.OnUnitEntered(card, owner, _gs);
+                UI.GameEventBus.FireUnitEntered(card, owner); // DEV-32 A6 事件化
             }
             else if (card.CardData.IsSpell)
             {
@@ -1495,7 +1497,7 @@ namespace FWTCG
                 // 单位：放到基地（休眠）
                 _gs.GetBase(owner).Add(card);
                 card.Exhausted = true;
-                if (_entryEffects != null) _entryEffects.OnUnitEntered(card, owner, _gs);
+                UI.GameEventBus.FireUnitEntered(card, owner); // DEV-32 A6 事件化
             }
             RefreshUI();
             await System.Threading.Tasks.Task.CompletedTask;
@@ -1556,7 +1558,7 @@ namespace FWTCG
 
             // Trigger entry effects
             if (_entryEffects != null)
-                _entryEffects.OnUnitEntered(unit, GameRules.OWNER_PLAYER, _gs);
+                UI.GameEventBus.FireUnitEntered(unit, GameRules.OWNER_PLAYER); // DEV-32 A6
 
             // DEV-26: Foresight prompt (player only — AI handled in EntryEffectSystem)
             if (unit.CardData.HasKeyword(CardKeyword.Foresight))
@@ -1640,7 +1642,7 @@ namespace FWTCG
             TurnManager.BroadcastMessage_Static($"[英雄出场] {hero.UnitName}（剩余法力 {_gs.PMana}）");
 
             if (_entryEffects != null)
-                _entryEffects.OnUnitEntered(hero, GameRules.OWNER_PLAYER, _gs);
+                UI.GameEventBus.FireUnitEntered(hero, GameRules.OWNER_PLAYER); // DEV-32 A6
 
             if (hero.CardData.HasKeyword(CardKeyword.Foresight))
                 await HandleForesightPromptAsync(GameRules.OWNER_PLAYER);
@@ -1786,7 +1788,7 @@ namespace FWTCG
 
             TurnManager.BroadcastMessage_Static(
                 $"[装备] {equip.UnitName} 附着到 {target.UnitName}（+{bonus}战力）");
-            _entryEffects?.OnUnitEntered(equip, GameRules.OWNER_PLAYER, _gs);
+            UI.GameEventBus.FireUnitEntered(equip, GameRules.OWNER_PLAYER); // DEV-32 A6
 
             // Fly ghost to target unit, then refresh UI
             var tcs2 = new System.Threading.Tasks.TaskCompletionSource<bool>();
@@ -2886,7 +2888,7 @@ namespace FWTCG
                 baseList.Remove(u);
                 _gs.GetDiscard(targetOwner).Add(u);
             }
-            deathwish?.OnUnitsDied(baseDead, -1, _gs);
+            UI.GameEventBus.FireUnitsDied(baseDead, -1); // DEV-32 A6
 
             // ── Battlefield units ────────────────────────────────────────────
             foreach (var bf in _gs.BF)
@@ -2905,7 +2907,7 @@ namespace FWTCG
                     bfList.Remove(u);
                     _gs.GetDiscard(targetOwner).Add(u);
                 }
-                deathwish?.OnUnitsDied(bfDead, bf.Id, _gs);
+                UI.GameEventBus.FireUnitsDied(bfDead, bf.Id); // DEV-32 A6
             }
 
             RefreshUI();

@@ -13,6 +13,26 @@ namespace FWTCG.Systems
     {
         public static event System.Action<string> OnDeathwishLog;
 
+        // DEV-32 A6: 需要 GameState 引用才能从事件总线处理 OnUnitsDied（事件签名不带 gs）
+        private GameState _gsRef;
+        public void Inject(GameState gs) { _gsRef = gs; }
+
+        private void OnEnable()
+        {
+            FWTCG.UI.GameEventBus.OnUnitsDied += OnUnitsDiedViaEvent;
+        }
+
+        private void OnDisable()
+        {
+            FWTCG.UI.GameEventBus.OnUnitsDied -= OnUnitsDiedViaEvent;
+        }
+
+        private void OnUnitsDiedViaEvent(List<UnitInstance> deadUnits, int bfId)
+        {
+            if (_gsRef == null) return;
+            OnUnitsDied(deadUnits, bfId, _gsRef);
+        }
+
         /// <summary>
         /// Trigger deathwish effects for a list of units that just died.
         /// bfId: battlefield where the unit died (-1 if from base/other).
