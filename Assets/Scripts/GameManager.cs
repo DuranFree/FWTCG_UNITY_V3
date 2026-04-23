@@ -50,6 +50,11 @@ namespace FWTCG
         [SerializeField] private StartupFlowUI _startupFlowUI;
         [SerializeField] private ReactiveSystem _reactiveSys;
         [SerializeField] private ReactiveWindowUI _reactiveWindowUI;
+        // DEV-32 A4: 接口引用 — 生产等于 _reactiveWindowUI，测试可注入 mock
+        private IReactionWindow _reactionWindow;
+        private IReactionWindow ReactionWindow => _reactionWindow ?? _reactiveWindowUI;
+        /// <summary>DEV-32 A4 test hook: 注入 mock IReactionWindow 以绕过 MonoBehaviour 实例化。</summary>
+        public void InjectReactionWindow(IReactionWindow window) { _reactionWindow = window; }
         [SerializeField] private LegendSystem _legendSys;
         [SerializeField] private BattlefieldSystem _bfSys;
         [SerializeField] private CardDetailPopup _cardDetailPopup;
@@ -1197,8 +1202,7 @@ namespace FWTCG
         /// </summary>
         public void OnSkipReactionClicked()
         {
-            if (_reactiveWindowUI != null)
-                _reactiveWindowUI.SkipReaction();
+            ReactionWindow?.SkipReaction();
         }
 
         // ── Private helpers ───────────────────────────────────────────────────
@@ -2520,7 +2524,8 @@ namespace FWTCG
         private async void OnReactClicked()
         {
             if (_gs == null || _gs.GameOver) return;
-            if (_reactiveWindowUI == null) return;
+            var window = ReactionWindow;
+            if (window == null) return;
 
             // H-3: Block re-entry if a player reaction window is already open
             if (_reactionWindowActive)
@@ -2580,7 +2585,7 @@ namespace FWTCG
             UnitInstance picked = null;
             try
             {
-                picked = await _reactiveWindowUI.WaitForReaction(
+                picked = await window.WaitForReaction(
                     reactives,
                     $"选择反应牌打出（当前法力：{_gs.PMana}）",
                     _gs,

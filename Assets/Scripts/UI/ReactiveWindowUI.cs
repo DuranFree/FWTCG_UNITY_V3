@@ -16,7 +16,7 @@ namespace FWTCG.UI
     /// Uses TaskCompletionSource for async/await integration.
     /// Returns the chosen card. Auto-completes with null if no cards provided.
     /// </summary>
-    public class ReactiveWindowUI : MonoBehaviour
+    public class ReactiveWindowUI : MonoBehaviour, IReactionWindow
     {
         public static ReactiveWindowUI Instance { get; private set; }
         private bool _initialized;
