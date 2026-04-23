@@ -70,6 +70,13 @@ namespace FWTCG
         private const float NO_REACTIVE_TOAST_COOLDOWN = 2f;
 
         // ── Reaction window freeze (static so SimpleAI can await without a ref) ─
+        // DEV-32 A5 分层说明（三层状态并存 — 各司其职，不合并）：
+        //   1. TurnManager._gs.Phase  : 宏观回合流程（awaken/start/summon/draw/action/end）
+        //   2. TurnStateMachine       : 法术合法性状态机（Rule 18/25/718，4 态）
+        //   3. 本文件下方标志         : UI 互斥锁（防并发窗口、对决中屏蔽输入），**不是** state machine
+        // 不变量：_reactionWindowActive=true → TurnStateMachine.IsSpellDuelOpen=true（由打开方保证）
+        //         同理 _aiReactionWindowActive=true → IsSpellDuelOpen=true
+
         // Player reaction window (player clicks React → AI waits)
         private static bool _reactionWindowActive;
         private static TaskCompletionSource<bool> _reactionTcs;

@@ -61,6 +61,12 @@ namespace FWTCG
         public static bool IsSpellDuelOpen => _current == State.SpellDuel_OpenLoop;
 
         /// <summary>
+        /// DEV-32 A5: 便利查询 — "正在结算中（closed loop）" — 不接受玩家输入期。
+        /// </summary>
+        public static bool IsResolving =>
+            _current == State.SpellDuel_ClosedLoop || _current == State.Normal_ClosedLoop;
+
+        /// <summary>
         /// Returns true when a spell card is legal to play given the current state.
         /// 按 Rule 18/25 修正后的权限判定：
         ///
