@@ -138,8 +138,9 @@ namespace FWTCG.Tests.EditMode
             var unit = MakeUnit(GameRules.OWNER_PLAYER, "thousandtail", 3, "thousand_tail_enter");
             _entry.OnUnitEntered(unit, GameRules.OWNER_PLAYER, _gs);
 
-            Assert.AreEqual(2, enemy1.CurrentAtk, "Enemy1 (5 atk) should be debuffed to 2 (-3)");
-            Assert.AreEqual(1, enemy2.CurrentAtk, "Enemy2 (4 atk) should be debuffed to 1 (-3)");
+            // ThousandTail 改为 TempAtkBonus（回合结束清零），查 EffectiveAtk
+            Assert.AreEqual(2, enemy1.EffectiveAtk(), "Enemy1 (5 atk) should be debuffed to 2 (-3)");
+            Assert.AreEqual(1, enemy2.EffectiveAtk(), "Enemy2 (4 atk) should be debuffed to 1 (-3)");
         }
 
         [Test]
@@ -152,68 +153,67 @@ namespace FWTCG.Tests.EditMode
             var unit = MakeUnit(GameRules.OWNER_PLAYER, "thousandtail", 3, "thousand_tail_enter");
             _entry.OnUnitEntered(unit, GameRules.OWNER_PLAYER, _gs);
 
-            Assert.AreEqual(1, enemy.CurrentAtk,
-                "Enemy ATK should not drop below 1 (min enforced by ThousandTail entry)");
+            Assert.AreEqual(1, enemy.EffectiveAtk(),
+                "Enemy effective ATK should not drop below 1 (min enforced by ThousandTail entry)");
         }
 
         // ── EntryEffectSystem: Tiyana ─────────────────────────────────────────
 
         [Test]
-        public void EntryEffect_Tiyana_SetsTiyanasInPlayFlag()
+        public void Tiyana_InBase_DoesNotBlockOpponentScore()
         {
+            // 新行为：Tiyana 在基地时被动不生效，必须在战场上
             var unit = MakeUnit(GameRules.OWNER_PLAYER, "tiyana", 4, "tiyana_enter");
             _gs.PBase.Add(unit);
-
             _entry.OnUnitEntered(unit, GameRules.OWNER_PLAYER, _gs);
-
-            Assert.IsTrue(_gs.TiyanasInPlay.ContainsKey(GameRules.OWNER_PLAYER)
-                && _gs.TiyanasInPlay[GameRules.OWNER_PLAYER],
-                "Tiyana entry should set TiyanasInPlay[player] = true");
-        }
-
-        // ── ScoreManager: Tiyana passive blocks hold score ────────────────────
-
-        [Test]
-        public void Tiyana_Passive_BlocksOpponentHoldScore()
-        {
-            // Player has Tiyana → enemy cannot score hold points
-            _gs.TiyanasInPlay[GameRules.OWNER_PLAYER] = true;
 
             bool awarded = _score.AddScore(GameRules.OWNER_ENEMY, 1,
                 GameRules.SCORE_TYPE_HOLD, 0, _gs);
 
-            Assert.IsFalse(awarded,
-                "Tiyana passive should block opponent's hold score");
-            Assert.AreEqual(0, _gs.EScore,
-                "Enemy score should remain 0 when Tiyana blocks hold scoring");
+            Assert.IsTrue(awarded, "Tiyana 在基地时不应阻止对手得分");
+        }
+
+        // ── ScoreManager: Tiyana passive blocks ALL score types ───────────────
+
+        [Test]
+        public void Tiyana_OnBattlefield_BlocksOpponentHoldScore()
+        {
+            var tiyana = MakeUnit(GameRules.OWNER_PLAYER, "tiyana", 4, "tiyana_enter");
+            _gs.BF[0].PlayerUnits.Add(tiyana);
+
+            bool awarded = _score.AddScore(GameRules.OWNER_ENEMY, 1,
+                GameRules.SCORE_TYPE_HOLD, 0, _gs);
+
+            Assert.IsFalse(awarded, "Tiyana 在战场上时应阻止对手据守得分");
+            Assert.AreEqual(0, _gs.EScore);
         }
 
         [Test]
-        public void Tiyana_Passive_DoesNotBlockConquestScore()
+        public void Tiyana_OnBattlefield_BlocksOpponentConquestScore()
         {
-            // Tiyana only blocks hold, not conquest
-            _gs.TiyanasInPlay[GameRules.OWNER_PLAYER] = true;
+            // 卡面："对手无法得分" → 所有得分类型均阻止
+            var tiyana = MakeUnit(GameRules.OWNER_PLAYER, "tiyana", 4, "tiyana_enter");
+            _gs.BF[0].PlayerUnits.Add(tiyana);
+            _gs.BFConqueredThisTurn.Add(0);
+            _gs.BFConqueredThisTurn.Add(1);
 
             bool awarded = _score.AddScore(GameRules.OWNER_ENEMY, 1,
                 GameRules.SCORE_TYPE_CONQUER, 0, _gs);
 
-            Assert.IsTrue(awarded,
-                "Tiyana passive should NOT block opponent's conquest score");
-            Assert.AreEqual(1, _gs.EScore,
-                "Enemy should still score conquest points while Tiyana is in play");
+            Assert.IsFalse(awarded, "Tiyana 在战场上时也应阻止对手征服得分");
+            Assert.AreEqual(0, _gs.EScore);
         }
 
         [Test]
-        public void Tiyana_Passive_DoesNotAffectOwnHoldScore()
+        public void Tiyana_OnBattlefield_DoesNotAffectOwnScore()
         {
-            // Player has Tiyana → player can still score hold points for themselves
-            _gs.TiyanasInPlay[GameRules.OWNER_PLAYER] = true;
+            var tiyana = MakeUnit(GameRules.OWNER_PLAYER, "tiyana", 4, "tiyana_enter");
+            _gs.BF[0].PlayerUnits.Add(tiyana);
 
             bool awarded = _score.AddScore(GameRules.OWNER_PLAYER, 1,
                 GameRules.SCORE_TYPE_HOLD, 0, _gs);
 
-            Assert.IsTrue(awarded,
-                "Tiyana passive should not affect the owner's own hold scoring");
+            Assert.IsTrue(awarded, "Tiyana 被动只影响对手得分");
         }
 
         // ── DeathwishSystem: AlertSentinel ────────────────────────────────────

@@ -13,6 +13,44 @@ namespace FWTCG.Systems
     {
         public static event System.Action<string> OnEffectLog;
 
+        // darius 触发式技能：订阅 OnCardPlayed，每当打出第二张牌时触发在场的 darius
+        private GameState _gsRef;
+        public void Inject(GameState gs) { _gsRef = gs; }
+
+        private void OnEnable()
+        {
+            FWTCG.UI.GameEventBus.OnCardPlayed += OnAnyCardPlayed;
+        }
+
+        private void OnDisable()
+        {
+            FWTCG.UI.GameEventBus.OnCardPlayed -= OnAnyCardPlayed;
+        }
+
+        /// <summary>
+        /// 贴图："每当你在本回合中打出第二张牌时，让我本回合+2，并让我变为活跃状态。"
+        /// 实现：监听每次打出卡，CardsPlayedThisTurn 从 1 变 2 的那一下（即第二张刚落下）触发 darius。
+        /// 已经触发过的本回合不再触发（一次性，用 PlayedThisTurn 追踪 darius 本回合是否已触发）。
+        /// </summary>
+        private void OnAnyCardPlayed(UnitInstance played, string owner)
+        {
+            if (_gsRef == null) return;
+            if (_gsRef.CardsPlayedThisTurn != 2) return; // 恰好"打出第二张"的瞬间
+
+            foreach (var u in AllUnitsFor(owner, _gsRef))
+            {
+                if (u.CardData == null || u.CardData.EffectId != "darius_second_card") continue;
+                if (u._dariusBuffedThisTurn) continue;
+                u.TempAtkBonus += 2;
+                u.Exhausted = false;
+                u._dariusBuffedThisTurn = true;
+                Log($"[德莱厄斯] 本回合第二张牌触发 — {u.UnitName} +2战力·变活跃");
+                FWTCG.UI.GameEventBus.FireUnitAtkBuff(u, 2);
+                FWTCG.UI.EntryEffectVFX.Instance?.Play(u,
+                    new List<UnitInstance> { u }, "+2战力·活跃", FWTCG.UI.GameColors.BuffColor);
+            }
+        }
+
         /// <summary>
         /// Trigger the entry effect of a unit that just entered the base.
         /// Call this after paying costs and placing the unit in base.
@@ -43,30 +81,43 @@ namespace FWTCG.Systems
                     break;
 
                 case "darius_second_card":
-                    if (gs.CardsPlayedThisTurn > 1)
+                    // 入场即自检：若自己恰好是本回合第二张牌（或之后打出），立即获得加成。
+                    // 其他情况由 OnAnyCardPlayed 监听每次打出时触发。
+                    if (gs.CardsPlayedThisTurn >= 2 && !unit._dariusBuffedThisTurn)
                     {
                         unit.TempAtkBonus += 2;
                         unit.Exhausted = false;
-                        Log($"[入场] {unit.UnitName} — 本回合已出牌，获得+2战力并变为活跃");
+                        unit._dariusBuffedThisTurn = true;
+                        Log($"[德莱厄斯] 入场即触发（本回合已打出 {gs.CardsPlayedThisTurn} 张）— +2战力·变活跃");
                         FWTCG.UI.GameEventBus.FireUnitAtkBuff(unit, 2);
                         FWTCG.UI.EntryEffectVFX.Instance?.Play(unit,
                             new List<UnitInstance> { unit }, "+2战力·活跃", buffColor);
                     }
+                    else
+                    {
+                        Log($"[入场] {unit.UnitName} 进场（等待第二张牌触发）");
+                    }
                     break;
 
                 case "thousand_tail_enter":
+                    // 卡面："让所有敌方单位本回合内-3，不得低于1。"
+                    // 使用 TempAtkBonus（回合结束自动清零），不修改 CurrentAtk。
                     string enemy = gs.Opponent(owner);
                     var debuffedTargets = new List<UnitInstance>();
                     foreach (UnitInstance u in AllUnitsFor(enemy, gs))
                     {
-                        int newAtk = Mathf.Max(1, u.CurrentAtk - 3);
-                        int delta = newAtk - u.CurrentAtk;
-                        u.CurrentAtk = newAtk;
-                        FWTCG.UI.GameEventBus.FireUnitAtkBuff(u, delta);
+                        // 计算实际可扣的量（保证 EffectiveAtk >= 1）
+                        int currentEff = Mathf.Max(0, u.CurrentAtk + u.TempAtkBonus);
+                        int actualReduction = Mathf.Min(3, Mathf.Max(0, currentEff - 1));
+                        if (actualReduction > 0)
+                        {
+                            u.TempAtkBonus -= actualReduction;
+                            FWTCG.UI.GameEventBus.FireUnitAtkBuff(u, -actualReduction);
+                        }
                         debuffedTargets.Add(u);
                     }
-                    Log($"[入场] {unit.UnitName} — 所有敌方单位-3战力（共{debuffedTargets.Count}个）");
-                    FWTCG.UI.EntryEffectVFX.Instance?.Play(unit, debuffedTargets, "-3战力", debuffColor);
+                    Log($"[入场] {unit.UnitName} — 所有敌方单位本回合-3战力（最低1，共{debuffedTargets.Count}个）");
+                    FWTCG.UI.EntryEffectVFX.Instance?.Play(unit, debuffedTargets, "本回合-3", debuffColor);
                     break;
 
                 case "foresight_mech_enter":
@@ -84,9 +135,11 @@ namespace FWTCG.Systems
                     break;
 
                 case "tiyana_enter":
-                    Log($"[入场] {unit.UnitName} — 被动启动：对手无法获得据守分");
-                    gs.TiyanasInPlay[owner] = true;
-                    FWTCG.UI.EntryEffectVFX.Instance?.Play(unit, null, "对手无据守分", playerGreen);
+                    // 卡面："如果我位于战场上，则对手无法得分。"
+                    // 不再依赖静态 flag — ScoreManager 动态查 IsTiyanaOnBattlefield()。
+                    // 入场时 tiyana 在基地，不立即激活；移动到战场后才禁对手得分。
+                    Log($"[入场] {unit.UnitName} — 等待移至战场激活被动");
+                    FWTCG.UI.EntryEffectVFX.Instance?.Play(unit, null, "移至战场封锁对手得分", playerGreen);
                     break;
 
                 case "noxus_recruit_enter":

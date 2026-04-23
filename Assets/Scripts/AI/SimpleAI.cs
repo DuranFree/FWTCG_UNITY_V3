@@ -114,7 +114,10 @@ namespace FWTCG.AI
                         UI.GameEventBus.FireUnitFloatText(heroCard, "急速！", UI.GameColors.BuffColor);
                     }
                 }
-                heroCard.Exhausted = !useHaste;
+                bool rallyHero = gs.RallyCallActiveThisTurn.TryGetValue(owner, out var rh) && rh;
+                heroCard.Exhausted = !useHaste && !rallyHero;
+                if (rallyHero && !useHaste)
+                    UI.GameEventBus.FireUnitFloatText(heroCard, "迎敌号令·活跃！", UI.GameColors.BuffColor);
                 heroCard.PlayedThisTurn = true;
                 gs.CardsPlayedThisTurn++;
                 Log($"{tag} 英雄出场：{heroCard.UnitName}（费用{heroCard.CardData.Cost}），剩余法力 {gs.GetMana(owner)}");
@@ -161,7 +164,10 @@ namespace FWTCG.AI
                         UI.GameEventBus.FireUnitFloatText(toPlay, "急速！", UI.GameColors.BuffColor);
                     }
                 }
-                toPlay.Exhausted = !useHaste;
+                bool rallyUnit = gs.RallyCallActiveThisTurn.TryGetValue(owner, out var ru) && ru;
+                toPlay.Exhausted = !useHaste && !rallyUnit;
+                if (rallyUnit && !useHaste)
+                    UI.GameEventBus.FireUnitFloatText(toPlay, "迎敌号令·活跃！", UI.GameColors.BuffColor);
                 toPlay.PlayedThisTurn = true;
                 gs.CardsPlayedThisTurn++;
                 Log($"{tag} 出 {toPlay.UnitName}（费用{toPlay.CardData.Cost}，战力{toPlay.CurrentAtk}），剩余法力 {gs.GetMana(owner)}");
@@ -186,7 +192,7 @@ namespace FWTCG.AI
                                  && !c.CardData.HasKeyword(CardKeyword.Reactive)
                                  && c.CardData.EffectId != "rally_call"
                                  && c.CardData.EffectId != "balance_resolve"
-                                 && CanAfford(c.CardData, gs, owner)
+                                 && CanAfford(c, gs, owner)
                                  && AiShouldPlaySpell(c, gs, owner))
                         .OrderByDescending(c => AiSpellPriority(c))
                         .FirstOrDefault();
@@ -595,6 +601,25 @@ namespace FWTCG.AI
         // ── Cost Helpers ──────────────────────────────────────────────────────
         // ═══════════════════════════════════════════════════════════════════════
 
+        /// <summary>Spell-aware overload — applies conditional cost modifiers (e.g. balance_resolve).</summary>
+        private static bool CanAfford(UnitInstance spell, GameState gs, string owner)
+        {
+            var card = spell.CardData;
+            int manaCost = GameRules.GetSpellEffectiveCost(spell, owner, gs);
+            if (manaCost > gs.GetMana(owner)) return false;
+            int haveMain = card.RuneCost > 0 ? gs.GetSch(owner, card.RuneType) : 0;
+            int haveTotal = card.IsSpell ? gs.GetTotalSch(owner, card.RuneType) : haveMain;
+            if (card.RuneCost > 0 && haveTotal < card.RuneCost) return false;
+            if (card.SecondaryRuneCost > 0)
+            {
+                int have2 = card.IsSpell
+                    ? gs.GetTotalSch(owner, card.SecondaryRuneType)
+                    : gs.GetSch(owner, card.SecondaryRuneType);
+                if (have2 < card.SecondaryRuneCost) return false;
+            }
+            return true;
+        }
+
         private static bool CanAfford(CardData card, GameState gs, string owner)
         {
             if (card.Cost > gs.GetMana(owner)) return false;
@@ -610,6 +635,28 @@ namespace FWTCG.AI
                 if (have2 < card.SecondaryRuneCost) return false;
             }
             return true;
+        }
+
+        /// <summary>Spell-aware overload — applies conditional cost modifiers (e.g. balance_resolve).</summary>
+        private static void SpendCost(UnitInstance spell, GameState gs, string owner)
+        {
+            var card = spell.CardData;
+            int manaCost = GameRules.GetSpellEffectiveCost(spell, owner, gs);
+            gs.AddMana(owner, -manaCost);
+            if (card.IsSpell)
+            {
+                if (card.RuneCost > 0)
+                    gs.SpendSchForSpell(owner, card.RuneType, card.RuneCost);
+                if (card.SecondaryRuneCost > 0)
+                    gs.SpendSchForSpell(owner, card.SecondaryRuneType, card.SecondaryRuneCost);
+            }
+            else
+            {
+                if (card.RuneCost > 0)
+                    gs.SpendSch(owner, card.RuneType, card.RuneCost);
+                if (card.SecondaryRuneCost > 0)
+                    gs.SpendSch(owner, card.SecondaryRuneType, card.SecondaryRuneCost);
+            }
         }
 
         private static void SpendCost(CardData card, GameState gs, string owner)
@@ -642,7 +689,7 @@ namespace FWTCG.AI
                                        TurnManager turnMgr)
         {
             string tag = Tag(owner);
-            SpendCost(spell.CardData, gs, owner);
+            SpendCost(spell, gs, owner);
             gs.CardsPlayedThisTurn++;
             if (target != null && target.HasSpellShield)
             {
@@ -682,7 +729,7 @@ namespace FWTCG.AI
                 c => c.CardData.IsSpell
                   && c.CardData.EffectId == effectId
                   && !c.CardData.HasKeyword(CardKeyword.Reactive)
-                  && CanAfford(c.CardData, gs, owner));
+                  && CanAfford(c, gs, owner));
         }
 
         // ═══════════════════════════════════════════════════════════════════════

@@ -139,11 +139,20 @@ namespace FWTCG.Systems
             }
 
             // B10: 清零"本回合打出"标记（回合玩家的单位；上回合打出的视为"不是本回合打出的"）
-            foreach (UnitInstance u in gs.GetBase(who)) u.PlayedThisTurn = false;
+            // 同时清零 darius 的"本回合已触发"标记
+            foreach (UnitInstance u in gs.GetBase(who))
+            {
+                u.PlayedThisTurn = false;
+                u._dariusBuffedThisTurn = false;
+            }
             for (int i = 0; i < GameRules.BATTLEFIELD_COUNT; i++)
             {
                 var bfUnits = who == GameRules.OWNER_PLAYER ? gs.BF[i].PlayerUnits : gs.BF[i].EnemyUnits;
-                foreach (UnitInstance u in bfUnits) u.PlayedThisTurn = false;
+                foreach (UnitInstance u in bfUnits)
+                {
+                    u.PlayedThisTurn = false;
+                    u._dariusBuffedThisTurn = false;
+                }
             }
 
             // B11: 扫描本回合开始时在基地的单位，设 WasInBaseAtTurnStart=true（rengar 用）
@@ -173,6 +182,9 @@ namespace FWTCG.Systems
             gs.BFConqueredThisTurn.Clear();
             gs.CardsPlayedThisTurn = 0;
             gs.DreamingTreeTriggeredThisTurn = false;
+            // rally_call 持续效果仅在当前回合内生效
+            gs.RallyCallActiveThisTurn[GameRules.OWNER_PLAYER] = false;
+            gs.RallyCallActiveThisTurn[GameRules.OWNER_ENEMY] = false;
 
             // Reset legend ability usage
             _legendSys?.ResetForTurn(who, gs);

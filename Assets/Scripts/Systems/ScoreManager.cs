@@ -47,14 +47,14 @@ namespace FWTCG.Systems
                 pts += ComputeTrinityForceBonus(who, bfId.Value, gs);
             }
 
-            // Tiyana passive: opponent can't gain hold score while Tiyana is in play
-            if (type == GameRules.SCORE_TYPE_HOLD)
+            // 蒂亚娜被动（Rule，按卡面原文）— "如果我位于战场上，则对手无法得分"
+            // 所有得分类型均阻止（据守 / 征服 / 燃尽）；用动态查询替代旧 static flag
             {
                 string opponent = gs.Opponent(who);
-                if (gs.TiyanasInPlay.TryGetValue(opponent, out bool active) && active)
+                if (IsTiyanaOnAnyBattlefield(opponent, gs))
                 {
                     TurnManager.BroadcastMessage_Static(
-                        $"[蒂亚娜] {DisplayName(who)} 的据守分被阻止（对手有蒂亚娜守卫在场）");
+                        $"[蒂亚娜] {DisplayName(who)} 的{type}分被阻止（对手有蒂亚娜在战场上）");
                     return false;
                 }
             }
@@ -191,6 +191,25 @@ namespace FWTCG.Systems
 
         private string DisplayName(string owner) =>
             owner == GameRules.OWNER_PLAYER ? "玩家" : "AI";
+
+        /// <summary>
+        /// 蒂亚娜被动查询：owner 是否有一个 effectId="tiyana_enter" 的单位位于战场上（任一战场）。
+        /// </summary>
+        private static bool IsTiyanaOnAnyBattlefield(string owner, GameState gs)
+        {
+            if (gs == null) return false;
+            for (int i = 0; i < GameRules.BATTLEFIELD_COUNT; i++)
+            {
+                var bfUnits = owner == GameRules.OWNER_PLAYER
+                    ? gs.BF[i].PlayerUnits : gs.BF[i].EnemyUnits;
+                foreach (var u in bfUnits)
+                {
+                    if (u.CardData != null && u.CardData.EffectId == "tiyana_enter")
+                        return true;
+                }
+            }
+            return false;
+        }
 
         /// <summary>
         /// C-7: 三相之力 — "当我据守一处战场时，获得的分数+1"

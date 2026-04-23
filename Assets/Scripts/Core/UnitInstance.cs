@@ -45,6 +45,9 @@ namespace FWTCG.Core
         /// </summary>
         public bool PlayedThisTurn { get; set; }
 
+        /// <summary>darius 本回合是否已触发"第二张牌"加成（每回合一次）。Awaken 阶段清零。</summary>
+        public bool _dariusBuffedThisTurn { get; set; }
+
         /// <summary>
         /// B11: 追踪本单位"在本回合开始前就在基地"（rengar 可活跃移动用）。
         /// 由 TurnManager.DoAwaken 基于本回合开始时在基地的单位设置；移动离基或回合切换后清零。

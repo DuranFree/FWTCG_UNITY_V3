@@ -19,6 +19,7 @@ namespace FWTCG.Bot
         Random,     // 从可出牌中随机抽一张
         Suicidal,   // 英雄优先上战场，卡死也不结束回合
         RuneHoard,  // 只在必要时横置符文
+        Strategic,  // 调用 SimpleAI 做策略决策（玩家侧也跑同款 AI，自对弈用）
         Rotate      // 每局轮换，覆盖所有策略
     }
 
@@ -477,6 +478,27 @@ namespace FWTCG.Bot
         private IEnumerator ExecutePlayerTurn(GameManager gm, GameState gs)
         {
             float turnStart = Time.realtimeSinceStartup;
+
+            // Strategic 策略：整回合交给 SimpleAI（玩家侧自对弈路径）
+            // SimpleAI 内部会调 turnMgr.EndTurn() 结束玩家回合
+            if (_activeStrategy == BotStrategy.Strategic)
+            {
+                _currentGame?.Log("[操作] Strategic 模式 — 调用 SimpleAI 处理玩家回合");
+                RecordReplayAction("strategic_turn");
+                var aiTask = gm.RunStrategicPlayerTurn();
+                while (aiTask != null && !aiTask.IsCompleted)
+                {
+                    yield return null;
+                }
+                if (aiTask != null && aiTask.IsFaulted)
+                {
+                    LogBug("Exception", $"SimpleAI 玩家回合异常: {aiTask.Exception?.GetBaseException().Message}");
+                }
+                float stratDuration = Time.realtimeSinceStartup - turnStart;
+                _currentGame?.RecordTurnTime(gs.Round, stratDuration);
+                _lastProgressTime = Time.time;
+                yield break;
+            }
 
             // 1. 标记所有未横置符文为"待横置"（1b 改为标记模式）
             // RuneHoard: 只在手里有牌付不起时才标记
@@ -1349,11 +1371,11 @@ namespace FWTCG.Bot
         private BotStrategy ResolveStrategy()
         {
             if (Strategy != BotStrategy.Rotate) return Strategy;
-            // Rotate: 按局轮换前 5 种策略
+            // Rotate: 按局轮换全部 6 种策略（含 Strategic 自对弈）
             BotStrategy[] pool =
             {
                 BotStrategy.Greedy, BotStrategy.Aggro, BotStrategy.Random,
-                BotStrategy.Suicidal, BotStrategy.RuneHoard
+                BotStrategy.Suicidal, BotStrategy.RuneHoard, BotStrategy.Strategic
             };
             return pool[_gamesPlayed % pool.Length];
         }

@@ -238,19 +238,25 @@ namespace FWTCG.Tests.EditMode
         // ── RallyCall ─────────────────────────────────────────────────────────
 
         [Test]
-        public void RallyCall_UnexhaustsAllFriendlyUnits()
+        public void RallyCall_UnexhaustsUnitsPlayedThisTurn()
         {
+            // 卡面："在本回合中，你们打出的所有单位以活跃状态进场。"
+            // 只追溯"本回合打出"的单位（PlayedThisTurn=true），老单位不受影响。
             var spell = MakeSpellInHand(GameRules.OWNER_PLAYER, "rally_call", "rally_call");
 
-            var unit1 = MakeUnitInBase(GameRules.OWNER_PLAYER, "unit1", 3, 5);
-            var unit2 = MakeUnitOnBF(GameRules.OWNER_PLAYER, 0, "unit2", 3, 5);
-            unit1.Exhausted = true;
-            unit2.Exhausted = true;
+            var playedNow = MakeUnitInBase(GameRules.OWNER_PLAYER, "unit1", 3, 5);
+            var oldUnit = MakeUnitOnBF(GameRules.OWNER_PLAYER, 0, "unit2", 3, 5);
+            playedNow.Exhausted = true;
+            playedNow.PlayedThisTurn = true;
+            oldUnit.Exhausted = true;
+            oldUnit.PlayedThisTurn = false;
 
             _spellSys.CastSpell(spell, GameRules.OWNER_PLAYER, null, _gs);
 
-            Assert.IsFalse(unit1.Exhausted, "unit1 in base should be un-exhausted by rally_call");
-            Assert.IsFalse(unit2.Exhausted, "unit2 on battlefield should be un-exhausted by rally_call");
+            Assert.IsFalse(playedNow.Exhausted, "本回合打出的单位应被迎敌号令追溯激活");
+            Assert.IsTrue(oldUnit.Exhausted, "上回合就在场的单位不应被迎敌号令激活");
+            Assert.IsTrue(_gs.RallyCallActiveThisTurn[GameRules.OWNER_PLAYER],
+                "rally_call 持续 flag 应被设置，后续打出的单位活跃进场");
         }
 
         [Test]

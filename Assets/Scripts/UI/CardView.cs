@@ -291,6 +291,8 @@ namespace FWTCG.UI
             TweenHelper.KillSafe(ref _targetFadeOut);
             TweenHelper.KillSafe(ref _orbitTween);
             TweenHelper.KillSafe(ref _frameBreathTween);
+            TweenHelper.KillSafe(ref _selectedBreathTween);
+            TweenHelper.KillSafe(ref _hintBreathTween);
             TweenHelper.KillSafe(ref _heroAuraPulse);
             TweenHelper.KillSafe(ref _foilSweep);
             TweenHelper.KillSafe(ref _handSpreadTween);
@@ -929,47 +931,96 @@ namespace FWTCG.UI
         }
 
         /// <summary>
-        /// 选中只亮边框：一层硬边 + 两层越外越透明的软边叠加成 glow 效果。
-        /// 玩家卡绿色，敌方卡红色。
+        /// 选中=绿色呼吸 Outline（无视 player/enemy —— 敌方卡根本不会被选中）。
+        /// 提示（BF 待确定）=蓝色呼吸 Outline，独立层叠加，和选中不冲突。
         /// </summary>
+        // [0]=选中绿呼吸, [1]=提示蓝呼吸, [2]=预留
         private readonly Outline[] _selOutlines = new Outline[3];
+        private Tween _selectedBreathTween;
+        private Tween _hintBreathTween;
+        private bool  _hintGlowActive;
+        private const float BORDER_BREATH_PERIOD = 1.1f;
+
         private void RefreshSelectedOutline()
         {
             if (_cardBg == null) return;
 
-            // 初次调用时：确保已有 type outline，然后为选中 glow 追加 3 个 Outline
-            // 最终 _cardBg 上应有 4 个 Outline：[0]=type, [1..3]=selection glow
+            // 初次调用：确保 type outline 存在（先于 selection outlines），再追加 3 层 Outline
             if (_selOutlines[0] == null)
             {
-                // 保证 type outline 存在（先于 selection outlines）
                 if (_typeOutline == null)
                     _typeOutline = _cardBg.gameObject.AddComponent<Outline>();
-
                 for (int i = 0; i < 3; i++)
                     _selOutlines[i] = _cardBg.gameObject.AddComponent<Outline>();
             }
 
+            if (_selectionHalo != null) _selectionHalo.SetActive(false);
+
             if (_selected)
             {
-                Color baseCol = _isPlayerCard
-                    ? new Color(0.25f, 1f, 0.45f, 1f) // 玩家：亮绿
-                    : new Color(1f, 0.3f, 0.3f, 1f);  // 敌方：红
-
-                // Hotfix-11: 极细单线（0.3px ≈ 当前 0.8px 的 1/3），砍掉外淡晕与第三层
-                if (_selectionHalo != null) _selectionHalo.SetActive(false);
+                // 绿色呼吸 Outline
                 _selOutlines[0].enabled = true;
-                _selOutlines[0].effectColor    = baseCol;
                 _selOutlines[0].effectDistance = new Vector2(0.3f, -0.3f);
                 _selOutlines[0].useGraphicAlpha = false;
-                _selOutlines[1].enabled = false;
-                _selOutlines[2].enabled = false;
+                StartBorderBreath(_selOutlines[0], GameUI.BorderSelected, ref _selectedBreathTween);
             }
             else
             {
-                for (int i = 0; i < 3; i++)
-                    if (_selOutlines[i] != null) _selOutlines[i].enabled = false;
-                if (_selectionHalo != null) _selectionHalo.SetActive(false);
+                StopBorderBreath(ref _selectedBreathTween);
+                if (_selOutlines[0] != null) _selOutlines[0].enabled = false;
             }
+
+            // hint 层独立刷新（hint 可以与 selected 共存 —— 虽然业务上不常见）
+            ApplyHintOutline();
+        }
+
+        /// <summary>
+        /// BF 上已出但未确定的卡 → 蓝色边框呼吸灯。
+        /// 由 GameUI.RefreshBattlefields() 在 player action phase 下对 player-side BF 单位开启。
+        /// </summary>
+        public void SetHintGlow(bool enable)
+        {
+            if (_hintGlowActive == enable) return;
+            _hintGlowActive = enable;
+            ApplyHintOutline();
+        }
+
+        private void ApplyHintOutline()
+        {
+            if (_cardBg == null) return;
+            if (_selOutlines[1] == null) return; // not wired yet — will re-apply after RefreshSelectedOutline
+
+            if (_hintGlowActive)
+            {
+                _selOutlines[1].enabled = true;
+                _selOutlines[1].effectDistance = new Vector2(0.5f, -0.5f);
+                _selOutlines[1].useGraphicAlpha = false;
+                StartBorderBreath(_selOutlines[1], GameUI.BorderHint, ref _hintBreathTween);
+            }
+            else
+            {
+                StopBorderBreath(ref _hintBreathTween);
+                _selOutlines[1].enabled = false;
+            }
+        }
+
+        private void StartBorderBreath(Outline target, Color baseColor, ref Tween tweenField)
+        {
+            TweenHelper.KillSafe(ref tweenField);
+            Color captured = baseColor;
+            Outline captTarget = target;
+            tweenField = DOVirtual.Float(0f, 1f, BORDER_BREATH_PERIOD, v =>
+            {
+                if (captTarget == null) return;
+                float t = 0.5f - 0.5f * Mathf.Cos(v * Mathf.PI * 2f); // 0→1→0
+                float alpha = Mathf.Lerp(0.45f, 1f, t);
+                captTarget.effectColor = new Color(captured.r, captured.g, captured.b, alpha);
+            }).SetEase(Ease.Linear).SetLoops(-1, LoopType.Restart).SetTarget(gameObject);
+        }
+
+        private void StopBorderBreath(ref Tween tweenField)
+        {
+            TweenHelper.KillSafe(ref tweenField);
         }
 
         // Selection halo: a single soft gaussian sprite child rendered behind the card,

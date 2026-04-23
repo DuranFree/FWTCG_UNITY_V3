@@ -1649,23 +1649,12 @@ namespace FWTCG.Editor
             ambientImg.color = new Color(0.05f, 0.15f, 0.30f, 0.02f);
             ambientImg.raycastTarget = false;
 
-            // DEV-18: Control glow overlay (full-panel, pointer pass-through)
-            var ctrlGlowGO = new GameObject("CtrlGlowOverlay");
-            ctrlGlowGO.transform.SetParent(panel.transform, false);
-            var ctrlGlowRT = ctrlGlowGO.AddComponent<RectTransform>();
-            ctrlGlowRT.anchorMin = Vector2.zero;
-            ctrlGlowRT.anchorMax = Vector2.one;
-            ctrlGlowRT.offsetMin = Vector2.zero;
-            ctrlGlowRT.offsetMax = Vector2.zero;
-            var ctrlGlowImg = ctrlGlowGO.AddComponent<Image>();
-            ctrlGlowImg.color = new Color(0f, 0f, 0f, 0f);
-            ctrlGlowImg.raycastTarget = false;
+            // 战场占领绿/红呼吸灯已废弃（统一边框规则）—— 不再创建 CtrlGlowOverlay。
 
-            // Attach BattlefieldGlow component to panel
+            // Attach BattlefieldGlow component to panel（仅 ambient breathe）
             bfGlow = panel.AddComponent<BattlefieldGlow>();
             var glowSO = new UnityEditor.SerializedObject(bfGlow);
             glowSO.FindProperty("_ambientOverlay").objectReferenceValue = ambientImg;
-            glowSO.FindProperty("_ctrlGlowOverlay").objectReferenceValue = ctrlGlowImg;
             glowSO.ApplyModifiedProperties();
 
             // Add button to panel for BF click

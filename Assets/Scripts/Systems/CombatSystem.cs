@@ -432,9 +432,7 @@ namespace FWTCG.Systems
                 else
                     bf.EnemyUnits.Remove(u);
 
-                // Clear Tiyana passive flag if she dies
-                if (u.CardData.EffectId == "tiyana_enter" && gs.TiyanasInPlay.ContainsKey(owner))
-                    gs.TiyanasInPlay[owner] = false;
+                // Tiyana 被动改为动态查询（IsTiyanaOnAnyBattlefield），此处无需维护旧 flag
             }
         }
 

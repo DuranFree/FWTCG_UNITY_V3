@@ -126,11 +126,18 @@ namespace FWTCG.Systems
             // dreaming_tree: draw 1 if this spell targeted a friendly unit on that BF
             _bfSys?.OnSpellTargetsFriendlyUnit(target, owner, gs);
 
-            // Move spell from hand to discard
+            // Move spell from hand to discard (time_warp goes to exile per card text)
             gs.GetHand(owner).Remove(spell);
-            gs.GetDiscard(owner).Add(spell);
-
-            Log($"[法术] {spell.UnitName} 结算完毕，已弃置");
+            if (spell.CardData.EffectId == "time_warp")
+            {
+                gs.GetExile(owner).Add(spell);
+                Log($"[法术] {spell.UnitName} 结算完毕，已放逐");
+            }
+            else
+            {
+                gs.GetDiscard(owner).Add(spell);
+                Log($"[法术] {spell.UnitName} 结算完毕，已弃置");
+            }
         }
 
         // ── Effect implementations ────────────────────────────────────────────
@@ -347,21 +354,23 @@ namespace FWTCG.Systems
 
         private void RallyCall(string owner, GameState gs)
         {
+            // 卡面：在本回合中，你们打出的所有单位以活跃状态进场。抽一张牌。
+            // 1) 持续修饰符：之后本回合打出的单位在 GameManager 处跳过 Exhausted=true。
+            gs.RallyCallActiveThisTurn[owner] = true;
+
+            // 2) 追溯处理：对本回合已经打出、目前处于疲惫的单位，立刻变活跃。
             int count = 0;
-
             foreach (UnitInstance u in gs.GetBase(owner))
-                if (u.Exhausted) { u.Exhausted = false; count++; }
-
+                if (u.PlayedThisTurn && u.Exhausted) { u.Exhausted = false; count++; }
             for (int i = 0; i < GameRules.BATTLEFIELD_COUNT; i++)
             {
-                List<UnitInstance> bfUnits = owner == GameRules.OWNER_PLAYER
+                var bfUnits = owner == GameRules.OWNER_PLAYER
                     ? gs.BF[i].PlayerUnits
                     : gs.BF[i].EnemyUnits;
                 foreach (UnitInstance u in bfUnits)
-                    if (u.Exhausted) { u.Exhausted = false; count++; }
+                    if (u.PlayedThisTurn && u.Exhausted) { u.Exhausted = false; count++; }
             }
-
-            Log($"[集结号令] {count} 个单位重新活跃");
+            Log($"[迎敌号令] {(owner == GameRules.OWNER_PLAYER ? "玩家" : "AI")} 本回合打出的单位活跃进场（已追溯 {count} 个）");
         }
 
         private void SummonRune(string owner, GameState gs)

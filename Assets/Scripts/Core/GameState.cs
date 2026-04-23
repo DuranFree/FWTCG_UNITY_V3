@@ -87,12 +87,17 @@ namespace FWTCG.Core
 
         public int CardsPlayedThisTurn { get; set; }
 
+        /// <summary>
+        /// rally_call (迎敌号令) 持续效果：true 时，该玩家本回合打出的单位以活跃状态进场。
+        /// 由 SpellSystem.RallyCall 设置；TurnManager.DoEndPhase 清零。
+        /// </summary>
+        public Dictionary<string, bool> RallyCallActiveThisTurn { get; set; } = new Dictionary<string, bool>();
+
         // ── Battlefield names (selected from faction pools at game start) ─────
         public string[] BFNames { get; set; } = new string[GameRules.BATTLEFIELD_COUNT];
 
         // ── Passive flags ──────────────────────────────────────────────────────
-        /// <summary>Tracks which owners have Tiyana Warden in play (blocks hold scoring).</summary>
-        public Dictionary<string, bool> TiyanasInPlay { get; set; } = new Dictionary<string, bool>();
+        // Tiyana 被动改为 ScoreManager.IsTiyanaOnAnyBattlefield() 动态查询，不再维护静态 flag。
 
         /// <summary>Whether 梦幻树 (dreaming_tree) draw has already triggered this turn.</summary>
         public bool DreamingTreeTriggeredThisTurn { get; set; }

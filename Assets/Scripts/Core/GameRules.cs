@@ -191,5 +191,24 @@ namespace FWTCG.Core
         {
             return CardCopies.TryGetValue(cardId, out int n) ? n : 1;
         }
+
+        /// <summary>
+        /// 返回法术在当前语境下的实际费用（考虑卡面条件性减费）。
+        /// balance_resolve 卡面："如果对手得分或胜利得分不超过3分，则此法术的费用将减少2。"
+        /// 解读：对手当前得分 ≤3，或对手距离胜利（WIN_SCORE - oppScore）≤3 时，自身费用 -2。
+        /// </summary>
+        public static int GetSpellEffectiveCost(FWTCG.Core.UnitInstance spell, string caster, FWTCG.Core.GameState gs)
+        {
+            int cost = spell.CardData.Cost;
+            if (spell.CardData.EffectId == "balance_resolve" && gs != null)
+            {
+                string opp = gs.Opponent(caster);
+                int oppScore = gs.GetScore(opp);
+                int toWin = WIN_SCORE - oppScore;
+                if (oppScore <= 3 || toWin <= 3)
+                    cost -= 2;
+            }
+            return cost < 0 ? 0 : cost;
+        }
     }
 }

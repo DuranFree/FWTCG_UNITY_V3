@@ -687,6 +687,7 @@ namespace FWTCG
             // Inject dependencies into systems
             _turnMgr.Inject(_gs, _scoreMgr, _combatSys, _ai, _entryEffects,
                             _spellSys, _reactiveSys, _reactiveWindowUI, _legendSys, _bfSys);
+            _entryEffects?.Inject(_gs); // darius OnCardPlayed 监听器需要 GameState 引用
 
             // Random first player
             _gs.First = Random.value > 0.5f ? GameRules.OWNER_PLAYER : GameRules.OWNER_ENEMY;
@@ -1577,10 +1578,16 @@ namespace FWTCG
             _gs.PHand.Remove(unit);
             _gs.PBase.Add(unit);
 
+            bool rally = _gs.RallyCallActiveThisTurn.TryGetValue(GameRules.OWNER_PLAYER, out var rp) && rp;
             if (useHaste)
             {
                 unit.Exhausted = false;
                 UI.GameEventBus.FireUnitFloatText(unit, "急速！", UI.GameColors.BuffColor);
+            }
+            else if (rally)
+            {
+                unit.Exhausted = false;
+                UI.GameEventBus.FireUnitFloatText(unit, "迎敌号令·活跃！", UI.GameColors.BuffColor);
             }
             else
             {
@@ -1657,10 +1664,16 @@ namespace FWTCG
             _gs.PHero = null;
             _gs.PBase.Add(hero);
 
+            bool rallyH = _gs.RallyCallActiveThisTurn.TryGetValue(GameRules.OWNER_PLAYER, out var rph) && rph;
             if (useHaste)
             {
                 hero.Exhausted = false;
                 UI.GameEventBus.FireUnitFloatText(hero, "急速！", UI.GameColors.BuffColor);
+            }
+            else if (rallyH)
+            {
+                hero.Exhausted = false;
+                UI.GameEventBus.FireUnitFloatText(hero, "迎敌号令·活跃！", UI.GameColors.BuffColor);
             }
             else
             {
@@ -1880,7 +1893,7 @@ namespace FWTCG
         private void RefundSpellCosts(UnitInstance spell)
         {
             _gs.PHand.Add(spell);
-            _gs.PMana += spell.CardData.Cost;
+            _gs.PMana += GameRules.GetSpellEffectiveCost(spell, GameRules.OWNER_PLAYER, _gs);
             if (spell.CardData.RuneCost > 0)
                 _gs.AddSch(GameRules.OWNER_PLAYER, spell.CardData.RuneType, spell.CardData.RuneCost);
             if (spell.CardData.HasSecondaryRune)
@@ -1890,10 +1903,11 @@ namespace FWTCG
 
         private async Task TryPlaySpellAsync(UnitInstance spell)
         {
-            // B1: 法力检查
-            if (spell.CardData.Cost > _gs.PMana)
+            // B1: 法力检查（balance_resolve 条件减费由 GetSpellEffectiveCost 处理）
+            int manaCost = GameRules.GetSpellEffectiveCost(spell, GameRules.OWNER_PLAYER, _gs);
+            if (manaCost > _gs.PMana)
             {
-                ShowPlayError($"[提示] 法力不足：需要 {spell.CardData.Cost}，当前 {_gs.PMana}", spell);
+                ShowPlayError($"[提示] 法力不足：需要 {manaCost}，当前 {_gs.PMana}", spell);
                 return;
             }
 
@@ -1930,7 +1944,7 @@ namespace FWTCG
             }
 
             // B1+B2: 扣除法力 + 主符能 + 次符能（法术专用池优先消耗）
-            _gs.PMana -= spell.CardData.Cost;
+            _gs.PMana -= manaCost;
             if (spell.CardData.RuneCost > 0)
                 _gs.SpendSchForSpell(GameRules.OWNER_PLAYER, spell.CardData.RuneType, spell.CardData.RuneCost);
             if (spell.CardData.HasSecondaryRune)
@@ -2092,7 +2106,7 @@ namespace FWTCG
             {
                 if (c.CardData.IsSpell &&
                     (c.CardData.HasKeyword(CardKeyword.Reactive) || c.CardData.HasKeyword(CardKeyword.Swift)) &&
-                    c.CardData.Cost <= _gs.EMana)
+                    GameRules.GetSpellEffectiveCost(c, GameRules.OWNER_ENEMY, _gs) <= _gs.EMana)
                 {
                     reactives.Add(c);
                 }
@@ -2104,7 +2118,7 @@ namespace FWTCG
             if (chosen == null) return false;
 
             // Pay cost and apply reactive
-            _gs.EMana -= chosen.CardData.Cost;
+            _gs.EMana -= GameRules.GetSpellEffectiveCost(chosen, GameRules.OWNER_ENEMY, _gs);
             TurnManager.ShowBanner_Static($"⚡ [AI] 反应！{chosen.UnitName}");
             // Full-screen showcase for AI reactive card (matches player reactive + spell visual)
             if (_spellShowcase != null)
