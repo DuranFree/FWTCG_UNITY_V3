@@ -64,8 +64,12 @@ namespace FWTCG.UI
         private static void Load()
         {
             _loaded = true;
-            // Always use Pencil card back — ignore PlayerPrefs legacy value
-            _current = CardBackVariant.BackPencil;
+            // DEV-31 cleanup: 尊重 PlayerPrefs（之前硬编码 BackPencil 让 SetPlayerCardBack 成死代码）
+            // 默认仍为 BackPencil（Pencil 设计）；用户设置保留跨 domain reload
+            int stored = PlayerPrefs.GetInt(PREF_KEY, (int)CardBackVariant.BackPencil);
+            _current = System.Enum.IsDefined(typeof(CardBackVariant), stored)
+                ? (CardBackVariant)stored
+                : CardBackVariant.BackPencil;
         }
 
         /// <summary>Test hook: reset cached state to Default variant.</summary>

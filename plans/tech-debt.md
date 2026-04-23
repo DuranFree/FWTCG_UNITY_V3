@@ -77,25 +77,25 @@
 - [ ] 架构摩擦点 A6：入场/死亡触发链通过直接调用编排，非统一事件总线 — 详见 docs/architecture.md §六 — Phase DEV-32
 - ✅ AnimMatFX.AnimMatActionType 枚举限制 — DOT-2 已迁移到 TweenMatFX，AnimMatFX 无引用可删除 — Phase VFX-1→DOT-2
 - ✅ AnimMatFX.Create 复用清空问题 — DOT-2 已迁移到 TweenMatFX，AnimMatFX 无引用可删除 — Phase VFX-3→DOT-2
-- [ ] CardView.DissolveOrFallbackRoutine fallback 路径红色叠加是累积累加而非从原始值插值，低帧率下轻微视觉偏差 — VFX-3（MEDIUM）
+- ✅ CardView.DissolveOrFallbackRoutine fallback 红色累积叠加 — DEV-31 cleanup 已修：从捕获的 imgColors[i] 基准值插值（非读取累积后的 current color） — VFX-3→DEV-31 cleanup
 - [ ] VFX-3 dissolve 路径 Phase B ghost 大小固定 0.6x（dissolve 不缩放卡牌，ghost 与实际卡牌尺寸轻微不一致）— VFX-3（LOW）
 - ✅ AudioTool.FadeRoutine 被外部 StopAllCoroutines 打断时 ch.FadeRoutine 引用不清空 — DOT-3 已解决：改用 DOTween FadeTween，CancelFade 直接 Kill，不受 StopAllCoroutines 影响 — VFX-5→DOT-3
 - ✅ AnimMatFX.cs 文件已删除 — DOT-7 确认无引用后安全删除 — DOT-2→DOT-7
-- [ ] DissolveOrFallbackRoutine fallback path tween 未存入字段，SetTarget(gameObject) 兜底，低风险 — DOT-7（Codex MEDIUM）
+- ✅ DissolveOrFallbackRoutine fallback path tween 未存入字段 — DEV-31 cleanup 已修：新增 _fallbackTween 字段 + OnDestroy KillSafe — DOT-7→DEV-31 cleanup
 - ✅ CreateShadow shadow DOColor tween 未跟踪 — DEV-31 cleanup 已修：新增 _shadowFadeTween 字段，CreateShadow / ClearBattlefieldVisuals / 3D-clear 三处 KillSafe — DOT-7→DEV-31 cleanup
 
 - ✅ LegendSkillShowcase 两阶段 scale（0.4→1.08→1）通过 Join+SetDelay 实现，视觉轻微冻帧 — 已修复：改用嵌套 Sequence + Append 链式，DOT-8 Medium fix — DOT-8（Codex MEDIUM-1）
 - ✅ _turnSweepSeq kill 用 `if (IsActive()) Kill()` 而非 `TweenHelper.KillSafe(ref)` — 已修复：两处均替换为 KillSafe，DOT-8 Medium fix — DOT-8（Codex MEDIUM-2）
 - ✅ Mulligan 翻转 tween 无 `_mulliganFlipSeq` 字段追踪，OnDestroy/OnDisable 无法 kill — 已修复：新增字段并在 OnDisable/OnDestroy 调用 KillSafe，DOT-8 Medium fix — DOT-8（Codex MEDIUM-3）
 - ✅ PlayManaFillStagger InsertCallback 创建的 PunchScale tween 未挂 SetTarget，KillSafe 无法级联 kill — 已修复：改用 seq.Insert + SetTarget，DOT-8 Medium fix — DOT-8（Codex MEDIUM-5）
-- [ ] CardBackManager.SetPlayerCardBack 写入 PlayerPrefs，但 Load() 硬编码 Back01 忽略 PlayerPrefs；SetPlayerCardBack 功能性死代码，再次 domain reload 后选择被覆盖 — DOT-8（Codex MEDIUM-4，功能未完整实现，暂不修复）
+- ✅ CardBackManager.Load 硬编码忽略 PlayerPrefs — DEV-31 cleanup 已修：Load 尊重 PREF_KEY（默认 BackPencil 回退），SetPlayerCardBack 现可跨 domain reload 持久化 — DOT-8→DEV-31 cleanup
 - ✅ 历史测试未跟上代码演化（11 项 DOT*/DEV21* 失败）— DEV-31 cleanup 已修：DOT_MAX_SIZE 5 / HOVER_SCALE 1.18 / ENDTURN_PULSE 0.82 / SHAKE 0.08+12 / Chaos teal 全部同步源码；StartupFlowUI 5 项 SHUFFLE_* / _shuffleGhosts 测试删除（字段不存在）— 记录于 Detail Popup 清理 Phase→DEV-31 cleanup
 - ✅ GameManager.OnDragHandGroupToBase/OnSpellGroupDraggedOut/PlaySpellGroupAsync 死代码 — DEV-31 cleanup 已删：UI-OVERHAUL-1a 单选化后 CardDragHandler 无调用，三个方法全部移除 — UI-OVERHAUL-1a→DEV-31 cleanup
 - [ ] GameManager.GetSelectedHandUnits/GetSelectedBaseUnits 返回 List 但单选下恒 ≤ 1 项 — 可逐步改为单元素字段 — UI-OVERHAUL-1a
 - ✅ _pendingDragHasteDecision / SetDragHasteDecision / DragNeedsHasteChoice 暂留但失效 — DEV-31 cleanup 已删：CardDragHandler 不再调用，字段 + 两个方法全部移除 — UI-OVERHAUL-1a→DEV-31 cleanup
 - [ ] RuneAutoConsume.Compute / ExecuteRunePlan 仍被 AI / Mulligan 使用，玩家路径已切 prepared 机制 — UI-OVERHAUL-1b
 - [ ] OnCardHoverEnter/OnHeroHoverEnter 等 hover 入口 no-op 保留方法签名，1c 再决定是否恢复 hover 预览 — UI-OVERHAUL-1b
-- [ ] Haste 关键词仍硬编码为 false — 1c 整合确定按钮时按"多准备 +1 法力 + +1 符能 → 自动激活"规则补完 — UI-OVERHAUL-1b
+- ✅ Haste 关键词硬编码 false — 1c-β 已实现：ValidateAndCommitPreparedFor 按"多准备 +1 法力 + +1 主符能"自动激活 Haste（GameManager line 281-288）— UI-OVERHAUL-1b→UI-OVERHAUL-1c-β
 - [ ] GameUI 字段 _confirmRunesBtn/_cancelRunesBtn 语义推广为全局按钮后名字未改（SceneBuilder 连线仍依赖旧字段名） — UI-OVERHAUL-1c-α
 - [ ] OnConfirmClicked / OnCancelClicked 为 stub — 1c-β 补 combat 延迟触发；1c-γ 补 LIFO 回滚 + AI 适配 — UI-OVERHAUL-1c-α
 - [ ] Confirm/Cancel 按钮"激活瞬间闪烁 + 长亮发光 + 粒子"未做，当前仅亮/暗二态 — 1c-γ 整体润色 — UI-OVERHAUL-1c-α

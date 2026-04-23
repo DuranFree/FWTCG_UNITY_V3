@@ -151,6 +151,7 @@ namespace FWTCG.UI
         private GameObject _shieldFX;        // persistent Shield/Barrier FX
         private GameObject _shadowImage;     // offset shadow Image below card
         private Tween      _shadowFadeTween; // DOT-7 fix: explicit tracking for ClearBattlefieldVisuals
+        private Tween      _fallbackTween;   // DEV-31 fix: DissolveOrFallbackRoutine fallback path tween
         private bool       _idleFXSpawned;
         private bool       _bfVisualsApplied; // guard: only apply rotation/shadow once per placement
 
@@ -340,6 +341,7 @@ namespace FWTCG.UI
             if (_idleFX != null) { SafeDestroy(_idleFX); _idleFX = null; }
             if (_shieldFX != null) { SafeDestroy(_shieldFX); _shieldFX = null; }
             TweenHelper.KillSafe(ref _shadowFadeTween);
+            TweenHelper.KillSafe(ref _fallbackTween);
             if (_shadowImage != null) { SafeDestroy(_shadowImage); _shadowImage = null; }
         }
 
@@ -2333,16 +2335,20 @@ namespace FWTCG.UI
                 for (int i = 0; i < texts.Length;  i++) txtColors[i] = texts[i].color;
 
                 bool fallbackDone = false;
-                DOVirtual.Float(0f, 1f, DEATH_PHASE_A_FALLBACK, t =>
+                // DEV-31 cleanup: 入字段 + 从初始 imgColors 插值（非累积修改当前值，修复低帧率下红色过饱和）
+                TweenHelper.KillSafe(ref _fallbackTween);
+                _fallbackTween = DOVirtual.Float(0f, 1f, DEATH_PHASE_A_FALLBACK, t =>
                 {
                     if (this == null) return;
                     float ease = t * (2f - t); // OutQuad
                     transform.localScale = startScale * Mathf.Lerp(1f, DEATH_GHOST_START_SCALE, ease);
                     float tint = Mathf.Sin(t * Mathf.PI) * 0.35f;
-                    foreach (var img in images)
+                    for (int i = 0; i < images.Length; i++)
                     {
-                        if (img == null) continue;
-                        var c = img.color; c.r = Mathf.Min(1f, c.r + tint); img.color = c;
+                        if (images[i] == null) continue;
+                        var baseCol = imgColors[i];
+                        baseCol.r = Mathf.Min(1f, baseCol.r + tint);
+                        images[i].color = baseCol;
                     }
                     float alpha = 1f - t;
                     for (int i = 0; i < texts.Length; i++)
