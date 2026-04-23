@@ -32,7 +32,42 @@ namespace FWTCG.Systems
         {
             _currentSpellName = spell.UnitName;
             Log($"[法术] {spell.UnitName} 发动！");
+            ResolveSpellEffect(spell, owner, target, gs);
 
+            // dreaming_tree: draw 1 if this spell targeted a friendly unit on that BF
+            _bfSys?.OnSpellTargetsFriendlyUnit(target, owner, gs);
+
+            // Move spell from hand to discard (time_warp goes to exile per card text)
+            gs.GetHand(owner).Remove(spell);
+            if (spell.CardData.EffectId == "time_warp")
+            {
+                gs.GetExile(owner).Add(spell);
+                Log($"[法术] {spell.UnitName} 结算完毕，已放逐");
+            }
+            else
+            {
+                gs.GetDiscard(owner).Add(spell);
+                Log($"[法术] {spell.UnitName} 结算完毕，已弃置");
+            }
+        }
+
+        /// <summary>
+        /// Echo 重复释放：再次结算一次效果（不移动手牌，不再次收费；成本由调用方已扣除）。
+        /// 第二次结算可使用新目标（AI 由 AiChooseSpellTarget 选，玩家 2b UI 再实现）。
+        /// </summary>
+        public void EchoCast(UnitInstance spell, string owner, UnitInstance target, GameState gs)
+        {
+            _currentSpellName = spell.UnitName + "·回响";
+            Log($"[回响] {spell.UnitName} 再次结算！");
+            ResolveSpellEffect(spell, owner, target, gs);
+            _bfSys?.OnSpellTargetsFriendlyUnit(target, owner, gs);
+        }
+
+        /// <summary>
+        /// 纯效果结算（不处理手牌→弃置/放逐）。CastSpell 与 EchoCast 共用。
+        /// </summary>
+        private void ResolveSpellEffect(UnitInstance spell, string owner, UnitInstance target, GameState gs)
+        {
             switch (spell.CardData.EffectId)
             {
                 // ── Kaisa spells ────────────────────────────────────────────
@@ -48,10 +83,18 @@ namespace FWTCG.Systems
                     break;
 
                 case "stardrop":
-                    // 2 Blazing: deal 3 damage to target twice
+                    // 卡面："进行再次：对一名单位造成3点伤害。（可以选择不同的单位。）"
+                    // 第 1 次：对选定目标造成 3 点伤害
                     DealDamage(target, 3, gs);
-                    if (target != null && target.CurrentHp > 0)
-                        DealDamage(target, 3, gs);
+                    // 第 2 次：若第一目标已死，自动改打剩余敌方最低HP；否则仍打同一目标
+                    // （玩家 UI 选不同目标的路径 2b 再实现）
+                    {
+                        UnitInstance second = target;
+                        if (second == null || second.CurrentHp <= 0)
+                            second = PickLowestHpEnemy(owner, gs);
+                        if (second != null)
+                            DealDamage(second, 3, gs);
+                    }
                     break;
 
                 case "starburst":
@@ -122,25 +165,28 @@ namespace FWTCG.Systems
                     Log($"[法术] 未实现效果: {spell.CardData.EffectId}");
                     break;
             }
-
-            // dreaming_tree: draw 1 if this spell targeted a friendly unit on that BF
-            _bfSys?.OnSpellTargetsFriendlyUnit(target, owner, gs);
-
-            // Move spell from hand to discard (time_warp goes to exile per card text)
-            gs.GetHand(owner).Remove(spell);
-            if (spell.CardData.EffectId == "time_warp")
-            {
-                gs.GetExile(owner).Add(spell);
-                Log($"[法术] {spell.UnitName} 结算完毕，已放逐");
-            }
-            else
-            {
-                gs.GetDiscard(owner).Add(spell);
-                Log($"[法术] {spell.UnitName} 结算完毕，已弃置");
-            }
         }
 
         // ── Effect implementations ────────────────────────────────────────────
+
+        /// <summary>
+        /// 获取 owner 对手所有在场单位中 CurrentHp 最低的存活单位（辅助 Echo / stardrop 第二段自动择敌）。
+        /// </summary>
+        private UnitInstance PickLowestHpEnemy(string owner, GameState gs)
+        {
+            string enemy = gs.Opponent(owner);
+            UnitInstance best = null;
+            foreach (var u in gs.GetBase(enemy))
+                if (u.CurrentHp > 0 && (best == null || u.CurrentHp < best.CurrentHp)) best = u;
+            for (int i = 0; i < GameRules.BATTLEFIELD_COUNT; i++)
+            {
+                var bfUnits = enemy == GameRules.OWNER_PLAYER
+                    ? gs.BF[i].PlayerUnits : gs.BF[i].EnemyUnits;
+                foreach (var u in bfUnits)
+                    if (u.CurrentHp > 0 && (best == null || u.CurrentHp < best.CurrentHp)) best = u;
+            }
+            return best;
+        }
 
         private void DealDamage(UnitInstance target, int amount, GameState gs)
         {
@@ -311,13 +357,17 @@ namespace FWTCG.Systems
                 return;
             }
 
-            // Deal 2 damage to a random enemy, 6 times (ignore spell shield for area effects)
+            // 卡面："进行六次：对一名单位造成2点伤害。（你可以选择不同的单位。）"
+            // 施法者逐次选目标；AI 启发式 = 每次选存活里 HP 最低者（最快清场）。
+            // 玩家逐次选目标的 UI 2b 再实现。
             var dead = new List<UnitInstance>();
             for (int hit = 0; hit < 6; hit++)
             {
                 var alive = allEnemies.FindAll(u => u.CurrentHp > 0);
                 if (alive.Count == 0) break;
-                UnitInstance picked = alive[Random.Range(0, alive.Count)];
+                UnitInstance picked = alive[0];
+                foreach (var u in alive)
+                    if (u.CurrentHp < picked.CurrentHp) picked = u;
                 picked.CurrentHp -= 2;
                 Log($"[狂暴之风] 第{hit + 1}击 → {picked.UnitName}（剩余HP: {picked.CurrentHp}）");
                 GameManager.FireUnitDamaged(picked, 2, _currentSpellName);
@@ -331,25 +381,35 @@ namespace FWTCG.Systems
 
         private void FurnaceBlast(string owner, GameState gs)
         {
+            // 卡面："对同一位置的最多三名单位造成1点伤害。"
+            // 位置 = 单个战场。AI 自动选敌方单位数最多的战场；玩家 UI 路径 2b 再实现。
             string enemy = gs.Opponent(owner);
-            var allEnemies = new List<UnitInstance>(gs.GetBase(enemy));
+            int bestBf = -1;
+            int bestCount = 0;
             for (int i = 0; i < GameRules.BATTLEFIELD_COUNT; i++)
             {
-                List<UnitInstance> bfUnits = enemy == GameRules.OWNER_PLAYER
+                var bfUnits = enemy == GameRules.OWNER_PLAYER
                     ? gs.BF[i].PlayerUnits : gs.BF[i].EnemyUnits;
-                allEnemies.AddRange(bfUnits);
+                int live = 0;
+                foreach (var u in bfUnits) if (u.CurrentHp > 0) live++;
+                if (live > bestCount) { bestCount = live; bestBf = i; }
             }
-
-            int hits = Mathf.Min(3, allEnemies.Count);
-            var dead = new List<UnitInstance>();
-            for (int h = 0; h < hits; h++)
+            if (bestBf < 0)
             {
-                UnitInstance t = allEnemies[h];
-                DealDamage(t, 1, gs);
-                if (t.CurrentHp <= 0 && !dead.Contains(t))
-                    dead.Add(t);
+                Log("[熔炉烈焰] 战场无敌方单位");
+                return;
             }
-            Log($"[熔炉烈焰] 对 {hits} 个敌方单位各造成1点伤害");
+            var targets = enemy == GameRules.OWNER_PLAYER
+                ? gs.BF[bestBf].PlayerUnits : gs.BF[bestBf].EnemyUnits;
+            int hits = 0;
+            foreach (var u in new List<UnitInstance>(targets))
+            {
+                if (hits >= 3) break;
+                if (u.CurrentHp <= 0) continue;
+                DealDamage(u, 1, gs);
+                hits++;
+            }
+            Log($"[熔炉烈焰] 对战场{bestBf}的 {hits} 个敌方单位各造成1点伤害");
         }
 
         private void RallyCall(string owner, GameState gs)

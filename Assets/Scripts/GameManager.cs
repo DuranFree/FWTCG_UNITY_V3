@@ -2102,11 +2102,15 @@ namespace FWTCG
             // DEV-27: TurnStateMachine is in SpellDuel_OpenLoop here, so both Reactive and Swift
             // are legal responses (Rule 718).
             var reactives = new System.Collections.Generic.List<UnitInstance>();
+            bool aiJaxActive = GameRules.IsJaxInPlay(GameRules.OWNER_ENEMY, _gs);
             foreach (var c in _gs.EHand)
             {
-                if (c.CardData.IsSpell &&
+                bool spellReactive = c.CardData.IsSpell &&
                     (c.CardData.HasKeyword(CardKeyword.Reactive) || c.CardData.HasKeyword(CardKeyword.Swift)) &&
-                    GameRules.GetSpellEffectiveCost(c, GameRules.OWNER_ENEMY, _gs) <= _gs.EMana)
+                    GameRules.GetSpellEffectiveCost(c, GameRules.OWNER_ENEMY, _gs) <= _gs.EMana;
+                bool equipReactive = c.CardData.IsEquipment && aiJaxActive &&
+                    c.CardData.Cost <= _gs.EMana;
+                if (spellReactive || equipReactive)
                 {
                     reactives.Add(c);
                 }
@@ -2123,6 +2127,16 @@ namespace FWTCG
             // Full-screen showcase for AI reactive card (matches player reactive + spell visual)
             if (_spellShowcase != null)
                 _ = _spellShowcase.ShowAsync(chosen, GameRules.OWNER_ENEMY);
+            if (chosen.CardData.IsEquipment)
+            {
+                // jax 被动：AI 用装备作为反应牌
+                _gs.EHand.Remove(chosen);
+                _gs.EBase.Add(chosen);
+                chosen.Exhausted = chosen.CardData.HasKeyword(CardKeyword.Standby);
+                _gs.CardsPlayedThisTurn++;
+                TurnManager.BroadcastMessage_Static($"[AI·贾克斯] 装备反应 {chosen.UnitName} 入基地");
+                return false;
+            }
             bool negated = _reactiveSys.ApplyReactive(chosen, GameRules.OWNER_ENEMY, playerSpell, _gs);
             return negated;
         }
@@ -2366,8 +2380,11 @@ namespace FWTCG
             foreach (var c in _gs.PHand)
             {
                 if (c == null || c.CardData == null) continue;
-                if (!c.CardData.IsSpell) continue;
-                if (!c.CardData.HasKeyword(CardKeyword.Reactive) && !c.CardData.HasKeyword(CardKeyword.Swift)) continue;
+                bool spellReactive = c.CardData.IsSpell &&
+                    (c.CardData.HasKeyword(CardKeyword.Reactive) || c.CardData.HasKeyword(CardKeyword.Swift));
+                bool equipReactive = c.CardData.IsEquipment &&
+                    GameRules.IsJaxInPlay(GameRules.OWNER_PLAYER, _gs);
+                if (!spellReactive && !equipReactive) continue;
                 var plan = RuneAutoConsume.Compute(c, _gs, GameRules.OWNER_PLAYER);
                 if (plan.CanAfford) return true;
             }
@@ -2405,10 +2422,13 @@ namespace FWTCG
             // Collect affordable reactive + swift spells from player hand (including via rune auto-consume).
             // DEV-27: TurnStateMachine transitions to SpellDuel_OpenLoop here, making Swift legal (Rule 718).
             var reactives = new List<UnitInstance>();
+            bool jaxActive = GameRules.IsJaxInPlay(GameRules.OWNER_PLAYER, _gs);
             foreach (var c in _gs.PHand)
             {
-                if (c.CardData.IsSpell &&
-                    (c.CardData.HasKeyword(CardKeyword.Reactive) || c.CardData.HasKeyword(CardKeyword.Swift)))
+                bool spellReactive = c.CardData.IsSpell &&
+                    (c.CardData.HasKeyword(CardKeyword.Reactive) || c.CardData.HasKeyword(CardKeyword.Swift));
+                bool equipReactive = c.CardData.IsEquipment && jaxActive;
+                if (spellReactive || equipReactive)
                 {
                     var affordPlan = RuneAutoConsume.Compute(c, _gs, GameRules.OWNER_PLAYER);
                     if (affordPlan.CanAfford)
@@ -2502,8 +2522,22 @@ namespace FWTCG
                 FireCardPlayed(picked, GameRules.OWNER_PLAYER); // triggers board flash
                 if (_spellShowcase != null)
                     await _spellShowcase.ShowAsync(picked, GameRules.OWNER_PLAYER); // card art center reveal
-                // ApplyReactive handles hand→discard move internally
-                _reactiveSys?.ApplyReactive(picked, GameRules.OWNER_PLAYER, null, _gs);
+
+                if (picked.CardData.IsEquipment)
+                {
+                    // jax 被动：装备作为反应牌打出 → 直接进入基地
+                    _gs.PHand.Remove(picked);
+                    _gs.PBase.Add(picked);
+                    picked.Exhausted = picked.CardData.HasKeyword(CardKeyword.Standby);
+                    _gs.CardsPlayedThisTurn++;
+                    TurnManager.BroadcastMessage_Static(
+                        $"[贾克斯·装备反应] {picked.UnitName} 部署到基地");
+                }
+                else
+                {
+                    // ApplyReactive handles hand→discard move internally
+                    _reactiveSys?.ApplyReactive(picked, GameRules.OWNER_PLAYER, null, _gs);
+                }
                 RefreshUI();
             }
 

@@ -720,6 +720,27 @@ namespace FWTCG.AI
                 }
                 spellSys.CastSpell(spell, owner, target, gs);
                 await Delay(550);
+
+                // Echo: 支付 1 主符能后可重复效果（AI 自动：够就 echo）
+                if (!gs.GameOver && spell.CardData.HasKeyword(CardKeyword.Echo)
+                    && GameRules.CanAffordEcho(spell, owner, gs))
+                {
+                    GameRules.SpendEchoCost(spell, owner, gs);
+                    UnitInstance echoTarget = AiChooseSpellTarget(spell, gs, owner);
+                    // 特殊：spell 已离手进弃牌堆（或放逐），仅用 CardData 驱动再次 effect。
+                    Log($"{tag} [回响] {spell.UnitName} 再次发动！");
+                    TurnManager.ShowBanner_Static($"⚡ [AI·回响] {spell.UnitName}");
+                    if (echoTarget != null && EntryEffectVFX.Instance != null)
+                    {
+                        EntryEffectVFX.Instance.PlaySpellOrbs(
+                            new System.Collections.Generic.List<UnitInstance> { echoTarget },
+                            spell.UnitName + "·回响",
+                            GameColors.SchColor);
+                        await Delay(300);
+                    }
+                    spellSys.EchoCast(spell, owner, echoTarget, gs);
+                    await Delay(500);
+                }
             }
         }
 

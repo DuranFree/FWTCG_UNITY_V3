@@ -193,6 +193,59 @@ namespace FWTCG.Core
         }
 
         /// <summary>
+        /// Echo（回响）成本：卡面"回响①"意为支付 1 点该法术主符能重复效果。
+        /// 返回是否能支付 Echo 成本（主符能池 ≥ 1；不消耗法力）。
+        /// </summary>
+        public static bool CanAffordEcho(FWTCG.Core.UnitInstance spell, string owner, FWTCG.Core.GameState gs)
+        {
+            if (spell == null || spell.CardData == null) return false;
+            if (!spell.CardData.HasKeyword(FWTCG.Data.CardKeyword.Echo)) return false;
+            // 法术可以消耗 SpellOnlySch 池
+            return gs.GetTotalSch(owner, spell.CardData.RuneType) >= 1;
+        }
+
+        /// <summary>
+        /// 扣除 Echo 成本（1 点主符能，法术池优先）。
+        /// </summary>
+        public static void SpendEchoCost(FWTCG.Core.UnitInstance spell, string owner, FWTCG.Core.GameState gs)
+        {
+            gs.SpendSchForSpell(owner, spell.CardData.RuneType, 1);
+        }
+
+        /// <summary>
+        /// jax 被动："你手牌中的装备获得【反应】。" — 查 owner 是否有 jax 在场（基地或战场）。
+        /// </summary>
+        public static bool IsJaxInPlay(string owner, FWTCG.Core.GameState gs)
+        {
+            if (gs == null) return false;
+            foreach (var u in gs.GetBase(owner))
+                if (u.CardData != null && u.CardData.EffectId == "jax_enter")
+                    return true;
+            for (int i = 0; i < BATTLEFIELD_COUNT; i++)
+            {
+                var bfUnits = owner == OWNER_PLAYER
+                    ? gs.BF[i].PlayerUnits : gs.BF[i].EnemyUnits;
+                foreach (var u in bfUnits)
+                    if (u.CardData != null && u.CardData.EffectId == "jax_enter")
+                        return true;
+            }
+            return false;
+        }
+
+        /// <summary>
+        /// 卡牌是否在当前语境下具有【反应】关键字。
+        /// - 原生带 Reactive 关键字 → true
+        /// - 装备 + 手中 + owner 有 Jax 在场 → true（jax 被动）
+        /// </summary>
+        public static bool CardActsReactive(FWTCG.Core.UnitInstance card, string owner, FWTCG.Core.GameState gs)
+        {
+            if (card == null || card.CardData == null) return false;
+            if (card.CardData.HasKeyword(FWTCG.Data.CardKeyword.Reactive)) return true;
+            if (card.CardData.IsEquipment && IsJaxInPlay(owner, gs)) return true;
+            return false;
+        }
+
+        /// <summary>
         /// 返回法术在当前语境下的实际费用（考虑卡面条件性减费）。
         /// balance_resolve 卡面："如果对手得分或胜利得分不超过3分，则此法术的费用将减少2。"
         /// 解读：对手当前得分 ≤3，或对手距离胜利（WIN_SCORE - oppScore）≤3 时，自身费用 -2。

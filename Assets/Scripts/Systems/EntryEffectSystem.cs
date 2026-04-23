@@ -130,7 +130,8 @@ namespace FWTCG.Systems
                     break;
 
                 case "jax_enter":
-                    Log($"[入场] {unit.UnitName} — 手牌装备获得反应关键词");
+                    // 动态被动：owner 有 jax 在场时，手牌中的装备可作反应打出（GameRules.IsJaxInPlay 查询）
+                    Log($"[入场] {unit.UnitName} — 持续被动：手牌装备获得反应");
                     FWTCG.UI.EntryEffectVFX.Instance?.Play(unit, null, "装备获得反应", buffColor);
                     break;
 
