@@ -120,6 +120,7 @@ namespace FWTCG.AI
                     UI.GameEventBus.FireUnitFloatText(heroCard, "迎敌号令·活跃！", UI.GameColors.BuffColor);
                 heroCard.PlayedThisTurn = true;
                 gs.CardsPlayedThisTurn++;
+                GameManager.FireCardPlayed(heroCard, owner); // 触发 OnCardPlayed（darius 监听需要）
                 Log($"{tag} 英雄出场：{heroCard.UnitName}（费用{heroCard.CardData.Cost}），剩余法力 {gs.GetMana(owner)}");
                 entryEffects?.OnUnitEntered(heroCard, owner, gs);
                 // CheckKaisaEvolution 已废弃（原卡没有进化机制）
@@ -170,6 +171,7 @@ namespace FWTCG.AI
                     UI.GameEventBus.FireUnitFloatText(toPlay, "迎敌号令·活跃！", UI.GameColors.BuffColor);
                 toPlay.PlayedThisTurn = true;
                 gs.CardsPlayedThisTurn++;
+                GameManager.FireCardPlayed(toPlay, owner); // 触发 OnCardPlayed（darius 监听需要）
                 Log($"{tag} 出 {toPlay.UnitName}（费用{toPlay.CardData.Cost}，战力{toPlay.CurrentAtk}），剩余法力 {gs.GetMana(owner)}");
                 entryEffects?.OnUnitEntered(toPlay, owner, gs);
                 // CheckKaisaEvolution 已废弃（原卡没有进化机制）
@@ -691,6 +693,7 @@ namespace FWTCG.AI
             string tag = Tag(owner);
             SpendCost(spell, gs, owner);
             gs.CardsPlayedThisTurn++;
+            GameManager.FireCardPlayed(spell, owner); // 触发 OnCardPlayed（darius 监听需要，计 CardsPlayedThisTurn）
             if (target != null && target.HasSpellShield)
             {
                 foreach (RuneType rt in System.Enum.GetValues(typeof(RuneType)))

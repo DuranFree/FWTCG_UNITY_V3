@@ -2109,7 +2109,9 @@ namespace FWTCG
                     (c.CardData.HasKeyword(CardKeyword.Reactive) || c.CardData.HasKeyword(CardKeyword.Swift)) &&
                     GameRules.GetSpellEffectiveCost(c, GameRules.OWNER_ENEMY, _gs) <= _gs.EMana;
                 bool equipReactive = c.CardData.IsEquipment && aiJaxActive &&
-                    c.CardData.Cost <= _gs.EMana;
+                    c.CardData.Cost <= _gs.EMana &&
+                    (c.CardData.RuneCost == 0 ||
+                     _gs.GetSch(GameRules.OWNER_ENEMY, c.CardData.RuneType) >= c.CardData.RuneCost);
                 if (spellReactive || equipReactive)
                 {
                     reactives.Add(c);
@@ -2129,7 +2131,9 @@ namespace FWTCG
                 _ = _spellShowcase.ShowAsync(chosen, GameRules.OWNER_ENEMY);
             if (chosen.CardData.IsEquipment)
             {
-                // jax 被动：AI 用装备作为反应牌
+                // jax 被动：AI 用装备作为反应牌（装备不走 GetSpellEffectiveCost，但需扣符文）
+                if (chosen.CardData.RuneCost > 0)
+                    _gs.SpendSch(GameRules.OWNER_ENEMY, chosen.CardData.RuneType, chosen.CardData.RuneCost);
                 _gs.EHand.Remove(chosen);
                 _gs.EBase.Add(chosen);
                 chosen.Exhausted = chosen.CardData.HasKeyword(CardKeyword.Standby);
@@ -2516,9 +2520,11 @@ namespace FWTCG
                     ExecuteRunePlan(reactPlan, GameRules.OWNER_PLAYER);
                 }
 
-                _gs.PMana -= picked.CardData.Cost;
+                // balance_resolve 条件减费也适用于反应/Swift 路径
+                int pickedCost = GameRules.GetSpellEffectiveCost(picked, GameRules.OWNER_PLAYER, _gs);
+                _gs.PMana -= pickedCost;
                 TurnManager.BroadcastMessage_Static(
-                    $"[反应] 打出 {picked.UnitName}（费用{picked.CardData.Cost}），剩余法力 {_gs.PMana}");
+                    $"[反应] 打出 {picked.UnitName}（费用{pickedCost}），剩余法力 {_gs.PMana}");
                 FireCardPlayed(picked, GameRules.OWNER_PLAYER); // triggers board flash
                 if (_spellShowcase != null)
                     await _spellShowcase.ShowAsync(picked, GameRules.OWNER_PLAYER); // card art center reveal
@@ -2526,6 +2532,9 @@ namespace FWTCG
                 if (picked.CardData.IsEquipment)
                 {
                     // jax 被动：装备作为反应牌打出 → 直接进入基地
+                    // 装备符文扣除（ExecuteRunePlan 只在 NeedsOps 时跑，不保证扣主符能）
+                    if (picked.CardData.RuneCost > 0)
+                        _gs.SpendSch(GameRules.OWNER_PLAYER, picked.CardData.RuneType, picked.CardData.RuneCost);
                     _gs.PHand.Remove(picked);
                     _gs.PBase.Add(picked);
                     picked.Exhausted = picked.CardData.HasKeyword(CardKeyword.Standby);
