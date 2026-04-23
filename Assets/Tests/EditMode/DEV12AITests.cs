@@ -115,7 +115,7 @@ namespace FWTCG.Tests
         {
             _gs.PScore = 0;
             _gs.EScore = 0;
-            int score = SimpleAI.AiBoardScore(_gs);
+            int score = SimpleAI.AiBoardScore(_gs, GameRules.OWNER_ENEMY);
             Assert.AreEqual(0, score);
         }
 
@@ -124,7 +124,7 @@ namespace FWTCG.Tests
         {
             _gs.EScore = 3;
             _gs.PScore = 0;
-            int score = SimpleAI.AiBoardScore(_gs);
+            int score = SimpleAI.AiBoardScore(_gs, GameRules.OWNER_ENEMY);
             Assert.IsTrue(score > 0);
         }
 

@@ -166,7 +166,7 @@ namespace FWTCG.Tests
         {
             Assert.AreEqual(18, MouseTrail.TRAIL_LENGTH);
             Assert.AreEqual(0.65f, MouseTrail.TRAIL_HEAD_ALPHA);
-            Assert.AreEqual(8f, MouseTrail.DOT_MAX_SIZE);
+            Assert.AreEqual(5f, MouseTrail.DOT_MAX_SIZE); // DEV-31 cleanup: source is 5f
         }
 
         // ── ToastUI ──────────────────────────────────────────────────────────

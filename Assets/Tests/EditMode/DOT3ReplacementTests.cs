@@ -420,7 +420,7 @@ namespace FWTCG.Tests
         public void CardHoverScale_HoverScaleConstant_Unchanged()
         {
             var val = GetConstFloat<CardHoverScale>("HOVER_SCALE");
-            Assert.AreEqual(1.08f, val, 0.001f);
+            Assert.AreEqual(1.18f, val, 0.001f); // DEV-31 cleanup: source is 1.18f
         }
 
         [Test]

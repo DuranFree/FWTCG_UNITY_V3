@@ -2668,3 +2668,32 @@ akasi_storm "进行六次"：
 
 **Problems encountered**：
 - stardrop 测试未随代码变更同步 → 更新两项 SpellSystemTests 显式调 StardropSecondStrike
+
+## DEV-31 cleanup：tech-debt 批量清理 + 历史测试同步 — 2026-04-23
+
+**Status**: ✅ Completed
+
+**What was done（代码修复 5 项）**:
+1. **AI 出牌 OnCardPlayed** — CARD-FIX-1 hotfix 已修（SimpleAI 英雄/单位/CastAISpell 三处 FireCardPlayed），本 Phase 仅追认标记
+2. **EventBanner.DrainQueue OnDisable** — OnDisable 加 `StopCoroutine(_showRoutine)` 防止组件禁用后协程继续运行
+3. **ClearHeroAura 双重销毁守卫** — 先 `_heroAura = null` 再 Destroy go，防外部代码绕过触发 fake-null 二次进入
+4. **CreateShadow DOColor tween 未跟踪** — 新增 `_shadowFadeTween` 字段，Create / Clear / 3D-cleanup 三处 KillSafe
+5. **_pendingDragHasteDecision / SetDragHasteDecision / DragNeedsHasteChoice 死代码** — CardDragHandler 确认无引用，字段 + 两个方法全部移除
+
+**What was done（测试同步 11 项）**:
+- DOT_MAX_SIZE: 8 → 5（MouseTrail 源）
+- HOVER_SCALE: 1.08 → 1.18（CardHoverScale 源）
+- ENDTURN_PULSE_MIN_ALPHA: 0.60 → 0.82（GameUI 源）
+- SHAKE_DURATION: 0.28 → 0.08（CardView 源）
+- SHAKE_VIBRATO: 7 → 12（CardView 源）
+- Chaos 色: IsPurple → IsTealCyan（GetCardBurstColor 改 teal/cyan）
+- StartupFlowUI 5 项 SHUFFLE_* / _shuffleGhosts / CreateShuffleAnimationTween 测试删除（源字段已移除）
+
+**Decisions made**:
+- 代码是真实源：测试过期的场景一律按源码更新（而非回滚源码）
+- StartupFlowUI 5 项 SHUFFLE_* 测试：字段已不存在 → 删除而非保留 skip（不增加维护负担）
+- ClearHeroAura 双重销毁：采用 "先置 null 再 Destroy" 最小防御（Unity fake-null 触发二次进入时 if-check 挡住）
+
+**Tests**: EditMode **1149/1149 全绿** — 历史遗留失败归零！
+**引擎场景验证**: 本 Phase 纯代码清理 + 测试同步，无视听改动，按 CLAUDE.md §1 标注跳过
+**代码审查**: 5 项改动均为 low-risk 防御性修改，Claude 自审未发现问题

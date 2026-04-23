@@ -173,8 +173,8 @@ namespace FWTCG.Tests
         [Test] public void CardView_ShakeConstants()
         {
             Assert.AreEqual(10f, CardView.SHAKE_STRENGTH, 0.001f);
-            Assert.AreEqual(0.28f, CardView.SHAKE_DURATION, 0.001f);
-            Assert.AreEqual(7, CardView.SHAKE_VIBRATO);
+            Assert.AreEqual(0.08f, CardView.SHAKE_DURATION, 0.001f); // DEV-31 cleanup: source is 0.08f
+            Assert.AreEqual(12, CardView.SHAKE_VIBRATO); // DEV-31 cleanup: source is 12
         }
 
         [Test] public void CardView_TargetPulseConstants()

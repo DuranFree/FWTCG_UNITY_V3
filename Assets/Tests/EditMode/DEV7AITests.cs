@@ -131,7 +131,7 @@ namespace FWTCG.Tests
         {
             _gs.EScore = 5;
             _gs.PScore = 2;
-            Assert.Greater(SimpleAI.AiBoardScore(_gs), 0);
+            Assert.Greater(SimpleAI.AiBoardScore(_gs, GameRules.OWNER_ENEMY), 0);
         }
 
         [Test]
@@ -139,7 +139,7 @@ namespace FWTCG.Tests
         {
             _gs.EScore = 1;
             _gs.PScore = 6;
-            Assert.Less(SimpleAI.AiBoardScore(_gs), 0);
+            Assert.Less(SimpleAI.AiBoardScore(_gs, GameRules.OWNER_ENEMY), 0);
         }
 
         [Test]
@@ -148,7 +148,7 @@ namespace FWTCG.Tests
             _gs.EScore = 0; _gs.PScore = 0;
             _gs.BF[0].Ctrl = GameRules.OWNER_ENEMY;
             _gs.BF[1].Ctrl = GameRules.OWNER_ENEMY;
-            Assert.Greater(SimpleAI.AiBoardScore(_gs), 0);
+            Assert.Greater(SimpleAI.AiBoardScore(_gs, GameRules.OWNER_ENEMY), 0);
         }
 
         [Test]
@@ -156,7 +156,7 @@ namespace FWTCG.Tests
         {
             _gs.EScore = 0; _gs.PScore = 0;
             // No BF control, no units, equal hands → score = 0
-            Assert.AreEqual(0, SimpleAI.AiBoardScore(_gs));
+            Assert.AreEqual(0, SimpleAI.AiBoardScore(_gs, GameRules.OWNER_ENEMY));
         }
 
         // ═══════════════════════════════════════════════════════════════════════
@@ -167,7 +167,7 @@ namespace FWTCG.Tests
         public void MinReactiveCost_NoReactives_ReturnsZero()
         {
             AddEnemyHand("unit1");
-            Assert.AreEqual(0, SimpleAI.AiMinReactiveCost(_gs));
+            Assert.AreEqual(0, SimpleAI.AiMinReactiveCost(_gs, GameRules.OWNER_ENEMY));
         }
 
         [Test]
@@ -176,7 +176,7 @@ namespace FWTCG.Tests
             AddEnemyHandSpell("r1", 3, "swindle", CardKeyword.Reactive);
             AddEnemyHandSpell("r2", 1, "smoke_bomb", CardKeyword.Reactive);
             AddEnemyHandSpell("r3", 2, "scoff", CardKeyword.Reactive);
-            Assert.AreEqual(1, SimpleAI.AiMinReactiveCost(_gs));
+            Assert.AreEqual(1, SimpleAI.AiMinReactiveCost(_gs, GameRules.OWNER_ENEMY));
         }
 
         [Test]
@@ -184,7 +184,7 @@ namespace FWTCG.Tests
         {
             AddEnemyHand("unit1"); // unit card, not spell
             AddEnemyHandSpell("r1", 2, "wind_wall", CardKeyword.Reactive);
-            Assert.AreEqual(2, SimpleAI.AiMinReactiveCost(_gs));
+            Assert.AreEqual(2, SimpleAI.AiMinReactiveCost(_gs, GameRules.OWNER_ENEMY));
         }
 
         // ═══════════════════════════════════════════════════════════════════════
@@ -219,14 +219,14 @@ namespace FWTCG.Tests
             var card = new UnitInstance(0,
                 MakeSpell("swindle", 1, "swindle", CardKeyword.Reactive),
                 GameRules.OWNER_ENEMY);
-            Assert.IsFalse(SimpleAI.AiShouldPlaySpell(card, _gs));
+            Assert.IsFalse(SimpleAI.AiShouldPlaySpell(card, _gs, GameRules.OWNER_ENEMY));
         }
 
         [Test]
         public void ShouldPlaySpell_Slam_FalseWhenNoEnemies()
         {
             var slam = new UnitInstance(0, MakeSpell("slam", 1, "slam"), GameRules.OWNER_ENEMY);
-            Assert.IsFalse(SimpleAI.AiShouldPlaySpell(slam, _gs));
+            Assert.IsFalse(SimpleAI.AiShouldPlaySpell(slam, _gs, GameRules.OWNER_ENEMY));
         }
 
         [Test]
@@ -234,7 +234,7 @@ namespace FWTCG.Tests
         {
             PlaceUnit("p1", 3, GameRules.OWNER_PLAYER, "base");
             var slam = new UnitInstance(0, MakeSpell("slam", 1, "slam"), GameRules.OWNER_ENEMY);
-            Assert.IsTrue(SimpleAI.AiShouldPlaySpell(slam, _gs));
+            Assert.IsTrue(SimpleAI.AiShouldPlaySpell(slam, _gs, GameRules.OWNER_ENEMY));
         }
 
         [Test]
@@ -244,7 +244,7 @@ namespace FWTCG.Tests
                 MakeSpell("strike_ask_later", 2, "strike_ask_later",
                           targetType: SpellTargetType.FriendlyUnit),
                 GameRules.OWNER_ENEMY);
-            Assert.IsFalse(SimpleAI.AiShouldPlaySpell(strike, _gs));
+            Assert.IsFalse(SimpleAI.AiShouldPlaySpell(strike, _gs, GameRules.OWNER_ENEMY));
         }
 
         [Test]
@@ -255,7 +255,7 @@ namespace FWTCG.Tests
                 MakeSpell("strike_ask_later", 2, "strike_ask_later",
                           targetType: SpellTargetType.FriendlyUnit),
                 GameRules.OWNER_ENEMY);
-            Assert.IsTrue(SimpleAI.AiShouldPlaySpell(strike, _gs));
+            Assert.IsTrue(SimpleAI.AiShouldPlaySpell(strike, _gs, GameRules.OWNER_ENEMY));
         }
 
         // ═══════════════════════════════════════════════════════════════════════
@@ -271,7 +271,7 @@ namespace FWTCG.Tests
                 MakeSpell("void_seek", 2, "void_seek",
                           targetType: SpellTargetType.EnemyUnit),
                 GameRules.OWNER_ENEMY);
-            var target = SimpleAI.AiChooseSpellTarget(voidSeek, _gs);
+            var target = SimpleAI.AiChooseSpellTarget(voidSeek, _gs, GameRules.OWNER_ENEMY);
             Assert.AreEqual(p2, target, "Should pick highest ATK enemy");
         }
 
@@ -283,7 +283,7 @@ namespace FWTCG.Tests
             var slam = new UnitInstance(0,
                 MakeSpell("slam", 1, "slam", targetType: SpellTargetType.EnemyUnit),
                 GameRules.OWNER_ENEMY);
-            var target = SimpleAI.AiChooseSpellTarget(slam, _gs);
+            var target = SimpleAI.AiChooseSpellTarget(slam, _gs, GameRules.OWNER_ENEMY);
             // BF enemy preferred even though base enemy has higher ATK
             Assert.AreEqual(bfEnemy, target, "Slam should prefer BF enemy");
         }
@@ -297,7 +297,7 @@ namespace FWTCG.Tests
                 MakeSpell("strike_ask_later", 2, "strike_ask_later",
                           targetType: SpellTargetType.FriendlyUnit),
                 GameRules.OWNER_ENEMY);
-            var target = SimpleAI.AiChooseSpellTarget(strike, _gs);
+            var target = SimpleAI.AiChooseSpellTarget(strike, _gs, GameRules.OWNER_ENEMY);
             Assert.AreEqual(e2, target, "Buff should pick highest ATK ally");
         }
 
@@ -310,7 +310,7 @@ namespace FWTCG.Tests
                 MakeSpell("strike_ask_later", 2, "strike_ask_later",
                           targetType: SpellTargetType.FriendlyUnit),
                 GameRules.OWNER_ENEMY);
-            var target = SimpleAI.AiChooseSpellTarget(strike, _gs);
+            var target = SimpleAI.AiChooseSpellTarget(strike, _gs, GameRules.OWNER_ENEMY);
             Assert.AreEqual(bfAlly, target, "Buff should prefer BF ally (active combat)");
         }
 
@@ -321,7 +321,7 @@ namespace FWTCG.Tests
                 MakeSpell("void_seek", 2, "void_seek", targetType: SpellTargetType.EnemyUnit),
                 GameRules.OWNER_ENEMY);
             // No player units
-            Assert.IsNull(SimpleAI.AiChooseSpellTarget(voidSeek, _gs));
+            Assert.IsNull(SimpleAI.AiChooseSpellTarget(voidSeek, _gs, GameRules.OWNER_ENEMY));
         }
 
         // ═══════════════════════════════════════════════════════════════════════
@@ -337,7 +337,7 @@ namespace FWTCG.Tests
             var unit = PlaceUnit("e1", 3, GameRules.OWNER_ENEMY, "base");
             unit.Exhausted = false;
 
-            var plan = SimpleAI.AiDecideMovement(new List<UnitInstance> { unit }, _gs);
+            var plan = SimpleAI.AiDecideMovement(new List<UnitInstance> { unit }, _gs, GameRules.OWNER_ENEMY);
             Assert.IsTrue(plan.HasValue);
             Assert.AreEqual(0, plan.Value.bfIndex, "Should prefer uncontrolled empty BF");
         }
@@ -354,7 +354,7 @@ namespace FWTCG.Tests
             var unit = PlaceUnit("e1", 5, GameRules.OWNER_ENEMY, "base");
             unit.Exhausted = false;
 
-            var plan = SimpleAI.AiDecideMovement(new List<UnitInstance> { unit }, _gs);
+            var plan = SimpleAI.AiDecideMovement(new List<UnitInstance> { unit }, _gs, GameRules.OWNER_ENEMY);
             Assert.IsTrue(plan.HasValue);
             Assert.AreEqual(0, plan.Value.bfIndex,
                 "Winning combat + conquest scores higher than empty BF");
@@ -369,7 +369,7 @@ namespace FWTCG.Tests
             var e1 = PlaceUnit("e1", 4, GameRules.OWNER_ENEMY, "base"); e1.Exhausted = false;
             var e2 = PlaceUnit("e2", 2, GameRules.OWNER_ENEMY, "base"); e2.Exhausted = false;
 
-            var plan = SimpleAI.AiDecideMovement(new List<UnitInstance> { e1, e2 }, _gs);
+            var plan = SimpleAI.AiDecideMovement(new List<UnitInstance> { e1, e2 }, _gs, GameRules.OWNER_ENEMY);
             Assert.IsTrue(plan.HasValue);
             // Split strategy: send only sorted[0] to BF0 (strongest unit)
             Assert.AreEqual(1, plan.Value.movers.Count, "Split sends 1 unit per call");
@@ -380,7 +380,7 @@ namespace FWTCG.Tests
         [Test]
         public void Movement_NoActiveUnits_ReturnsNull()
         {
-            var plan = SimpleAI.AiDecideMovement(new List<UnitInstance>(), _gs);
+            var plan = SimpleAI.AiDecideMovement(new List<UnitInstance>(), _gs, GameRules.OWNER_ENEMY);
             Assert.IsFalse(plan.HasValue);
         }
 
@@ -398,7 +398,7 @@ namespace FWTCG.Tests
             var unit = PlaceUnit("e1", 1, GameRules.OWNER_ENEMY, "base");
             unit.Exhausted = false;
 
-            var plan = SimpleAI.AiDecideMovement(new List<UnitInstance> { unit }, _gs);
+            var plan = SimpleAI.AiDecideMovement(new List<UnitInstance> { unit }, _gs, GameRules.OWNER_ENEMY);
             Assert.IsTrue(plan.HasValue);
             Assert.AreEqual(0, plan.Value.bfIndex,
                 "Must contest player-controlled BF when they're about to win");
@@ -417,7 +417,7 @@ namespace FWTCG.Tests
             var unit = PlaceUnit("e1", 2, GameRules.OWNER_ENEMY, "base");
             unit.Exhausted = false;
 
-            var plan = SimpleAI.AiDecideMovement(new List<UnitInstance> { unit }, _gs);
+            var plan = SimpleAI.AiDecideMovement(new List<UnitInstance> { unit }, _gs, GameRules.OWNER_ENEMY);
             Assert.IsTrue(plan.HasValue);
             // Masteryi passive should nudge score for BF0 (lone defender scenario)
             // (exact BF depends on scores, just verify a plan exists)
@@ -436,7 +436,7 @@ namespace FWTCG.Tests
             PlaceUnit("e3", 3, GameRules.OWNER_ENEMY, "base");
             // Player has 1 weak unit
             PlaceUnit("p1", 1, GameRules.OWNER_PLAYER, "base");
-            Assert.Greater(SimpleAI.AiBoardScore(_gs), 0);
+            Assert.Greater(SimpleAI.AiBoardScore(_gs, GameRules.OWNER_ENEMY), 0);
         }
     }
 }

@@ -63,7 +63,7 @@ namespace FWTCG.Tests
             };
             var trigger = MakePlayerSpell("void_seek", 3);
 
-            var chosen = SimpleAI.AiPickBestReactiveCard(reactives, trigger, gs);
+            var chosen = SimpleAI.AiPickBestReactiveCard(reactives, trigger, gs, GameRules.OWNER_ENEMY);
 
             Assert.AreEqual("wind_wall", chosen.CardData.EffectId);
         }
@@ -81,7 +81,7 @@ namespace FWTCG.Tests
             };
             var trigger = MakePlayerSpell("hex_ray", 2);
 
-            var chosen = SimpleAI.AiPickBestReactiveCard(reactives, trigger, gs);
+            var chosen = SimpleAI.AiPickBestReactiveCard(reactives, trigger, gs, GameRules.OWNER_ENEMY);
 
             Assert.AreEqual("flash_counter", chosen.CardData.EffectId);
         }
@@ -99,7 +99,7 @@ namespace FWTCG.Tests
             };
             var trigger = MakePlayerSpell("slam", 4); // cost 4 = negatable by scoff
 
-            var chosen = SimpleAI.AiPickBestReactiveCard(reactives, trigger, gs);
+            var chosen = SimpleAI.AiPickBestReactiveCard(reactives, trigger, gs, GameRules.OWNER_ENEMY);
 
             Assert.AreEqual("scoff", chosen.CardData.EffectId);
         }
@@ -116,7 +116,7 @@ namespace FWTCG.Tests
             };
             var trigger = MakePlayerSpell("starburst", 5); // cost 5 > 4 → can't negate
 
-            var chosen = SimpleAI.AiPickBestReactiveCard(reactives, trigger, gs);
+            var chosen = SimpleAI.AiPickBestReactiveCard(reactives, trigger, gs, GameRules.OWNER_ENEMY);
 
             Assert.IsNull(chosen, "AI should pass when scoff can't negate the spell");
         }
@@ -135,7 +135,7 @@ namespace FWTCG.Tests
             };
             var trigger = MakePlayerSpell("evolve_day", 3);
 
-            var chosen = SimpleAI.AiPickBestReactiveCard(reactives, trigger, gs);
+            var chosen = SimpleAI.AiPickBestReactiveCard(reactives, trigger, gs, GameRules.OWNER_ENEMY);
 
             Assert.AreEqual("well_trained", chosen.CardData.EffectId);
         }
@@ -152,7 +152,7 @@ namespace FWTCG.Tests
             };
             var trigger = MakePlayerSpell("evolve_day", 3);
 
-            var chosen = SimpleAI.AiPickBestReactiveCard(reactives, trigger, gs);
+            var chosen = SimpleAI.AiPickBestReactiveCard(reactives, trigger, gs, GameRules.OWNER_ENEMY);
 
             Assert.IsNull(chosen, "AI should pass well_trained if no ally to buff");
         }
@@ -166,7 +166,7 @@ namespace FWTCG.Tests
             var reactives = new List<UnitInstance>();
             var trigger   = MakePlayerSpell("hex_ray");
 
-            var chosen = SimpleAI.AiPickBestReactiveCard(reactives, trigger, gs);
+            var chosen = SimpleAI.AiPickBestReactiveCard(reactives, trigger, gs, GameRules.OWNER_ENEMY);
 
             Assert.IsNull(chosen);
         }
@@ -179,7 +179,7 @@ namespace FWTCG.Tests
             var gs      = MakeGs();
             var trigger = MakePlayerSpell("hex_ray");
 
-            var chosen = SimpleAI.AiPickBestReactiveCard(null, trigger, gs);
+            var chosen = SimpleAI.AiPickBestReactiveCard(null, trigger, gs, GameRules.OWNER_ENEMY);
 
             Assert.IsNull(chosen);
         }
@@ -197,7 +197,7 @@ namespace FWTCG.Tests
             };
             var trigger = MakePlayerSpell("void_seek");
 
-            var chosen = SimpleAI.AiPickBestReactiveCard(reactives, trigger, gs);
+            var chosen = SimpleAI.AiPickBestReactiveCard(reactives, trigger, gs, GameRules.OWNER_ENEMY);
 
             Assert.AreEqual("wind_wall", chosen.CardData.EffectId);
         }
@@ -215,7 +215,7 @@ namespace FWTCG.Tests
             };
 
             // wind_wall doesn't require a trigger — should return it without crashing
-            var chosen = SimpleAI.AiPickBestReactiveCard(reactives, null, gs);
+            var chosen = SimpleAI.AiPickBestReactiveCard(reactives, null, gs, GameRules.OWNER_ENEMY);
 
             Assert.AreEqual("wind_wall", chosen.CardData.EffectId);
         }
@@ -234,7 +234,7 @@ namespace FWTCG.Tests
             };
             var trigger = MakePlayerSpell("evolve_day", 3);
 
-            var chosen = SimpleAI.AiPickBestReactiveCard(reactives, trigger, gs);
+            var chosen = SimpleAI.AiPickBestReactiveCard(reactives, trigger, gs, GameRules.OWNER_ENEMY);
 
             Assert.AreEqual("duel_stance", chosen.CardData.EffectId);
         }

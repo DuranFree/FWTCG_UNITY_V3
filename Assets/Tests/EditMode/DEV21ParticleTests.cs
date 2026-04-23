@@ -54,8 +54,8 @@ public class DEV21ParticleTests
         => Assert.AreEqual(18, MouseTrail.TRAIL_LENGTH);
 
     [Test]
-    public void MouseTrail_DOT_MAX_SIZE_Is8()
-        => Assert.AreEqual(8f, MouseTrail.DOT_MAX_SIZE);
+    public void MouseTrail_DOT_MAX_SIZE_Is5()
+        => Assert.AreEqual(5f, MouseTrail.DOT_MAX_SIZE); // DEV-31 cleanup: matches current source
 
     [Test]
     public void MouseTrail_HEAD_ALPHA_IsPositive()
@@ -108,12 +108,13 @@ public class DEV21ParticleTests
     }
 
     [Test]
-    public void SpellVFX_GetCardBurstColor_Chaos_IsPurple()
+    public void SpellVFX_GetCardBurstColor_Chaos_IsTealCyan()
     {
+        // DEV-31 cleanup: Chaos 色改为 teal/cyan（避免 error-pink）— R=0.10 G=0.75 B=0.85
         var unit = MakeUnit(RuneType.Chaos);
         var col  = SpellVFX.GetCardBurstColor(unit);
-        Assert.Greater(col.r + col.b, 1.0f, "Chaos should have high combined R+B (purple)");
-        Assert.Less   (col.g, 0.3f,         "Green should be low for Chaos (purple)");
+        Assert.Less   (col.r,         0.3f, "Red should be low for Chaos (teal)");
+        Assert.Greater(col.g + col.b, 1.0f, "Green+Blue combined high for Chaos teal");
     }
 
     [Test]

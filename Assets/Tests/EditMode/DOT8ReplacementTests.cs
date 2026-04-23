@@ -276,31 +276,11 @@ namespace FWTCG.Tests
             Object.DestroyImmediate(go);
         }
 
-        // ═══════════════════════════════════════════════════════════════════════
-        // StartupFlowUI — DOT-8 shuffle & flip constants
-        // ═══════════════════════════════════════════════════════════════════════
-
-        [Test] public void StartupFlowUI_ShuffleCardCount()
-        { AssertPrivConst(typeof(StartupFlowUI), "SHUFFLE_CARD_COUNT", 4); }
-
-        [Test] public void StartupFlowUI_ShuffleCardDur()
-        { AssertPrivConst(typeof(StartupFlowUI), "SHUFFLE_CARD_DUR", 0.22f); }
-
-        [Test] public void StartupFlowUI_ShuffleStagger()
-        { AssertPrivConst(typeof(StartupFlowUI), "SHUFFLE_STAGGER", 0.06f); }
-
+        // DEV-31 cleanup: StartupFlowUI shuffle tests removed — SHUFFLE_* constants /
+        // CreateShuffleAnimationTween / _shuffleGhosts 字段已从源码移除（UI 重构），测试过时。
+        // 当前 MulliganFlipHalf 仍存在：
         [Test] public void StartupFlowUI_MulliganFlipHalf()
         { AssertPrivConst(typeof(StartupFlowUI), "MULLIGAN_FLIP_HALF", 0.11f); }
-
-        [Test] public void StartupFlowUI_HasCreateShuffleAnimationTween()
-        { Assert.IsNotNull(typeof(StartupFlowUI).GetMethod("CreateShuffleAnimationTween", PRIV), "CreateShuffleAnimationTween should exist"); }
-
-        [Test] public void StartupFlowUI_ShuffleGhosts_IsListGameObject()
-        {
-            var field = typeof(StartupFlowUI).GetField("_shuffleGhosts", PRIV);
-            Assert.IsNotNull(field, "_shuffleGhosts field should exist");
-            Assert.IsTrue(field.FieldType.Name.Contains("List"), "_shuffleGhosts should be a List");
-        }
 
         // ═══════════════════════════════════════════════════════════════════════
         // LegendSkillShowcase — singleton, subscription, methods

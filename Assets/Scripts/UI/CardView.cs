@@ -150,6 +150,7 @@ namespace FWTCG.UI
         private GameObject _idleFX;          // persistent rune-type particle (snapped)
         private GameObject _shieldFX;        // persistent Shield/Barrier FX
         private GameObject _shadowImage;     // offset shadow Image below card
+        private Tween      _shadowFadeTween; // DOT-7 fix: explicit tracking for ClearBattlefieldVisuals
         private bool       _idleFXSpawned;
         private bool       _bfVisualsApplied; // guard: only apply rotation/shadow once per placement
 
@@ -338,6 +339,7 @@ namespace FWTCG.UI
             // VFX-4: cleanup idle FX, shield FX, and shadow
             if (_idleFX != null) { SafeDestroy(_idleFX); _idleFX = null; }
             if (_shieldFX != null) { SafeDestroy(_shieldFX); _shieldFX = null; }
+            TweenHelper.KillSafe(ref _shadowFadeTween);
             if (_shadowImage != null) { SafeDestroy(_shadowImage); _shadowImage = null; }
         }
 
@@ -1939,10 +1941,15 @@ namespace FWTCG.UI
             TweenHelper.KillSafe(ref _heroAuraPulse);
             if (_heroAura != null)
             {
-                // Use DestroyImmediate in EditMode (e.g. tests); Destroy at runtime
-                if (Application.isPlaying) Destroy(_heroAura.gameObject);
-                else DestroyImmediate(_heroAura.gameObject);
+                // 先清引用再 Destroy，防止外部代码绕过 ClearHeroAura 销毁 _heroAura 子对象
+                // 触发 Unity fake-null 检测后二次进入此处再次 Destroy
+                var go = _heroAura.gameObject;
                 _heroAura = null;
+                if (go != null)
+                {
+                    if (Application.isPlaying) Destroy(go);
+                    else DestroyImmediate(go);
+                }
             }
         }
 
@@ -2398,7 +2405,8 @@ namespace FWTCG.UI
             if (gameObject.activeInHierarchy)
             {
                 img.color = new Color(0f, 0f, 0f, 0f);
-                img.DOColor(new Color(0.02f, 0.04f, 0.08f, 0.45f), 0.3f)
+                TweenHelper.KillSafe(ref _shadowFadeTween);
+                _shadowFadeTween = img.DOColor(new Color(0.02f, 0.04f, 0.08f, 0.45f), 0.3f)
                    .SetDelay(0.4f).SetEase(Ease.Linear).SetTarget(gameObject);
             }
         }
@@ -2447,6 +2455,7 @@ namespace FWTCG.UI
             if (_shieldFX != null) { SafeDestroy(_shieldFX); _shieldFX = null; }
             _idleFXSpawned = false;
             _bfVisualsApplied = false;
+            TweenHelper.KillSafe(ref _shadowFadeTween);
             if (_shadowImage != null) { SafeDestroy(_shadowImage); _shadowImage = null; }
             ClearHandFanAngle(); // card leaving hand/field, no more fan lock
             transform.localRotation = Quaternion.identity;

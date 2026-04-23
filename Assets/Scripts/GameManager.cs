@@ -152,7 +152,8 @@ namespace FWTCG
         private UnitInstance _targetingSpell;     // non-null = awaiting target click for spell
         private bool _aiReactionPending;          // DEV-15: true while AI reaction resolves
         private bool _bfClickInFlight;            // DEV-17: true while OnBattlefieldClicked awaits post-combat delay
-        private bool? _pendingDragHasteDecision;  // DEV-22: pre-answered Haste choice from drag flow prompt
+        // UI-OVERHAUL-1b 后废弃：Haste 决策合入资源准备机制，不再走 drag-flow prompt
+        // private bool? _pendingDragHasteDecision;
 
         // ── UI-OVERHAUL-1b: 符文手动标记池（左键=待横置 / 右键=待回收，互斥） ─────
         private readonly HashSet<int> _preparedTapIdxs     = new HashSet<int>();
@@ -444,25 +445,9 @@ namespace FWTCG
         /// DEV-22: Drag base units to a battlefield — equivalent to multi-selecting then clicking the BF.
         /// Replaces the current selection with <paramref name="units"/> and routes to OnBattlefieldClicked.
         /// </summary>
-        /// <summary>
-        /// Returns true if dragging this unit to its zone should show a Haste prompt
-        /// BEFORE the landing animation plays. CardDragHandler calls this to freeze ghosts first.
-        /// </summary>
-        public bool DragNeedsHasteChoice(UnitInstance unit)
-        {
-            if (unit == null || _gs == null) return false;
-            if (!unit.CardData.HasKeyword(CardKeyword.Haste)) return false;
-            int extraManaNeeded = unit.CardData.Cost + 1;
-            int extraSchNeeded  = unit.CardData.RuneCost + 1;
-            int haveSch = _gs.GetSch(GameRules.OWNER_PLAYER, unit.CardData.RuneType);
-            return _gs.PMana >= extraManaNeeded && haveSch >= extraSchNeeded;
-        }
 
-        /// <summary>
-        /// Pre-answers the Haste choice so TryPlayUnitAsync / TryPlayHeroAsync skips the prompt.
-        /// Called by CardDragHandler after the user confirms in the drag-flow prompt.
-        /// </summary>
-        public void SetDragHasteDecision(bool useHaste) => _pendingDragHasteDecision = useHaste;
+        // UI-OVERHAUL-1b 已废弃：DragNeedsHasteChoice / SetDragHasteDecision 由资源准备机制替代，
+        // Haste 决策改为"多准备 +1 法力 + +1 符能 → 自动激活"。已确认 CardDragHandler 不再调用。
 
         /// <summary>
         /// UI-OVERHAUL-1a: 单选化 — 只拖拽单张基地单位到战场。
@@ -625,7 +610,6 @@ namespace FWTCG
             _targetingSpell             = null;
             _aiReactionPending          = false;
             _bfClickInFlight            = false;
-            _pendingDragHasteDecision   = null;
 
             // 5. 重置静态反应窗口状态
             _reactionWindowActive   = false;

@@ -27,12 +27,12 @@
 - ✅ 弃牌堆/放逐堆 Button onClick — 已通过 GameUI.SetPileClickCallback + WirePileButtons() 在运行时连线，实现正常 — Phase DEV-10
 - [ ] DamagePopup 每次 new GameObject（GC churn）— 高频伤害时压力大，应改为对象池 — Phase DEV-17（Codex Medium/Low）
 - ✅ Ephemeral 单位打出时未设置 IsEphemeral/SummonedOnRound — 已修复：UnitInstance 构造函数从 CardData.HasKeyword(Ephemeral) 初始化 IsEphemeral；TryPlayUnit 打出瞬息单位时设置 SummonedOnRound=gs.Round — Phase DEV-18（Claude 审查 High → 已解决）
-- [ ] AI 出牌不触发 OnCardPlayed/BoardFlash — FireCardPlayed 只在玩家三条出牌路径调用，AI 出牌无棋盘闪烁；如需视觉对称须补充 AI 路径调用 — Phase DEV-18（设计待确认，DEV-31 保留）
+- ✅ AI 出牌不触发 OnCardPlayed/BoardFlash — CARD-FIX-1 hotfix 已修：SimpleAI 英雄 / 单位 / CastAISpell 三处均 FireCardPlayed(card, owner) — Phase DEV-18→CARD-FIX-1
 - ✅ Ephemeral 销毁未加入弃牌堆 — 已修复：DestroyEphemeralUnits 两处（base + battlefield）均加 gs.GetDiscard(owner).Add(u) — Phase DEV-18→DEV-28
-- [ ] EventBanner.DrainQueue 协程在 OnDisable 时不会停止 — 组件禁用后仍可能继续运行（本项目 EventBanner 不会被禁用，风险低）— Phase DEV-18b（Claude 审查 Low）
+- ✅ EventBanner.DrainQueue 协程在 OnDisable 时不会停止 — DEV-31 cleanup 已修：OnDisable 加 StopCoroutine(_showRoutine) — Phase DEV-18b→DEV-31 cleanup
 - ✅ AskPromptUI._cardViewPrefab 为 null 时 card-pick 静默跳过 — 已确认：SceneBuilder 已连线，优雅降级属设计预期，不修复 — Phase DEV-19 → DEV-31 WONTFIX
 - [ ] ScoreRingRoutine 使用 AddComponent 动态生成 ring Image — 大量快速得分时可积累多个同时运行，实际游戏节奏不触发 — Phase DEV-19（Codex Low）
-- [ ] GameUI.RefreshScoreTrack 多分得分时只动画最终圆圈 — 1分得分触发一次 pulse，多分时中间圆圈无动画 — Phase DEV-19（Codex Medium）
+- ✅ GameUI.RefreshScoreTrack 多分得分只动画最终圆圈 — 见下方 DEV-32 条（重复，此处归并） — Phase DEV-19→DEV-32
 - [ ] GameUI.NotifyReactButtonState 有空反应路径 — 仅调用 FireHintToast("")，未调用 PlayReactRibbonReveal（设计确认：ribbon reveal 由 GameManager 直接调用）— Phase DEV-19（Codex Low）
 - ✅ ToastUI 去重仅按原始消息文本 — 已确认：null/empty 守卫已在 DEV-26 修复（行80），跨源折叠属设计预期 — Phase DEV-19 patch → DEV-31 confirmed resolved
 - ✅ EventBanner 去重忽略 duration 和 large 参数 — 已确认：EventBanner 已重构为 batch 系统，无文本去重遗留问题 — Phase DEV-19 patch → DEV-31 confirmed resolved
@@ -55,7 +55,7 @@
 - ✅ CombatFlyGhost 在 CombatAnimator 销毁时成为孤儿 — 已修复：_activeGhosts List + OnDestroy 遍历销毁 — Phase DEV-28→DEV-29
 - ✅ _enterAnimPlayed 不重置 — 已修复：Setup isNewUnit 时重置为 false — Phase DEV-28→DEV-29
 - ✅ CombatAnimator.OnDestroy Remove-then-Destroy 顺序缺注释 — DEV-31 已补注释：说明单线程协程安全原因（Remove 先于 Destroy 防止 OnDestroy 双重销毁）— Phase DEV-29→DEV-31
-- [ ] ClearHeroAura 双重销毁风险 — 若外部代码绕过 ClearHeroAura 直接销毁 _heroAura 子对象，下次调用仍会通过 Unity fake-null 检测并再次调用 Destroy；当前无此路径，但脆弱 — Phase DEV-29（Codex Low）
+- ✅ ClearHeroAura 双重销毁风险 — DEV-31 cleanup 已修：先置 _heroAura=null 再 Destroy go，防止 fake-null 二次进入 — Phase DEV-29→DEV-31 cleanup
 - [ ] ClearTargetHighlights GetComponent 每帧每子节点调用 — 与 ShowTargetHighlights 显式 null 检查写法不一致；性能可接受，风格不统一 — Phase DEV-29（Codex Low）
 - ✅ CreateOverlayImage sizeDelta 参数被忽略 — DEV-31 已修复：offsetMin/offsetMax 加入 sizeDelta*0.5 扩展，HeroAura 现可正确超出卡牌 4px — Phase DEV-28→DEV-31
 - ✅ SpellDuelUI.FindRootCanvas 每次 FindObjectsOfType — DEV-31 已修复：_rootCanvas 在 Awake() 缓存，ShowDuelOverlay 优先使用缓存值，避免每帧 O(n) 分配 — Phase DEV-30→DEV-31
@@ -82,17 +82,17 @@
 - ✅ AudioTool.FadeRoutine 被外部 StopAllCoroutines 打断时 ch.FadeRoutine 引用不清空 — DOT-3 已解决：改用 DOTween FadeTween，CancelFade 直接 Kill，不受 StopAllCoroutines 影响 — VFX-5→DOT-3
 - ✅ AnimMatFX.cs 文件已删除 — DOT-7 确认无引用后安全删除 — DOT-2→DOT-7
 - [ ] DissolveOrFallbackRoutine fallback path tween 未存入字段，SetTarget(gameObject) 兜底，低风险 — DOT-7（Codex MEDIUM）
-- [ ] CreateShadow shadow DOColor tween 未跟踪，ClearBattlefieldVisuals 时若 shadow 被销毁可能 MissingReferenceException — DOT-7（Codex LOW）
+- ✅ CreateShadow shadow DOColor tween 未跟踪 — DEV-31 cleanup 已修：新增 _shadowFadeTween 字段，CreateShadow / ClearBattlefieldVisuals / 3D-clear 三处 KillSafe — DOT-7→DEV-31 cleanup
 
 - ✅ LegendSkillShowcase 两阶段 scale（0.4→1.08→1）通过 Join+SetDelay 实现，视觉轻微冻帧 — 已修复：改用嵌套 Sequence + Append 链式，DOT-8 Medium fix — DOT-8（Codex MEDIUM-1）
 - ✅ _turnSweepSeq kill 用 `if (IsActive()) Kill()` 而非 `TweenHelper.KillSafe(ref)` — 已修复：两处均替换为 KillSafe，DOT-8 Medium fix — DOT-8（Codex MEDIUM-2）
 - ✅ Mulligan 翻转 tween 无 `_mulliganFlipSeq` 字段追踪，OnDestroy/OnDisable 无法 kill — 已修复：新增字段并在 OnDisable/OnDestroy 调用 KillSafe，DOT-8 Medium fix — DOT-8（Codex MEDIUM-3）
 - ✅ PlayManaFillStagger InsertCallback 创建的 PunchScale tween 未挂 SetTarget，KillSafe 无法级联 kill — 已修复：改用 seq.Insert + SetTarget，DOT-8 Medium fix — DOT-8（Codex MEDIUM-5）
 - [ ] CardBackManager.SetPlayerCardBack 写入 PlayerPrefs，但 Load() 硬编码 Back01 忽略 PlayerPrefs；SetPlayerCardBack 功能性死代码，再次 domain reload 后选择被覆盖 — DOT-8（Codex MEDIUM-4，功能未完整实现，暂不修复）
-- [ ] 历史测试未跟上代码演化（10 项 DOT*/DEV21* 失败）— 期望已删除的 shuffle_* 字段 / DOT_MAX_SIZE=8 / 粒子色常数等；测试应更新或删除，源码是真实源 — 记录于 Detail Popup 清理 Phase
+- ✅ 历史测试未跟上代码演化（11 项 DOT*/DEV21* 失败）— DEV-31 cleanup 已修：DOT_MAX_SIZE 5 / HOVER_SCALE 1.18 / ENDTURN_PULSE 0.82 / SHAKE 0.08+12 / Chaos teal 全部同步源码；StartupFlowUI 5 项 SHUFFLE_* / _shuffleGhosts 测试删除（字段不存在）— 记录于 Detail Popup 清理 Phase→DEV-31 cleanup
 - [ ] GameManager.OnDragHandGroupToBase/OnSpellGroupDraggedOut/PlaySpellGroupAsync 成为死代码 — UI-OVERHAUL-1a 单选化后，future 确认无依赖可删 — UI-OVERHAUL-1a
 - [ ] GameManager.GetSelectedHandUnits/GetSelectedBaseUnits 返回 List 但单选下恒 ≤ 1 项 — 可逐步改为单元素字段 — UI-OVERHAUL-1a
-- [ ] _pendingDragHasteDecision / SetDragHasteDecision / DragNeedsHasteChoice 暂留但失效 — 1b 资源准备机制合并时移除 — UI-OVERHAUL-1a
+- ✅ _pendingDragHasteDecision / SetDragHasteDecision / DragNeedsHasteChoice 暂留但失效 — DEV-31 cleanup 已删：CardDragHandler 不再调用，字段 + 两个方法全部移除 — UI-OVERHAUL-1a→DEV-31 cleanup
 - [ ] RuneAutoConsume.Compute / ExecuteRunePlan 仍被 AI / Mulligan 使用，玩家路径已切 prepared 机制 — UI-OVERHAUL-1b
 - [ ] OnCardHoverEnter/OnHeroHoverEnter 等 hover 入口 no-op 保留方法签名，1c 再决定是否恢复 hover 预览 — UI-OVERHAUL-1b
 - [ ] Haste 关键词仍硬编码为 false — 1c 整合确定按钮时按"多准备 +1 法力 + +1 符能 → 自动激活"规则补完 — UI-OVERHAUL-1b

@@ -170,7 +170,7 @@ namespace FWTCG.Tests
         [Test] public void GameUI_EndTurnPulseConstants()
         {
             Assert.AreEqual(2f, GameUI.ENDTURN_PULSE_PERIOD, "ENDTURN_PULSE_PERIOD should be 2s");
-            Assert.AreEqual(0.60f, GameUI.ENDTURN_PULSE_MIN_ALPHA, "ENDTURN_PULSE_MIN_ALPHA should be 0.60");
+            Assert.AreEqual(0.82f, GameUI.ENDTURN_PULSE_MIN_ALPHA, "ENDTURN_PULSE_MIN_ALPHA should be 0.82 (DEV-31 cleanup: matches source)");
         }
 
         [Test] public void GameUI_ReactRevealConstants()
@@ -228,9 +228,10 @@ namespace FWTCG.Tests
         [Test] public void GameUI_RunePulseConstants()
         {
             Assert.AreEqual(3.5f, GameUI.RUNE_PULSE_FREQ, "RUNE_PULSE_FREQ should be 3.5");
-            // UI-OVERHAUL-1b: RuneTapFill 改为绿色（"准备横置"呼吸灯）
-            Assert.AreEqual(new Color(0.18f, 1.00f, 0.35f, 1f), GameUI.RuneTapFill, "RuneTapFill color (green)");
-            Assert.AreEqual(new Color(1.0f, 0.15f, 0.15f, 1f), GameUI.RuneRecFill, "RuneRecFill color");
+            // 统一边框呼吸灯规则：选中绿 / 提示蓝 / 回收红（Outline-only）
+            Assert.AreEqual(new Color(0.25f, 1.00f, 0.45f, 1f), GameUI.BorderSelected, "BorderSelected (green)");
+            Assert.AreEqual(new Color(0.25f, 0.60f, 1.00f, 1f), GameUI.BorderHint,     "BorderHint (blue)");
+            Assert.AreEqual(new Color(1.00f, 0.30f, 0.30f, 1f), GameUI.BorderRecycle,  "BorderRecycle (red)");
         }
 
         // ═══════════════════════════════════════════════════════════════════════

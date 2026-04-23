@@ -75,6 +75,12 @@ namespace FWTCG.UI
             GameEventBus.OnEventBanner    -= EnqueueBanner;
             GameEventBus.OnClearBanners   -= ClearAll;
             GameEventBus.OnSetBannerDelay -= SetDrainDelay;
+            // 组件禁用时停止 DrainQueue，防止协程继续运行访问已销毁视图
+            if (_showRoutine != null)
+            {
+                StopCoroutine(_showRoutine);
+                _showRoutine = null;
+            }
         }
 
         private void OnDestroy()

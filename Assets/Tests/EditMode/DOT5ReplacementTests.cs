@@ -121,36 +121,29 @@ namespace FWTCG.Tests
             Assert.IsNull(method, "AmbientBreatheLoop coroutine should be removed");
         }
 
+        // 战场占领绿/红呼吸灯已废弃（统一边框规则：选中绿 / 提示蓝 / 回收红）
         [Test]
-        public void BattlefieldGlow_HasNoCtrlGlowLoopCoroutine()
-        {
-            var method = typeof(BattlefieldGlow).GetMethod("CtrlGlowLoop",
-                BindingFlags.NonPublic | BindingFlags.Instance);
-            Assert.IsNull(method, "CtrlGlowLoop coroutine should be removed");
-        }
-
-        [Test]
-        public void BattlefieldGlow_HasNoCoroutineHandles()
+        public void BattlefieldGlow_CtrlGlowRemoved()
         {
             var flags = BindingFlags.NonPublic | BindingFlags.Instance;
-            var breathe = typeof(BattlefieldGlow).GetField("_breatheRoutine", flags);
-            Assert.IsNull(breathe, "_breatheRoutine Coroutine handle should be removed");
-
-            var ctrl = typeof(BattlefieldGlow).GetField("_ctrlRoutine", flags);
-            Assert.IsNull(ctrl, "_ctrlRoutine Coroutine handle should be removed");
+            Assert.IsNull(typeof(BattlefieldGlow).GetField("_ctrlGlowOverlay", flags),
+                "_ctrlGlowOverlay should be removed");
+            Assert.IsNull(typeof(BattlefieldGlow).GetField("_ctrlTween", flags),
+                "_ctrlTween should be removed");
+            Assert.IsNull(typeof(BattlefieldGlow).GetField("_currentCtrl", flags),
+                "_currentCtrl should be removed");
+            Assert.IsNull(typeof(BattlefieldGlow).GetMethod("SetControl",
+                BindingFlags.Public | BindingFlags.Instance),
+                "SetControl should be removed");
         }
 
         [Test]
-        public void BattlefieldGlow_HasTweenFields()
+        public void BattlefieldGlow_AmbientTweenFieldExists()
         {
             var flags = BindingFlags.NonPublic | BindingFlags.Instance;
             var breathe = typeof(BattlefieldGlow).GetField("_breatheTween", flags);
             Assert.IsNotNull(breathe, "_breatheTween must exist");
             Assert.AreEqual(typeof(Tween), breathe.FieldType);
-
-            var ctrl = typeof(BattlefieldGlow).GetField("_ctrlTween", flags);
-            Assert.IsNotNull(ctrl, "_ctrlTween must exist");
-            Assert.AreEqual(typeof(Tween), ctrl.FieldType);
         }
 
         [Test]
@@ -159,17 +152,6 @@ namespace FWTCG.Tests
             Assert.AreEqual(5f, BattlefieldGlow.BREATHE_PERIOD);
             Assert.AreEqual(0.02f, BattlefieldGlow.BREATHE_MIN_A);
             Assert.AreEqual(0.08f, BattlefieldGlow.BREATHE_MAX_A);
-            Assert.AreEqual(3f, BattlefieldGlow.CTRL_PERIOD);
-            Assert.AreEqual(0.10f, BattlefieldGlow.CTRL_MIN_A);
-            Assert.AreEqual(0.35f, BattlefieldGlow.CTRL_MAX_A);
-        }
-
-        [Test]
-        public void BattlefieldGlow_SetControlPublicAPI()
-        {
-            var method = typeof(BattlefieldGlow).GetMethod("SetControl",
-                BindingFlags.Public | BindingFlags.Instance);
-            Assert.IsNotNull(method, "SetControl public method must exist");
         }
 
         [Test]
