@@ -213,8 +213,8 @@ namespace FWTCG.Systems
             string defender = gs.Opponent(attacker);
             string previousCtrl = bf.Ctrl;
 
-            // Masteryi passive: lone defender gets +2 temp attack (DEV-5)
-            _legendSys?.TryApplyMasteryiPassive(bfId, attacker, gs);
+            // Yi 被动【独影剑鸣】：持续修饰符，改为 ComputeCombatPower 读时实时判定
+            // （不再预注入 TempAtkBonus，防止在非战斗场景里残留数据）
 
             // #4: Collect units (needed for power calc and damage distribution)
             List<UnitInstance> attackerUnits = GetBFUnits(attacker, bf);
@@ -227,9 +227,9 @@ namespace FWTCG.Systems
             OnCombatWillStart?.Invoke(bfId, attackerUnits, defenderUnits);
 
             // Calculate total power per side (#5: stunned units contribute 0)
-            // StrongAtk/Guard bonuses are included via ComputeCombatPower
-            int attackerPower = ComputeCombatPower(attackerUnits, isAttacking: true);
-            int defenderPower = ComputeCombatPower(defenderUnits, isAttacking: false);
+            // StrongAtk/Guard + Yi 独影剑鸣 bonuses all via ComputeCombatPower
+            int attackerPower = ComputeCombatPower(attackerUnits, attacker, bfId, gs, isAttacking: true);
+            int defenderPower = ComputeCombatPower(defenderUnits, defender, bfId, gs, isAttacking: false);
 
             string rawBfId = (gs.BFNames != null && gs.BFNames.Length > bfId && gs.BFNames[bfId] != null) ? gs.BFNames[bfId] : null;
             string bfDisplayName = rawBfId != null ? GameRules.GetBattlefieldDisplayName(rawBfId) : $"战场{bfId + 1}";
@@ -348,9 +348,11 @@ namespace FWTCG.Systems
         /// Computes total combat power for a group of units.
         /// Stunned units contribute 0 (Rule 743).
         /// Rule 139.2: power &lt; 0 treated as 0 (not 1). Uses EffectiveAtk() for floor.
-        /// StrongAtk adds +1 when attacking; Guard adds +1 when defending.
+        /// StrongAtk adds X when attacking; Guard adds X when defending (Rule 19/26).
+        /// Yi 独影剑鸣：防守且唯一的单位 +2（持续修饰符）。
         /// </summary>
-        private int ComputeCombatPower(List<UnitInstance> units, bool isAttacking)
+        private int ComputeCombatPower(List<UnitInstance> units, string owner, int bfId,
+                                        GameState gs, bool isAttacking)
         {
             int total = 0;
             foreach (UnitInstance u in units)
@@ -359,6 +361,9 @@ namespace FWTCG.Systems
                 int power = u.EffectiveAtk();  // already Max(0, CurrentAtk + TempAtkBonus)
                 if (isAttacking && u.HasStrongAtk) power += u.StrongAtkValue;
                 if (!isAttacking && u.HasGuard)    power += u.GuardValue;
+                // Yi 被动 — 防守方唯一单位 +2
+                if (!isAttacking && LegendSystem.IsYiSoloDefender(u, bfId, owner, gs))
+                    power += 2;
                 total += power;
             }
             return total;

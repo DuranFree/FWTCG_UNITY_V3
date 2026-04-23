@@ -314,6 +314,21 @@ namespace FWTCG
         /// <summary>Exposes game state for Bot and tooling.</summary>
         public GameState GetState() => _gs;
 
+        /// <summary>
+        /// Bot (Strategic mode) entry point — runs SimpleAI for the player side.
+        /// SimpleAI calls TurnManager.EndTurn() internally, which unblocks
+        /// TurnManager.DoAction waiting on _actionComplete.
+        /// </summary>
+        public Task RunStrategicPlayerTurn()
+        {
+            if (_ai == null || _turnMgr == null || _gs == null)
+                return Task.CompletedTask;
+            return _ai.TakeAction(GameRules.OWNER_PLAYER, _gs, _turnMgr,
+                                  _combatSys, _scoreMgr, _entryEffects,
+                                  _spellSys, _reactiveSys, _reactiveWindowUI,
+                                  _legendSys, _bfSys);
+        }
+
         /// <summary>True when it is the player's action phase and no AI reaction is blocking.</summary>
         public bool IsPlayerActionPhase()
         {
@@ -1586,9 +1601,7 @@ namespace FWTCG
             // DEV-26: Foresight prompt (player only — AI handled in EntryEffectSystem)
             if (unit.CardData.HasKeyword(CardKeyword.Foresight))
                 await HandleForesightPromptAsync(GameRules.OWNER_PLAYER);
-
-            // Check Kaisa evolution (4 distinct allied keywords → Lv.2)
-            _legendSys?.CheckKaisaEvolution(GameRules.OWNER_PLAYER, _gs);
+            // Kaisa 进化机制已废弃（原卡 OGN-247 无此效果）
 
             _selectedUnit = null;
             _selectedUnitLoc = "base";
@@ -1665,8 +1678,6 @@ namespace FWTCG
 
             if (hero.CardData.HasKeyword(CardKeyword.Foresight))
                 await HandleForesightPromptAsync(GameRules.OWNER_PLAYER);
-
-            _legendSys?.CheckKaisaEvolution(GameRules.OWNER_PLAYER, _gs);
 
             _selectedUnit = null;
             RefreshUI();
@@ -1886,10 +1897,10 @@ namespace FWTCG
                 return;
             }
 
-            // B1: 主符能检查（法术同样要付符能费用，此前漏扣）
+            // B1: 主符能检查（用 TotalSch = 主池 + Kaisa legend 产出的法术专用池）
             if (spell.CardData.RuneCost > 0)
             {
-                int haveSch = _gs.GetSch(GameRules.OWNER_PLAYER, spell.CardData.RuneType);
+                int haveSch = _gs.GetTotalSch(GameRules.OWNER_PLAYER, spell.CardData.RuneType);
                 if (haveSch < spell.CardData.RuneCost)
                 {
                     ShowPlayError($"[提示] 符能不足：需要 {spell.CardData.RuneCost} {spell.CardData.RuneType.ToColoredText()}，当前 {haveSch}", spell);
@@ -1900,7 +1911,7 @@ namespace FWTCG
             // B2: 次符能检查（双色法术，如 akasi_storm）
             if (spell.CardData.HasSecondaryRune)
             {
-                int have2 = _gs.GetSch(GameRules.OWNER_PLAYER, spell.CardData.SecondaryRuneType);
+                int have2 = _gs.GetTotalSch(GameRules.OWNER_PLAYER, spell.CardData.SecondaryRuneType);
                 if (have2 < spell.CardData.SecondaryRuneCost)
                 {
                     ShowPlayError($"[提示] 符能不足：需要 {spell.CardData.SecondaryRuneCost} {spell.CardData.SecondaryRuneType.ToColoredText()}，当前 {have2}", spell);
@@ -1918,12 +1929,12 @@ namespace FWTCG
                 return;
             }
 
-            // B1+B2: 扣除法力 + 主符能 + 次符能
+            // B1+B2: 扣除法力 + 主符能 + 次符能（法术专用池优先消耗）
             _gs.PMana -= spell.CardData.Cost;
             if (spell.CardData.RuneCost > 0)
-                _gs.SpendSch(GameRules.OWNER_PLAYER, spell.CardData.RuneType, spell.CardData.RuneCost);
+                _gs.SpendSchForSpell(GameRules.OWNER_PLAYER, spell.CardData.RuneType, spell.CardData.RuneCost);
             if (spell.CardData.HasSecondaryRune)
-                _gs.SpendSch(GameRules.OWNER_PLAYER, spell.CardData.SecondaryRuneType, spell.CardData.SecondaryRuneCost);
+                _gs.SpendSchForSpell(GameRules.OWNER_PLAYER, spell.CardData.SecondaryRuneType, spell.CardData.SecondaryRuneCost);
 
             _gs.CardsPlayedThisTurn++;
             FireCardPlayed(spell, GameRules.OWNER_PLAYER);
@@ -2054,7 +2065,6 @@ namespace FWTCG
                     _spellSys.CastSpell(spell, GameRules.OWNER_PLAYER, target, _gs);
                 else
                     _gs.PDiscard.Add(spell);
-                _legendSys?.CheckKaisaEvolution(GameRules.OWNER_PLAYER, _gs);
             }
 
             // Wait for death animation to complete before RefreshUI rebuilds containers.
@@ -2090,7 +2100,7 @@ namespace FWTCG
 
             if (reactives.Count == 0) return false;
 
-            UnitInstance chosen = SimpleAI.AiPickBestReactiveCard(reactives, playerSpell, _gs);
+            UnitInstance chosen = SimpleAI.AiPickBestReactiveCard(reactives, playerSpell, _gs, GameRules.OWNER_ENEMY);
             if (chosen == null) return false;
 
             // Pay cost and apply reactive
@@ -2257,8 +2267,8 @@ namespace FWTCG
                 _selectedHandUnits.Clear();
                 ClearPreparedRunes(); // UI-OVERHAUL-1b: 非行动阶段自动清空符文标记
             }
-            // UI-OVERHAUL-1b: 把玩家的 prepared 标记驱动到 RuneBorderGlow 呼吸灯（绿=tap / 红=recycle）
-            _ui.SetRuneHighlights(new List<int>(_preparedTapIdxs), new List<int>(_preparedRecycleIdxs));
+            // 统一规则：玩家主动标记 → isHint=false（tap=绿选中 / recycle=红回收）
+            _ui.SetRuneHighlights(new List<int>(_preparedTapIdxs), new List<int>(_preparedRecycleIdxs), isHint: false);
             _ui.Refresh(_gs, _selectedBaseUnits, _selectedHandUnits);
         }
 
@@ -2423,7 +2433,7 @@ namespace FWTCG
                     onHoverEnter: u =>
                     {
                         var p = RuneAutoConsume.Compute(u, _gs, GameRules.OWNER_PLAYER);
-                        if (p.NeedsOps) { _ui?.SetRuneHighlights(p.TapIndices, p.RecycleIndices); _ui?.Refresh(_gs); }
+                        if (p.NeedsOps) { _ui?.SetRuneHighlights(p.TapIndices, p.RecycleIndices, isHint: true); _ui?.Refresh(_gs); }
                     },
                     onHoverExit: u => { _ui?.ClearRuneHighlights(); _ui?.Refresh(_gs); });
             }
@@ -2441,7 +2451,7 @@ namespace FWTCG
                 // Show confirm if rune consumption needed
                 if (reactPlan.NeedsOps)
                 {
-                    _ui?.SetRuneHighlights(reactPlan.TapIndices, reactPlan.RecycleIndices);
+                    _ui?.SetRuneHighlights(reactPlan.TapIndices, reactPlan.RecycleIndices, isHint: true);
                     _ui?.Refresh(_gs);
 
                     bool ok = false;
@@ -2494,21 +2504,50 @@ namespace FWTCG
         // ── Legend skill button ───────────────────────────────────────────────
 
         /// <summary>
-        /// Player clicks the 虚空感知 button on the legend panel.
-        /// Can be used as a reaction (outside own turn), or during own action phase.
-        /// Kaisa only; no AI legend active skill.
+        /// 玩家点击传奇技能按钮 — 卡莎·虚空之女：横置→反应 — 获得 1 任意符能（仅法术）。
+        /// 弹窗让玩家选 6 色符能之一。
         /// </summary>
         private void OnLegendSkillClicked()
+        {
+            _ = OnLegendSkillClickedAsync();
+        }
+
+        private async Task OnLegendSkillClickedAsync()
         {
             if (_gs == null || _gs.GameOver) return;
             if (_legendSys == null) return;
 
-            bool used = _legendSys.UseKaisaActive(GameRules.OWNER_PLAYER, _gs);
-            if (used)
+            var legend = _gs.GetLegend(GameRules.OWNER_PLAYER);
+            if (legend == null || legend.Id != LegendSystem.KAISA_LEGEND_ID) return;
+            if (legend.AbilityUsedThisTurn)
             {
-                RefreshUI();
-                // Skill closeup now fired inside LegendSystem.UseKaisaActive to cover AI path too
+                FireHintToast("虚空之女本回合已使用");
+                return;
             }
+
+            // 按卡面弹窗让玩家选 6 色之一（此处简化为 2 色：卡莎卡组主要用炽烈/灵光；
+            //  如需完整 6 色可扩展 AskPromptUI 为多选。）
+            Data.RuneType chosen;
+            if (UI.AskPromptUI.Instance != null)
+            {
+                bool pickBlazing;
+                try
+                {
+                    pickBlazing = await UI.AskPromptUI.Instance.WaitForConfirm(
+                        "虚空之女",
+                        "选择获得的符能颜色（仅能用于打出法术）",
+                        "炽烈", "灵光");
+                }
+                catch { return; }
+                chosen = pickBlazing ? Data.RuneType.Blazing : Data.RuneType.Radiant;
+            }
+            else
+            {
+                chosen = Data.RuneType.Blazing;
+            }
+
+            bool used = _legendSys.UseKaisaActive(GameRules.OWNER_PLAYER, _gs, chosen);
+            if (used) RefreshUI();
         }
 
         // ── DEBUG methods ─────────────────────────────────────────────────────

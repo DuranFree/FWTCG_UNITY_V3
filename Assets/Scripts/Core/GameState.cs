@@ -57,6 +57,10 @@ namespace FWTCG.Core
         public Dictionary<RuneType, int> PSch { get; set; } = new Dictionary<RuneType, int>();
         public Dictionary<RuneType, int> ESch { get; set; } = new Dictionary<RuneType, int>();
 
+        // ── 法术专用符能池（Kaisa legend 产出）— 仅可支付法术符能费用，不能支付单位/装备/技能 ──
+        public Dictionary<RuneType, int> PSpellOnlySch { get; set; } = new Dictionary<RuneType, int>();
+        public Dictionary<RuneType, int> ESpellOnlySch { get; set; } = new Dictionary<RuneType, int>();
+
         // ── Turn tracking ─────────────────────────────────────────────────────
         public int Round { get; set; }
         public string Turn { get; set; }    // "player" or "enemy"
@@ -138,6 +142,8 @@ namespace FWTCG.Core
             {
                 PSch[rt] = 0;
                 ESch[rt] = 0;
+                PSpellOnlySch[rt] = 0;
+                ESpellOnlySch[rt] = 0;
             }
         }
 
@@ -164,6 +170,56 @@ namespace FWTCG.Core
             {
                 sch[rt] = 0;
             }
+        }
+
+        // ── 法术专用符能池 API（Kaisa legend） ────────────────────────────────
+        private Dictionary<RuneType, int> GetSpellOnlySch(string owner) =>
+            owner == GameRules.OWNER_PLAYER ? PSpellOnlySch : ESpellOnlySch;
+
+        public int GetSpellOnlySch(string owner, RuneType type)
+        {
+            var pool = GetSpellOnlySch(owner);
+            return pool.TryGetValue(type, out int v) ? v : 0;
+        }
+
+        public void AddSpellOnlySch(string owner, RuneType type, int n = 1)
+        {
+            var pool = GetSpellOnlySch(owner);
+            if (!pool.ContainsKey(type)) pool[type] = 0;
+            pool[type] += n;
+        }
+
+        public void SpendSpellOnlySch(string owner, RuneType type, int n)
+        {
+            var pool = GetSpellOnlySch(owner);
+            if (!pool.ContainsKey(type)) pool[type] = 0;
+            pool[type] = UnityEngine.Mathf.Max(0, pool[type] - n);
+        }
+
+        public void ResetSpellOnlySch(string owner)
+        {
+            var pool = GetSpellOnlySch(owner);
+            foreach (RuneType rt in System.Enum.GetValues(typeof(RuneType)))
+                pool[rt] = 0;
+        }
+
+        /// <summary>查一个玩家某色符能的总量（主池+法术专用池）— 仅用于查询，不决定支付。</summary>
+        public int GetTotalSch(string owner, RuneType type) =>
+            GetSch(owner, type) + GetSpellOnlySch(owner, type);
+
+        /// <summary>
+        /// 支付法术符能费用：优先消耗法术专用池（Kaisa legend 产出），不足再扣主池。
+        /// 调用方保证 GetTotalSch(owner, type) >= n。
+        /// </summary>
+        public void SpendSchForSpell(string owner, RuneType type, int n)
+        {
+            int fromSpellOnly = UnityEngine.Mathf.Min(n, GetSpellOnlySch(owner, type));
+            if (fromSpellOnly > 0)
+            {
+                SpendSpellOnlySch(owner, type, fromSpellOnly);
+                n -= fromSpellOnly;
+            }
+            if (n > 0) SpendSch(owner, type, n);
         }
 
         /// <summary>

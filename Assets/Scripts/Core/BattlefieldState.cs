@@ -67,6 +67,10 @@ namespace FWTCG.Core
                 : EnemyUnits.Count > 0;
         }
 
+        /// <summary>Returns the unit list for the given owner.</summary>
+        public List<UnitInstance> GetUnits(string owner) =>
+            owner == GameRules.OWNER_PLAYER ? PlayerUnits : EnemyUnits;
+
         /// <summary>Returns true if the given owner can still place units here (no cap).</summary>
         public bool HasSlot(string owner) => true;
 

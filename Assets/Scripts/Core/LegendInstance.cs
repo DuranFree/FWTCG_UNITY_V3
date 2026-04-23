@@ -11,10 +11,12 @@ namespace FWTCG.Core
     {
         public string Id    { get; }
         public string Name  { get; }
-        public int    Level { get; set; }                // 1 or 2; Kaisa can evolve to Lv.2
-        public bool   Exhausted          { get; set; }  // true after 虚空感知 is activated
+        public bool   Exhausted          { get; set; }  // true after 横置 active is used
         public bool   AbilityUsedThisTurn { get; set; }
         public string Owner { get; }
+
+        /// <summary>[Deprecated] Kaisa "进化" 机制原卡不存在，已废弃；字段仅作向后兼容。</summary>
+        public int Level { get; set; } = 1;
 
         /// <summary>Associated CardData for display (art, description). May be null.</summary>
         public CardData DisplayData { get; set; }
@@ -24,15 +26,8 @@ namespace FWTCG.Core
             Id    = id;
             Name  = name;
             Owner = owner;
-            Level = 1;
             Exhausted           = false;
             AbilityUsedThisTurn = false;
-        }
-
-        /// <summary>Mark this legend as evolved (Level → 2). Can only trigger once.</summary>
-        public void Evolve()
-        {
-            Level = 2;
         }
     }
 }

@@ -37,7 +37,7 @@ namespace FWTCG.UI
         {
             GameEventBus.OnCardPlayed              += OnCardPlayed; // DEV-27: migrated from GameManager
             GameEventBus.OnUnitDiedAtPos          += OnUnitDiedAtPos;
-            LegendSystem.OnLegendEvolved          += OnLegendEvolved;
+            // OnLegendEvolved 已废弃（进化机制移除）
             GameEventBus.OnConquestScored         += OnConquestScored; // DEV-30 F1
         }
 
@@ -45,7 +45,7 @@ namespace FWTCG.UI
         {
             GameEventBus.OnCardPlayed              -= OnCardPlayed;
             GameEventBus.OnUnitDiedAtPos          -= OnUnitDiedAtPos;
-            LegendSystem.OnLegendEvolved          -= OnLegendEvolved;
+            // OnLegendEvolved 已废弃
             GameEventBus.OnConquestScored         -= OnConquestScored; // DEV-30 F1
 
             // DOT-4: kill DOTween sequences on owned particles before destroying them

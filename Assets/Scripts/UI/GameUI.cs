@@ -351,7 +351,7 @@ namespace FWTCG.UI
             }
 
             FWTCG.Systems.TurnManager.OnBannerRequest += ShowBanner;
-            FWTCG.Systems.LegendSystem.OnLegendEvolved += OnLegendEvolved; // DEV-15
+            // OnLegendEvolved 已废弃（Kaisa 进化机制移除）
             GameEventBus.OnCardPlayFailed += ShakeHandCard;   // DEV-27: migrated from GameManager
             GameEventBus.OnCardPlayed     += OnCardPlayedHandler; // DEV-27: migrated from GameManager
             // DEV-18b: event feedback bus
@@ -406,7 +406,7 @@ namespace FWTCG.UI
             if (_bf2Button != null) _bf2Button.onClick.RemoveAllListeners();
             if (_restartButton != null) _restartButton.onClick.RemoveAllListeners();
             FWTCG.Systems.TurnManager.OnBannerRequest -= ShowBanner;
-            FWTCG.Systems.LegendSystem.OnLegendEvolved -= OnLegendEvolved; // DEV-15
+            // OnLegendEvolved 已废弃
             GameEventBus.OnCardPlayFailed -= ShakeHandCard;
             GameEventBus.OnCardPlayed     -= OnCardPlayedHandler;
             // DEV-18b
@@ -836,15 +836,13 @@ namespace FWTCG.UI
         }
 
         /// <summary>
-        /// Highlights rune circles for the auto-consume plan preview.
-        /// Blue pulse = needs tap (for mana), Red pulse = needs recycle (for sch).
-        /// Call Refresh() after this to apply visual state.
+        /// 统一边框呼吸灯规则：选中=绿 / 提示=蓝 / 回收=红，Outline-only，不做整块染色。
+        ///   - isHint=true  → tap + recycle 全部走蓝色（hover 预览场景）
+        ///   - isHint=false → tap=绿（已选择）, recycle=红（已标记回收）
         /// </summary>
-        public void SetRuneHighlights(List<int> tapIndices, List<int> recycleIndices)
+        public void SetRuneHighlights(List<int> tapIndices, List<int> recycleIndices, bool isHint = false)
         {
             // 先把上一轮高亮的 rune border glow 重置，避免 tween 被 kill 后残留颜色
-            // 根因：pulse tween 每帧写 border.Image.color + Outline.effectColor，只 KillSafe 不还原
-            // 表现：点"确定"提交 prepared 后，绿色 / 红色呼吸灯残留在 rune 上
             if (_playerRuneContainer != null)
             {
                 foreach (int idx in _runeHighlightTap)     ResetRuneBorderGlow(idx);
@@ -853,6 +851,7 @@ namespace FWTCG.UI
 
             _runeHighlightTap.Clear();
             _runeHighlightRecycle.Clear();
+            _runeHighlightIsHint = isHint;
             if (tapIndices     != null) foreach (int i in tapIndices)     _runeHighlightTap.Add(i);
             if (recycleIndices != null) foreach (int i in recycleIndices) _runeHighlightRecycle.Add(i);
 
@@ -860,6 +859,8 @@ namespace FWTCG.UI
             if (_runeHighlightTap.Count > 0 || _runeHighlightRecycle.Count > 0)
                 _runeHighlightPulseTween = CreateRuneHighlightPulseTween();
         }
+
+        private bool _runeHighlightIsHint;
 
         /// <summary>Clears all rune highlights and stops the pulse tween.</summary>
         public void ClearRuneHighlights()
@@ -897,11 +898,10 @@ namespace FWTCG.UI
             }
         }
 
-        // UI-OVERHAUL-1b: Green = prepared tap (待横置)  |  Red = prepared recycle (待回收)
-        public static readonly Color RuneTapFill    = new Color(0.18f, 1.00f, 0.35f, 1f);
-        public static readonly Color RuneTapOutline = new Color(0.50f, 1.00f, 0.55f, 1f);
-        public static readonly Color RuneRecFill    = new Color(1.00f, 0.15f, 0.15f, 1f);
-        public static readonly Color RuneRecOutline = new Color(1.00f, 0.50f, 0.50f, 1f);
+        // 全局边框呼吸灯规则（Outline-only，不做内层填充）
+        public static readonly Color BorderSelected = new Color(0.25f, 1.00f, 0.45f, 1f); // 选中 绿
+        public static readonly Color BorderHint     = new Color(0.25f, 0.60f, 1.00f, 1f); // 提示 蓝
+        public static readonly Color BorderRecycle  = new Color(1.00f, 0.30f, 0.30f, 1f); // 回收 红
         public const float RUNE_PULSE_FREQ = 3.5f; // rad/s multiplier (~1.75 Hz)
 
         private Tween CreateRuneHighlightPulseTween()
@@ -912,17 +912,18 @@ namespace FWTCG.UI
                 if (this == null) return; // guard: GameUI destroyed mid-tween
                 float pulse = (Mathf.Sin(Time.time * RUNE_PULSE_FREQ) + 1f) * 0.5f;
                 float alpha = Mathf.Lerp(0.25f, 1.0f, pulse);
-                if (_playerRuneContainer != null)
-                {
-                    foreach (int idx in _runeHighlightTap)
-                        SetRuneBorderGlow(idx, RuneTapFill, RuneTapOutline, alpha);
-                    foreach (int idx in _runeHighlightRecycle)
-                        SetRuneBorderGlow(idx, RuneRecFill, RuneRecOutline, alpha);
-                }
+                if (_playerRuneContainer == null) return;
+
+                Color tapCol = _runeHighlightIsHint ? BorderHint : BorderSelected;
+                Color recCol = _runeHighlightIsHint ? BorderHint : BorderRecycle;
+                foreach (int idx in _runeHighlightTap)
+                    SetRuneBorderGlow(idx, tapCol, alpha);
+                foreach (int idx in _runeHighlightRecycle)
+                    SetRuneBorderGlow(idx, recCol, alpha);
             }).SetLoops(-1, LoopType.Restart).SetTarget(gameObject);
         }
 
-        private void SetRuneBorderGlow(int idx, Color fillRGB, Color outlineRGB, float alpha)
+        private void SetRuneBorderGlow(int idx, Color outlineRGB, float alpha)
         {
             if (_playerRuneContainer == null || idx < 0 || idx >= _playerRuneContainer.childCount) return;
             Transform circleT = _playerRuneContainer.GetChild(idx).Find("RuneCircle");
@@ -930,8 +931,9 @@ namespace FWTCG.UI
             Transform borderT = circleT.Find("RuneBorder");
             if (borderT == null) return;
 
+            // 内层填充永远透明 —— 只亮边框
             Image img = borderT.GetComponent<Image>();
-            if (img != null) img.color = new Color(fillRGB.r, fillRGB.g, fillRGB.b, alpha * 0.35f); // subtle inner fill
+            if (img != null) img.color = new Color(outlineRGB.r, outlineRGB.g, outlineRGB.b, 0f);
 
             UnityEngine.UI.Outline outline = borderT.GetComponent<UnityEngine.UI.Outline>();
             if (outline != null)
@@ -1175,6 +1177,13 @@ namespace FWTCG.UI
             ApplyBFVisuals(_bf2PlayerContainer);
             ApplyBFVisuals(_bf2EnemyContainer);
 
+            // 统一规则：player action phase 下，战场上我方单位 = "已出但未确定" → 蓝色边框呼吸灯（提示）
+            bool pending = gs.Turn == GameRules.OWNER_PLAYER && gs.Phase == GameRules.PHASE_ACTION;
+            ApplyBFPendingHint(_bf1PlayerContainer, pending);
+            ApplyBFPendingHint(_bf2PlayerContainer, pending);
+            ApplyBFPendingHint(_bf1EnemyContainer, false);
+            ApplyBFPendingHint(_bf2EnemyContainer, false);
+
             if (_bf1CtrlText != null)
             {
                 string bf1Name = gs.BFNames != null && gs.BFNames.Length > 0 ? GameRules.GetBattlefieldDisplayName(gs.BFNames[0]) : "战场1";
@@ -1206,6 +1215,17 @@ namespace FWTCG.UI
             {
                 var cv = container.GetChild(i).GetComponent<CardView>();
                 if (cv != null) cv.ApplyBattlefieldVisuals();
+            }
+        }
+
+        /// <summary>"出牌到战场但未确定" → 蓝色边框呼吸灯。player action phase 时 enable，其他阶段 disable。</summary>
+        private static void ApplyBFPendingHint(Transform container, bool enable)
+        {
+            if (container == null) return;
+            for (int i = 0; i < container.childCount; i++)
+            {
+                var cv = container.GetChild(i).GetComponent<CardView>();
+                if (cv != null) cv.SetHintGlow(enable);
             }
         }
 
@@ -2083,14 +2103,14 @@ namespace FWTCG.UI
 
         // ── DEV-18: BF glow + board flash + BF art ───────────────────────────
 
-        /// <summary>Update BattlefieldGlow components with current control state.</summary>
+        /// <summary>
+        /// Drives per-BF visual state. 控制占领的绿/红呼吸灯已废弃 —— BattlefieldGlow
+        /// 现在只跑 ambient breathe（OnEnable 驱动），无需每帧推状态。
+        /// 保留方法作 Refresh() 调用锚点，方便以后挂其他 BF 级视觉效果。
+        /// </summary>
         public void UpdateBFGlows(GameState gs)
         {
-            if (gs.BF == null) return;
-            if (_bf1Glow != null && gs.BF.Length > 0)
-                _bf1Glow.SetControl(gs.BF[0].Ctrl);
-            if (_bf2Glow != null && gs.BF.Length > 1)
-                _bf2Glow.SetControl(gs.BF[1].Ctrl);
+            // intentionally empty — ambient breathe runs itself; control glow removed.
         }
 
         /// <summary>

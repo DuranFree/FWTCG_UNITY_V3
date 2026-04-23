@@ -163,9 +163,10 @@ namespace FWTCG.Systems
             // Un-tap all runes
             foreach (RuneInstance r in gs.GetRunes(who)) r.Tapped = false;
 
-            // Reset mana and schematic energy
+            // Reset mana and schematic energy (including spell-only pool)
             gs.SetMana(who, 0);
             gs.ResetSch(who);
+            gs.ResetSpellOnlySch(who);
 
             // Reset per-turn tracking
             gs.BFScoredThisTurn.Clear();
@@ -277,7 +278,7 @@ namespace FWTCG.Systems
                     Broadcast($"[燃尽] {DisplayName(who)} 牌库和废牌堆均为空，无法抽牌");
                     // Rule 515.4.d: clear all pools even when no draw occurs
                     foreach (string p in new[] { GameRules.OWNER_PLAYER, GameRules.OWNER_ENEMY })
-                    { gs.SetMana(p, 0); gs.ResetSch(p); }
+                    { gs.SetMana(p, 0); gs.ResetSch(p); gs.ResetSpellOnlySch(p); }
                     await Delay(GameRules.PHASE_DELAY_MS);
                     return;
                 }
@@ -295,7 +296,7 @@ namespace FWTCG.Systems
                 Broadcast($"[抽牌] {DisplayName(who)} 无牌可抽");
                 // Rule 515.4.d: clear all pools even when no draw occurs
                 foreach (string p in new[] { GameRules.OWNER_PLAYER, GameRules.OWNER_ENEMY })
-                { gs.SetMana(p, 0); gs.ResetSch(p); }
+                { gs.SetMana(p, 0); gs.ResetSch(p); gs.ResetSpellOnlySch(p); }
                 await Delay(GameRules.PHASE_DELAY_MS);
                 return;
             }
@@ -310,6 +311,7 @@ namespace FWTCG.Systems
             {
                 gs.SetMana(p, 0);
                 gs.ResetSch(p);
+                gs.ResetSpellOnlySch(p);
             }
             Broadcast("[抽牌结束] 所有玩家符文池清空");
 
@@ -347,7 +349,7 @@ namespace FWTCG.Systems
                 // DEV-27: AI turn — no player input
                 TurnStateMachine.TransitionTo(TurnStateMachine.State.Normal_ClosedLoop);
                 Broadcast("[行动] AI 回合思考中…");
-                await _ai.TakeAction(gs, this, _combatSys, _scoreMgr, _entryEffects,
+                await _ai.TakeAction(GameRules.OWNER_ENEMY, gs, this, _combatSys, _scoreMgr, _entryEffects,
                                      _spellSys, _reactiveSys, _reactiveWindow,
                                      _legendSys, _bfSys);
             }
@@ -375,6 +377,7 @@ namespace FWTCG.Systems
             // Clear mana and schematic energy
             gs.SetMana(who, 0);
             gs.ResetSch(who);
+            gs.ResetSpellOnlySch(who);
 
             Broadcast($"[结束] {DisplayName(who)} 回合结束，法力与符能清零");
 
