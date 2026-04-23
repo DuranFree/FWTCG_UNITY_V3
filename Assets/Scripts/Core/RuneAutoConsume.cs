@@ -7,6 +7,11 @@ namespace FWTCG.Core
     /// DEV-20: Computes which runes must be auto-tapped or auto-recycled
     /// to afford a card's mana cost and schematic (符能) cost.
     ///
+    /// **UI-OVERHAUL-1b 后使用范围**：玩家路径已切 prepared-runes 手动机制
+    /// （见 GameManager._preparedTapIdxs / ValidateAndCommitPreparedFor）；
+    /// 本类仅被 SimpleAI（AI 自动施法）/ Mulligan（开局手牌审阅）/ 反应窗口 3 处调用。
+    /// 玩家主动出牌请勿再新增引用，以免绕过 prepared UI 流程。
+    ///
     /// Algorithm:
     ///   1. manaDeficit  = max(0, card.Cost  – gs.GetMana(owner))
     ///   2. schDeficit   = max(0, card.RuneCost – gs.GetSch(owner, card.RuneType))

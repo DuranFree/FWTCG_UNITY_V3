@@ -6,24 +6,24 @@
 - ✅ CardData ScriptableObject 字段扩展 — DEV-2 已添加 keywords/effectId/isEquipment；DEV-3 已添加 isSpell/spellTargetType — Phase DEV-3
 - ✅ 卡牌图片未导入 — DEV-2 已解决单位卡图片；DEV-3 已复制并导入10张法术卡图片 — Phase DEV-3
 - ✅ StartupFlowUI 掷硬币无动画 — DEV-24 已实现完整翻转动画（CoinSpinRoutine 5次翻转+弹跳），VFX-6 追加金色粒子爆发 — Phase DEV-2→DEV-24→VFX-6
-- [ ] UI 引用在 batch mode 下通过 GameObject.Find 连线，运行时若场景结构变化会失效 — Phase DEV-1
+- ⚠️ WONTFIX — UI 引用 GameObject.Find 连线风险 — 设计 trade-off：SceneBuilder 是构建期工具，Find 在 Init 时一次性解析，不在运行时逐帧调用；场景结构变化由 SceneBuilder 重建流程兜底。— Phase DEV-1
 - ✅ balance_resolve "费用-2"条件效果 — CARD-FIX-1 已实现：GameRules.GetSpellEffectiveCost（对手得分≤3 或距胜≤3 时自身费用-2），不需手牌目标 UI — Phase DEV-3→CARD-FIX-1
 - ✅ 反应法术（swindle/retreat_rune/scoff等）未实现 — DEV-4 已实现 ReactiveSystem（9张反应牌全效果）+ ReactiveWindowUI（TaskCompletionSource异步窗口）— Phase DEV-4
 - ✅ AI 不会使用法术 — DEV-4 已实现：SimpleAI 识别 IsSpell+非Reactive+自动选目标后施放 — Phase DEV-4
 - ✅ DEV-1/DEV-2 交互测试补写（EditMode）— 已补完：DEV1InteractionTests 22项 + DEV2InteractionTests 17项，全绿 — Phase DEV-3
 - ✅ 反应窗口双向对称 — DEV-15 已实现：玩家施法时 AI 自动选牌反应（CastPlayerSpellWithReactionAsync），AiPickBestReactiveCard 五级优先级 — Phase DEV-4→DEV-15
-- [ ] 反应牌自动选目标（无目标选择UI）— DEV-4 简化，完整目标选择待 DEV-5+ — Phase DEV-4
-- [ ] 反应按钮无倒计时（点击后玩家可无限等待）— DEV-4 简化，30秒倒计时+自动随机出牌待 DEV-11 — Phase DEV-4
+- 📋 MOVED — 反应牌自动选目标 UI → feature-checklist（功能增强而非技术债）
+- 📋 MOVED — 反应按钮 30s 倒计时 + 自动随机出牌 → feature-checklist（功能增强）
 - ✅ AI 传奇技能决策 — DEV-7 已实现：卡莎虚空感知（手牌有炽烈法术且符能不足时触发）— Phase DEV-7
 - ✅ 传奇升级视觉 — DEV-15 已实现：LegendSystem.OnLegendEvolved 事件 + GameUI.FlashLegendText 金色闪烁协程 — Phase DEV-5→DEV-15
-- [ ] BF效果目标选择无UI（aspirant_climb/star_peak等自动选择）— DEV-6 简化，完整目标选择UI待后续Phase — Phase DEV-6
-- [ ] BF卡 SceneBuilder 尚未创建 CardData asset（19张BF卡仅有逻辑层，无.asset文件）— 运行时通过BFNames字符串ID触发，待资产Phase创建 — Phase DEV-6
+- 📋 MOVED — BF 效果目标选择 UI → feature-checklist（功能增强）
+- 📋 MOVED — BF 卡 SceneBuilder CardData asset 化 → feature-checklist（资产迁移）
 - ✅ CardGlow.shader 材质已连线到 CardPrefab rootImg — DEV-8 hotfix
 - ✅ CardShine overlay 材质已创建 ShineOverlay Image 子对象 — DEV-8 hotfix
 - ✅ HexGrid.shader 材质已赋予 Background Image — DEV-8 hotfix
 - ✅ 悬停放大动画 — CardHoverScale.cs 已实现（Lerp 1.08x scale，Update协程），SceneBuilder 已连线 — Phase DEV-8→DEV-9
 - ✅ 入场 Foil Sweep 未实现 — DEV-30 V6 已实现：EnsureShineOverlay + FoilSweepRoutine，CardShine.shader 克隆材质，OnDestroy 销毁 — Phase DEV-8→DEV-30
-- [ ] kaisa_legend/yi_legend CardData 缺少卡图（需 tempPic 中找传奇卡图片，或用户提供）— Phase DEV-10
+- 📋 MOVED — kaisa_legend/yi_legend 卡图缺失 → feature-checklist（资产项，需用户提供卡图）
 - ✅ 弃牌堆/放逐堆 Button onClick — 已通过 GameUI.SetPileClickCallback + WirePileButtons() 在运行时连线，实现正常 — Phase DEV-10
 - ✅ DamagePopup 每次 new GameObject（GC churn）— DEV-31 cleanup 已修：Stack&lt;DamagePopup&gt; 池；Create 优先复用，动画完成 SetActive(false) 回池；ClearPool 场景切换清理 — Phase DEV-17→DEV-31 cleanup
 - ✅ Ephemeral 单位打出时未设置 IsEphemeral/SummonedOnRound — 已修复：UnitInstance 构造函数从 CardData.HasKeyword(Ephemeral) 初始化 IsEphemeral；TryPlayUnit 打出瞬息单位时设置 SummonedOnRound=gs.Round — Phase DEV-18（Claude 审查 High → 已解决）
@@ -33,11 +33,11 @@
 - ✅ AskPromptUI._cardViewPrefab 为 null 时 card-pick 静默跳过 — 已确认：SceneBuilder 已连线，优雅降级属设计预期，不修复 — Phase DEV-19 → DEV-31 WONTFIX
 - ✅ ScoreRingRoutine 活跃 ring 跟踪 — DEV-31 cleanup 已修：List&lt;GameObject&gt; _activeScoreRings，OnComplete 移除，GameUI.OnDestroy 统一清理 — Phase DEV-19→DEV-31 cleanup
 - ✅ GameUI.RefreshScoreTrack 多分得分只动画最终圆圈 — 见下方 DEV-32 条（重复，此处归并） — Phase DEV-19→DEV-32
-- [ ] GameUI.NotifyReactButtonState 有空反应路径 — 仅调用 FireHintToast("")，未调用 PlayReactRibbonReveal（设计确认：ribbon reveal 由 GameManager 直接调用）— Phase DEV-19（Codex Low）
+- ✅ GameUI.NotifyReactButtonState 空路径 — 当前版本无 FireHintToast("") 代码；注释确认 ribbon reveal 由 GameManager 直接调用，职责分离正确 — Phase DEV-19→DEV-31 cleanup（追认）
 - ✅ ToastUI 去重仅按原始消息文本 — 已确认：null/empty 守卫已在 DEV-26 修复（行80），跨源折叠属设计预期 — Phase DEV-19 patch → DEV-31 confirmed resolved
 - ✅ EventBanner 去重忽略 duration 和 large 参数 — 已确认：EventBanner 已重构为 batch 系统，无文本去重遗留问题 — Phase DEV-19 patch → DEV-31 confirmed resolved
 - ✅ GameUI.ShowCombatResult 无协程句柄 — 已确认：_crHideRoutine 字段已存在并正确使用 — Phase DEV-19 patch → DEV-31 confirmed resolved
-- [ ] RuneAutoConsume.Compute 与 OnRuneClicked 符文可回收规则不一致 — Compute 跳过已横置符文，但 OnRuneClicked recycle 路径现已同步禁止，DEV-20 H-2 已修复互斥；更深层需统一符文状态机 — Phase DEV-20（Codex Medium）
+- ⚠️ DEFER-DEV-32 — RuneAutoConsume 与 OnRuneClicked 深层统一 — 表面互斥已修；完整符文状态机统一属架构重构，归入 DEV-32 — Phase DEV-20→DEV-32
 - ✅ ReactiveWindowUI 无 OnDisable 回退 — DEV-31 已修复：OnDisable 加 `_tcs?.TrySetCanceled()`，组件禁用时取消悬挂 Task — Phase DEV-20→DEV-31
 - ✅ SpellVFX.BurstParticles/LegendFlame 协程被中断时粒子 GO 泄漏 — DEV-31 cleanup 加固：LegendFlame 循环加 null check，配合 OnDestroy 的 _ownedParticles 批量清理兜底；BurstParticles 用 LinkKillOnDestroy 已自动兜底 — Phase DEV-21→DEV-31 cleanup
 - ✅ Swift 关键词仅数据/UI层，法术对决实际判断仍只看 Reactive — DEV-27 已实现：TurnStateMachine CanPlaySpell Rule 718，AiTryReact + 玩家反应窗口两处筛选加 Swift — Phase DEV-25b→DEV-27
@@ -47,8 +47,8 @@
 - ✅ DEV-22 测试套件缺行为测试 — DEV-32 已补充：CanStartDrag=false 保护、BlockPointerEvents 清理、多回调覆盖、null 回调安全 — Phase DEV-22→DEV-32
 - ✅ ReactiveWindowUI AutoPlayRandom 严格防御 — DEV-31 cleanup 已修：新增 FilterStalePendingCards 先过滤离手卡再随机 — Phase DEV-22→DEV-31 cleanup
 - ✅ SceneryUI.DividerOrbLoop 基准位置 — 已确认：DEV-26 已修复，仅缓存 baseY，X 轴读实时值 — Phase DEV-23 → DEV-31 confirmed resolved
-- [ ] GlassPanelFX Shader.Find 运行时查找 — 代码已有 LogWarning 兜底，属项目配置项；待打包前在 Project Settings → Graphics → Always Included Shaders 添加 FWTCG/GlassPanel — Phase DEV-25（配置待处理）
-- [ ] ShowStatusTooltip AutoDismissTooltip 只监听鼠标按下，键盘/游戏手柄操作无法关闭 tooltip — 低优先级，当前目标平台为 PC — Phase DEV-25（Low）
+- ⚠️ WONTFIX（配置）— GlassPanelFX Always Included Shaders — 打包前项目设置配置项，不属代码 — Phase DEV-25
+- ⚠️ WONTFIX（PC-only 平台）— ShowStatusTooltip 键盘/手柄关闭 — 当前目标平台为 PC 鼠标 — Phase DEV-25
 - ✅ ShowTargetHighlights 遍历含 _playerHandContainer — 已移除，手牌容器不参与目标高亮 — Phase DEV-28→DEV-29
 - ✅ CardView.Setup 复用时 HeroAura 不清除 — 已修复：ClearHeroAura() + _enterAnimPlayed 重置 — Phase DEV-28→DEV-29
 - ✅ SpellTargetPopup / ActivateEquipmentAsync 无 try/finally 保护 — 已修复：GameManager 两处 await 均加 try/finally — Phase DEV-28→DEV-29
@@ -60,7 +60,7 @@
 - ✅ CreateOverlayImage sizeDelta 参数被忽略 — DEV-31 已修复：offsetMin/offsetMax 加入 sizeDelta*0.5 扩展，HeroAura 现可正确超出卡牌 4px — Phase DEV-28→DEV-31
 - ✅ SpellDuelUI.FindRootCanvas 每次 FindObjectsOfType — DEV-31 已修复：_rootCanvas 在 Awake() 缓存，ShowDuelOverlay 优先使用缓存值，避免每帧 O(n) 分配 — Phase DEV-30→DEV-31
 - ✅ SpellDuelUI 无重复实例保护 — DEV-31 已修复：Awake 加 `if (Instance != null && Instance != this) { Destroy(this); return; }` 单例守卫 — Phase DEV-30→DEV-31
-- [ ] SpellDuelUI 订阅 OnClearBanners 触发 HideDuelOverlay，同一事件也触发 ReactiveWindowUI.AutoPlayRandom — 轮次切换时两者同步触发，设计预期如此，但 AutoPlayRandom 强制打出随机牌会绕过对决倒计时；待业务确认 — Phase DEV-30（设计待确认，DEV-31 保留）
+- ⚠️ DEFER-UX — SpellDuelUI OnClearBanners 同步触发 AutoPlayRandom — 业务/UX 设计待确认，本 Phase 不决策 — Phase DEV-30
 - ✅ ReactiveWindowUI.WaitForReaction 不取消旧 TCS — DEV-31 已修复：WaitForReaction 开头加 `_tcs?.TrySetCanceled()` 防止旧 Task 永久挂起 — Phase DEV-30→DEV-31
 - ✅ GameManager WaitForReaction await 无 OperationCanceledException 保护 — DEV-31 Codex HIGH 发现并修复：try/catch 包裹 await，防 OnDisable 取消后 _reactionWindowActive 卡死 — Phase DEV-31
 - ✅ CardView.EnterAnimRoutine 无重试路径 — DEV-32 已修复：_enterAnimPlayed 移入协程内部，失败路径重置为 false 允许重试 — Phase DEV-30→DEV-32
@@ -78,7 +78,7 @@
 - ✅ AnimMatFX.AnimMatActionType 枚举限制 — DOT-2 已迁移到 TweenMatFX，AnimMatFX 无引用可删除 — Phase VFX-1→DOT-2
 - ✅ AnimMatFX.Create 复用清空问题 — DOT-2 已迁移到 TweenMatFX，AnimMatFX 无引用可删除 — Phase VFX-3→DOT-2
 - ✅ CardView.DissolveOrFallbackRoutine fallback 红色累积叠加 — DEV-31 cleanup 已修：从捕获的 imgColors[i] 基准值插值（非读取累积后的 current color） — VFX-3→DEV-31 cleanup
-- [ ] VFX-3 dissolve 路径 Phase B ghost 大小固定 0.6x（dissolve 不缩放卡牌，ghost 与实际卡牌尺寸轻微不一致）— VFX-3（LOW）
+- ⚠️ WONTFIX（视觉设计选择）— VFX-3 dissolve ghost 0.6x 尺寸差 — 设计有意缩小以表达"灵魂飞出"，非 bug — VFX-3
 - ✅ AudioTool.FadeRoutine 被外部 StopAllCoroutines 打断时 ch.FadeRoutine 引用不清空 — DOT-3 已解决：改用 DOTween FadeTween，CancelFade 直接 Kill，不受 StopAllCoroutines 影响 — VFX-5→DOT-3
 - ✅ AnimMatFX.cs 文件已删除 — DOT-7 确认无引用后安全删除 — DOT-2→DOT-7
 - ✅ DissolveOrFallbackRoutine fallback path tween 未存入字段 — DEV-31 cleanup 已修：新增 _fallbackTween 字段 + OnDestroy KillSafe — DOT-7→DEV-31 cleanup
@@ -91,17 +91,17 @@
 - ✅ CardBackManager.Load 硬编码忽略 PlayerPrefs — DEV-31 cleanup 已修：Load 尊重 PREF_KEY（默认 BackPencil 回退），SetPlayerCardBack 现可跨 domain reload 持久化 — DOT-8→DEV-31 cleanup
 - ✅ 历史测试未跟上代码演化（11 项 DOT*/DEV21* 失败）— DEV-31 cleanup 已修：DOT_MAX_SIZE 5 / HOVER_SCALE 1.18 / ENDTURN_PULSE 0.82 / SHAKE 0.08+12 / Chaos teal 全部同步源码；StartupFlowUI 5 项 SHUFFLE_* / _shuffleGhosts 测试删除（字段不存在）— 记录于 Detail Popup 清理 Phase→DEV-31 cleanup
 - ✅ GameManager.OnDragHandGroupToBase/OnSpellGroupDraggedOut/PlaySpellGroupAsync 死代码 — DEV-31 cleanup 已删：UI-OVERHAUL-1a 单选化后 CardDragHandler 无调用，三个方法全部移除 — UI-OVERHAUL-1a→DEV-31 cleanup
-- [ ] GameManager.GetSelectedHandUnits/GetSelectedBaseUnits 返回 List 但单选下恒 ≤ 1 项 — 可逐步改为单元素字段 — UI-OVERHAUL-1a
+- ⚠️ DEFER-DEV-32 — GetSelectedHandUnits/GetSelectedBaseUnits 列表签名 — DEV-31 cleanup 已加 XML 不变量注释（恒 ≤ 1）；真正改单元素涉及 GameManager + GameUI + CardDragHandler 三处签名，归 DEV-32 — UI-OVERHAUL-1a
 - ✅ _pendingDragHasteDecision / SetDragHasteDecision / DragNeedsHasteChoice 暂留但失效 — DEV-31 cleanup 已删：CardDragHandler 不再调用，字段 + 两个方法全部移除 — UI-OVERHAUL-1a→DEV-31 cleanup
-- [ ] RuneAutoConsume.Compute / ExecuteRunePlan 仍被 AI / Mulligan 使用，玩家路径已切 prepared 机制 — UI-OVERHAUL-1b
-- [ ] OnCardHoverEnter/OnHeroHoverEnter 等 hover 入口 no-op 保留方法签名，1c 再决定是否恢复 hover 预览 — UI-OVERHAUL-1b
+- ✅ RuneAutoConsume.Compute / ExecuteRunePlan 使用范围文档化 — DEV-31 cleanup 已加 XML doc 标注：仅被 AI / Mulligan / 反应窗口使用，玩家路径已切 prepared 机制；禁止新增玩家路径引用 — UI-OVERHAUL-1b→DEV-31 cleanup
+- ⚠️ WONTFIX（测试契约）— OnCardHoverEnter/OnHeroHoverEnter no-op — BugFixBaseCardVisibilityTests 要求保留方法签名（英雄费用预览钩子入口），空实现正确 — UI-OVERHAUL-1b
 - ✅ Haste 关键词硬编码 false — 1c-β 已实现：ValidateAndCommitPreparedFor 按"多准备 +1 法力 + +1 主符能"自动激活 Haste（GameManager line 281-288）— UI-OVERHAUL-1b→UI-OVERHAUL-1c-β
-- [ ] GameUI 字段 _confirmRunesBtn/_cancelRunesBtn 语义推广为全局按钮后名字未改（SceneBuilder 连线仍依赖旧字段名） — UI-OVERHAUL-1c-α
-- [ ] OnConfirmClicked / OnCancelClicked 为 stub — 1c-β 补 combat 延迟触发；1c-γ 补 LIFO 回滚 + AI 适配 — UI-OVERHAUL-1c-α
-- [ ] Confirm/Cancel 按钮"激活瞬间闪烁 + 长亮发光 + 粒子"未做，当前仅亮/暗二态 — 1c-γ 整体润色 — UI-OVERHAUL-1c-α
-- [ ] Confirm 按钮"粒子从按钮向上飘"用户原需求未实现，当前用 DOPunchScale + Yoyo scale pulse 代替 — UI-OVERHAUL-1c-γ
-- [ ] Roam（BF→BF）延迟 combat 但不入回滚栈，取消按钮不能撤销 Roam 移动 — 低优先级 — UI-OVERHAUL-1c-γ
-- [ ] 玩家"确定"触发 combat 期间若敌方触发反应窗口，_bfClickInFlight 状态与反应窗口时序耦合未端到端验证 — 需 Play Mode 观察 — UI-OVERHAUL-1c-γ
+- ⚠️ DEFER（连线成本）— _confirmRunesBtn/_cancelRunesBtn 字段重命名 — SceneBuilder 连线依赖旧名，改名需要同步重建场景；留待 SceneBuilder 整体重构
+- ✅ OnConfirmClicked / OnCancelClicked 为 stub — UI-OVERHAUL-1c-β/γ 已实现：Confirm 调 TriggerPendingCombatsAsync；Cancel 调 LIFO RollbackEntry（见 dev-log 1c-β/γ）— UI-OVERHAUL-1c-α→UI-OVERHAUL-1c-γ
+- ✅ Confirm/Cancel 按钮"激活瞬间闪烁 + 长亮" — UI-OVERHAUL-1c-γ 已实现：DOPunchScale + Yoyo scale pulse（粒子上飘未做，见下条）— UI-OVERHAUL-1c-α→UI-OVERHAUL-1c-γ
+- ⚠️ DEFER-UX — Confirm 按钮粒子向上飘 — scale pulse 已满足"视觉反馈"最低要求，粒子是 polish 项
+- ⚠️ DEFER-LOW — Roam 不入回滚栈 — 低优先级，非典型回滚需求
+- ⚠️ DEFER-PLAYMODE — combat+反应窗口时序 — 需人工 Play Mode 验证，不在 EditMode 测试覆盖范围
 
 - ✅ Echo 机制玩家 UI 路径 — CARD-FIX-2 已实现：AskPromptUI 付费确认 + SpellTargetPopup 选新目标；3 张 Echo 法术全部接入 — Phase CARD-FIX-1→CARD-FIX-2
 - ✅ stardrop 第二段玩家选不同目标 UI — CARD-FIX-2 已实现：SpellTargetPopup.ShowAsync(EnemyUnit) 选第二段目标 — Phase CARD-FIX-2

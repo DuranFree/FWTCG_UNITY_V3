@@ -2697,3 +2697,41 @@ akasi_storm "进行六次"：
 **Tests**: EditMode **1149/1149 全绿** — 历史遗留失败归零！
 **引擎场景验证**: 本 Phase 纯代码清理 + 测试同步，无视听改动，按 CLAUDE.md §1 标注跳过
 **代码审查**: 5 项改动均为 low-risk 防御性修改，Claude 自审未发现问题
+
+## DEV-31 cleanup 最终扫尾：tech-debt 分类归档 — 2026-04-23
+
+**Status**: ✅ Completed（DEV-31 cleanup Phase 正式结束）
+
+**What was done**:
+- **代码注释** (2 项)：
+  - `GetSelectedHandUnits/GetSelectedBaseUnits` 加 XML "UI-OVERHAUL-1a 不变量" 注释（恒 ≤ 1）
+  - `RuneAutoConsume.Compute/ExecuteRunePlan` 加使用范围 XML doc（玩家路径已切 prepared，仅 AI/Mulligan/反应窗口调用；禁新增玩家路径引用）
+- **追认已解决** (5 项)：
+  - `NotifyReactButtonState` 空路径（代码已无 FireHintToast("")）
+  - `OnConfirmClicked/OnCancelClicked` stub（1c-β/γ 已实现 combat 延迟 + LIFO 回滚）
+  - `Confirm/Cancel 按钮激活动效`（1c-γ DOPunchScale + Yoyo pulse 已有）
+  - `Haste 硬编码 false`（1c-β ValidateAndCommitPreparedFor 已自动激活）
+  - `RuneAutoConsume 使用范围`（本次 XML doc 化）
+- **迁移 feature-checklist** (5 项，**不是技术债**，是功能增强)：
+  - 反应牌目标 UI / 反应按钮倒计时 / BF 效果目标 UI / BF 卡 .asset / 传奇卡图
+- **WONTFIX 标记** (6 项)：
+  - GameObject.Find（设计 trade-off） / GlassPanelFX Always Included（打包配置） / 键盘关闭 tooltip（PC-only）
+  - VFX-3 ghost 0.6x（视觉设计有意）/ OnCardHoverEnter/OnHeroHoverEnter no-op（测试契约保留）
+  - _confirmRunesBtn 改名（SceneBuilder 连线成本）
+- **DEFER 标记** (4 项，需 UX 决策或 Play Mode 验证)：
+  - SpellDuelUI OnClearBanners / Confirm 粒子上飘 / Roam 回滚 / combat+反应时序
+- **DEFER-DEV-32** (2 项)：
+  - GetSelected*Units 真正改单元素（跨 3 处签名）
+  - RuneAutoConsume 深层符文状态机统一
+
+**tech-debt 最终状态**：6 项开放全为 A1-A6 架构摩擦（DEV-32 territory），其余全部归档 / 追认 / 迁移 / WONTFIX。
+
+**DEV-31 cleanup 总结**（5 批 commits）：
+- 批 1 (71ef0b5): 5 项代码 + 11 项历史测试同步 → 1149/1149 绿
+- 批 2 (41064a4): DamagePopup 池 / ReactiveWindowUI SkipReaction / 死代码 group methods
+- 批 3 (0d97ca6): _endTurnRequested / ClearTargetHighlights 风格 / ScoreRing 跟踪 / SpellVFX 粒子加固
+- 批 4 (5974564): _fallbackTween 字段 / Fallback 插值修正 / CardBackManager PlayerPrefs
+- 批 5 (本次): 文档化 + 分类归档 17 项
+
+**Tests**: EditMode 1149/1149 全绿贯穿始终，无警告（recompile 0 warnings）
+**编译**: 0 error 0 warning

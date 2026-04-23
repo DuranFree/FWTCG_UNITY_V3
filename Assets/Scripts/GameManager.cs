@@ -349,12 +349,17 @@ namespace FWTCG
         public bool IsUnitInBase(UnitInstance unit) => _gs != null && _gs.PBase.Contains(unit);
 
         /// <summary>
-        /// Returns the current multi-select list for the player base.
-        /// CardDragHandler uses this to build the cluster group.
+        /// Returns the current selection list for the player base.
+        /// **UI-OVERHAUL-1a 不变量**：单选化后恒 ≤ 1 项（Count 0 或 1）。
+        /// 签名保留 List 形态只因 GameUI.Refresh / CardDragHandler 签名未一起重构；
+        /// DEV-32 架构阶段可迁移到单元素字段（见 tech-debt UI-OVERHAUL-1a）。
         /// </summary>
         public List<UnitInstance> GetSelectedBaseUnits() => _selectedBaseUnits;
 
-        /// <summary>Returns the current multi-select list for the player hand.</summary>
+        /// <summary>
+        /// Returns the current selection list for the player hand.
+        /// **UI-OVERHAUL-1a 不变量**：单选化后恒 ≤ 1 项（见 GetSelectedBaseUnits 注释）。
+        /// </summary>
         public List<UnitInstance> GetSelectedHandUnits() => _selectedHandUnits;
 
         /// <summary>Clears all hand and base selections and refreshes the UI.</summary>

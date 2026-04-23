@@ -524,3 +524,13 @@
 - [x] _gs.CardsPlayedThisTurn 按回滚条数减回
 - [x] Confirm/Cancel 按钮激活动效：状态切换到 active → DOPunchScale（0.18, 0.35s）+ DOScale 1.04 Yoyo 长亮 pulse；切回 dim → Kill tween + scale 归 1
 - [x] UIOverhaul1cBetaGammaTests 7 项：HandToBase 回手/符能/Tap/Recycle 撤销 + BaseToBF / HeroToBase 回滚 + LIFO 多条 + 空战场拒绝
+
+## 待办功能（从 tech-debt 迁移 — DEV-31 cleanup 分类）
+
+这些是**功能增强**而非技术债，需 Phase 排期：
+
+- [ ] 反应牌目标选择 UI（DEV-4 简化自动选，完整目标选择 UI 待实现）
+- [ ] 反应按钮 30s 倒计时 + 到期自动随机出牌（DEV-4 简化，无倒计时）
+- [ ] BF 效果目标选择 UI（aspirant_climb / star_peak 等当前自动选，完整 UI 待）
+- [ ] BF 卡 CardData .asset 文件化（19 张 BF 卡仅逻辑层，运行时用 BFNames 字符串触发）
+- [ ] kaisa_legend / yi_legend 卡图（需 tempPic 中传奇卡图片，或用户提供）
