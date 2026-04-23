@@ -2735,3 +2735,61 @@ akasi_storm "进行六次"：
 
 **Tests**: EditMode 1149/1149 全绿贯穿始终，无警告（recompile 0 warnings）
 **编译**: 0 error 0 warning
+
+## DEV-32：架构优化 A1-A6 — 2026-04-23
+
+**Status**: ✅ Completed（6 项架构摩擦全部解决，tech-debt 归零）
+
+**触发**：DEV-31 cleanup 后 tech-debt 剩 6 项 A1-A6 架构级；用户切 HIGH 推理授权推进。
+
+**执行顺序**（依赖/价值权衡）：A3 → A4 → A6 → A5 → A1 → A2
+
+### A3 DamageRouter（`51f42b7`）
+Systems/DamageRouter.cs 统一伤害入口。4 种 DamageKind：
+- Combat（防透支 + 无 BF 加成）/ Spell（加 BF + 允许透支）/ AreaSpell（无加成 + 允许透支）/ Debug
+- 单点 FireUnitDamaged（全项目唯一路径）
+- 死亡路径各系统保留（保护链差异大，合并风险不值）
+
+调用方：SpellSystem.DealDamage / AkasiStorm / CombatSystem.DistributeDamage / GameManager Debug 全迁移
+
+### A4 IReactionWindow（`3267d2e`）
+UI/IReactionWindow.cs 接口；ReactiveWindowUI 实现；GameManager.InjectReactionWindow 测试注入
+- 新增 5 项 DEV32ReactionWindowTests（mock 可测试）
+- 解锁未来反应流单测的能力
+
+### A6 事件总线统一（`96b823e`）
+GameEventBus.OnUnitEntered(unit, owner) + OnUnitsDied(units, bfId) 事件
+- EntryEffectSystem / DeathwishSystem OnEnable 订阅；Inject(gs) 提供状态引用
+- GameManager / SimpleAI / CombatSystem 所有直接调用（8 处 entry + 3 处 died）改 Fire
+
+### A5 三层状态分层澄清（`5a9ed43`）
+调研后判定：TurnStateMachine / TurnManager.Phase / GameManager UI 锁 关注**不同轴**，合并会丢信息。
+- GameManager 反应窗口 flag 加 XML doc 明确三层职责
+- TurnStateMachine.IsResolving 便利查询
+- 新增 4 项 DEV32StateLayersTests 记录设计为 intentional
+
+### A1 GameState facade（`ef0769a`）
+GameState.OnManaChanged(owner, oldVal, newVal) 事件，SetMana/AddMana 触发，amount=0/同值 no-op
+- 9 处直接 mutation 迁移：GameManager 8 + BattlefieldSystem 1
+- 直接赋值 PMana/EMana 保留（初始化用），但不 Fire（intentional）
+- 新增 5 项 DEV32GameStateFacadeTests
+
+### A2 UI ViewModel 骨架（`5aeb7cd`）
+UI/GameStateViewModel.cs 纯代理层（不缓存状态）
+- 订阅 GameState.OnManaChanged + ScoreManager.OnScoreAdded
+- 按 owner 分发 4 个事件：OnPlayerManaChanged / OnEnemyManaChanged / OnPlayerScoreChanged / OnEnemyScoreChanged
+- 同步查询：PlayerMana / EnemyMana / Scores / Phase / GameOver
+- IDisposable 幂等
+- 新增 5 项 DEV32ViewModelTests
+
+**Decisions made**：
+- A3：不合并死亡移除路径（各系统保护链 Guardian/Zhonya + BF 处理差异大，合并风险不值）
+- A5：不合并三层（关注轴不同：TurnStateMachine 法术合法性，TurnManager 流程，GameManager UI 锁）— 文档化为 intentional
+- A1：不封禁 public set PMana/EMana（破坏面太大），加事件为"新代码应走 API"的软约束
+- A2：不重写 RefreshUI，ViewModel 作为增量迁移单点；只 wiring mana + score 为示例
+
+**Tests**: EditMode **1168/1168 全绿**，+19 项 DEV-32 新测试。0 编译警告。
+**引擎场景验证**: 纯架构改动，无视听/场景，按 CLAUDE.md §1 跳过。
+**代码审查**: Claude 自审（Codex 不可用）；所有改动均保持运行时行为不变（事件化路径与直接调用等价），高信心。
+
+**tech-debt 全局状态**：从 DEV-31 启动的 27 项 → DEV-32 结束后 **0 项开放**。

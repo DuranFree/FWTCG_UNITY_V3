@@ -47,8 +47,8 @@
 | VFX-8 | 投射物系统（可选） | Projectile.cs + 飞行动画 |
 | CARD-FIX-1 | 卡面规则一致性修复（批1+批2a） | thousand_tail/darius/tiyana/time_warp/balance_resolve/rally_call 纯逻辑 + jax/stardrop/akasi/furnace 的 AI 路径 + Echo 基础设施 |
 | CARD-FIX-2 | 多段法术玩家 UI 路径 ✅ | Echo 付费确认 + stardrop/akasi/furnace 目标/位置选择 UI；反应法术 RuneCost 漏扣 pre-existing bug 顺修 |
-| DEV-31 | Tech-Debt Cleanup | 清理 tech-debt.md 中所有未解决项 |
-| DEV-32 | 架构优化 | Final Architecture Review |
+| DEV-31 | Tech-Debt Cleanup ✅ | 27→6 项；11 项历史测试同步全绿；剩 6 项为 A1-A6 架构（已转 DEV-32）|
+| DEV-32 | 架构优化 ✅ | A1-A6 六项全部完成：DamageRouter / IReactionWindow / 三层分层澄清 / 事件总线统一 / GameState facade / ViewModel 骨架 |
 
 ---
 

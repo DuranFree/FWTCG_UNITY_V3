@@ -69,12 +69,12 @@
 - ✅ GameUI.RefreshScoreTrack 多分得分只动画最终圆圈 — DEV-32 已修复：保存 prevPScore/prevEScore，对每个新亮圆圈均触发脉冲 — Phase DEV-19→DEV-32
 - ✅ RuneAutoConsume.Compute 与 OnRuneClicked 符文规则不一致 — DEV-32 已统一：新增 CanTap()/CanRecycle() 静态方法，两处均使用 — Phase DEV-20→DEV-32
 - ✅ SpellVFX.BurstParticles/LegendFlame 协程中断时粒子 GO 泄漏 — DEV-32 已修复：_ownedParticles HashSet 精确追踪，OnDestroy 清理，不再依赖 vfxLayer 子节点批量销毁 — Phase DEV-21→DEV-32
-- [ ] 架构摩擦点 A1：GameState 被 12+ 个系统直接读写，无访问封装 — 详见 docs/architecture.md §六 — Phase DEV-32（架构改进建议，不阻塞）
-- [ ] 架构摩擦点 A2：UI 层无 ViewModel，依赖 RefreshUI() 手动同步 — 详见 docs/architecture.md §六 — Phase DEV-32（架构改进建议）
-- [ ] 架构摩擦点 A3：伤害/死亡逻辑分散在 Combat/Spell/ReactiveSystem 三处 — 详见 docs/architecture.md §六 — Phase DEV-32
-- [ ] 架构摩擦点 A4：反应窗口 static TaskCompletionSource 难以单元测试 — 详见 docs/architecture.md §六 — Phase DEV-32
-- [ ] 架构摩擦点 A5：TurnStateMachine + TurnManager + GameManager 三层状态管理并存 — 详见 docs/architecture.md §六 — Phase DEV-32
-- [ ] 架构摩擦点 A6：入场/死亡触发链通过直接调用编排，非统一事件总线 — 详见 docs/architecture.md §六 — Phase DEV-32
+- ✅ 架构摩擦点 A1 — DEV-32 已做：GameState.OnManaChanged 事件 + AddMana/SetMana facade；核心 9 处直接 mutation 迁移；为 A2 ViewModel 奠基 — Phase DEV-32
+- ✅ 架构摩擦点 A2 — DEV-32 已做：UI/GameStateViewModel 骨架，代理 GameState+ScoreManager 事件，按 owner 分发 — Phase DEV-32
+- ✅ 架构摩擦点 A3 — DEV-32 已做：Systems/DamageRouter 统一伤害入口（Combat/Spell/AreaSpell/Debug 4 种），扣 HP + FireUnitDamaged + BF 加成单点化 — Phase DEV-32
+- ✅ 架构摩擦点 A4 — DEV-32 已做：UI/IReactionWindow 接口 + GameManager.InjectReactionWindow 测试注入 hook — Phase DEV-32
+- ✅ 架构摩擦点 A5 — DEV-32 已做：三层职责澄清（不合并），加权威 XML doc + IsResolving 便利查询 + 不变量测试 — Phase DEV-32
+- ✅ 架构摩擦点 A6 — DEV-32 已做：GameEventBus.OnUnitEntered / OnUnitsDied 事件；EntryEffectSystem / DeathwishSystem 订阅；GameManager/SimpleAI/CombatSystem 直接调用改 Fire — Phase DEV-32
 - ✅ AnimMatFX.AnimMatActionType 枚举限制 — DOT-2 已迁移到 TweenMatFX，AnimMatFX 无引用可删除 — Phase VFX-1→DOT-2
 - ✅ AnimMatFX.Create 复用清空问题 — DOT-2 已迁移到 TweenMatFX，AnimMatFX 无引用可删除 — Phase VFX-3→DOT-2
 - ✅ CardView.DissolveOrFallbackRoutine fallback 红色累积叠加 — DEV-31 cleanup 已修：从捕获的 imgColors[i] 基准值插值（非读取累积后的 current color） — VFX-3→DEV-31 cleanup
