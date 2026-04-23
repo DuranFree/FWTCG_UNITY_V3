@@ -2105,9 +2105,14 @@ namespace FWTCG
             bool aiJaxActive = GameRules.IsJaxInPlay(GameRules.OWNER_ENEMY, _gs);
             foreach (var c in _gs.EHand)
             {
+                bool aiAffordRune = c.CardData.RuneCost == 0 ||
+                    _gs.GetTotalSch(GameRules.OWNER_ENEMY, c.CardData.RuneType) >= c.CardData.RuneCost;
+                bool aiAffordRune2 = !c.CardData.HasSecondaryRune ||
+                    _gs.GetTotalSch(GameRules.OWNER_ENEMY, c.CardData.SecondaryRuneType) >= c.CardData.SecondaryRuneCost;
                 bool spellReactive = c.CardData.IsSpell &&
                     (c.CardData.HasKeyword(CardKeyword.Reactive) || c.CardData.HasKeyword(CardKeyword.Swift)) &&
-                    GameRules.GetSpellEffectiveCost(c, GameRules.OWNER_ENEMY, _gs) <= _gs.EMana;
+                    GameRules.GetSpellEffectiveCost(c, GameRules.OWNER_ENEMY, _gs) <= _gs.EMana &&
+                    aiAffordRune && aiAffordRune2;
                 bool equipReactive = c.CardData.IsEquipment && aiJaxActive &&
                     c.CardData.Cost <= _gs.EMana &&
                     (c.CardData.RuneCost == 0 ||
@@ -2141,6 +2146,11 @@ namespace FWTCG
                 TurnManager.BroadcastMessage_Static($"[AI·贾克斯] 装备反应 {chosen.UnitName} 入基地");
                 return false;
             }
+            // 反应法术符文成本扣除（ApplyReactive 不扣 RuneCost，此处显式处理）
+            if (chosen.CardData.RuneCost > 0)
+                _gs.SpendSchForSpell(GameRules.OWNER_ENEMY, chosen.CardData.RuneType, chosen.CardData.RuneCost);
+            if (chosen.CardData.HasSecondaryRune)
+                _gs.SpendSchForSpell(GameRules.OWNER_ENEMY, chosen.CardData.SecondaryRuneType, chosen.CardData.SecondaryRuneCost);
             bool negated = _reactiveSys.ApplyReactive(chosen, GameRules.OWNER_ENEMY, playerSpell, _gs);
             return negated;
         }
@@ -2544,6 +2554,11 @@ namespace FWTCG
                 }
                 else
                 {
+                    // 反应法术符文成本扣除（ExecuteRunePlan 只补亏空，不扣 RuneCost 本身）
+                    if (picked.CardData.RuneCost > 0)
+                        _gs.SpendSchForSpell(GameRules.OWNER_PLAYER, picked.CardData.RuneType, picked.CardData.RuneCost);
+                    if (picked.CardData.HasSecondaryRune)
+                        _gs.SpendSchForSpell(GameRules.OWNER_PLAYER, picked.CardData.SecondaryRuneType, picked.CardData.SecondaryRuneCost);
                     // ApplyReactive handles hand→discard move internally
                     _reactiveSys?.ApplyReactive(picked, GameRules.OWNER_PLAYER, null, _gs);
                 }
