@@ -1,0 +1,160 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1920 1080" width="1920" height="1080" font-family="monospace">
+  <style>
+    .bg { fill:#ffffff; }
+    .zone { fill:none; stroke:#000; stroke-width:2; }
+    .zone-dash { fill:none; stroke:#000; stroke-width:2; stroke-dasharray:8,4; }
+    .pile { fill:none; stroke:#000; stroke-width:2; }
+    .bf { fill:none; stroke:#000; stroke-width:3; }
+    .bf-half { fill:none; stroke:#000; stroke-width:1; stroke-dasharray:4,3; }
+    .hand { fill:none; stroke:#000; stroke-width:2; stroke-dasharray:10,5; }
+    .rune { fill:none; stroke:#000; stroke-width:1.5; }
+    .lbl { fill:#000; font-size:18px; font-weight:bold; }
+    .lbl-sm { fill:#000; font-size:14px; }
+    .lbl-tiny { fill:#000; font-size:11px; }
+    .axis { fill:#666; font-size:10px; }
+  </style>
+
+  <rect class="bg" x="0" y="0" width="1920" height="1080"/>
+  <rect x="2" y="2" width="1916" height="1076" fill="none" stroke="#000" stroke-width="3"/>
+
+  <!-- === ENEMY HAND (top fan, extends off-screen) === -->
+  <path class="hand" d="M 635 115 Q 960 -60 1285 115"/>
+  <text class="lbl-sm" x="960" y="40" text-anchor="middle">敌方手牌 EnemyHand (扇形)</text>
+
+  <!-- === ENEMY HERO / LEGEND === -->
+  <rect class="zone" x="262" y="42" width="118" height="154"/>
+  <text class="lbl-sm" x="321" y="125" text-anchor="middle">英雄E</text>
+  <text class="lbl-tiny" x="321" y="142" text-anchor="middle">HERO</text>
+
+  <rect class="zone" x="391" y="42" width="118" height="154"/>
+  <text class="lbl-sm" x="450" y="125" text-anchor="middle">传说E</text>
+  <text class="lbl-tiny" x="450" y="142" text-anchor="middle">LEGEND</text>
+
+  <!-- === ENEMY PILES — left column (RunePile top, Exile mid) === -->
+  <rect class="pile" x="92" y="73" width="138" height="195"/>
+  <text class="lbl-sm" x="161" y="165" text-anchor="middle">符文堆</text>
+  <text class="lbl-tiny" x="161" y="182" text-anchor="middle">EnemyRunePile</text>
+
+  <rect class="pile" x="92" y="274" width="139" height="195"/>
+  <text class="lbl-sm" x="161" y="366" text-anchor="middle">放逐区</text>
+  <text class="lbl-tiny" x="161" y="383" text-anchor="middle">EnemyExile</text>
+
+  <!-- === ENEMY PILES — right column (Discard top, MainPile mid) === -->
+  <rect class="pile" x="1689" y="73" width="139" height="195"/>
+  <text class="lbl-sm" x="1758" y="165" text-anchor="middle">弃牌</text>
+  <text class="lbl-tiny" x="1758" y="182" text-anchor="middle">EnemyDiscard</text>
+
+  <rect class="pile" x="1689" y="274" width="139" height="195"/>
+  <text class="lbl-sm" x="1758" y="366" text-anchor="middle">主牌堆</text>
+  <text class="lbl-tiny" x="1758" y="383" text-anchor="middle">EnemyMainPile</text>
+
+  <!-- === ENEMY RUNES STRIP === -->
+  <rect class="zone" x="248" y="200" width="1424" height="52"/>
+  <text class="lbl-sm" x="258" y="232">RUNES 符文区（敌方 12 槽）</text>
+  <g>
+    <!-- 12 rune circles evenly spaced in strip -->
+    <!-- strip x 248..1672 (1424), place 12 circles centered between x=560 and x=1660 -->
+  </g>
+  <g fill="none" stroke="#000" stroke-width="1.5">
+    <circle cx="600"  cy="226" r="12"/>
+    <circle cx="695"  cy="226" r="12"/>
+    <circle cx="790"  cy="226" r="12"/>
+    <circle cx="885"  cy="226" r="12"/>
+    <circle cx="980"  cy="226" r="12"/>
+    <circle cx="1075" cy="226" r="12"/>
+    <circle cx="1170" cy="226" r="12"/>
+    <circle cx="1265" cy="226" r="12"/>
+    <circle cx="1360" cy="226" r="12"/>
+    <circle cx="1455" cy="226" r="12"/>
+    <circle cx="1550" cy="226" r="12"/>
+    <circle cx="1645" cy="226" r="12"/>
+  </g>
+
+  <!-- === ENEMY BASE === -->
+  <rect class="zone" x="248" y="254" width="1424" height="160"/>
+  <text class="lbl" x="960" y="340" text-anchor="middle">BASE 基地（敌方）</text>
+
+  <!-- === BATTLEFIELDS AREA === -->
+  <rect class="zone-dash" x="280" y="416" width="1360" height="236"/>
+  <text class="lbl-tiny" x="290" y="430">BattlefieldsArea</text>
+
+  <!-- BF1 (left, x 280..632 absolute) -->
+  <rect class="bf" x="280" y="416" width="352" height="236"/>
+  <line class="bf-half" x1="280" y1="510" x2="632" y2="510"/>
+  <line class="bf-half" x1="280" y1="562" x2="632" y2="562"/>
+  <text class="lbl-sm" x="456" y="470" text-anchor="middle">敌方单位（上半）</text>
+  <text class="lbl-sm" x="456" y="540" text-anchor="middle">战场 1 · 标签+场地牌</text>
+  <text class="lbl-sm" x="456" y="615" text-anchor="middle">我方单位（下半）</text>
+
+  <!-- BF2 (right, x 1288..1640 absolute) -->
+  <rect class="bf" x="1288" y="416" width="352" height="236"/>
+  <line class="bf-half" x1="1288" y1="510" x2="1640" y2="510"/>
+  <line class="bf-half" x1="1288" y1="562" x2="1640" y2="562"/>
+  <text class="lbl-sm" x="1464" y="470" text-anchor="middle">敌方单位（上半）</text>
+  <text class="lbl-sm" x="1464" y="540" text-anchor="middle">战场 2 · 标签+场地牌</text>
+  <text class="lbl-sm" x="1464" y="615" text-anchor="middle">我方单位（下半）</text>
+
+  <!-- === PLAYER BASE === -->
+  <rect class="zone" x="248" y="666" width="1424" height="160"/>
+  <text class="lbl" x="960" y="752" text-anchor="middle">BASE 基地（玩家）</text>
+
+  <!-- === PLAYER RUNES STRIP === -->
+  <rect class="zone" x="248" y="828" width="1424" height="52"/>
+  <text class="lbl-sm" x="258" y="860">RUNES 符文区（玩家 12 槽）</text>
+  <g fill="none" stroke="#000" stroke-width="1.5">
+    <circle cx="600"  cy="854" r="12"/>
+    <circle cx="695"  cy="854" r="12"/>
+    <circle cx="790"  cy="854" r="12"/>
+    <circle cx="885"  cy="854" r="12"/>
+    <circle cx="980"  cy="854" r="12"/>
+    <circle cx="1075" cy="854" r="12"/>
+    <circle cx="1170" cy="854" r="12"/>
+    <circle cx="1265" cy="854" r="12"/>
+    <circle cx="1360" cy="854" r="12"/>
+    <circle cx="1455" cy="854" r="12"/>
+    <circle cx="1550" cy="854" r="12"/>
+    <circle cx="1645" cy="854" r="12"/>
+  </g>
+
+  <!-- === PLAYER HERO / LEGEND === -->
+  <rect class="zone" x="262" y="884" width="118" height="154"/>
+  <text class="lbl-sm" x="321" y="965" text-anchor="middle">英雄P</text>
+  <text class="lbl-tiny" x="321" y="982" text-anchor="middle">HERO</text>
+
+  <rect class="zone" x="391" y="884" width="118" height="154"/>
+  <text class="lbl-sm" x="450" y="965" text-anchor="middle">传说P</text>
+  <text class="lbl-tiny" x="450" y="982" text-anchor="middle">LEGEND</text>
+
+  <!-- === PLAYER PILES — left column (Exile top, RunePile bottom) === -->
+  <rect class="pile" x="92" y="616" width="139" height="195"/>
+  <text class="lbl-sm" x="161" y="708" text-anchor="middle">放逐区</text>
+  <text class="lbl-tiny" x="161" y="725" text-anchor="middle">PlayerExile</text>
+
+  <rect class="pile" x="92" y="820" width="138" height="195"/>
+  <text class="lbl-sm" x="161" y="912" text-anchor="middle">符文堆</text>
+  <text class="lbl-tiny" x="161" y="929" text-anchor="middle">PlayerRunePile</text>
+
+  <!-- === PLAYER PILES — right column (MainPile top, Discard bottom) === -->
+  <rect class="pile" x="1689" y="616" width="139" height="195"/>
+  <text class="lbl-sm" x="1758" y="708" text-anchor="middle">主牌堆</text>
+  <text class="lbl-tiny" x="1758" y="725" text-anchor="middle">PlayerMainPile</text>
+
+  <rect class="pile" x="1689" y="820" width="139" height="195"/>
+  <text class="lbl-sm" x="1758" y="912" text-anchor="middle">弃牌</text>
+  <text class="lbl-tiny" x="1758" y="929" text-anchor="middle">PlayerDiscard</text>
+
+  <!-- === PLAYER HAND (bottom fan) === -->
+  <path class="hand" d="M 635 952 Q 960 1140 1285 952"/>
+  <text class="lbl-sm" x="960" y="1060" text-anchor="middle">玩家手牌 PlayerHand (扇形)</text>
+
+  <!-- === AXIS HINTS === -->
+  <text class="axis" x="8" y="14">Canvas 1920 × 1080</text>
+  <text class="axis" x="96" y="70">x=92</text>
+  <text class="axis" x="266" y="40">x=262</text>
+  <text class="axis" x="1693" y="70">x=1689</text>
+  <text class="axis" x="6" y="260">y=254</text>
+  <text class="axis" x="6" y="420">y=416</text>
+  <text class="axis" x="6" y="660">y=666</text>
+  <text class="axis" x="6" y="834">y=828</text>
+</svg>

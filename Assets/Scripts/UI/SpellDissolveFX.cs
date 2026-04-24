@@ -71,8 +71,8 @@ namespace FWTCG.UI
             if (mat == null) return null;
             return DOTween.To(
                 () => mat.GetFloat(PropDissolveAmount),
-                v => mat.SetFloat(PropDissolveAmount, v),
-                endValue, duration).SetEase(ease);
+                v => { if (mat != null) mat.SetFloat(PropDissolveAmount, v); },
+                endValue, duration).SetEase(ease).SetTarget(mat);
         }
 
         /// <summary>

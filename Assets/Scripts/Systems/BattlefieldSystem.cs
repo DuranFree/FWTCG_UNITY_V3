@@ -386,6 +386,9 @@ namespace FWTCG.Systems
                 buffed.BuffTokens--;
                 // 卡面：增益指示物仅+1战力，消耗时只扣战力；Rule 139.2 战力下限 0。
                 buffed.CurrentAtk = Mathf.Max(0, buffed.CurrentAtk - 1);
+                // Rule：HP 不能超过 CurrentAtk + TempAtkBonus，战力下降时同步夹紧 HP
+                int maxHp = buffed.CurrentAtk + buffed.TempAtkBonus;
+                if (buffed.CurrentHp > maxHp) buffed.CurrentHp = maxHp;
                 DrawCard(attacker, gs);
                 Log($"[希拉娜修道院] 征服！消耗 {buffed.UnitName} 的增益指示物，抽1张牌。");
             }

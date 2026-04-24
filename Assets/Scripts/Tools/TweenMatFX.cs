@@ -22,7 +22,7 @@ namespace FWTCG.FX
                 Debug.LogWarning($"[TweenMatFX] Property '{propertyName}' not found on {mat.name}.");
                 return null;
             }
-            return mat.DOFloat(targetValue, propertyName, duration).SetEase(ease);
+            return mat.DOFloat(targetValue, propertyName, duration).SetEase(ease).SetTarget(mat);
         }
 
         /// <summary>
@@ -38,7 +38,7 @@ namespace FWTCG.FX
                 Debug.LogWarning($"[TweenMatFX] Property '{propertyName}' not found on {mat.name}.");
                 return null;
             }
-            return mat.DOColor(targetColor, propertyName, duration).SetEase(ease);
+            return mat.DOColor(targetColor, propertyName, duration).SetEase(ease).SetTarget(mat);
         }
 
         /// <summary>

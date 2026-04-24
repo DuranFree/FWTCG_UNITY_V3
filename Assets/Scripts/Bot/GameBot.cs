@@ -84,7 +84,8 @@ namespace FWTCG.Bot
         public int TweenLeakThreshold = 50;
 
         [Tooltip("每局 GC 增长 > 此 MB → 报告内存泄漏")]
-        public float GcLeakThresholdMB = 20f;
+        // 40MB：GC.Collect() 后仍有 20~30MB 稳态驻留（装备材质 + 事件闭包），真泄漏才超 40MB
+        public float GcLeakThresholdMB = 40f;
 
         [Tooltip("决策策略。Rotate 会在每局轮换前 5 种策略（覆盖率最高）。")]
         public BotStrategy Strategy = BotStrategy.Greedy;
@@ -795,10 +796,12 @@ namespace FWTCG.Bot
                 }
             }
 
-            // 1g. 游戏结束条件：任一方达到 WIN_SCORE → GameOver 必须 true
-            if ((gs.PScore >= GameRules.WIN_SCORE || gs.EScore >= GameRules.WIN_SCORE) && !gs.GameOver)
+            // 1g. 游戏结束条件：任一方达到 EffectiveWinScore → GameOver 必须 true
+            // 注意：攀圣长阶（ascending_stairs）会把胜利门槛 +1，不能硬编码 WIN_SCORE=8
+            int effWin = FWTCG.Systems.BattlefieldSystem.EffectiveWinScore(gs);
+            if ((gs.PScore >= effWin || gs.EScore >= effWin) && !gs.GameOver)
                 ReportInvariantOnce("游戏未结束",
-                    $"已达 {GameRules.WIN_SCORE} 分但 GameOver=false [玩家={gs.PScore} AI={gs.EScore}]");
+                    $"已达 {effWin} 分但 GameOver=false [玩家={gs.PScore} AI={gs.EScore}]");
 
             // 1h. GameOver 后分数不应再变化（锁分）
             if (_prevGameOver && gs.GameOver && (pScoreDelta != 0 || eScoreDelta != 0))
@@ -934,11 +937,13 @@ namespace FWTCG.Bot
             if (u.CurrentHp < 0)
                 ReportInvariantOnce("HP为负",
                     $"{u.UnitName}(uid={u.Uid}) @ {where}: HP={u.CurrentHp} 但仍在场");
-            // HP 不能超过 CurrentAtk + TempAtkBonus
-            int maxHp = u.CurrentAtk + u.TempAtkBonus;
+            // HP 上限 = CurrentAtk（装备/buff 已反映在 CurrentAtk 里）
+            // 注意：TempAtkBonus 只影响战斗战力，不影响 HP 上限。TempAtkBonus<0（debuff）
+            // 时不能把下限算成 HP 天花板，否则会对正常单位误报
+            int maxHp = u.CurrentAtk;
             if (u.CurrentHp > maxHp && maxHp > 0)
                 ReportInvariantOnce("HP超上限",
-                    $"{u.UnitName}(uid={u.Uid}) @ {where}: HP={u.CurrentHp} > CurrentAtk+TempBonus={maxHp}");
+                    $"{u.UnitName}(uid={u.Uid}) @ {where}: HP={u.CurrentHp} > CurrentAtk={maxHp} (TempBonus={u.TempAtkBonus})");
             // BuffTokens 必须在 [0,1]（规则 702）
             if (u.BuffTokens < 0 || u.BuffTokens > 1)
                 ReportInvariantOnce("BuffToken越界",
@@ -1172,8 +1177,9 @@ namespace FWTCG.Bot
             // ── 活跃 tween 数快速膨胀检测（紫色尸体帧的间接信号） ─────────────
             // 正常情况下 tween 数应在 10~100 之间波动；>300 通常说明
             // 有组件死亡但 tween 未 Kill（正在访问已销毁 Image → 紫色）。
+            // 阈值 400：spark burst + dissolve 双栈 ≤ 360 是正常峰值，400+ 才是真泄漏
             int activeTweens = SafeGetActiveTweens();
-            if (activeTweens > 300)
+            if (activeTweens > 400)
             {
                 ReportInvariantOnce("Tween激增", $"活跃 tween 数 {activeTweens}（可能有 target destroyed 泄漏）");
                 // 在 tween 爆量时一次性 dump 整个 UI 树的嫌疑元素（每局最多一次）
@@ -1288,7 +1294,11 @@ namespace FWTCG.Bot
                     issue = "shader=Hidden/InternalErrorShader (紫色 magenta)";
                 else if (!shader.isSupported)
                     issue = $"shader 不被当前平台支持: {shader.name}";
+                // mainTexture 检查只对非 UI 渲染器有意义：
+                // Image / RawImage 通过 CanvasRenderer 传 [PerRendererData] _MainTex，
+                // material.mainTexture 恒为 null，不代表真缺贴图
                 else if (IsSuspectCustomShader(shader.name) && mat.mainTexture == null
+                         && renderer != "Image" && renderer != "RawImage"
                          && !IsIgnorablePath(path))
                     issue = $"自定义 shader '{shader.name}' 缺 mainTexture（会渲染紫/白）";
             }
@@ -1308,12 +1318,15 @@ namespace FWTCG.Bot
 
         // 已知项目内需要 mainTexture 的自定义 shader
         // 已知"初始化时材质 mainTexture 还没绑定但实际渲染正常"的路径白名单
-        // 避免 bot 启动头两帧扫到 CountdownRing 的 GemDim/GemGlow 产生大量假阳性
+        // 避免 bot 启动头两帧扫到 CountdownRing 的 Gem* 产生大量假阳性
+        // 注：EnergyGemUI / EnergyGemGlowUI 的 _MainTex 声明为 [PerRendererData]，
+        // UI.Image 通过 CanvasRenderer 传贴图，material.mainTexture 恒为 null — 非真实 bug
         private static bool IsIgnorablePath(string path)
         {
             if (string.IsNullOrEmpty(path)) return false;
             return path.Contains("CountdownRing/GemDimBase")
                 || path.Contains("CountdownRing/GemGlow")
+                || path.Contains("CountdownRing/GemSeg")
                 || path.Contains("CountdownRing/Gem_");
         }
 
@@ -1407,6 +1420,10 @@ namespace FWTCG.Bot
         private void SampleLeakBaseline()
         {
             _gameStartTweens    = SafeGetActiveTweens();
+            // 强制回收两轮，拿到真实驻留内存（避免把瞬时未回收对象算成泄漏）
+            GC.Collect();
+            GC.WaitForPendingFinalizers();
+            GC.Collect();
             _gameStartGC        = GC.GetTotalMemory(false);
             _gameStartParticles = FindObjectsOfType<ParticleSystem>().Length;
         }
@@ -1419,6 +1436,10 @@ namespace FWTCG.Bot
                 LogBug("Tween泄漏",
                     $"一局后活跃 tween 净增 {tweenDelta}（起始 {_gameStartTweens} → 结束 {tweensNow}），阈值 {TweenLeakThreshold}");
 
+            // 同样强制回收后再读，真实泄漏才会残留
+            GC.Collect();
+            GC.WaitForPendingFinalizers();
+            GC.Collect();
             long gcNow = GC.GetTotalMemory(false);
             float gcDeltaMB = (gcNow - _gameStartGC) / 1024f / 1024f;
             if (gcDeltaMB > GcLeakThresholdMB)

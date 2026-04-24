@@ -323,6 +323,8 @@ namespace FWTCG.UI
             // VFX-3: clear dissolve material on all images before destroying clone
             if (_clonedDissolveMat != null)
             {
+                // 先杀绑定到 material 的 tween，避免销毁后 tween 仍尝试 SetFloat/SetColor
+                DG.Tweening.DOTween.Kill(_clonedDissolveMat);
                 foreach (var img in GetComponentsInChildren<Image>(true))
                     if (img != null) img.material = null;
                 SafeDestroy(_clonedDissolveMat);
@@ -2322,7 +2324,13 @@ namespace FWTCG.UI
 
                 foreach (var img in images)
                     if (img != null) img.material = null;
-                if (_clonedDissolveMat != null) { SafeDestroy(_clonedDissolveMat); _clonedDissolveMat = null; }
+                if (_clonedDissolveMat != null)
+                {
+                    // 销毁 material 前兜底杀掉所有绑到它的 tween（TweenMatFX 已 SetTarget(mat)）
+                    DG.Tweening.DOTween.Kill(_clonedDissolveMat);
+                    SafeDestroy(_clonedDissolveMat);
+                    _clonedDissolveMat = null;
+                }
             }
             else
             {

@@ -199,6 +199,57 @@
 
 ---
 
+## 2026-04-23 第三轮复核（独立审计，只记录不修改）
+
+口径：聚焦前两轮抽样不深的 22 张卡，逐张比对 `_description` vs effectId 实现；并确认三项 deferred 当前状态。
+
+### 22 张未深审卡复核结果 — 全部匹配 ✓
+
+| 卡 | effectId | 代码位置 | 卡面承诺 | 实现 |
+|----|----------|----------|----------|------|
+| alert_sentinel | alert_sentinel_die | [DeathwishSystem.cs:56-61](Assets/Scripts/Systems/DeathwishSystem.cs:56) | 战亡时摸 1 张 | ✓ |
+| divine_ray | divine_ray | [SpellSystem.cs:157-161](Assets/Scripts/Systems/SpellSystem.cs:157) | 2 伤 + Echo | ✓（Echo 走 GameManager 路径） |
+| dorans_blade | dorans_equip | [EntryEffectSystem.cs:207-210](Assets/Scripts/Systems/EntryEffectSystem.cs:207) | 装备时 +2 战力 | ✓ |
+| evolve_day | evolve_day | [SpellSystem.cs:115-118](Assets/Scripts/Systems/SpellSystem.cs:115) | 抽 4 张 | ✓ |
+| guardian_angel | guardian_equip | [EntryEffectSystem.cs:201-204](Assets/Scripts/Systems/EntryEffectSystem.cs:201) + [SpellSystem.cs:259-279](Assets/Scripts/Systems/SpellSystem.cs:259) | 致死保护替换 | ✓ |
+| hex_ray | hex_ray | [SpellSystem.cs:85-88](Assets/Scripts/Systems/SpellSystem.cs:85) | 3 伤 | ✓ |
+| kaisa_hero | kaisa_hero_conquer | [CombatSystem.cs:560-564](Assets/Scripts/Systems/CombatSystem.cs:560) | 征服时摸 1 | ✓ |
+| rally_call | rally_call | [SpellSystem.cs:121-125](Assets/Scripts/Systems/SpellSystem.cs:121) | 激活本回合单位 + 抽 | ✓ |
+| slam | slam | [SpellSystem.cs:133-136](Assets/Scripts/Systems/SpellSystem.cs:133) | 眩晕 + Echo | ✓ |
+| strike_ask_later | strike_ask_later | [SpellSystem.cs:138-141](Assets/Scripts/Systems/SpellSystem.cs:138) | +5 战力 | ✓ |
+| thousand_tail | thousand_tail_enter | [EntryEffectSystem.cs:115-134](Assets/Scripts/Systems/EntryEffectSystem.cs:115) | 全敌 -3（≥1）| ✓（已用 TempAtkBonus） |
+| void_seek | void_seek | [SpellSystem.cs:90-94](Assets/Scripts/Systems/SpellSystem.cs:90) | 4 伤 + 抽 1 | ✓ |
+| well_trained | well_trained | [ReactiveSystem.cs:152-167](Assets/Scripts/Systems/ReactiveSystem.cs:152) | 友方首位 +2 + 抽 | ✓ |
+| wind_wall | wind_wall | [ReactiveSystem.cs:169-173](Assets/Scripts/Systems/ReactiveSystem.cs:169) | 无效化任意法术 | ✓ |
+| yi_hero | yi_hero_enter | [EntryEffectSystem.cs:179-184](Assets/Scripts/Systems/EntryEffectSystem.cs:179) | 入场即活跃 | ✓（Exhausted=false） |
+| duel_stance | duel_stance | [ReactiveSystem.cs:47](Assets/Scripts/Systems/ReactiveSystem.cs:47) | 反应 / 双栈 +1 | ✓ |
+| retreat_rune | retreat_rune | [ReactiveSystem.cs:64](Assets/Scripts/Systems/ReactiveSystem.cs:64) | 召休眠符文 | ✓ |
+| swindle | swindle | [ReactiveSystem.cs:92](Assets/Scripts/Systems/ReactiveSystem.cs:92) | 反应抽牌 | ✓ |
+| smoke_bomb | smoke_bomb | [ReactiveSystem.cs:127](Assets/Scripts/Systems/ReactiveSystem.cs:127) | 反应隐匿 | ✓ |
+| flash_counter | flash_counter | [ReactiveSystem.cs:175-189](Assets/Scripts/Systems/ReactiveSystem.cs:175) | 反制（除装备触发）| ✓（除 D-6 deferred 路径） |
+| guilty_pleasure | guilty_pleasure | [SpellSystem.cs:550-576](Assets/Scripts/Systems/SpellSystem.cs:550) | 弃 1 抽 N | ✓（除 D-8 deferred UI） |
+| foresight_mech | foresight_mech | [EntryEffectSystem.cs:136-143](Assets/Scripts/Systems/EntryEffectSystem.cs:136) | 预知 + 置底 | ⏸ D-3 仍 stub |
+
+### Deferred 项当前状态确认
+
+| 条目 | 状态 | 当前代码 |
+|------|------|----------|
+| D-3 foresight_mech | ⏸ 仍 deferred | EntryEffectSystem.cs:136-143 仅 `Debug.Log` 顶牌；无机械属性建模、无置底 UI |
+| D-6 flash_counter 装备触发路径 | ⏸ 仍 deferred | ReactiveSystem.cs:175-189 仅判 `triggerSpell.Owner == enemy`，无装备 trigger source |
+| D-8 guilty_pleasure 玩家选弃 UI | ⏸ 仍 deferred | SpellSystem.cs:550-576 自动挑首张非法术，玩家路径无弹窗 |
+
+### 汇总
+- 本轮独立审计 **22 张未深审卡 + 3 项 deferred 复核**
+- 🔴 High：**0**
+- 🟡 Medium：**0**
+- 🟢 Low：**0**
+- 三项 deferred 状态与上轮一致，无悄悄进展
+- 全部 43 张卡（含 coin_equip）核心玩法与卡面文字三轮一致
+
+**结论：** 经三轮独立对账，除 3 项已知 deferred（功能级 Phase 任务）外，所有卡的文字描述与代码逻辑一致。
+
+---
+
 ## 2026-04-23 复核修复
 
 | 条目 | 状态 | 修改点 |

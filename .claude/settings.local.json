@@ -35,7 +35,8 @@
       "Bash(cp \"E:/claudeCode/DOC/Migration/DEV_RULES/GODOT-RULES.md\" \"E:/claudeCode/DOC/Scratch/DEV_RULES/GODOT-RULES.md\")",
       "Bash(cp \"E:/claudeCode/DOC/Migration/DEV_RULES/UNREAL-RULES.md\" \"E:/claudeCode/DOC/Scratch/DEV_RULES/UNREAL-RULES.md\")",
       "Read(//e/claudeCode/DOC/**)",
-      "Read(//c/Users/dliao/.claude/**)"
+      "Read(//c/Users/dliao/.claude/**)",
+      "Bash(git count-objects *)"
     ]
   },
   "hooks": {

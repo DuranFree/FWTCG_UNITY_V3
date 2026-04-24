@@ -187,6 +187,8 @@ namespace FWTCG.UI
             IsShowing = false;
             if (_dissolveMat != null)
             {
+                // 先杀绑定到 material 的 TweenAmount，避免销毁后 tween 访问 destroyed material
+                DOTween.Kill(_dissolveMat);
                 if (_artImage != null && _artImage.material == _dissolveMat)
                     _artImage.material = _artOriginalMat;
                 Destroy(_dissolveMat);
@@ -239,6 +241,10 @@ namespace FWTCG.UI
         private Task ShowGroupInternal(List<UnitInstance> spells, string owner)
         {
             if (spells == null || spells.Count == 0) return Task.CompletedTask;
+
+            // SpellDuel 和 SpellShowcase 互斥：Duel 进行中直接跳过 Showcase，避免视觉叠加
+            if (SpellDuelUI.Instance != null && SpellDuelUI.Instance.IsShowing)
+                return Task.CompletedTask;
 
             var tcs = new TaskCompletionSource<bool>();
             _activeTcs = tcs;
@@ -310,6 +316,10 @@ namespace FWTCG.UI
         {
             if (spell == null) return Task.CompletedTask;
 
+            // SpellDuel 和 SpellShowcase 互斥：Duel 进行中直接跳过 Showcase，避免视觉叠加
+            if (SpellDuelUI.Instance != null && SpellDuelUI.Instance.IsShowing)
+                return Task.CompletedTask;
+
             var tcs = new TaskCompletionSource<bool>();
             _activeTcs = tcs;
             IsShowing = true;
@@ -353,7 +363,8 @@ namespace FWTCG.UI
                 {
                     if (_sparksRoot != null && _cardPanel != null)
                     {
-                        int n = FWTCG.Core.GameTiming.SpeedMultiplier > 10f ? 10 : 70;
+                        // 加速模式（bot 跑测试）下大幅减少 sparks：避免 tween 堆积（70×3=210 tween）
+                        int n = FWTCG.Core.GameTiming.SpeedMultiplier > 1.01f ? 10 : 70;
                         SpellDissolveFX.BurstSparks(_sparksRoot, n, _cardPanel.sizeDelta.x, _cardPanel.sizeDelta.y);
                     }
                 });
@@ -364,7 +375,7 @@ namespace FWTCG.UI
                 {
                     if (_sparksRoot != null && _cardPanel != null)
                     {
-                        int n = FWTCG.Core.GameTiming.SpeedMultiplier > 10f ? 5 : 35;
+                        int n = FWTCG.Core.GameTiming.SpeedMultiplier > 1.01f ? 5 : 35;
                         SpellDissolveFX.BurstSparks(_sparksRoot, n, _cardPanel.sizeDelta.x, _cardPanel.sizeDelta.y);
                     }
                 });

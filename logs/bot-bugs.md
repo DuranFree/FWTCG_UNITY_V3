@@ -1,984 +1,151 @@
 # Bot 实时 Bug 日志
 
-- 启动时间: 2026-04-22 18:46:33
-- 速度倍数: 20x
-- 目标局数: 10
+- 启动时间: 2026-04-24 09:47:48
+- 速度倍数: 5x
+- 目标局数: 20
 
 ---
 
-## 🔴 [High][ShaderMissing] 第1局 (18:46:33)
+## 🔵 [Low][Warning] 第1局 (09:47:53)
 
-- 状态: Phase=awaken Round=0 Turn=enemy
+- 状态: Phase=end Round=3 Turn=player
 - 策略: Greedy
-- Seed: 2044789721
-- 截图: `logs/screenshots/bug-0001-ShaderMissing-184633.png`
+- Seed: 185190508
 - 详情:
 
 ```
-Image 'FWTCG/EnergyGemUI' @ Canvas/DecorLayer/CenterCluster/CountdownRing/GemDimBase_11 → 自定义 shader 'FWTCG/EnergyGemUI' 缺 mainTexture（会渲染紫/白）
-```
-
-## 🔴 [High][ShaderMissing] 第1局 (18:46:33)
-
-- 状态: Phase=awaken Round=0 Turn=enemy
-- 策略: Greedy
-- Seed: 2044789721
-- 截图: `logs/screenshots/bug-0002-ShaderMissing-184633.png`
-- 详情:
-
-```
-Image 'FWTCG/EnergyGemUI' @ Canvas/DecorLayer/CenterCluster/CountdownRing/GemDimBase_10 → 自定义 shader 'FWTCG/EnergyGemUI' 缺 mainTexture（会渲染紫/白）
-```
-
-## 🔴 [High][ShaderMissing] 第1局 (18:46:33)
-
-- 状态: Phase=awaken Round=0 Turn=enemy
-- 策略: Greedy
-- Seed: 2044789721
-- 截图: `logs/screenshots/bug-0003-ShaderMissing-184633.png`
-- 详情:
-
-```
-Image 'FWTCG/EnergyGemUI' @ Canvas/DecorLayer/CenterCluster/CountdownRing/GemDimBase_09 → 自定义 shader 'FWTCG/EnergyGemUI' 缺 mainTexture（会渲染紫/白）
-```
-
-## 🔴 [High][ShaderMissing] 第1局 (18:46:33)
-
-- 状态: Phase=awaken Round=0 Turn=enemy
-- 策略: Greedy
-- Seed: 2044789721
-- 截图: `logs/screenshots/bug-0004-ShaderMissing-184633.png`
-- 详情:
-
-```
-Image 'FWTCG/EnergyGemUI' @ Canvas/DecorLayer/CenterCluster/CountdownRing/GemDimBase_08 → 自定义 shader 'FWTCG/EnergyGemUI' 缺 mainTexture（会渲染紫/白）
-```
-
-## 🔴 [High][ShaderMissing] 第1局 (18:46:33)
-
-- 状态: Phase=awaken Round=0 Turn=enemy
-- 策略: Greedy
-- Seed: 2044789721
-- 截图: `logs/screenshots/bug-0005-ShaderMissing-184633.png`
-- 详情:
-
-```
-Image 'FWTCG/EnergyGemUI' @ Canvas/DecorLayer/CenterCluster/CountdownRing/GemDimBase_07 → 自定义 shader 'FWTCG/EnergyGemUI' 缺 mainTexture（会渲染紫/白）
-```
-
-## 🔴 [High][ShaderMissing] 第1局 (18:46:33)
-
-- 状态: Phase=awaken Round=0 Turn=enemy
-- 策略: Greedy
-- Seed: 2044789721
-- 截图: `logs/screenshots/bug-0006-ShaderMissing-184633.png`
-- 详情:
-
-```
-Image 'FWTCG/EnergyGemUI' @ Canvas/DecorLayer/CenterCluster/CountdownRing/GemDimBase_06 → 自定义 shader 'FWTCG/EnergyGemUI' 缺 mainTexture（会渲染紫/白）
-```
-
-## 🔴 [High][ShaderMissing] 第1局 (18:46:33)
-
-- 状态: Phase=awaken Round=0 Turn=enemy
-- 策略: Greedy
-- Seed: 2044789721
-- 截图: `logs/screenshots/bug-0007-ShaderMissing-184633.png`
-- 详情:
-
-```
-Image 'FWTCG/EnergyGemUI' @ Canvas/DecorLayer/CenterCluster/CountdownRing/GemDimBase_05 → 自定义 shader 'FWTCG/EnergyGemUI' 缺 mainTexture（会渲染紫/白）
-```
-
-## 🔴 [High][ShaderMissing] 第1局 (18:46:33)
-
-- 状态: Phase=awaken Round=0 Turn=enemy
-- 策略: Greedy
-- Seed: 2044789721
-- 截图: `logs/screenshots/bug-0008-ShaderMissing-184633.png`
-- 详情:
-
-```
-Image 'FWTCG/EnergyGemUI' @ Canvas/DecorLayer/CenterCluster/CountdownRing/GemDimBase_04 → 自定义 shader 'FWTCG/EnergyGemUI' 缺 mainTexture（会渲染紫/白）
-```
-
-## 🔴 [High][ShaderMissing] 第1局 (18:46:33)
-
-- 状态: Phase=awaken Round=0 Turn=enemy
-- 策略: Greedy
-- Seed: 2044789721
-- 截图: `logs/screenshots/bug-0009-ShaderMissing-184633.png`
-- 详情:
-
-```
-Image 'FWTCG/EnergyGemUI' @ Canvas/DecorLayer/CenterCluster/CountdownRing/GemDimBase_03 → 自定义 shader 'FWTCG/EnergyGemUI' 缺 mainTexture（会渲染紫/白）
-```
-
-## 🔴 [High][ShaderMissing] 第1局 (18:46:33)
-
-- 状态: Phase=awaken Round=0 Turn=enemy
-- 策略: Greedy
-- Seed: 2044789721
-- 截图: `logs/screenshots/bug-0010-ShaderMissing-184633.png`
-- 详情:
-
-```
-Image 'FWTCG/EnergyGemUI' @ Canvas/DecorLayer/CenterCluster/CountdownRing/GemDimBase_02 → 自定义 shader 'FWTCG/EnergyGemUI' 缺 mainTexture（会渲染紫/白）
-```
-
-## 🔴 [High][ShaderMissing] 第1局 (18:46:33)
-
-- 状态: Phase=awaken Round=0 Turn=enemy
-- 策略: Greedy
-- Seed: 2044789721
-- 截图: `logs/screenshots/bug-0011-ShaderMissing-184633.png`
-- 详情:
-
-```
-Image 'FWTCG/EnergyGemUI' @ Canvas/DecorLayer/CenterCluster/CountdownRing/GemDimBase_01 → 自定义 shader 'FWTCG/EnergyGemUI' 缺 mainTexture（会渲染紫/白）
-```
-
-## 🔴 [High][ShaderMissing] 第1局 (18:46:33)
-
-- 状态: Phase=awaken Round=0 Turn=enemy
-- 策略: Greedy
-- Seed: 2044789721
-- 截图: `logs/screenshots/bug-0012-ShaderMissing-184633.png`
-- 详情:
-
-```
-Image 'FWTCG/EnergyGemUI' @ Canvas/DecorLayer/CenterCluster/CountdownRing/GemDimBase_00 → 自定义 shader 'FWTCG/EnergyGemUI' 缺 mainTexture（会渲染紫/白）
-```
-
-## 🔴 [High][ShaderMissing] 第1局 (18:46:33)
-
-- 状态: Phase=awaken Round=0 Turn=enemy
-- 策略: Greedy
-- Seed: 2044789721
-- 截图: `logs/screenshots/bug-0013-ShaderMissing-184633.png`
-- 详情:
-
-```
-Image 'SpellDissolveFX_Instance' @ Canvas/SpellShowcasePanel/CardPanel/ArtImage → 自定义 shader 'FWTCG/UIDissolve' 缺 mainTexture（会渲染紫/白）
-```
-
-## 🔴 [High][ShaderMissing] 第1局 (18:46:35)
-
-- 状态: Phase=action Round=1 Turn=player
-- 策略: Greedy
-- Seed: 2044789721
-- 截图: `logs/screenshots/bug-0014-ShaderMissing-184635.png`
-- 详情:
-
-```
-Image 'FWTCG/EnergyGemGlowUI' @ Canvas/DecorLayer/CenterCluster/CountdownRing/GemGlow_02 → 自定义 shader 'FWTCG/EnergyGemGlowUI' 缺 mainTexture（会渲染紫/白）
-```
-
-## 🔴 [High][ShaderMissing] 第1局 (18:46:35)
-
-- 状态: Phase=action Round=1 Turn=player
-- 策略: Greedy
-- Seed: 2044789721
-- 截图: `logs/screenshots/bug-0015-ShaderMissing-184635.png`
-- 详情:
-
-```
-Image 'FWTCG/EnergyGemGlowUI' @ Canvas/DecorLayer/CenterCluster/CountdownRing/GemGlow_01 → 自定义 shader 'FWTCG/EnergyGemGlowUI' 缺 mainTexture（会渲染紫/白）
-```
-
-## 🔴 [High][ShaderMissing] 第1局 (18:46:35)
-
-- 状态: Phase=action Round=1 Turn=player
-- 策略: Greedy
-- Seed: 2044789721
-- 截图: `logs/screenshots/bug-0016-ShaderMissing-184635.png`
-- 详情:
-
-```
-Image 'FWTCG/EnergyGemGlowUI' @ Canvas/DecorLayer/CenterCluster/CountdownRing/GemGlow_00 → 自定义 shader 'FWTCG/EnergyGemGlowUI' 缺 mainTexture（会渲染紫/白）
-```
-
-## 🔴 [High][ShaderMissing] 第1局 (18:46:35)
-
-- 状态: Phase=action Round=1 Turn=player
-- 策略: Greedy
-- Seed: 2044789721
-- 截图: `logs/screenshots/bug-0017-ShaderMissing-184635.png`
-- 详情:
-
-```
-Image 'FWTCG/EnergyGemUI' @ Canvas/DecorLayer/CenterCluster/CountdownRing/GemSeg_02 → 自定义 shader 'FWTCG/EnergyGemUI' 缺 mainTexture（会渲染紫/白）
-```
-
-## 🔴 [High][ShaderMissing] 第1局 (18:46:35)
-
-- 状态: Phase=action Round=1 Turn=player
-- 策略: Greedy
-- Seed: 2044789721
-- 截图: `logs/screenshots/bug-0018-ShaderMissing-184635.png`
-- 详情:
-
-```
-Image 'FWTCG/EnergyGemUI' @ Canvas/DecorLayer/CenterCluster/CountdownRing/GemSeg_01 → 自定义 shader 'FWTCG/EnergyGemUI' 缺 mainTexture（会渲染紫/白）
-```
-
-## 🔴 [High][ShaderMissing] 第1局 (18:46:35)
-
-- 状态: Phase=action Round=1 Turn=player
-- 策略: Greedy
-- Seed: 2044789721
-- 截图: `logs/screenshots/bug-0019-ShaderMissing-184635.png`
-- 详情:
-
-```
-Image 'FWTCG/EnergyGemUI' @ Canvas/DecorLayer/CenterCluster/CountdownRing/GemSeg_00 → 自定义 shader 'FWTCG/EnergyGemUI' 缺 mainTexture（会渲染紫/白）
-```
-
-## 🟡 [Medium][GC泄漏] 第1局 (18:46:41)
-
-- 状态: Phase=start Round=10 Turn=player
-- 策略: Greedy
-- Seed: 2044789721
-- 详情:
-
-```
-一局 GC 净增 64.2MB（起始 492MB → 结束 556MB），阈值 20MB
-```
-
-## 🟡 [Medium][UI叠加] 第3局 (18:46:49)
-
-- 状态: Phase=action Round=1 Turn=enemy
-- 策略: Random
-- Seed: 2044789721
-- 详情:
-
-```
-SpellDuelUI + SpellShowcaseUI 同时显示 [Phase=action Round=1 Turn=enemy]
-```
-
-## 🟡 [Medium][UI叠加] 第3局 (18:46:49)
-
-- 状态: Phase=action Round=1 Turn=enemy
-- 策略: Random
-- Seed: 2044789721
-- 详情:
-
-```
-SpellDuelUI + SpellShowcaseUI 同时显示 [Phase=action Round=1 Turn=enemy]
-```
-
-## 🟡 [Medium][UI叠加] 第3局 (18:46:49)
-
-- 状态: Phase=action Round=1 Turn=enemy
-- 策略: Random
-- Seed: 2044789721
-- 详情:
-
-```
-SpellDuelUI + SpellShowcaseUI 同时显示 [Phase=action Round=1 Turn=enemy]
-```
-
-## 🟡 [Medium][UI叠加] 第3局 (18:46:49)
-
-- 状态: Phase=end Round=2 Turn=player
-- 策略: Random
-- Seed: 2044789721
-- 详情:
-
-```
-SpellDuelUI + SpellShowcaseUI 同时显示 [Phase=end Round=2 Turn=player]
-```
-
-## 🟡 [Medium][UI叠加] 第3局 (18:46:49)
-
-- 状态: Phase=end Round=2 Turn=player
-- 策略: Random
-- Seed: 2044789721
-- 详情:
-
-```
-SpellDuelUI + SpellShowcaseUI 同时显示 [Phase=end Round=2 Turn=player]
-```
-
-## 🟡 [Medium][UI叠加] 第3局 (18:46:49)
-
-- 状态: Phase=end Round=2 Turn=player
-- 策略: Random
-- Seed: 2044789721
-- 详情:
-
-```
-SpellDuelUI + SpellShowcaseUI 同时显示 [Phase=end Round=2 Turn=player]
-```
-
-## 🟡 [Medium][UI叠加] 第3局 (18:46:49)
-
-- 状态: Phase=end Round=2 Turn=player
-- 策略: Random
-- Seed: 2044789721
-- 详情:
-
-```
-SpellDuelUI + SpellShowcaseUI 同时显示 [Phase=end Round=2 Turn=player]
-```
-
-## 🟡 [Medium][UI叠加] 第3局 (18:46:49)
-
-- 状态: Phase=end Round=2 Turn=player
-- 策略: Random
-- Seed: 2044789721
-- 详情:
-
-```
-SpellDuelUI + SpellShowcaseUI 同时显示 [Phase=end Round=2 Turn=player]
-```
-
-## 🟡 [Medium][UI叠加] 第3局 (18:46:49)
-
-- 状态: Phase=end Round=2 Turn=player
-- 策略: Random
-- Seed: 2044789721
-- 详情:
-
-```
-SpellDuelUI + SpellShowcaseUI 同时显示 [Phase=end Round=2 Turn=player]
-```
-
-## 🟡 [Medium][UI叠加] 第3局 (18:46:50)
-
-- 状态: Phase=action Round=3 Turn=player
-- 策略: Random
-- Seed: 2044789721
-- 详情:
-
-```
-SpellDuelUI + SpellShowcaseUI 同时显示 [Phase=action Round=3 Turn=player]
-```
-
-## 🟡 [Medium][UI叠加] 第3局 (18:46:50)
-
-- 状态: Phase=action Round=3 Turn=player
-- 策略: Random
-- Seed: 2044789721
-- 详情:
-
-```
-SpellDuelUI + SpellShowcaseUI 同时显示 [Phase=action Round=3 Turn=player]
-```
-
-## 🟡 [Medium][UI叠加] 第3局 (18:46:50)
-
-- 状态: Phase=action Round=3 Turn=player
-- 策略: Random
-- Seed: 2044789721
-- 详情:
-
-```
-SpellDuelUI + SpellShowcaseUI 同时显示 [Phase=action Round=3 Turn=player]
-```
-
-## 🟡 [Medium][UI叠加] 第4局 (18:47:01)
-
-- 状态: Phase=action Round=10 Turn=enemy
-- 策略: Suicidal
-- Seed: 2044789721
-- 详情:
-
-```
-SpellDuelUI + SpellShowcaseUI 同时显示 [Phase=action Round=10 Turn=enemy]
-```
-
-## 🟡 [Medium][UI叠加] 第4局 (18:47:01)
-
-- 状态: Phase=action Round=10 Turn=enemy
-- 策略: Suicidal
-- Seed: 2044789721
-- 详情:
-
-```
-SpellDuelUI + SpellShowcaseUI 同时显示 [Phase=action Round=10 Turn=enemy]
-```
-
-## 🟡 [Medium][UI叠加] 第4局 (18:47:01)
-
-- 状态: Phase=action Round=10 Turn=enemy
-- 策略: Suicidal
-- Seed: 2044789721
-- 详情:
-
-```
-SpellDuelUI + SpellShowcaseUI 同时显示 [Phase=action Round=10 Turn=enemy]
-```
-
-## 🟡 [Medium][UI叠加] 第4局 (18:47:01)
-
-- 状态: Phase=end Round=11 Turn=player
-- 策略: Suicidal
-- Seed: 2044789721
-- 详情:
-
-```
-SpellDuelUI + SpellShowcaseUI 同时显示 [Phase=end Round=11 Turn=player]
-```
-
-## 🟡 [Medium][UI叠加] 第4局 (18:47:01)
-
-- 状态: Phase=end Round=11 Turn=player
-- 策略: Suicidal
-- Seed: 2044789721
-- 详情:
-
-```
-SpellDuelUI + SpellShowcaseUI 同时显示 [Phase=end Round=11 Turn=player]
-```
-
-## 🟡 [Medium][UI叠加] 第4局 (18:47:01)
-
-- 状态: Phase=end Round=11 Turn=player
-- 策略: Suicidal
-- Seed: 2044789721
-- 详情:
-
-```
-SpellDuelUI + SpellShowcaseUI 同时显示 [Phase=end Round=11 Turn=player]
-```
-
-## 🟡 [Medium][UI叠加] 第5局 (18:47:04)
-
-- 状态: Phase=action Round=3 Turn=player
-- 策略: RuneHoard
-- Seed: 2044789721
-- 详情:
-
-```
-SpellDuelUI + SpellShowcaseUI 同时显示 [Phase=action Round=3 Turn=player]
-```
-
-## 🟡 [Medium][UI叠加] 第5局 (18:47:04)
-
-- 状态: Phase=action Round=3 Turn=player
-- 策略: RuneHoard
-- Seed: 2044789721
-- 详情:
-
-```
-SpellDuelUI + SpellShowcaseUI 同时显示 [Phase=action Round=3 Turn=player]
-```
-
-## 🟡 [Medium][UI叠加] 第5局 (18:47:05)
-
-- 状态: Phase=action Round=3 Turn=player
-- 策略: RuneHoard
-- Seed: 2044789721
-- 详情:
-
-```
-SpellDuelUI + SpellShowcaseUI 同时显示 [Phase=action Round=3 Turn=player]
-```
-
-## 🟡 [Medium][UI叠加] 第8局 (18:47:23)
-
-- 状态: Phase=action Round=2 Turn=player
-- 策略: Random
-- Seed: 2044789721
-- 详情:
-
-```
-SpellDuelUI + SpellShowcaseUI 同时显示 [Phase=action Round=2 Turn=player]
-```
-
-## 🟡 [Medium][UI叠加] 第8局 (18:47:23)
-
-- 状态: Phase=action Round=2 Turn=player
-- 策略: Random
-- Seed: 2044789721
-- 详情:
-
-```
-SpellDuelUI + SpellShowcaseUI 同时显示 [Phase=action Round=2 Turn=player]
-```
-
-## 🟡 [Medium][UI叠加] 第8局 (18:47:23)
-
-- 状态: Phase=action Round=2 Turn=player
-- 策略: Random
-- Seed: 2044789721
-- 详情:
-
-```
-SpellDuelUI + SpellShowcaseUI 同时显示 [Phase=action Round=2 Turn=player]
-```
-
-## 🟡 [Medium][UI叠加] 第8局 (18:47:23)
-
-- 状态: Phase=action Round=2 Turn=player
-- 策略: Random
-- Seed: 2044789721
-- 详情:
-
-```
-SpellDuelUI + SpellShowcaseUI 同时显示 [Phase=action Round=2 Turn=player]
-```
-
-## 🟡 [Medium][UI叠加] 第8局 (18:47:23)
-
-- 状态: Phase=action Round=2 Turn=player
-- 策略: Random
-- Seed: 2044789721
-- 详情:
-
-```
-SpellDuelUI + SpellShowcaseUI 同时显示 [Phase=action Round=2 Turn=player]
-```
-
-## 🟡 [Medium][UI叠加] 第8局 (18:47:23)
-
-- 状态: Phase=action Round=2 Turn=player
-- 策略: Random
-- Seed: 2044789721
-- 详情:
-
-```
-SpellDuelUI + SpellShowcaseUI 同时显示 [Phase=action Round=2 Turn=player]
-```
-
-## 🟡 [Medium][UI叠加] 第8局 (18:47:23)
-
-- 状态: Phase=action Round=2 Turn=player
-- 策略: Random
-- Seed: 2044789721
-- 详情:
-
-```
-SpellDuelUI + SpellShowcaseUI 同时显示 [Phase=action Round=2 Turn=player]
-```
-
-## 🟡 [Medium][UI叠加] 第8局 (18:47:23)
-
-- 状态: Phase=action Round=2 Turn=player
-- 策略: Random
-- Seed: 2044789721
-- 详情:
-
-```
-SpellDuelUI + SpellShowcaseUI 同时显示 [Phase=action Round=2 Turn=player]
-```
-
-## 🟡 [Medium][UI叠加] 第8局 (18:47:23)
-
-- 状态: Phase=action Round=2 Turn=player
-- 策略: Random
-- Seed: 2044789721
-- 详情:
-
-```
-SpellDuelUI + SpellShowcaseUI 同时显示 [Phase=action Round=2 Turn=player]
-```
-
-## 🟡 [Medium][UI叠加] 第8局 (18:47:23)
-
-- 状态: Phase=action Round=2 Turn=player
-- 策略: Random
-- Seed: 2044789721
-- 详情:
-
-```
-SpellDuelUI + SpellShowcaseUI 同时显示 [Phase=action Round=2 Turn=player]
-```
-
-## 🟡 [Medium][UI叠加] 第8局 (18:47:23)
-
-- 状态: Phase=action Round=2 Turn=player
-- 策略: Random
-- Seed: 2044789721
-- 详情:
-
-```
-SpellDuelUI + SpellShowcaseUI 同时显示 [Phase=action Round=2 Turn=player]
-```
-
-## 🟡 [Medium][UI叠加] 第8局 (18:47:23)
-
-- 状态: Phase=action Round=2 Turn=player
-- 策略: Random
-- Seed: 2044789721
-- 详情:
-
-```
-SpellDuelUI + SpellShowcaseUI 同时显示 [Phase=action Round=2 Turn=player]
-```
-
-## 🟡 [Medium][UI叠加] 第8局 (18:47:23)
-
-- 状态: Phase=action Round=2 Turn=player
-- 策略: Random
-- Seed: 2044789721
-- 详情:
-
-```
-SpellDuelUI + SpellShowcaseUI 同时显示 [Phase=action Round=2 Turn=player]
-```
-
-## 🟡 [Medium][UI叠加] 第8局 (18:47:23)
-
-- 状态: Phase=action Round=2 Turn=player
-- 策略: Random
-- Seed: 2044789721
-- 详情:
-
-```
-SpellDuelUI + SpellShowcaseUI 同时显示 [Phase=action Round=2 Turn=player]
-```
-
-## 🟡 [Medium][UI叠加] 第8局 (18:47:23)
-
-- 状态: Phase=action Round=2 Turn=player
-- 策略: Random
-- Seed: 2044789721
-- 详情:
-
-```
-SpellDuelUI + SpellShowcaseUI 同时显示 [Phase=action Round=2 Turn=player]
-```
-
-## 🟡 [Medium][UI叠加] 第8局 (18:47:23)
-
-- 状态: Phase=action Round=2 Turn=player
-- 策略: Random
-- Seed: 2044789721
-- 详情:
-
-```
-SpellDuelUI + SpellShowcaseUI 同时显示 [Phase=action Round=2 Turn=player]
-```
-
-## 🟡 [Medium][UI叠加] 第8局 (18:47:24)
-
-- 状态: Phase=action Round=3 Turn=enemy
-- 策略: Random
-- Seed: 2044789721
-- 详情:
-
-```
-SpellDuelUI + SpellShowcaseUI 同时显示 [Phase=action Round=3 Turn=enemy]
-```
-
-## 🟡 [Medium][UI叠加] 第8局 (18:47:24)
-
-- 状态: Phase=action Round=3 Turn=enemy
-- 策略: Random
-- Seed: 2044789721
-- 详情:
-
-```
-SpellDuelUI + SpellShowcaseUI 同时显示 [Phase=action Round=3 Turn=enemy]
-```
-
-## 🟡 [Medium][UI叠加] 第8局 (18:47:24)
-
-- 状态: Phase=end Round=4 Turn=player
-- 策略: Random
-- Seed: 2044789721
-- 详情:
-
-```
-SpellDuelUI + SpellShowcaseUI 同时显示 [Phase=end Round=4 Turn=player]
-```
-
-## 🟡 [Medium][UI叠加] 第8局 (18:47:24)
+<color=#0099bc><b>DOTWEEN ► </b></color>Target or field is missing/null () ► The object of type 'Material' has been destroyed but you are still trying to access it.
+Your script should either check if it is null or you should not destroy the object.
+
+  at (wrapper managed-to-native) UnityEngine.Material.SetFloatImpl(UnityEngine.Material,int,single)
+  at UnityEngine.Material.SetFloat (System.String name, System.Single value) [0x00008] in <8cdc7e7e8a17404287a8b220eb9eec72>:0 
+  at DG.Tweening.ShortcutExtensions+<>c__DisplayClass22_0.<DOFloat>b__1 (System.Single x) [0x00000] in D:\DG\_Develop\__UNITY_ASSETS\_Demigiant\__DOTween\_DOTween.Assembly\DOTween\ShortcutExtensions.cs:337 
+  at DG.Tweening.Plugins.FloatPlugin.EvaluateAndApply (DG.Tweening.Plugins.Options.FloatOptions options, DG.Tweening.Tween t, System.Boolean isRelative, DG.Tweening.Core.DOGetter`1[T] getter, DG.Tweening.Core.DOSetter`1[T] setter, System.Single elapsed, System.Single startValue, System.Single changeValue, System.Single duration, System.Boolean usingInversePosition, System.Int32 newCompletedSteps, DG.Tweening.Core.Enums.UpdateNotice updateNotice) [0x00084] in D:\DG\_Develop\__UNITY_ASSETS\_Demigiant\__DOTween\_DOTween.Assembly\DOTween\Plugins\FloatPlugin.cs:73 
+  at DG.Tweening.Core.TweenerCore`3[T1,T2,TPlugOptions].ApplyTween (System.Single prevPosition, System.Int32 prevCompletedLoops, System.Int32 newCompletedSteps, System.Boolean useInversePosition, DG.Tweening.Core.Enums.UpdateMode updateMode, DG.Tweening.Core.Enums.UpdateNotice updateNotice) [0x00030] in D:\DG\_Develop\__UNITY_ASSETS\_Demigiant\__DOTween\_DOTween.Assembly\DOTween\Core\TweenerCore.cs:261 
+
+
+UnityEngine.Debug:LogWarning (object)
+DG.Tweening.Core.Debugger:LogSafeModeCapturedError (object,DG.Tweening.Tween) (at D:/DG/_Develop/__UNITY_ASSETS/_Demigiant/__DOTween/_DOTween.Assembly/DOTween/Core/Debugger.cs:61)
+DG.Tweening.Core.TweenerCore`3<single, single, DG.Tweening.Plugins.Options.FloatOptions>:ApplyTween (single,int,int,bool,DG.Tweening.Core.Enums.UpdateMode,DG.Tweening.Core.Enums.UpdateNotice) (at D:/DG/_Develop/__UNITY_ASSETS/_Demigiant/__DOTween/_DOTween.Assembly/DOTween/Core/TweenerCore.cs:265)
+DG.Tweening.Tween:DoGoto (DG.Tweening.Tween,single,int,DG.Tweening.Core.Enums.UpdateMode) (at D:/DG/_Develop/__UNITY_ASSETS/_Demigiant/__DOTween/_DOTween.Assembly/DOTween/Tween.cs:266)
+DG.Tweening.Core.TweenManager:Goto (DG.Tweening.Tween,single,bool,DG.Tweening.Core.Enums.UpdateMode) (at D:/DG/_Develop/__UNITY_ASSETS/_Demigiant/__DOTween/_DOTween.Assembly/DOTween/Core/TweenManager.cs:803)
+DG.Tweening.Sequence:ApplyInternalCycle (DG.Tweening.Sequence,single,single,DG.Tweening.Core.Enums.UpdateMode,bool,bool,bool) (at D:/DG/_Develop/__UNITY_ASSETS/_Demigiant/__DOTween/_DOTween.Assembly/DOTween/Sequence.cs:369)
+DG.Tweening.Sequence:DoApplyTween (DG.Tweening.Sequence,single,int,int,bool,DG.Tweening.Core.Enums.UpdateMode) (at D:/DG/_Develop/__UNITY_ASSETS/_Demigiant/__DOTween/_DOTween.Assembly/DOTween/Sequence.cs:275)
+DG.Tweening.Sequence:ApplyTween (single,int,int,bool,DG.Tweening.Core.Enums.UpdateMode,DG.Tweening.Core.Enums.UpdateNotice) (at D:/DG/_Develop/__UNITY_ASSETS/_Demigiant/__DOTween/_DOTween.Assembly/DOTween/Sequence.cs:166)
+DG.Tweening.Tween:DoGoto (DG.Tweening.Tween,single,int,DG.Tweening.Core.Enums.UpdateMode) (at D:/DG/_Develop/__UNITY_ASSETS/_Demigiant/__DOTween/_DOTween.Assembly/DOTween/Tween.cs:266)
+DG.Tweening.Core.TweenManager:Update (DG.Tweening.Tween,single,single,bool) (at D:/DG/_Develop/__UNITY_ASSETS/_Demigiant/__DOTween/_DOTween.Assembly/DOTween/Core/TweenManager.cs:596)
+DG.Tweening.Core.TweenManager:Update (DG.Tweening.UpdateType,single,single) (at D:/DG/_Develop/__UNITY_ASSETS/_Demigiant/__DOTween/_DOTween.Assembly/DOTween/Core/TweenManager.cs:444)
+DG.Tweening.Core.DOTweenComponent:Update () (at D:/DG/_Develop/__UNITY_ASSETS/_Demigiant/__DOTween/_DOTween.Assembly/DOTween/Core/DOTweenComponent.cs:75)
+
+```
+
+## 🔵 [Low][Warning] 第1局 (09:47:57)
 
 - 状态: Phase=action Round=4 Turn=player
+- 策略: Greedy
+- Seed: 185190508
+- 详情:
+
+```
+<color=#0099bc><b>DOTWEEN ► </b></color>Target or field is missing/null () ► The object of type 'Material' has been destroyed but you are still trying to access it.
+Your script should either check if it is null or you should not destroy the object.
+
+  at (wrapper managed-to-native) UnityEngine.Material.SetFloatImpl(UnityEngine.Material,int,single)
+  at UnityEngine.Material.SetFloat (System.String name, System.Single value) [0x00008] in <8cdc7e7e8a17404287a8b220eb9eec72>:0 
+  at DG.Tweening.ShortcutExtensions+<>c__DisplayClass22_0.<DOFloat>b__1 (System.Single x) [0x00000] in D:\DG\_Develop\__UNITY_ASSETS\_Demigiant\__DOTween\_DOTween.Assembly\DOTween\ShortcutExtensions.cs:337 
+  at DG.Tweening.Plugins.FloatPlugin.EvaluateAndApply (DG.Tweening.Plugins.Options.FloatOptions options, DG.Tweening.Tween t, System.Boolean isRelative, DG.Tweening.Core.DOGetter`1[T] getter, DG.Tweening.Core.DOSetter`1[T] setter, System.Single elapsed, System.Single startValue, System.Single changeValue, System.Single duration, System.Boolean usingInversePosition, System.Int32 newCompletedSteps, DG.Tweening.Core.Enums.UpdateNotice updateNotice) [0x00084] in D:\DG\_Develop\__UNITY_ASSETS\_Demigiant\__DOTween\_DOTween.Assembly\DOTween\Plugins\FloatPlugin.cs:73 
+  at DG.Tweening.Core.TweenerCore`3[T1,T2,TPlugOptions].ApplyTween (System.Single prevPosition, System.Int32 prevCompletedLoops, System.Int32 newCompletedSteps, System.Boolean useInversePosition, DG.Tweening.Core.Enums.UpdateMode updateMode, DG.Tweening.Core.Enums.UpdateNotice updateNotice) [0x00030] in D:\DG\_Develop\__UNITY_ASSETS\_Demigiant\__DOTween\_DOTween.Assembly\DOTween\Core\TweenerCore.cs:261 
+
+
+UnityEngine.Debug:LogWarning (object)
+DG.Tweening.Core.Debugger:LogSafeModeCapturedError (object,DG.Tweening.Tween) (at D:/DG/_Develop/__UNITY_ASSETS/_Demigiant/__DOTween/_DOTween.Assembly/DOTween/Core/Debugger.cs:61)
+DG.Tweening.Core.TweenerCore`3<single, single, DG.Tweening.Plugins.Options.FloatOptions>:ApplyTween (single,int,int,bool,DG.Tweening.Core.Enums.UpdateMode,DG.Tweening.Core.Enums.UpdateNotice) (at D:/DG/_Develop/__UNITY_ASSETS/_Demigiant/__DOTween/_DOTween.Assembly/DOTween/Core/TweenerCore.cs:265)
+DG.Tweening.Tween:DoGoto (DG.Tweening.Tween,single,int,DG.Tweening.Core.Enums.UpdateMode) (at D:/DG/_Develop/__UNITY_ASSETS/_Demigiant/__DOTween/_DOTween.Assembly/DOTween/Tween.cs:266)
+DG.Tweening.Core.TweenManager:Goto (DG.Tweening.Tween,single,bool,DG.Tweening.Core.Enums.UpdateMode) (at D:/DG/_Develop/__UNITY_ASSETS/_Demigiant/__DOTween/_DOTween.Assembly/DOTween/Core/TweenManager.cs:803)
+DG.Tweening.Sequence:ApplyInternalCycle (DG.Tweening.Sequence,single,single,DG.Tweening.Core.Enums.UpdateMode,bool,bool,bool) (at D:/DG/_Develop/__UNITY_ASSETS/_Demigiant/__DOTween/_DOTween.Assembly/DOTween/Sequence.cs:369)
+DG.Tweening.Sequence:DoApplyTween (DG.Tweening.Sequence,single,int,int,bool,DG.Tweening.Core.Enums.UpdateMode) (at D:/DG/_Develop/__UNITY_ASSETS/_Demigiant/__DOTween/_DOTween.Assembly/DOTween/Sequence.cs:275)
+DG.Tweening.Sequence:ApplyTween (single,int,int,bool,DG.Tweening.Core.Enums.UpdateMode,DG.Tweening.Core.Enums.UpdateNotice) (at D:/DG/_Develop/__UNITY_ASSETS/_Demigiant/__DOTween/_DOTween.Assembly/DOTween/Sequence.cs:166)
+DG.Tweening.Tween:DoGoto (DG.Tweening.Tween,single,int,DG.Tweening.Core.Enums.UpdateMode) (at D:/DG/_Develop/__UNITY_ASSETS/_Demigiant/__DOTween/_DOTween.Assembly/DOTween/Tween.cs:266)
+DG.Tweening.Core.TweenManager:Update (DG.Tweening.Tween,single,single,bool) (at D:/DG/_Develop/__UNITY_ASSETS/_Demigiant/__DOTween/_DOTween.Assembly/DOTween/Core/TweenManager.cs:596)
+DG.Tweening.Core.TweenManager:Update (DG.Tweening.UpdateType,single,single) (at D:/DG/_Develop/__UNITY_ASSETS/_Demigiant/__DOTween/_DOTween.Assembly/DOTween/Core/TweenManager.cs:444)
+DG.Tweening.Core.DOTweenComponent:Update () (at D:/DG/_Develop/__UNITY_ASSETS/_Demigiant/__DOTween/_DOTween.Assembly/DOTween/Core/DOTweenComponent.cs:75)
+
+```
+
+## 🔵 [Low][Warning] 第1局 (09:48:02)
+
+- 状态: Phase=action Round=6 Turn=player
+- 策略: Greedy
+- Seed: 185190508
+- 详情:
+
+```
+<color=#0099bc><b>DOTWEEN ► </b></color>Target or field is missing/null () ► The object of type 'Material' has been destroyed but you are still trying to access it.
+Your script should either check if it is null or you should not destroy the object.
+
+  at (wrapper managed-to-native) UnityEngine.Material.SetFloatImpl(UnityEngine.Material,int,single)
+  at UnityEngine.Material.SetFloat (System.String name, System.Single value) [0x00008] in <8cdc7e7e8a17404287a8b220eb9eec72>:0 
+  at DG.Tweening.ShortcutExtensions+<>c__DisplayClass22_0.<DOFloat>b__1 (System.Single x) [0x00000] in D:\DG\_Develop\__UNITY_ASSETS\_Demigiant\__DOTween\_DOTween.Assembly\DOTween\ShortcutExtensions.cs:337 
+  at DG.Tweening.Plugins.FloatPlugin.EvaluateAndApply (DG.Tweening.Plugins.Options.FloatOptions options, DG.Tweening.Tween t, System.Boolean isRelative, DG.Tweening.Core.DOGetter`1[T] getter, DG.Tweening.Core.DOSetter`1[T] setter, System.Single elapsed, System.Single startValue, System.Single changeValue, System.Single duration, System.Boolean usingInversePosition, System.Int32 newCompletedSteps, DG.Tweening.Core.Enums.UpdateNotice updateNotice) [0x00084] in D:\DG\_Develop\__UNITY_ASSETS\_Demigiant\__DOTween\_DOTween.Assembly\DOTween\Plugins\FloatPlugin.cs:73 
+  at DG.Tweening.Core.TweenerCore`3[T1,T2,TPlugOptions].ApplyTween (System.Single prevPosition, System.Int32 prevCompletedLoops, System.Int32 newCompletedSteps, System.Boolean useInversePosition, DG.Tweening.Core.Enums.UpdateMode updateMode, DG.Tweening.Core.Enums.UpdateNotice updateNotice) [0x00030] in D:\DG\_Develop\__UNITY_ASSETS\_Demigiant\__DOTween\_DOTween.Assembly\DOTween\Core\TweenerCore.cs:261 
+
+ (后续同类消息已静默)
+UnityEngine.Debug:LogWarning (object)
+DG.Tweening.Core.Debugger:LogSafeModeCapturedError (object,DG.Tweening.Tween) (at D:/DG/_Develop/__UNITY_ASSETS/_Demigiant/__DOTween/_DOTween.Assembly/DOTween/Core/Debugger.cs:61)
+DG.Tweening.Core.TweenerCore`3<single, single, DG.Tweening.Plugins.Options.FloatOptions>:ApplyTween (single,int,int,bool,DG.Tweening.Core.Enums.UpdateMode,DG.Tweening.Core.Enums.UpdateNotice) (at D:/DG/_Develop/__UNITY_ASSETS/_Demigiant/__DOTween/_DOTween.Assembly/DOTween/Core/TweenerCore.cs:265)
+DG.Tweening.Tween:DoGoto (DG.Tweening.Tween,single,int,DG.Tweening.Core.Enums.UpdateMode) (at D:/DG/_Develop/__UNITY_ASSETS/_Demigiant/__DOTween/_DOTween.Assembly/DOTween/Tween.cs:266)
+DG.Tweening.Core.TweenManager:Goto (DG.Tweening.Tween,single,bool,DG.Tweening.Core.Enums.UpdateMode) (at D:/DG/_Develop/__UNITY_ASSETS/_Demigiant/__DOTween/_DOTween.Assembly/DOTween/Core/TweenManager.cs:803)
+DG.Tweening.Sequence:ApplyInternalCycle (DG.Tweening.Sequence,single,single,DG.Tweening.Core.Enums.UpdateMode,bool,bool,bool) (at D:/DG/_Develop/__UNITY_ASSETS/_Demigiant/__DOTween/_DOTween.Assembly/DOTween/Sequence.cs:369)
+DG.Tweening.Sequence:DoApplyTween (DG.Tweening.Sequence,single,int,int,bool,DG.Tweening.Core.Enums.UpdateMode) (at D:/DG/_Develop/__UNITY_ASSETS/_Demigiant/__DOTween/_DOTween.Assembly/DOTween/Sequence.cs:275)
+DG.Tweening.Sequence:ApplyTween (single,int,int,bool,DG.Tweening.Core.Enums.UpdateMode,DG.Tweening.Core.Enums.UpdateNotice) (at D:/DG/_Develop/__UNITY_ASSETS/_Demigiant/__DOTween/_DOTween.Assembly/DOTween/Sequence.cs:166)
+DG.Tweening.Tween:DoGoto (DG.Tweening.Tween,single,int,DG.Tweening.Core.Enums.UpdateMode) (at D:/DG/_Develop/__UNITY_ASSETS/_Demigiant/__DOTween/_DOTween.Assembly/DOTween/Tween.cs:266)
+DG.Tweening.Core.TweenManager:Update (DG.Tweening.Tween,single,single,bool) (at D:/DG/_Develop/__UNITY_ASSETS/_Demigiant/__DOTween/_DOTween.Assembly/DOTween/Core/TweenManager.cs:596)
+DG.Tweening.Core.TweenManager:Update (DG.Tweening.UpdateType,single,single) (at D:/DG/_Develop/__UNITY_ASSETS/_Demigiant/__DOTween/_DOTween.Assembly/DOTween/Core/TweenManager.cs:444)
+DG.Tweening.Core.DOTweenComponent:Update () (at D:/DG/_Develop/__UNITY_ASSETS/_Demigiant/__DOTween/_DOTween.Assembly/DOTween/Core/DOTweenComponent.cs:75)
+
+```
+
+## 🟡 [Medium][GC泄漏] 第3局 (09:48:39)
+
+- 状态: Phase=start Round=5 Turn=enemy
 - 策略: Random
-- Seed: 2044789721
+- Seed: 185190508
 - 详情:
 
 ```
-SpellDuelUI + SpellShowcaseUI 同时显示 [Phase=action Round=4 Turn=player]
+一局 GC 净增 28.8MB（起始 502MB → 结束 531MB），阈值 20MB
 ```
 
-## 🟡 [Medium][UI叠加] 第8局 (18:47:24)
+## 🟡 [Medium][Tween激增] 第12局 (09:51:21)
 
-- 状态: Phase=action Round=4 Turn=player
-- 策略: Random
-- Seed: 2044789721
+- 状态: Phase=end Round=6 Turn=enemy
+- 策略: Strategic
+- Seed: 185190508
 - 详情:
 
 ```
-SpellDuelUI + SpellShowcaseUI 同时显示 [Phase=action Round=4 Turn=player]
+活跃 tween 数 305（可能有 target destroyed 泄漏）
 ```
 
-## 🟡 [Medium][UI叠加] 第8局 (18:47:24)
+## 🟡 [Medium][Tween激增] 第18局 (09:53:13)
 
-- 状态: Phase=action Round=4 Turn=player
-- 策略: Random
-- Seed: 2044789721
+- 状态: Phase=awaken Round=1 Turn=enemy
+- 策略: Strategic
+- Seed: 185190508
 - 详情:
 
 ```
-SpellDuelUI + SpellShowcaseUI 同时显示 [Phase=action Round=4 Turn=player]
+活跃 tween 数 316（可能有 target destroyed 泄漏）
 ```
 
-## 🟡 [Medium][UI叠加] 第8局 (18:47:24)
+## 🟡 [Medium][Tween激增] 第18局 (09:53:25)
 
-- 状态: Phase=action Round=4 Turn=player
-- 策略: Random
-- Seed: 2044789721
+- 状态: Phase=end Round=7 Turn=enemy
+- 策略: Strategic
+- Seed: 185190508
 - 详情:
 
 ```
-SpellDuelUI + SpellShowcaseUI 同时显示 [Phase=action Round=4 Turn=player]
-```
-
-## 🟡 [Medium][UI叠加] 第8局 (18:47:26)
-
-- 状态: Phase=action Round=7 Turn=player
-- 策略: Random
-- Seed: 2044789721
-- 详情:
-
-```
-SpellDuelUI + SpellShowcaseUI 同时显示 [Phase=action Round=7 Turn=player]
-```
-
-## 🟡 [Medium][UI叠加] 第8局 (18:47:26)
-
-- 状态: Phase=action Round=7 Turn=player
-- 策略: Random
-- Seed: 2044789721
-- 详情:
-
-```
-SpellDuelUI + SpellShowcaseUI 同时显示 [Phase=action Round=7 Turn=player]
-```
-
-## 🟡 [Medium][UI叠加] 第8局 (18:47:26)
-
-- 状态: Phase=action Round=7 Turn=player
-- 策略: Random
-- Seed: 2044789721
-- 详情:
-
-```
-SpellDuelUI + SpellShowcaseUI 同时显示 [Phase=action Round=7 Turn=player]
-```
-
-## 🟡 [Medium][UI叠加] 第8局 (18:47:26)
-
-- 状态: Phase=action Round=7 Turn=player
-- 策略: Random
-- Seed: 2044789721
-- 详情:
-
-```
-SpellDuelUI + SpellShowcaseUI 同时显示 [Phase=action Round=7 Turn=player]
-```
-
-## 🟡 [Medium][UI叠加] 第9局 (18:47:29)
-
-- 状态: Phase=action Round=2 Turn=player
-- 策略: Suicidal
-- Seed: 2044789721
-- 详情:
-
-```
-SpellDuelUI + SpellShowcaseUI 同时显示 [Phase=action Round=2 Turn=player]
-```
-
-## 🟡 [Medium][UI叠加] 第9局 (18:47:29)
-
-- 状态: Phase=action Round=2 Turn=player
-- 策略: Suicidal
-- Seed: 2044789721
-- 详情:
-
-```
-SpellDuelUI + SpellShowcaseUI 同时显示 [Phase=action Round=2 Turn=player]
-```
-
-## 🟡 [Medium][UI叠加] 第9局 (18:47:29)
-
-- 状态: Phase=action Round=2 Turn=player
-- 策略: Suicidal
-- Seed: 2044789721
-- 详情:
-
-```
-SpellDuelUI + SpellShowcaseUI 同时显示 [Phase=action Round=2 Turn=player]
-```
-
-## 🟡 [Medium][GC泄漏] 第9局 (18:47:36)
-
-- 状态: Phase=start Round=11 Turn=player
-- 策略: Suicidal
-- Seed: 2044789721
-- 详情:
-
-```
-一局 GC 净增 77.6MB（起始 512MB → 结束 589MB），阈值 20MB
-```
-
-## 🟡 [Medium][UI叠加] 第10局 (18:47:40)
-
-- 状态: Phase=action Round=6 Turn=enemy
-- 策略: RuneHoard
-- Seed: 2044789721
-- 详情:
-
-```
-SpellDuelUI + SpellShowcaseUI 同时显示 [Phase=action Round=6 Turn=enemy]
-```
-
-## 🟡 [Medium][UI叠加] 第10局 (18:47:40)
-
-- 状态: Phase=action Round=6 Turn=enemy
-- 策略: RuneHoard
-- Seed: 2044789721
-- 详情:
-
-```
-SpellDuelUI + SpellShowcaseUI 同时显示 [Phase=action Round=6 Turn=enemy]
-```
-
-## 🟡 [Medium][UI叠加] 第10局 (18:47:40)
-
-- 状态: Phase=action Round=6 Turn=enemy
-- 策略: RuneHoard
-- Seed: 2044789721
-- 详情:
-
-```
-SpellDuelUI + SpellShowcaseUI 同时显示 [Phase=action Round=6 Turn=enemy]
-```
-
-## 🟡 [Medium][UI叠加] 第10局 (18:47:40)
-
-- 状态: Phase=end Round=7 Turn=player
-- 策略: RuneHoard
-- Seed: 2044789721
-- 详情:
-
-```
-SpellDuelUI + SpellShowcaseUI 同时显示 [Phase=end Round=7 Turn=player]
-```
-
-## 🟡 [Medium][UI叠加] 第10局 (18:47:40)
-
-- 状态: Phase=end Round=7 Turn=player
-- 策略: RuneHoard
-- Seed: 2044789721
-- 详情:
-
-```
-SpellDuelUI + SpellShowcaseUI 同时显示 [Phase=end Round=7 Turn=player]
-```
-
-## 🟡 [Medium][UI叠加] 第10局 (18:47:42)
-
-- 状态: Phase=action Round=8 Turn=enemy
-- 策略: RuneHoard
-- Seed: 2044789721
-- 详情:
-
-```
-SpellDuelUI + SpellShowcaseUI 同时显示 [Phase=action Round=8 Turn=enemy]
-```
-
-## 🟡 [Medium][UI叠加] 第10局 (18:47:42)
-
-- 状态: Phase=action Round=8 Turn=enemy
-- 策略: RuneHoard
-- Seed: 2044789721
-- 详情:
-
-```
-SpellDuelUI + SpellShowcaseUI 同时显示 [Phase=action Round=8 Turn=enemy]
-```
-
-## 🟡 [Medium][UI叠加] 第10局 (18:47:42)
-
-- 状态: Phase=action Round=8 Turn=enemy
-- 策略: RuneHoard
-- Seed: 2044789721
-- 详情:
-
-```
-SpellDuelUI + SpellShowcaseUI 同时显示 [Phase=action Round=8 Turn=enemy]
-```
-
-## 🟡 [Medium][UI叠加] 第10局 (18:47:42)
-
-- 状态: Phase=end Round=9 Turn=player
-- 策略: RuneHoard
-- Seed: 2044789721
-- 详情:
-
-```
-SpellDuelUI + SpellShowcaseUI 同时显示 [Phase=end Round=9 Turn=player]
-```
-
-## 🟡 [Medium][UI叠加] 第10局 (18:47:42)
-
-- 状态: Phase=end Round=9 Turn=player
-- 策略: RuneHoard
-- Seed: 2044789721
-- 详情:
-
-```
-SpellDuelUI + SpellShowcaseUI 同时显示 [Phase=end Round=9 Turn=player]
-```
-
-## 🟡 [Medium][UI叠加] 第10局 (18:47:42)
-
-- 状态: Phase=end Round=9 Turn=player
-- 策略: RuneHoard
-- Seed: 2044789721
-- 详情:
-
-```
-SpellDuelUI + SpellShowcaseUI 同时显示 [Phase=end Round=9 Turn=player]
-```
-
-## 🟡 [Medium][UI叠加] 第10局 (18:47:42)
-
-- 状态: Phase=end Round=9 Turn=player
-- 策略: RuneHoard
-- Seed: 2044789721
-- 详情:
-
-```
-SpellDuelUI + SpellShowcaseUI 同时显示 [Phase=end Round=9 Turn=player]
-```
-
-## 🟡 [Medium][UI叠加] 第10局 (18:47:42)
-
-- 状态: Phase=end Round=9 Turn=player
-- 策略: RuneHoard
-- Seed: 2044789721
-- 详情:
-
-```
-SpellDuelUI + SpellShowcaseUI 同时显示 [Phase=end Round=9 Turn=player]
-```
-
-## 🟡 [Medium][UI叠加] 第10局 (18:47:42)
-
-- 状态: Phase=end Round=9 Turn=player
-- 策略: RuneHoard
-- Seed: 2044789721
-- 详情:
-
-```
-SpellDuelUI + SpellShowcaseUI 同时显示 [Phase=end Round=9 Turn=player]
-```
-
-## 🟡 [Medium][UI叠加] 第10局 (18:47:42)
-
-- 状态: Phase=end Round=9 Turn=player
-- 策略: RuneHoard
-- Seed: 2044789721
-- 详情:
-
-```
-SpellDuelUI + SpellShowcaseUI 同时显示 [Phase=end Round=9 Turn=player]
+活跃 tween 数 320（可能有 target destroyed 泄漏）
 ```
 
