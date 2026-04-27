@@ -19,8 +19,8 @@
   <rect x="2" y="2" width="1916" height="1076" fill="none" stroke="#000" stroke-width="3"/>
 
   <!-- === ENEMY HAND (top fan, extends off-screen) === -->
-  <path class="hand" d="M 635 115 Q 960 -60 1285 115"/>
-  <text class="lbl-sm" x="960" y="40" text-anchor="middle">敌方手牌 EnemyHand (扇形)</text>
+  <path class="hand" d="M 635 -30 Q 960 190 1285 -30"/>
+  <text class="lbl-sm" x="960" y="175" text-anchor="middle">敌方手牌 EnemyHand (扇形)</text>
 
   <!-- === ENEMY HERO / LEGEND === -->
   <rect class="zone" x="262" y="42" width="118" height="154"/>
@@ -145,8 +145,41 @@
   <text class="lbl-tiny" x="1758" y="929" text-anchor="middle">PlayerDiscard</text>
 
   <!-- === PLAYER HAND (bottom fan) === -->
-  <path class="hand" d="M 635 952 Q 960 1140 1285 952"/>
-  <text class="lbl-sm" x="960" y="1060" text-anchor="middle">玩家手牌 PlayerHand (扇形)</text>
+  <path class="hand" d="M 635 1110 Q 960 890 1285 1110"/>
+  <text class="lbl-sm" x="960" y="905" text-anchor="middle">玩家手牌 PlayerHand (扇形)</text>
+
+  <!-- === SCORE TRACKS (9 circles each) === -->
+  <!-- Player track: left edge x 42-75, y 386-760 -->
+  <rect class="zone-dash" x="42" y="386" width="33" height="374"/>
+  <text class="lbl-tiny" x="16" y="380">玩家计分板</text>
+  <text class="lbl-tiny" x="16" y="392">(9槽)</text>
+  <g fill="none" stroke="#000" stroke-width="1.5">
+    <circle cx="58" cy="410" r="11"/>
+    <circle cx="58" cy="452" r="11"/>
+    <circle cx="58" cy="494" r="11"/>
+    <circle cx="58" cy="536" r="11"/>
+    <circle cx="58" cy="578" r="11"/>
+    <circle cx="58" cy="620" r="11"/>
+    <circle cx="58" cy="662" r="11"/>
+    <circle cx="58" cy="704" r="11"/>
+    <circle cx="58" cy="746" r="11"/>
+  </g>
+
+  <!-- Enemy track: right edge x 1845-1878, y 320-694 -->
+  <rect class="zone-dash" x="1845" y="320" width="33" height="374"/>
+  <text class="lbl-tiny" x="1820" y="314">敌方计分板</text>
+  <text class="lbl-tiny" x="1838" y="326">(9槽)</text>
+  <g fill="none" stroke="#000" stroke-width="1.5">
+    <circle cx="1861" cy="344" r="11"/>
+    <circle cx="1861" cy="386" r="11"/>
+    <circle cx="1861" cy="428" r="11"/>
+    <circle cx="1861" cy="470" r="11"/>
+    <circle cx="1861" cy="512" r="11"/>
+    <circle cx="1861" cy="554" r="11"/>
+    <circle cx="1861" cy="596" r="11"/>
+    <circle cx="1861" cy="638" r="11"/>
+    <circle cx="1861" cy="680" r="11"/>
+  </g>
 
   <!-- === AXIS HINTS === -->
   <text class="axis" x="8" y="14">Canvas 1920 × 1080</text>

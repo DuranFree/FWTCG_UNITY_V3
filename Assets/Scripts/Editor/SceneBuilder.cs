@@ -1695,8 +1695,9 @@ namespace FWTCG.Editor
             // Action buttons at bottom-right — expanded to fit 4 always-visible buttons
             // (Cancel + Confirm + EndTurn + React) without overlap
             var rt = go.AddComponent<RectTransform>();
-            rt.anchorMin = new Vector2(1538f/1920f, 1f - 999f/1080f);
-            rt.anchorMax = new Vector2(1646f/1920f, 1f - 854f/1080f);
+            // Anchored inside PlayerHand zone (y=952..1052) so buttons don't protrude above hand top
+            rt.anchorMin = new Vector2(1538f/1920f, 1f - 1052f/1080f);
+            rt.anchorMax = new Vector2(1646f/1920f, 1f - 952f/1080f);
             rt.offsetMin = Vector2.zero;
             rt.offsetMax = Vector2.zero;
 

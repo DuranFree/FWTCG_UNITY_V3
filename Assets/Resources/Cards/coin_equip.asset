@@ -11,7 +11,7 @@ MonoBehaviour:
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 17e2dcccae127ad4fba868ec0487bae7, type: 3}
   m_Name: coin_equip
-  m_EditorClassIdentifier:
+  m_EditorClassIdentifier: 
   _id: coin_equip
   _cardName: "\u786C\u5E01"
   _cost: 0
