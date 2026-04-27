@@ -212,16 +212,15 @@ namespace FWTCG.Editor
             var topBar = CreateTopBar(canvasGO.transform,
                 out var enemyRuneInfoText, out var enemyDeckInfoText);
 
-            // ── Enemy hand (Pencil: cards at y=-48 to y=106, peek from top edge)
-            // Unity anchor: yMin=0.902(=1-106/1080), yMax=1.0 — cards overflow top, fan visible
+            // ── Enemy hand (Pencil: zone y=0..200, x=635..1285)
+            // Unity anchor: yMin=1-200/1080=0.8148, yMax=1.0
             var enemyHandZone = new GameObject("EnemyHandZone");
             enemyHandZone.transform.SetParent(canvasGO.transform, false);
             {
                 var ehRT = enemyHandZone.AddComponent<RectTransform>();
-                // Pencil: enemy cards y=-115..-48, x=650..1273, cards 110×154
-                // Unity: yMin=1-106/1080=0.902, yMax=1+115/1080=1.107
-                ehRT.anchorMin = new Vector2(635f/1920f, 1f - 106f/1080f);
-                ehRT.anchorMax = new Vector2(1285f/1920f, 1f + 115f/1080f);
+                // Pencil: zone x=635..1285, y=0..200
+                ehRT.anchorMin = new Vector2(635f/1920f, 1f - 200f/1080f);
+                ehRT.anchorMax = new Vector2(1285f/1920f, 1f);
                 ehRT.offsetMin = Vector2.zero;
                 ehRT.offsetMax = Vector2.zero;
                 // Fan layout is driven by HandFanLayout / ApplyHandFan — no HLG needed
@@ -251,16 +250,15 @@ namespace FWTCG.Editor
                 out var bf1CardArt, out var bf2CardArt,
                 out var bf1Glow, out var bf2Glow);
 
-            // ── Player hand (Pencil: cards at y=952 to y=1106, peek from bottom edge)
-            // Unity anchor: yMin=0, yMax=0.12(=1-952/1080) — cards overflow bottom, fan visible
+            // ── Player hand (Pencil: zone y=880..1080, x=635..1285)
+            // Unity anchor: yMin=0.0, yMax=1-880/1080=0.1852
             var playerHandZone = new GameObject("PlayerHandZone");
             playerHandZone.transform.SetParent(canvasGO.transform, false);
             {
                 var phRT = playerHandZone.AddComponent<RectTransform>();
-                // Pencil: player cards y=952..1009, bottom at 1106..1163, x=644..1272
-                // Unity: yMin=1-1163/1080=-0.077, yMax=1-952/1080=0.119
-                phRT.anchorMin = new Vector2(635f/1920f, -0.077f);
-                phRT.anchorMax = new Vector2(1285f/1920f, 1f - 952f/1080f);
+                // Pencil: zone x=635..1285, y=880..1080
+                phRT.anchorMin = new Vector2(635f/1920f, 0f);
+                phRT.anchorMax = new Vector2(1285f/1920f, 1f - 880f/1080f);
                 phRT.offsetMin = Vector2.zero;
                 phRT.offsetMax = Vector2.zero;
                 // Fan layout is driven by HandFanLayout / ApplyHandFan — no HLG needed
@@ -375,9 +373,9 @@ namespace FWTCG.Editor
             var bf2PlayerUnits  = bf2Panel.Find("BF2PlayerUnits");
 
             // ── Pencil: BF Field Card & Standby zones (center gap, Canvas-absolute) ──
-            // BF0FieldCard: Pencil x=679,y=436,w=106,h=76
+            // BF0FieldCard: Pencil x=707,y=423,w=106,h=76
             var bf0FieldCard = CreateAnchoredZone(mainArea.transform, "BF0FieldCard",
-                679f/1920f, 785f/1920f, 1f-512f/1080f, 1f-436f/1080f);
+                707f/1920f, 813f/1920f, 1f-499f/1080f, 1f-423f/1080f);
             {
                 var img = bf0FieldCard.AddComponent<Image>();
                 img.color = new Color(0.031f, 0.063f, 0.102f, 0.9f); // #08101a
@@ -386,17 +384,17 @@ namespace FWTCG.Editor
                 CreateZoneBorderFrame(bf0FieldCard.transform, new Color(0.565f, 0.439f, 0.125f, 1f), 1f);
             }
 
-            // BF0Standby: Pencil x=696,y=546,w=72,h=100
+            // BF0Standby: Pencil x=724,y=550,w=72,h=100
             var bf0Standby = CreateAnchoredZone(mainArea.transform, "BF0Standby",
-                696f/1920f, 768f/1920f, 1f-646f/1080f, 1f-546f/1080f);
+                724f/1920f, 796f/1920f, 1f-650f/1080f, 1f-550f/1080f);
             {
                 CreateTwoLineLabel(bf0Standby.transform, "待命区", "STANDBY");
                 CreateDashedZoneBorderFrame(bf0Standby.transform, ZoneBorderColor);
             }
 
-            // BF1FieldCard: Pencil x=1135,y=436,w=106,h=76
+            // BF1FieldCard: Pencil x=1110,y=422,w=106,h=76
             var bf1FieldCard = CreateAnchoredZone(mainArea.transform, "BF1FieldCard",
-                1135f/1920f, 1241f/1920f, 1f-512f/1080f, 1f-436f/1080f);
+                1110f/1920f, 1216f/1920f, 1f-498f/1080f, 1f-422f/1080f);
             {
                 var img = bf1FieldCard.AddComponent<Image>();
                 img.color = new Color(0.031f, 0.063f, 0.102f, 0.9f);
@@ -404,9 +402,9 @@ namespace FWTCG.Editor
                 CreateZoneBorderFrame(bf1FieldCard.transform, new Color(0.565f, 0.439f, 0.125f, 1f), 1f);
             }
 
-            // BF1Standby: Pencil x=1152,y=546,w=72,h=100
+            // BF1Standby: Pencil x=1126,y=550,w=72,h=100
             var bf1Standby = CreateAnchoredZone(mainArea.transform, "BF1Standby",
-                1152f/1920f, 1224f/1920f, 1f-646f/1080f, 1f-546f/1080f);
+                1126f/1920f, 1198f/1920f, 1f-650f/1080f, 1f-550f/1080f);
             {
                 CreateTwoLineLabel(bf1Standby.transform, "待命区", "STANDBY");
                 CreateDashedZoneBorderFrame(bf1Standby.transform, ZoneBorderColor);
@@ -900,70 +898,70 @@ namespace FWTCG.Editor
             // ════════════════════════════════════════════════════════════
 
             // ── Score tracks (1.5× sized; Player pushed up, AI pushed down) ──
-            // Player: x=42..75 (33 wide), y=386..760 — pushed up 60
+            // Player: x=39..72 (33 wide), y=647..1021 (Pencil)
             playerScoreCircleImages = new Image[9];
             CreateScoreTrack(go.transform, "PlayerScoreTrack", true,
-                42f/1920f, 75f/1920f, 1f-760f/1080f, 1f-386f/1080f, playerScoreCircleImages);
+                39f/1920f, 72f/1920f, 1f-1021f/1080f, 1f-647f/1080f, playerScoreCircleImages);
 
-            // AI: x=1845..1878 (33 wide), y=320..694 — pushed down 60
+            // AI: x=1848..1881 (33 wide), y=61..435 (Pencil)
             enemyScoreCircleImages = new Image[9];
             CreateScoreTrack(go.transform, "EnemyScoreTrack", false,
-                1845f/1920f, 1878f/1920f, 1f-694f/1080f, 1f-320f/1080f, enemyScoreCircleImages);
+                1848f/1920f, 1881f/1920f, 1f-435f/1080f, 1f-61f/1080f, enemyScoreCircleImages);
 
             // ── ENEMY SIDE (top) — Pencil: 传说E(391,-48,118×154), 英雄E(262,-48,118×154) ──
             // Symmetric mirror of Player Hero/Legend (884..1038 around canvas center)
             var enemyLegendZone = CreatePlayerLegendZone(go.transform, "EnemyLegendZone",
-                false, 391f/1920f, 509f/1920f, 1f-196f/1080f, 1f-42f/1080f,
+                false, 384f/1920f, 502f/1920f, 1f-183f/1080f, 1f-29f/1080f,
                 out enemyLegendText, out _);
             enemyLegendZone.GetComponent<RectTransform>().anchoredPosition = new Vector2(0f, 1.2f);
 
             CreateHeroZone(go.transform, "EnemyHeroZone",
-                262f/1920f, 380f/1920f, 1f-196f/1080f, 1f-42f/1080f, out enemyHeroContainer);
+                255f/1920f, 373f/1920f, 1f-183f/1080f, 1f-29f/1080f, out enemyHeroContainer);
             ((RectTransform)enemyHeroContainer.parent).anchoredPosition = new Vector2(0f, 1.2f);
 
             // ── ENEMY DECK PILES (Pencil positions) ──
             // 符文堆E (left top): 92,73,138×195
             CreateDeckPile(go.transform, "EnemyRunePile", "符文堆",
-                92f/1920f, 230f/1920f, 1f-268f/1080f, 1f-73f/1080f, out enemyRunePileCount);
+                82f/1920f, 220f/1920f, 1f-265f/1080f, 1f-70f/1080f, out enemyRunePileCount);
 
             // 弃牌E (right top): 1689,73,139×195
             CreateDeckPile(go.transform, "EnemyDiscardPile", "弃牌",
-                1689f/1920f, 1828f/1920f, 1f-268f/1080f, 1f-73f/1080f, out enemyDiscardCount);
+                1697f/1920f, 1836f/1920f, 1f-266f/1080f, 1f-71f/1080f, out enemyDiscardCount);
 
             // 主牌堆E (right 2nd): 1689,274,139×195
             CreateDeckPile(go.transform, "EnemyMainPile", "主牌堆",
-                1689f/1920f, 1828f/1920f, 1f-469f/1080f, 1f-274f/1080f, out enemyDeckCount);
+                1697f/1920f, 1836f/1920f, 1f-467f/1080f, 1f-272f/1080f, out enemyDeckCount);
 
             // 放逐区E (left 2nd): 92,274,139×195
             CreateDeckPile(go.transform, "EnemyExilePile", "放逐区",
-                92f/1920f, 231f/1920f, 1f-469f/1080f, 1f-274f/1080f, out enemyExileCount);
+                82f/1920f, 221f/1920f, 1f-466f/1080f, 1f-271f/1080f, out enemyExileCount);
 
             // ── PLAYER SIDE (bottom) — Pencil: 英雄P(262,974,118×154), 传说P(391,974,118×154) ──
             CreateHeroZone(go.transform, "PlayerHeroZone",
-                262f/1920f, 380f/1920f, 1f-1038f/1080f, 1f-884f/1080f, out playerHeroContainer);
+                255f/1920f, 373f/1920f, 1f-1057f/1080f, 1f-903f/1080f, out playerHeroContainer);
             ((RectTransform)playerHeroContainer.parent).anchoredPosition = new Vector2(0f, -2.1f);
 
             var playerLegendZone = CreatePlayerLegendZone(go.transform, "PlayerLegendZone",
-                true, 391f/1920f, 509f/1920f, 1f-1038f/1080f, 1f-884f/1080f,
+                true, 386f/1920f, 504f/1920f, 1f-1057f/1080f, 1f-903f/1080f,
                 out playerLegendText, out legendSkillBtn);
             playerLegendZone.GetComponent<RectTransform>().anchoredPosition = new Vector2(0f, -2.3f);
 
             // ── PLAYER DECK PILES (Pencil positions) ──
             // 主牌堆P (right 3rd): 1689,616,139×195
             CreateDeckPile(go.transform, "PlayerMainPile", "主牌堆",
-                1689f/1920f, 1828f/1920f, 1f-811f/1080f, 1f-616f/1080f, out playerDeckCount);
+                1694f/1920f, 1833f/1920f, 1f-806f/1080f, 1f-611f/1080f, out playerDeckCount);
 
             // 符文堆P (left bottom): 92,820,138×195
             CreateDeckPile(go.transform, "PlayerRunePile", "符文堆",
-                92f/1920f, 230f/1920f, 1f-1015f/1080f, 1f-820f/1080f, out playerRunePileCount);
+                85f/1920f, 223f/1920f, 1f-1021f/1080f, 1f-826f/1080f, out playerRunePileCount);
 
             // 弃牌P (right bottom): 1689,820,139×195
             CreateDeckPile(go.transform, "PlayerDiscardPile", "弃牌",
-                1689f/1920f, 1828f/1920f, 1f-1015f/1080f, 1f-820f/1080f, out playerDiscardCount);
+                1695f/1920f, 1834f/1920f, 1f-1015f/1080f, 1f-820f/1080f, out playerDiscardCount);
 
             // 放逐区P (left 3rd): 92,616,139×195
             CreateDeckPile(go.transform, "PlayerExilePile", "放逐区",
-                92f/1920f, 231f/1920f, 1f-811f/1080f, 1f-616f/1080f, out playerExileCount);
+                84f/1920f, 223f/1920f, 1f-811f/1080f, 1f-616f/1080f, out playerExileCount);
 
             // ── Pencil: EnemyRunes 条带 (mirror of PlayerRunes 828..880 → 200..252) ────────────────
             var enemyRunesZone = CreateAnchoredZone(go.transform, "EnemyRunes",
@@ -998,9 +996,9 @@ namespace FWTCG.Editor
                 CreateRuneSlotRow(enemyRunesZone.transform, 12, false);
             }
 
-            // ── Pencil: EnemyBase 区域 (mirror of PlayerBase 666..826 → 254..414) ───────────────
+            // ── Pencil: EnemyBase 区域 (x=248..1672, y=254..380, h=126) ───────────────
             var enemyBaseZone = CreateAnchoredZone(go.transform, "EnemyBase",
-                248f/1920f, 1672f/1920f, 1f-414f/1080f, 1f-254f/1080f);
+                248f/1920f, 1672f/1920f, 1f-380f/1080f, 1f-254f/1080f);
             {
                 // Pencil: no background — gold border only (Image component not needed)
                 CreateZoneBorderFrame(enemyBaseZone.transform, ZoneBorderColor);
@@ -1029,9 +1027,9 @@ namespace FWTCG.Editor
                 lbl.transform.SetAsLastSibling();
             }
 
-            // ── Pencil: PlayerBase 区域 (y=666-826, x=248-1672) ──────────────
+            // ── Pencil: PlayerBase 区域 (x=248..1672, y=695..826, h=131) ──────────────
             var playerBaseZone = CreateAnchoredZone(go.transform, "PlayerBase",
-                248f/1920f, 1672f/1920f, 1f-826f/1080f, 1f-666f/1080f);
+                248f/1920f, 1672f/1920f, 1f-826f/1080f, 1f-695f/1080f);
             {
                 // Pencil: no background — gold border only (Image component not needed)
                 CreateZoneBorderFrame(playerBaseZone.transform, ZoneBorderColor);
@@ -1088,25 +1086,24 @@ namespace FWTCG.Editor
                 lbl.transform.SetAsLastSibling();
             }
 
-            // ── Battlefields (Pencil: BF0 x=280-632, BF1 x=1288-1640, y=416-652) ──
-            // Pencil: BF0 x=280-632, BF1 x=1288-1640, gap=656px in center for ring visibility
-            // BattlefieldsArea spans x=280-1640 (total 1360px). Each panel uses absolute anchors.
+            // ── Battlefields (Pencil: BF0 x=280-850, BF1 x=1069-1639, y=395-675) ──
+            // BattlefieldsArea spans x=280-1639 (total 1359px), y=395-675 (h=280). Each panel uses absolute anchors.
             var bfArea = CreateAnchoredZone(go.transform, "BattlefieldsArea",
-                280f/1920f, 1640f/1920f, 1f-652f/1080f, 1f-416f/1080f);
+                280f/1920f, 1639f/1920f, 1f-675f/1080f, 1f-395f/1080f);
             {
-                // BF1Panel = left (Pencil BF0: x=280-632, relative xMin=0, xMax=352/1360)
+                // BF1Panel = left (Pencil BF0: x=280-850, w=570, relative xMin=0, xMax=570/1359)
                 CreateBattlefieldPanel(bfArea.transform, "BF1Panel", "BF1EnemyUnits", "战场1", "BF1Label", "BF1PlayerUnits",
                     out bf1CtrlBadge, out bf1CtrlBadgeText, out bf1CardArt, out bf1Glow);
                 var bf1RT = bfArea.transform.Find("BF1Panel").GetComponent<RectTransform>();
                 bf1RT.anchorMin = new Vector2(0f, 0f);
-                bf1RT.anchorMax = new Vector2(352f/1360f, 1f);
+                bf1RT.anchorMax = new Vector2(570f/1359f, 1f);
                 bf1RT.offsetMin = Vector2.zero; bf1RT.offsetMax = Vector2.zero;
 
-                // BF2Panel = right (Pencil BF1: x=1288-1640, relative xMin=1008/1360, xMax=1)
+                // BF2Panel = right (Pencil BF1: x=1069-1639, w=570, relative xMin=789/1359, xMax=1)
                 CreateBattlefieldPanel(bfArea.transform, "BF2Panel", "BF2EnemyUnits", "战场2", "BF2Label", "BF2PlayerUnits",
                     out bf2CtrlBadge, out bf2CtrlBadgeText, out bf2CardArt, out bf2Glow);
                 var bf2RT = bfArea.transform.Find("BF2Panel").GetComponent<RectTransform>();
-                bf2RT.anchorMin = new Vector2(1008f/1360f, 0f);
+                bf2RT.anchorMin = new Vector2(789f/1359f, 0f);
                 bf2RT.anchorMax = new Vector2(1f, 1f);
                 bf2RT.offsetMin = Vector2.zero; bf2RT.offsetMax = Vector2.zero;
             }
@@ -4645,12 +4642,14 @@ namespace FWTCG.Editor
                 rowRT.offsetMax = Vector2.zero;
             }
 
-            // Pencil: strip=1424px wide, slot0 center-x=26px from strip-left, step=124px, slot=36×36
-            // RuneSlotRow full-width → half-width=712 → anchoredPosition.x = slotCenter - 712
-            const float HALF_W    = 712f;
-            const float SLOT_SIZE = 36f;
-            const float STEP      = 124f;
-            const float FIRST_CX  = 26f; // 8px margin + 18px half-slot
+            // Pencil: slot=30×30, strip center x=960
+            // ap.x = slot_center_x(canvas) - 960; ap.y = slot_center_y(canvas) - strip_center_y (Unity up)
+            const float SLOT_SIZE = 30f;
+            // Enemy: strip center y=226, slots at y=209 → ap.y=+2
+            float[] enemyApX = { -690f, -565f, -440f, -316f, -190f, -65f,  60f, 185f, 310f, 435f, 561f, 687f };
+            // Player: strip center y=854, slots at y=841-843 → ap.y varies -2..-4
+            float[] playerApX = { -692f, -567f, -440f, -316f, -190f, -65f,  61f, 186f, 310f, 436f, 561f, 687f };
+            float[] playerApY = {   -2f,   -2f,   -2f,   -2f,   -3f,  -2f,  -2f,  -4f,  -3f,  -3f,  -3f,  -3f };
 
             var knob = AssetDatabase.GetBuiltinExtraResource<Sprite>("UI/Skin/Knob.psd");
 
@@ -4663,7 +4662,9 @@ namespace FWTCG.Editor
                 slotRT.anchorMax = new Vector2(0.5f, 0.5f);
                 slotRT.pivot     = new Vector2(0.5f, 0.5f);
                 slotRT.sizeDelta = new Vector2(SLOT_SIZE, SLOT_SIZE);
-                slotRT.anchoredPosition = new Vector2(FIRST_CX + i * STEP - HALF_W, 0f);
+                float apX = isPlayer ? playerApX[i] : enemyApX[i];
+                float apY = isPlayer ? playerApY[i] : 2f;
+                slotRT.anchoredPosition = new Vector2(apX, apY);
 
                 // SlotBG — 始终可见的空槽圆圈（深色镂空效果）
                 var bg = new GameObject("SlotBG");
