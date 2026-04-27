@@ -301,10 +301,7 @@ namespace FWTCG.UI
             EnsureCardStackLayout(_bf1EnemyContainer);
             EnsureCardStackLayout(_bf2PlayerContainer);
             EnsureCardStackLayout(_bf2EnemyContainer);
-            // 符文区同用自适应叠加（够位置就不叠，放不下就按顺序重叠）
-            // 符文比较小：DefaultSpacing=2（紧凑），MinVisibleWidth=10（极度挤压也露 10px）
-            EnsureCardStackLayout(_playerRuneContainer, minVisibleWidth: 10f, defaultSpacing: 2f);
-            EnsureCardStackLayout(_enemyRuneContainer,  minVisibleWidth: 10f, defaultSpacing: 2f);
+            // 符文区改用绝对槽位定位，不再需要 CardStackLayout
             if (_gameOverPanel != null) _gameOverPanel.SetActive(false);
             if (_bannerPanel != null) _bannerPanel.SetActive(false);
             if (_endTurnButton != null) _endTurnButton.onClick.AddListener(HandleEndTurn);
@@ -883,13 +880,26 @@ namespace FWTCG.UI
             _runeHighlightRecycle.Clear();
         }
 
+        // RuneSlot_{i} 下可能有 SlotBG 和 rune prefab 子节点，Find("RuneCircle") 找不到孙级
+        private static Transform GetRuneCircleInSlot(Transform slot)
+        {
+            var direct = slot.Find("RuneCircle");
+            if (direct != null) return direct;
+            for (int c = 0; c < slot.childCount; c++)
+            {
+                var rc = slot.GetChild(c).Find("RuneCircle");
+                if (rc != null) return rc;
+            }
+            return null;
+        }
+
         /// <summary>
         /// Clears the RuneBorder glow on a single rune slot — Image transparent, Outline back to golden default.
         /// </summary>
         private void ResetRuneBorderGlow(int idx)
         {
             if (_playerRuneContainer == null || idx < 0 || idx >= _playerRuneContainer.childCount) return;
-            Transform circleT = _playerRuneContainer.GetChild(idx).Find("RuneCircle");
+            Transform circleT = GetRuneCircleInSlot(_playerRuneContainer.GetChild(idx));
             if (circleT == null) return;
             Transform borderT = circleT.Find("RuneBorder");
             if (borderT == null) return;
@@ -931,7 +941,7 @@ namespace FWTCG.UI
         private void SetRuneBorderGlow(int idx, Color outlineRGB, float alpha)
         {
             if (_playerRuneContainer == null || idx < 0 || idx >= _playerRuneContainer.childCount) return;
-            Transform circleT = _playerRuneContainer.GetChild(idx).Find("RuneCircle");
+            Transform circleT = GetRuneCircleInSlot(_playerRuneContainer.GetChild(idx));
             if (circleT == null) return;
             Transform borderT = circleT.Find("RuneBorder");
             if (borderT == null) return;
@@ -1732,68 +1742,66 @@ namespace FWTCG.UI
             if (container == null) return;
             if (runes == null) runes = new List<RuneInstance>();
 
-            // Count only rune children (skip structural: borders, labels, RuneRow)
-            var runeChildren = new List<Transform>();
-            for (int c = 0; c < container.childCount; c++)
-            {
-                var ch = container.GetChild(c);
-                // Rune prefabs have a "RuneCircle" child; structural elements don't
-                if (ch.Find("RuneCircle") != null || ch.GetComponent<FWTCG.UI.CardView>() != null)
-                    runeChildren.Add(ch);
-            }
-            int existing = runeChildren.Count;
             int needed = runes.Count;
 
-            // Remove excess rune objects
-            for (int i = existing - 1; i >= needed; i--)
-                Destroy(runeChildren[i].gameObject);
-
-            // Add missing rune objects
-            for (int i = existing; i < needed; i++)
+            for (int i = 0; i < container.childCount; i++)
             {
-                if (_runeButtonPrefab == null) break;
-                GameObject newGo = Instantiate(_runeButtonPrefab, container);
+                Transform slot = container.GetChild(i);
+                if (!slot.name.StartsWith("RuneSlot_")) continue;
 
-                // LayoutElement to prevent vertical stretching — 符文整体缩小 10% (46→41)
-                var le = newGo.AddComponent<LayoutElement>();
-                le.preferredWidth = 41f;
-                le.preferredHeight = 41f;
-                le.minWidth = 41f;
-                le.minHeight = 41f;
+                // 找槽内已有的符文 prefab（非 SlotBG 且含 RuneCircle）
+                Transform existingRune = null;
+                for (int c = 0; c < slot.childCount; c++)
+                {
+                    var ch = slot.GetChild(c);
+                    if (ch.name != "SlotBG" && GetRuneCircleInSlot(ch) != null)
+                    { existingRune = ch; break; }
+                }
 
-                // Ensure RuneCircle/RuneArt hierarchy exists (may be absent if prefab refs lost)
-                EnsureRuneCircle(newGo);
+                Transform slotBG = slot.Find("SlotBG");
 
-                // Entrance flash: scale-pop + bright white overlay fade
-                PlayRuneEntranceFlash(newGo);
-            }
+                if (i >= needed)
+                {
+                    // 空槽：移除符文、显示空槽背景
+                    if (existingRune != null) Destroy(existingRune.gameObject);
+                    if (slotBG != null) slotBG.gameObject.SetActive(true);
+                    continue;
+                }
 
-            // Re-collect rune children after add/remove
-            runeChildren.Clear();
-            for (int c = 0; c < container.childCount; c++)
-            {
-                var ch = container.GetChild(c);
-                if (ch.Find("RuneCircle") != null)
-                    runeChildren.Add(ch);
-            }
+                // 有符文：按需创建 prefab
+                if (existingRune == null)
+                {
+                    if (_runeButtonPrefab == null) continue;
+                    var newGo = Instantiate(_runeButtonPrefab, slot);
+                    var rt = newGo.GetComponent<RectTransform>();
+                    if (rt != null)
+                    {
+                        rt.anchorMin = Vector2.zero; rt.anchorMax = Vector2.one;
+                        rt.offsetMin = Vector2.zero; rt.offsetMax = Vector2.zero;
+                        rt.anchoredPosition = Vector2.zero;
+                    }
+                    // 槽位绝对定位，不需要 LayoutElement
+                    var le = newGo.GetComponent<LayoutElement>();
+                    if (le != null) Destroy(le);
+                    EnsureRuneCircle(newGo);
+                    PlayRuneEntranceFlash(newGo);
+                    existingRune = newGo.transform;
+                }
 
-            // Update all rune objects in-place
-            for (int i = 0; i < needed && i < runeChildren.Count; i++)
-            {
+                if (slotBG != null) slotBG.gameObject.SetActive(false);
+
+                // 更新符文视觉
                 int idx = i;
                 RuneInstance r = runes[i];
-                GameObject go = runeChildren[i].gameObject;
-                go.name = $"Rune_{r.RuneType}_{i}";
+                existingRune.gameObject.name = $"Rune_{r.RuneType}_{i}";
 
-                Transform circleT = go.transform.Find("RuneCircle");
+                Transform circleT = existingRune.Find("RuneCircle");
                 if (circleT != null)
                 {
-                    // Circle background color — always shows real rune state; border glow handles highlight
                     Image circleImg = circleT.GetComponent<Image>();
                     if (circleImg != null)
                         circleImg.color = r.Tapped ? GameColors.RuneTapped : GameColors.GetRuneColor(r.RuneType);
 
-                    // Art image
                     Transform artT = circleT.Find("RuneArt");
                     if (artT != null)
                     {
@@ -1806,7 +1814,6 @@ namespace FWTCG.UI
                         }
                     }
 
-                    // Tap button — clear old listeners, re-bind with current index
                     Button tapBtn = circleT.GetComponent<Button>();
                     if (tapBtn != null)
                     {
@@ -1816,7 +1823,6 @@ namespace FWTCG.UI
                         tapBtn.onClick.AddListener(() => _onRuneClicked?.Invoke(capturedTapIdx, false));
                     }
 
-                    // Label text
                     Transform labelT = circleT.Find("RuneTypeText");
                     if (labelT != null)
                     {
@@ -1828,14 +1834,12 @@ namespace FWTCG.UI
                         }
                     }
 
-                    // Right-click EventTrigger — clear old, re-bind
                     if (isPlayer)
                     {
                         var et = circleT.GetComponent<UnityEngine.EventSystems.EventTrigger>();
                         if (et == null)
                             et = circleT.gameObject.AddComponent<UnityEngine.EventSystems.EventTrigger>();
                         et.triggers.Clear();
-
                         var entry = new UnityEngine.EventSystems.EventTrigger.Entry();
                         entry.eventID = UnityEngine.EventSystems.EventTriggerType.PointerClick;
                         int capturedRecycleIdx = idx;

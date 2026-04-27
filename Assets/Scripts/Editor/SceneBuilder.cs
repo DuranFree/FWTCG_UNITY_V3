@@ -4631,7 +4631,7 @@ namespace FWTCG.Editor
         // ── Pencil: RUNES 条带圆形槽位行 ────────────────────────────────────
         private static void CreateRuneSlotRow(Transform parent, int count, bool isPlayer)
         {
-            // 居中容器，留出左侧标签空间
+            // RuneSlotRow 铺满整条符文带，使用绝对定位（无 LayoutGroup）
             var row = new GameObject("RuneSlotRow");
             row.transform.SetParent(parent, false);
             var rowTxt = row.AddComponent<Text>(); // dummy to get RT
@@ -4639,18 +4639,44 @@ namespace FWTCG.Editor
             var rowRT = row.GetComponent<RectTransform>();
             if (rowRT != null)
             {
-                rowRT.anchorMin = new Vector2(0.1f, 0f);
-                rowRT.anchorMax = new Vector2(0.95f, 1f);
-                rowRT.offsetMin = Vector2.zero; rowRT.offsetMax = Vector2.zero;
+                rowRT.anchorMin = Vector2.zero;
+                rowRT.anchorMax = Vector2.one;
+                rowRT.offsetMin = Vector2.zero;
+                rowRT.offsetMax = Vector2.zero;
             }
-            var hlg = row.AddComponent<HorizontalLayoutGroup>();
-            hlg.childControlWidth = false; hlg.childControlHeight = true;
-            hlg.childForceExpandWidth = false; hlg.childForceExpandHeight = false; // false→每槽按 LE preferredHeight=48，不拉伸成椭圆
-            hlg.childAlignment = TextAnchor.MiddleCenter;
-            hlg.spacing = -22f; // Pencil: step=26px, width=48px → overlap=22px
 
-            // No static slot circles — rune prefabs are added dynamically by RefreshRuneZone.
-            // The HLG on this row positions them automatically.
+            // Pencil: strip=1424px wide, slot0 center-x=26px from strip-left, step=124px, slot=36×36
+            // RuneSlotRow full-width → half-width=712 → anchoredPosition.x = slotCenter - 712
+            const float HALF_W    = 712f;
+            const float SLOT_SIZE = 36f;
+            const float STEP      = 124f;
+            const float FIRST_CX  = 26f; // 8px margin + 18px half-slot
+
+            var knob = AssetDatabase.GetBuiltinExtraResource<Sprite>("UI/Skin/Knob.psd");
+
+            for (int i = 0; i < count; i++)
+            {
+                var slot = new GameObject($"RuneSlot_{i}");
+                slot.transform.SetParent(row.transform, false);
+                var slotRT = slot.AddComponent<RectTransform>();
+                slotRT.anchorMin = new Vector2(0.5f, 0.5f);
+                slotRT.anchorMax = new Vector2(0.5f, 0.5f);
+                slotRT.pivot     = new Vector2(0.5f, 0.5f);
+                slotRT.sizeDelta = new Vector2(SLOT_SIZE, SLOT_SIZE);
+                slotRT.anchoredPosition = new Vector2(FIRST_CX + i * STEP - HALF_W, 0f);
+
+                // SlotBG — 始终可见的空槽圆圈（深色镂空效果）
+                var bg = new GameObject("SlotBG");
+                bg.transform.SetParent(slot.transform, false);
+                var bgRT = bg.AddComponent<RectTransform>();
+                bgRT.anchorMin = Vector2.zero; bgRT.anchorMax = Vector2.one;
+                bgRT.offsetMin = Vector2.zero; bgRT.offsetMax = Vector2.zero;
+                var bgImg = bg.AddComponent<Image>();
+                bgImg.sprite = knob;
+                bgImg.type   = Image.Type.Simple;
+                bgImg.color  = new Color(0.08f, 0.08f, 0.10f, 0.75f); // 深色空槽
+                bgImg.raycastTarget = false;
+            }
         }
 
         // ── Pencil: BASE 区域左右卡槽框（跳过中间手牌区 x=644-1276）──────────
